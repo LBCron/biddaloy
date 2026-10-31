@@ -199,19 +199,26 @@ describe('ReportDefinitionsService (integration)', () => {
       ['Classes', ['for-teachers']],
     ]);
 
+    // The school's ready-made reports are listed too; this test is about the three it made.
     const everything = await service.catalogue(admin);
-    expect(everything.flatMap((f) => f.reports.map((r) => r.key)).sort()).toEqual([
-      'admins-only',
-      'for-everyone',
-      'for-teachers',
-    ]);
+    const own = everything.flatMap((f) => f.reports.filter((r) => !r.system_template_key));
+    expect(own.map((r) => r.key).sort()).toEqual(['admins-only', 'for-everyone', 'for-teachers']);
+  });
+
+  it('a school with no ready-made reports gets them on first look, once', async () => {
+    const first = await service.catalogue(admin);
+    const keys = first.flatMap((f) => f.reports.map((r) => r.system_template_key));
+    expect(keys).toContain('student-list');
+    const again = await service.catalogue(admin);
+    expect(again.flatMap((f) => f.reports).length).toBe(first.flatMap((f) => f.reports).length);
   });
 
   it('an archived report leaves the catalogue and cannot be edited or published', async () => {
     const d = await service.createDraft(admin, dto('old'));
     await service.publish(admin, d.id);
     await service.archive(admin, d.id);
-    expect(await service.catalogue(admin)).toEqual([]);
+    const keys = (await service.catalogue(admin)).flatMap((f) => f.reports.map((r) => r.key));
+    expect(keys).not.toContain('old');
     await expect(service.updateDraft(admin, d.id, { name_en: 'x' })).rejects.toThrow('archived');
     await expect(service.publish(admin, d.id)).rejects.toThrow('archived');
   });

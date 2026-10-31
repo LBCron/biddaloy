@@ -124,14 +124,14 @@ export const studentsArea: SubjectAreaDef = {
       { enumValues: STATUSES },
     ),
     field('class', T.TEXT, 'c.name', 'c', { en: 'Class', bn: 'শ্রেণি' }),
-    // Sorting by class number keeps Class Six before Class Ten; it is not shown or split by.
+    // Sorting by class number keeps Class Six before Class Ten. A grouped report that wants that order splits by it too.
     field(
       'class_order',
       T.NUMBER,
       'c.numeric_grade',
       'c',
       { en: 'Class order', bn: 'শ্রেণির ক্রম' },
-      { filterable: false, groupable: false },
+      { filterable: false },
     ),
     field('section', T.TEXT, 'cs.section_name', 'cs', { en: 'Section', bn: 'শাখা' }),
     field('shift', T.TEXT, 'c.shift', 'c', { en: 'Shift', bn: 'শিফট' }),

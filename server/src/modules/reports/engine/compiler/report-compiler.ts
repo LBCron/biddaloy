@@ -183,8 +183,19 @@ export class ReportCompiler {
     for (const { measure, alias } of validated.measures)
       if (visible.has(alias)) addEntities(measure);
     for (const filter of validated.filters) addEntities(filter.field);
+    // A field can order the rows without being shown, if the role may see it and rows are not grouped.
+    const selected = new Set([
+      ...validated.dimensions.map((d) => d.field.key),
+      ...validated.measures.map((m) => m.alias),
+    ]);
+    const unselectedSorts = new Set(
+      validated.sorts
+        .filter((s) => s.field && !selected.has(s.key) && this.policy.fieldAllowed(ctx, s.field))
+        .map((s) => s.key),
+    );
     for (const sort of validated.sorts) {
-      if (sort.field && visible.has(sort.key)) addEntities(sort.field);
+      if (sort.field && (visible.has(sort.key) || unselectedSorts.has(sort.key)))
+        addEntities(sort.field);
     }
     for (const clause of scope) for (const alias of clause.aliases ?? []) referenced.add(alias);
 
@@ -198,6 +209,7 @@ export class ReportCompiler {
       scope,
       maxRows,
       extraParams: calculatedParams,
+      unselectedSorts,
     });
 
     const columns: CompiledColumn[] = [

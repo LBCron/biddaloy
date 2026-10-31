@@ -15,6 +15,7 @@ import {
 } from '@biddaloy/shared';
 import { AuditService } from '../../audit/audit.service';
 import { validateDefinition } from '../engine/compiler/validate-definition';
+import { seedSystemReports } from '../system/system-reports.seeder';
 import { ReportRegistry } from '../engine/registry/registry';
 import { ReportDefinitionVersion } from '../entities/report-definition-version.entity';
 import { ReportDefinition } from '../entities/report-definition.entity';
@@ -207,8 +208,27 @@ export class ReportDefinitionsService {
     return saved;
   }
 
+  /**
+   * A school made before the ready-made reports shipped has none yet: put them in on first look (D12).
+   * One lookup when they are there; a second caller racing us hits the unique key and loses harmlessly.
+   */
+  private async ensureSystemReports(tenantId: string): Promise<void> {
+    const has = await this.definitions
+      .createQueryBuilder('d')
+      .withDeleted()
+      .where('d.tenant_id = :tenantId AND d.system_template_key IS NOT NULL', { tenantId })
+      .getExists();
+    if (has) return;
+    try {
+      await seedSystemReports(this.definitions.manager, tenantId, null);
+    } catch (e) {
+      if ((e as { code?: string }).code !== '23505') throw e;
+    }
+  }
+
   /** What this role may run: published reports whose roles include theirs, grouped by folder. */
   async catalogue(viewer: DefinitionViewer): Promise<CatalogueFolderDto[]> {
+    await this.ensureSystemReports(viewer.tenantId);
     const qb = this.definitions
       .createQueryBuilder('d')
       .where('d.tenant_id = :tenantId AND d.deleted_at IS NULL', { tenantId: viewer.tenantId })
