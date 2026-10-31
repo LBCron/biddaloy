@@ -342,6 +342,14 @@ describe('MimsmsProvider', () => {
       expect(result.message).toBe('Could not reach the MimSMS API.');
     });
 
+    it('treats a 429 (rate limited, no JSON body) as unreachable, not a bad key', async () => {
+      answer(429, undefined);
+
+      const result = await gateway.testConnection(cfg);
+
+      expect(result).toEqual({ success: false, message: 'Could not reach the MimSMS API.' });
+    });
+
     it('returns success: false instead of throwing on a network error or timeout', async () => {
       vi.mocked(fetchPinnedJsonWithStatus).mockRejectedValueOnce(new Error('network down'));
 

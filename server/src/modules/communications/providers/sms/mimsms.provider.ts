@@ -143,12 +143,15 @@ export class MimsmsProvider extends MessagingProvider<ResolvedMimSmsConfig> {
       const destination = await assertSafeHttpDestination(BALANCE_URL);
       const params = new URLSearchParams({ api_key: config.apiKey });
       const url = `${BALANCE_URL}?${params.toString()}`;
-      // Status first (#3342): a vendor 5xx with a JSON body is an outage, not a bad key.
+      // Status first (#3342): a vendor 5xx with a JSON body is an outage, not a bad key. A 429
+      // (rate limited, RFC 6585) is temporary too, never "check the API key".
       const { status, body } = await fetchPinnedJsonWithStatus(destination, url, {
         method: 'GET',
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
-      if (status >= 500) return { success: false, message: 'Could not reach the MimSMS API.' };
+      if (status >= 500 || status === 429) {
+        return { success: false, message: 'Could not reach the MimSMS API.' };
+      }
       const data = body as Record<string, any>;
 
       if (status < 400 && data?.status === 'success') {
