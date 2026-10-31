@@ -211,5 +211,132 @@
       "thanks": "Thank you.",
       "error": "Could not send your answer."
     }
+  },
+  "designer": {
+    "picker": {
+      "title": "Pick what you need",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Search: name, class, fee…",
+      "found": "{{n}} found",
+      "noMatch": "Nothing found. Try another word.",
+      "empty": "There is nothing to choose from here",
+      "remove": "Remove",
+      "topics": {
+        "student": "Students",
+        "class": "Classes and sections",
+        "guardian": "Guardians",
+        "fee": "Fees",
+        "payment": "Payments",
+        "attendance": "Attendance",
+        "staff": "Staff",
+        "exam": "Public exams",
+        "other": "Other"
+      },
+      "trays": {
+        "show": "Show",
+        "split": "Split by",
+        "count": "Count / Add up"
+      },
+      "hints": {
+        "show": "Whatever you put here is shown in the report.",
+        "split": "The report is split by whatever you put here. For example, class.",
+        "count": "How many people or how much money goes here."
+      },
+      "lock": {
+        "PERSONAL": "Only people allowed to see students' personal details can see this",
+        "CONTACT": "Only people allowed to see contact details can see this",
+        "FINANCIAL": "Only people allowed to see fees and payments can see this",
+        "SENSITIVE": "Only the admin can see this"
+      }
+    },
+    "filter": {
+      "title": "Only those who…",
+      "add": "Add another condition",
+      "remove": "Remove this condition",
+      "empty": "No conditions, so everything is shown.",
+      "field": "Which detail",
+      "pickField": "Pick one",
+      "op": "How",
+      "value": "Value",
+      "from": "From",
+      "to": "To",
+      "and": "and",
+      "yes": "Yes",
+      "no": "No",
+      "textHint": "Separate several with commas",
+      "pickValues": "Pick one or more",
+      "notANumber": "Write a number",
+      "ask": "Ask when running",
+      "ops": {
+        "is": "is",
+        "isNot": "is not",
+        "more": "is more than",
+        "less": "is less than",
+        "between": "is between"
+      }
+    },
+    "params": {
+      "title": "What is asked when the report runs",
+      "labelBn": "Question (in Bangla)",
+      "labelEn": "Question (in English)",
+      "required": "An answer is required",
+      "startsAs": "Starts as",
+      "noDefault": "Nothing",
+      "from": "From",
+      "to": "To",
+      "dependsOn": "Depends on the answer to",
+      "dependsNone": "Nothing",
+      "types": {
+        "ACADEMIC_YEAR": "Academic year",
+        "CLASS": "Class",
+        "SECTION": "Section",
+        "DATE": "Date",
+        "DATE_RANGE": "Range of dates",
+        "ENUM": "One from a list",
+        "TEXT": "Text"
+      }
+    },
+    "layout": {
+      "title": "How it looks",
+      "suggested": "Suggested",
+      "manual": "You chose this yourself.",
+      "backToSuggestion": "Use the suggestion",
+      "options": {
+        "TABLE": "List",
+        "GROUPED": "Grouped",
+        "CROSSTAB": "Table of counts",
+        "CHART": "Chart"
+      },
+      "hints": {
+        "TABLE": "Every row, one after another",
+        "GROUPED": "In groups, with a total for each",
+        "CROSSTAB": "Counts split across rows and columns",
+        "CHART": "See how things change over time"
+      },
+      "reasons": {
+        "noSplit": "You have not split anything, so every row is shown in a list",
+        "noCount": "You picked a split but nothing to count, so a list is shown",
+        "dateSplit": "You split by date, so the change over time is shown as a chart",
+        "oneSplit": "You picked one split, so it is shown in groups with a total each",
+        "twoSplits": "You picked two splits, so a table of rows and columns is shown",
+        "twoSplitsManyCounts": "You picked two splits and several counts, so it is shown in groups to hide nothing",
+        "manySplits": "You picked three or more splits, so it is shown in groups"
+      }
+    },
+    "format": {
+      "title": "Colour a value when…",
+      "add": "Add another rule",
+      "remove": "Remove this rule",
+      "empty": "No colour rules.",
+      "if": "If",
+      "then": "then",
+      "tone": "Colour",
+      "tones": {
+        "good": "Green",
+        "warn": "Yellow",
+        "bad": "Red",
+        "muted": "Grey"
+      }
+    }
   }
 }

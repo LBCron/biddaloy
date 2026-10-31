@@ -224,6 +224,8 @@ export {
 } from './report-view';
 export { ReportCrosstab } from './report-view/report-crosstab';
 export { ReportChart } from './report-view/report-chart';
+// [8.15.39] The report designer's building blocks (field picker, filters, layout, colour rules).
+export * from './report-designer';
 export {
   StatusBadge,
   humanizeStatus,
