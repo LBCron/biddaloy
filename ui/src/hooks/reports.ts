@@ -196,61 +196,6 @@ export async function downloadListExport(
 }
 
 // ---------------------------------------------------------------------------
-// [8.15.54] Early BANBEIS student count (temporary — 8.15.32 replaces it)
-// ---------------------------------------------------------------------------
-
-export type StudentCountResponse = S['StudentCountDto'];
-export type StudentCountRow = S['StudentCountRowDto'];
-export type StaffCountRow = S['StaffCountRowDto'];
-
-export const studentCountKeys = createEntityKeys<{ academic_year_id?: string }>('student-count');
-
-/** `GET /reports/student-count` — the current year when no year is given. */
-export function studentCountQueryOptions(academicYearId?: string) {
-  return queryOptions({
-    queryKey: studentCountKeys.list(academicYearId ? { academic_year_id: academicYearId } : {}),
-    queryFn: async ({ signal }) => {
-      const res = await apiClient.get<StudentCountResponse>('/reports/student-count', {
-        params: academicYearId ? { academic_year_id: academicYearId } : {},
-        signal,
-      });
-      return res.data;
-    },
-    retry: shouldRetryQuery,
-  });
-}
-
-export function useStudentCount(academicYearId?: string) {
-  return useQuery(studentCountQueryOptions(academicYearId));
-}
-
-/** `GET /reports/student-count/export` — the class table or the staff table, as Excel or CSV. */
-export async function downloadStudentCountExport(options: {
-  academicYearId?: string;
-  format?: ListExportFormat;
-  table?: 'students' | 'staff';
-}): Promise<void> {
-  const format = options.format ?? 'xlsx';
-  const table = options.table ?? 'students';
-  const res = await apiClient.get<Blob>('/reports/student-count/export', {
-    params: {
-      ...(options.academicYearId ? { academic_year_id: options.academicYearId } : {}),
-      format: format.toUpperCase(),
-      table,
-    },
-    responseType: 'blob',
-  });
-  const blob = res.data instanceof Blob ? res.data : new Blob([res.data]);
-  saveBlob(
-    blob,
-    filenameFromContentDisposition(
-      res.headers['content-disposition'] as string | undefined,
-      `student-count-${table}.${format}`,
-    ),
-  );
-}
-
-// ---------------------------------------------------------------------------
 // [8.15.29] Reports hub and runner: the catalogue, one report's definition, a run, an export, and
 // the one-tap "was this useful?" answer.
 // ---------------------------------------------------------------------------

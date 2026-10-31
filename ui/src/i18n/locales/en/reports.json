@@ -85,52 +85,15 @@
   },
   "studentCount": {
     "title": "Student count (BANBEIS)",
-    "help": "Take the student numbers for the BANBEIS annual survey from here.",
-    "year": "Academic year {{year}}",
-    "change": "Change",
-    "changeLabel": "Change the academic year",
-    "loadError": "Could not load the student count.",
-    "noYear": {
-      "title": "No academic year chosen yet",
-      "explanation": "Choose a year with “Change” above to see its student count."
-    },
-    "noStudents": {
-      "title": "No students counted for this year",
-      "explanation": "Try another academic year with “Change” above."
-    },
-    "classes": {
-      "title": "Students by class",
-      "caption": "Students by class, gender and religion",
-      "class": "Class",
-      "total": "Total"
-    },
     "gender": {
       "MALE": "Boys",
       "FEMALE": "Girls",
       "OTHER": "Other"
     },
-    "notGiven": "Not given",
-    "hidden": "Hidden to protect privacy (fewer than 5)",
-    "hiddenNote": "— means the number is hidden because fewer than 5 students are counted there.",
-    "cardTotal": "Total {{n}}",
-    "staff": {
-      "title": "Teachers and staff",
-      "caption": "Teachers and staff by type",
-      "type": "Type",
-      "count": "People",
-      "total": "Total",
-      "TEACHING": "Teachers",
-      "NON_TEACHING": "Other staff",
-      "UNASSIGNED": "Not given"
-    },
-    "actions": {
-      "download": "Download to Excel",
-      "downloadStaff": "Download the teachers and staff table to Excel",
-      "print": "Print",
-      "downloadError": "The file could not be downloaded. Try again."
-    },
-    "print": {
-      "eiin": "EIIN"
+    "redirect": {
+      "loading": "Opening the student count…",
+      "notFoundTitle": "Student count report not found for your role",
+      "notFoundExplanation": "Your role cannot open this report. Ask an admin, or look through All reports."
     }
   },
   "prompts": {

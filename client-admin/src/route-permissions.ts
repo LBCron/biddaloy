@@ -227,8 +227,8 @@ export const STAFF_ROUTE_PERMISSIONS: Record<string, Permission> = {
   // `REPORT_COLLECTIONS_READ` gate (ADMIN/ACCOUNTANT/EXECUTIVE in
   // `ROLE_PERMISSIONS`), not the broader `REPORTS_VIEW`.
   '/_staff/reports/collections': Permission.REPORT_COLLECTIONS_READ,
-  // [8.15.54] Early BANBEIS head count — matches `GET /reports/student-count`'s own gate. COMMITTEE
-  // holds it too (counts only, cells under 5 hidden); the Excel download adds REPORTS_EXPORT.
+  // [8.15.50] `/reports/student-count` only redirects to the ready BANBEIS report (D23); the sidebar
+  // item keeps its gate. The report's own audience (visible roles) is the server's answer.
   '/_staff/reports/student-count': Permission.REPORTS_VIEW,
   // [8.15.29] The hub and the runner: `GET /reports/catalogue` and `POST /reports/run` are REPORTS_VIEW.
   // Each report's own visibility (visible roles) is the server's answer, not a second client gate.

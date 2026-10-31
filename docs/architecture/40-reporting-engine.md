@@ -125,16 +125,18 @@ A new `/reports/*` route with no snapshot line makes both fail in CI (`CI=1`). U
 
 ## 8. Waves
 
-| Wave | What lands                                                              |
-| ---- | ----------------------------------------------------------------------- |
-| 0    | This page                                                               |
-| 1    | Shared enums/types, five tables, export pipeline, six export-all routes |
-| 2    | Registry, compiler, queued export, Excel button, early BANBEIS (server) |
-| 3    | Security, subject areas, runner, definitions, routes, BANBEIS screen    |
-| 4    | Renderers, prompts, hub + runner, print, save a list as a report        |
-| 5–6  | System reports, demo seed, statement API, calculated fields             |
-| 7–8  | Statement screens, designer, formatting, drill-through                  |
-| 9–10 | Schedules, snapshots, widget, delivery UI, performance, guide, close    |
+| Wave | What lands                                                              | State                                       |
+| ---- | ----------------------------------------------------------------------- | ------------------------------------------- |
+| 0    | This page                                                               | Landed                                      |
+| 1    | Shared enums/types, five tables, export pipeline, six export-all routes | Landed                                      |
+| 2    | Registry, compiler, queued export, Excel button, early BANBEIS (server) | Landed                                      |
+| 3    | Security, subject areas, runner, definitions, routes, BANBEIS screen    | Landed                                      |
+| 4    | Renderers, prompts, hub + runner, print, save a list as a report        | Landed                                      |
+| 5–6  | System reports, demo seed, statement API, calculated fields             | Landed                                      |
+| 7–8  | Statement screens, designer, formatting, drill-through                  | Landed                                      |
+| 9–10 | Schedules, snapshots, widget, delivery UI, performance, guide, close    | Landed, except the human gates listed below |
+
+The human gates that are still open: the usability test (8.15.51), the full `ci:local` and e2e run on Node 24, filing the follow-ups (cross-branch counts, student category after Epic 72.0, RLS on a reporting role, more subject areas) and closing #378. The coded BANBEIS count is gone (D23): `/reports/student-count` only redirects to the ready report.
 
 ## 9. Learnings
 
@@ -153,3 +155,14 @@ Dated bullets: what surprised us, what it cost, the fix, and a rule worth keepin
 - **2026-10-31 — a schedule is one run per person, not one run for the group.** The download route only serves a run to the person who made it, so one shared run would give every recipient a 404. Worse, one file built with the creator's rights would hand an admin-only column to a narrower role. Fix: on each fire, every active person who holds a recipient role gets their own run, built with their own role, and the email carries a link only. Rule candidate: any "send to a group" feature builds the output once per reader.
 - **2026-10-31 — a snapshot is an export.** A snapshot copies a file out of the system, so it needs `REPORTS_EXPORT`, not `REPORTS_VIEW`, and it is readable only by its maker or an admin, checked on every list and every download. Its storage key is its own, so the export clean-up job never touches it.
 - **2026-10-31 — a timeout must leave a trace.** A screen run that hit the statement timeout wrote no run row, so the platform usage page could never count `REPORT_TOO_SLOW`. The runner now writes a failed row with that code.
+- **2026-10-31 — a temporary endpoint needs a redirect, not a delete.** The coded BANBEIS count ([8.15.53], [8.15.54]) gave schools their head count in Waves 2–3, weeks before the engine, and D23 said it would go. At the close it went: the server module (controller, service, dto, module, two specs, its import in `app.module.ts`) and two lines in each route snapshot. The screen did not go. `/reports/student-count` is now a small route that reads `GET /reports/catalogue`, finds the entry whose `system_template_key` is `student-count-banbeis`, and replaces itself with `/reports/<id>`. A bookmark, the sidebar item, the palette action and the dashboard card keep working, and a role that is not a reader of the report sees "report not found for your role". Rule candidate: a retired screen keeps its address and forwards.
+  ```mermaid
+  flowchart LR
+    B["bookmark, sidebar, palette"] --> R["/reports/student-count"]
+    R -->|"catalogue has system_template_key<br/>student-count-banbeis"| X["/reports/&lt;id&gt; (replace)"]
+    R -->|"not in this role's catalogue"| N["report not found for your role"]
+  ```
+- **2026-10-31 — compare before you delete; the replacement is narrower for non-admins.** The admin gets everything the coded screen had: the table with totals, the year question, links to the student list, the EIIN on the printed page, Excel, and the staff counts (as a second ready report, `staff-by-type-gender`). Other viewers get less: only a designer (ADMIN) can read a report's layout and questions, so they see a plain list for the current year, with no year choice and no links; print needs `DOCUMENT_PRINT`; religion is hidden from everyone but the admin; COMMITTEE cannot open the staff report. We retired anyway because every school has an admin who fills the BANBEIS form, and filed the rest as follow-ups: put `layout` and the questions in the run result so every viewer reads them, and decide who may see aggregated religion counts. Rule candidate: a retirement ticket lists who loses what.
+- **2026-10-31 — the file cap shapes the close.** A close ticket touches a lot, and a cap of 30 files forced choices. Deleting a guide page would have touched every page that links to it (five role pages in each language, the students page, the hub, `SUMMARY.md`, `coverage.json`, `features.json` and the help index). So the page stays and is rewritten ("open it from All reports; the old address forwards"), and the hub drops its teacher note. In the same way, the old screen's test file became the redirect's test file instead of being deleted and a new one added. Rule candidate: rewrite in place is one file, delete plus add is two; merge small test files; fold a guide page into the hub page only when nothing else links to it.
+- **2026-10-31 — dashboard cards live in the browser until there is a shared widget key.** The saved dashboard layout accepts only known widget keys from `shared/`, so a pinned report cannot be saved in it. "Show on my dashboard", "opened before" and "hide the useful-reports card" are kept in `localStorage` (`client-admin/src/dashboard/report-cards/report-prefs.ts`). Cost: they do not follow a person to another device. Fix: a shared widget key for "a report card" plus a server list of pins.
+- **2026-10-31 — `guide:impact` reads the whole PR, so the sources must move with the code.** Deleting the server module named in the student-count page's `sources`, and editing `-coded-reports.ts` (a source of the hub page), made both pages "touched code". The fix was to repoint `sources` at the files that now own the behaviour and update both pages in bn and en. A PR that really changes no screen carries one line, `User guide: not affected — <reason>`, for the whole PR; here no such line is needed because the pages changed.

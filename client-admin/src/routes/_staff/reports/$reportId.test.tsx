@@ -493,7 +493,10 @@ describe('/reports [8.15.29]', () => {
     renderHub('TEACHER');
 
     await screen.findByRole('heading', { level: 1, name: 'All reports' });
-    expect(page().getByRole('link', { name: 'Student count (BANBEIS)' })).toBeTruthy();
+    // The student count is a ready report now, so a teacher (not in its audience) no longer sees a card.
+    expect(page().queryByRole('link', { name: 'Student count (BANBEIS)' })).toBeNull();
+    // Attendance reports need ATTENDANCE_READ, which a teacher holds.
+    expect(page().getByRole('link', { name: 'Attendance reports' })).toBeTruthy();
     // Fee collection needs REPORT_COLLECTIONS_READ, which a teacher does not hold.
     expect(page().queryByRole('link', { name: 'Fee collection report' })).toBeNull();
     expect(page().queryByRole('link', { name: 'Application reports' })).toBeNull();

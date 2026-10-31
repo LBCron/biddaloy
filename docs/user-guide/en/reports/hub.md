@@ -540,7 +540,7 @@ Class and section go into the report by name, not by id. If a class is renamed, 
 
 **Related pages**
 
-- [**Student count (BANBEIS)**](student-count.md) — student numbers by class and gender, on its own page
+- [**Student count (BANBEIS)**](student-count.md) — how the sidebar item opens the ready BANBEIS report
 
 ---
 
