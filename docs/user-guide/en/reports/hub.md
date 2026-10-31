@@ -8,6 +8,11 @@ sources:
   - client-admin/src/routes/_staff/reports/$reportId.tsx
   - client-admin/src/routes/_staff/reports/new.tsx
   - client-admin/src/routes/_staff/reports/$reportId_.edit.tsx
+  - client-admin/src/routes/_staff/reports/-delivery/schedule-dialog.tsx
+  - client-admin/src/routes/_staff/reports/-delivery/snapshots-panel.tsx
+  - client-admin/src/routes/_staff/reports/runs.$runId.tsx
+  - client-admin/src/dashboard/report-cards/report-cards.tsx
+  - client-admin/src/dashboard/report-cards/report-prefs.ts
   - client-admin/src/routes/_staff/reports/-designer/start-screen.tsx
   - client-admin/src/routes/_staff/reports/-designer/designer-screen.tsx
   - client-admin/src/routes/_staff/reports/-designer/save-dialog.tsx
@@ -33,6 +38,12 @@ labels:
     common:export.*,
     common:saveAsReport.*,
     common:reportPrint.*,
+    reports:delivery.*,
+    reports:copies.*,
+    reports:pinned.*,
+    reports:usefulCard.*,
+    reports:landing.*,
+    reports:listHint.*,
     nav:items.allReports,
     nav:groups.reports,
   ]
@@ -58,7 +69,7 @@ Find every school report in one place, open it, download it to Excel, print it o
 
 This page shows the list of **reports**. The list holds two kinds. One kind is the **ready reports**: reports the school's admin has made. They open on this page and show their answer at once. The other kind has its own page, such as the [Fee collection report](collections-report.md). Pressing its card opens that report's own page. You only see the reports your role may open.
 
-[Find and open a report](#task-main) · [Change the choices](#task-answer) · [Download to Excel](#task-download) · [Print](#task-print) · [Say if it helped](#task-feedback) · [Keep as a report](#task-keep) · [Make a report](#task-design) · [Colours and links](#task-drill) · [Problems and fixes](#trouble)
+[Find and open a report](#task-main) · [Change the choices](#task-answer) · [Download to Excel](#task-download) · [Print](#task-print) · [Say if it helped](#task-feedback) · [Keep as a report](#task-keep) · [Make a report](#task-design) · [Colours and links](#task-drill) · [Email regularly](#task-email) · [Keep a copy](#task-copy) · [Show on the dashboard](#task-pin) · [Problems and fixes](#trouble)
 
 **On this page**
 
@@ -72,6 +83,11 @@ This page shows the list of **reports**. The list holds two kinds. One kind is t
   - [Keep a list as a report](#task-keep)
   - [Make a report](#task-design)
   - [Colours and links in a report](#task-drill)
+  - [Email a report regularly](#task-email)
+  - [Keep today's copy](#task-copy)
+  - [Show a report on your dashboard](#task-pin)
+  - [Reports you may need](#task-card)
+  - [The page the email link opens](#task-link)
   - [Star a favourite report](#task-favourite)
 - [Problems and fixes](#trouble)
 - [Who can do what](#roles)
@@ -109,12 +125,12 @@ This page shows the list of **reports**. The list holds two kinds. One kind is t
 
 ## How to know it worked <a href="#confirm" id="confirm"></a>
 
-| State                                              | How to tell                                                                                                                                          | What next                                        |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| **Changed on screen only**                         | You changed an answer in the choices form but did not press **Show report**. The result below is for the old choices                                 | Press **Show report**                            |
-| **Reached the school's system**                    | The result table has appeared. It was fetched live from the school's system and the grey placeholder is gone                                         | Read it, download or print if you need           |
-| **Reached the school's system** (kept as a report) | The **Kept as a report** message appeared. To check, open **All reports**; the new report is under **Ready reports**                                 | Press its card, or press **Open** in the message |
-| **Saved on this device**                           | Starred favourites and your "Was this report useful?" answer stay only in this browser, on this computer or phone. Another device will not show them | Nothing to do                                    |
+| State                                              | How to tell                                                                                                                                                                                                       | What next                                        |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| **Changed on screen only**                         | You changed an answer in the choices form but did not press **Show report**. The result below is for the old choices                                                                                              | Press **Show report**                            |
+| **Reached the school's system**                    | The result table has appeared. It was fetched live from the school's system and the grey placeholder is gone                                                                                                      | Read it, download or print if you need           |
+| **Reached the school's system** (kept as a report) | The **Kept as a report** message appeared. To check, open **All reports**; the new report is under **Ready reports**                                                                                              | Press its card, or press **Open** in the message |
+| **Saved on this device**                           | Starred favourites, reports you put on your dashboard, which reports you opened and your "Was this report useful?" answer stay only in this browser, on this computer or phone. Another device will not show them | Nothing to do                                    |
 
 ---
 
@@ -236,6 +252,8 @@ Only the admin gets this. It is not done on the **All reports** page; it is done
 
 > **Remember:** nothing is kept until you press **Keep as report**. The report does not hold that moment's rows; it holds the rules of the choices. Each time you open it, fresh data comes.
 
+**A tip on the lists.** On the Students and Dues lists, the third time you pick a filter in one visit, one quiet line appears under the buttons: **Need this often? Keep this as a report**. Press the link to open the same window, or press the X (**Hide this tip**) to hide it. It shows once for you on each list, and only to the admin. Typing in the search box does not count.
+
 ### Make a report <a href="#task-design" id="task-design"></a>
 
 Only the admin gets this. It is on the **New report** button at the top right of **All reports**, and in the Ctrl+K search as **New report**.
@@ -305,6 +323,109 @@ A report can colour numbers and can open the list of people behind a number. The
 
 A number that is hidden for privacy (shown as **—**) and a number that is 0 never have a link. Right now only the admin sees colours and links in a report, because only the admin can read a report's own layout ([Known issues](#known-issues)).
 
+### Email a report regularly <a href="#task-email" id="task-email"></a>
+
+Only the admin gets this. It is in the three-dots menu (**More actions**) at the top right of an open report.
+
+1. Open a report and set its choices the way you want them. Press **More actions**, then **Email this regularly**.
+
+   → The **Email this report regularly** window opens. It holds one sentence, for example **Every month on day 1 at 9:00 am, send to Admin**, with a box for each part you can change.
+
+2. Change the parts you want: how often (**day**, **week** or **month**), the day, the time (on the hour, from 6:00 am to 9:00 pm) and who gets it. It starts as every month, on day 1, at 9:00 am, to your own role. For a week the day box shows the days of the week; for a day there is no day box. The days of a month stop at 28, so every month has them.
+
+   → The sentence changes with your choices.
+
+3. Press **Start emailing**.
+
+   → **Done. … will get this report by email.** appears and the window closes.
+
+Everyone with that role gets their own email. It holds a link, not the file. They sign in and open the link, and the report is made fresh for them, with what their own role may see. The choices that were on screen when you pressed the button are used each time. Only the roles that may download reports are listed (the admin and the accountant).
+
+To stop an email, open **Email this regularly** again. Under **Already emailed regularly**, press **Stop** beside its sentence.
+
+| You press          | What happens                                                         | Saved? |
+| ------------------ | -------------------------------------------------------------------- | ------ |
+| **Start emailing** | The regular email is set up; the first one goes at the next set time | Yes    |
+| **Stop**           | That regular email ends                                              | Yes    |
+| **Cancel**         | Nothing changes                                                      | No     |
+
+### Keep today's copy <a href="#task-copy" id="task-copy"></a>
+
+The admin and the accountant get this. Use it for a report you must be able to show later exactly as it was, such as the BANBEIS count you sent.
+
+1. Open the report and wait for the result. Press **More actions**, then **Keep today's copy**. Until the result is there, the choice is grey.
+
+   → The **Keep today's copy** window opens.
+
+2. In **What is it for?** write a few words, for example **BANBEIS 2026 submission**. If you leave it empty, the report's name and the date are used.
+
+3. **Numbers as of** starts at today. Change it only if the numbers are for another day. A day in the future is not accepted.
+
+4. Press **Keep copy**.
+
+   → **Copy kept.** appears. Under the result a **Kept copies** list shows the date, what it is for and a **Download to Excel** button.
+
+A kept copy never changes and is not deleted. Months later, **Download to Excel** gives the same file. The **Kept copies** list shows only the copies of the report you have open, and only copies you made (the admin sees everyone's). It does not show at all while there are none.
+
+| You press             | What happens                       | Saved? |
+| --------------------- | ---------------------------------- | ------ |
+| **Keep copy**         | The copy is stored and listed      | Yes    |
+| **Download to Excel** | The kept file downloads, unchanged | No     |
+| **Cancel**            | Nothing is kept                    | No     |
+
+> **Remember:** the copy may hold student or staff names. Do not send it outside the school.
+
+### Show a report on your dashboard <a href="#task-pin" id="task-pin"></a>
+
+Everyone who has a dashboard and can open reports gets this. It is one click with no window.
+
+1. Open a report. Press **More actions**, then **Show on my dashboard**.
+
+   → **Shown on your dashboard.** appears.
+
+2. Open **Dashboard**.
+
+   → A card with the report's name sits above the other cards. It shows the report's first count for each row, up to 50 rows, with **Open the full report** under it.
+
+3. To take it off, press **Remove from my dashboard** on the card, or open the report and press **More actions**, then **Remove from my dashboard**.
+
+   → The card goes away.
+
+The card is made for your own role, so you see only what you may see. If a number is hidden to protect privacy, a line under the card says so. If one card cannot load, it says **This report could not be shown.** with **Try again**, and the rest of the dashboard works. A report that is no longer open to your role is skipped.
+
+Your reports on the dashboard stay in this browser only ([Saved on this device](#confirm)); on another computer you press **Show on my dashboard** again.
+
+### Reports you may need <a href="#task-card" id="task-card"></a>
+
+The admin, the accountant and the academic coordinator see this card on the **Dashboard**. It helps a new person find the first reports.
+
+1. Open **Dashboard** and look for the card **Reports you may need**.
+
+   → It lists up to three ready reports you have not opened yet, each with one line about it. The BANBEIS student count comes first when you have not opened it this academic year; then it says **Not opened this academic year yet.**
+
+2. Press a report's name.
+
+   → The report opens and runs at once.
+
+3. To hide the card for good, press **Hide this card** (the X).
+
+   → The card goes and does not come back.
+
+Once you have opened all the ready reports, the card goes away by itself. Which reports you opened, and whether you hid the card, stay in this browser only ([Saved on this device](#confirm)).
+
+### The page the email link opens <a href="#task-link" id="task-link"></a>
+
+A regular email holds a link such as `…/reports/runs/…`. Everyone who gets one signs in, then sees one of these:
+
+| What the page says                          | What it means                                         | What to do                                             |
+| ------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------ |
+| **Your report is being prepared**           | The file is not ready yet. The page updates by itself | Wait on the page                                       |
+| **Your report is ready**                    | The file is there                                     | Press **Download to Excel**                            |
+| **This file is no longer there**            | Files stay for 24 hours                               | Open the report from **All reports** for fresh numbers |
+| **This report could not be made**           | The report failed this time                           | Open the report and narrow the choices                 |
+| **We cannot find this file**                | It belongs to someone else, or it was removed         | Sign in with the account that got the email            |
+| **You can read this report on screen only** | Your role cannot take files out                       | Open the report, or ask the admin                      |
+
 ### Star a favourite report <a href="#task-favourite" id="task-favourite"></a>
 
 1. Press the star at the top right of a card (**Add … to favourites**).
@@ -338,6 +459,9 @@ Favourites stay in this browser only ([Saved on this device](#confirm)). If the 
 | **The report could not be kept. Nothing was saved. Try again.**                           | Press **Keep as report** again.                                                                                                                     | Admin        |
 | **The report was saved but could not be switched on. Try again.**                         | The report is made, only not switched on. The form is locked. Pressing **Keep as report** again does not make a new report; it only switches it on. | Admin        |
 | **We could not confirm whether this was saved. Check the list before trying again.**      | First open **All reports** and see whether the new report is there. If it is, do not keep it again.                                                 | Admin        |
+| **This report could not be shown.** (on a dashboard card)                                 | Press **Try again** on that card. The other cards stay.                                                                                             | Admin        |
+| **This could not be set up. Try again.**                                                  | Press **Start emailing** again. The same regular email is not set up twice.                                                                         | Admin        |
+| **The copy could not be kept. Try again.**                                                | Press **Keep copy** again. The same copy is not made twice.                                                                                         | Admin        |
 | **Could not send your answer.**                                                           | Press **Yes** or **Send** again.                                                                                                                    | —            |
 | **These two cannot be split together: … Take one away.**                                  | One of the names you put under **Show** cannot be counted beside a number. Take it out of **Show**, or take the **Count / Add up** away.            | Admin        |
 | **The result could not be fetched. Try again in a moment.**                               | The designer could not get the result. Change something or wait a moment; the old result stays on screen.                                           | Admin        |
@@ -361,6 +485,8 @@ Favourites stay in this browser only ([Saved on this device](#confirm)). If the 
 **New report:** only the admin can make a report, copy a ready report and change a report ([Make a report](#task-design)). The button is not shown to other roles.
 
 **Change choices and the report's own layout:** a report's layout (grouped list, table of counts, chart) and its questions come only to the admin. Others see the report in a plain table, with its starting choices. Printing follows the same rule.
+
+**Email regularly, keep a copy, show on the dashboard:** only the admin can email a report regularly. The admin and the accountant can keep today's copy and download it later. Anyone who has a dashboard and can open reports can show a report on it. The admin, the accountant and the academic coordinator see **Reports you may need** on the dashboard.
 
 ---
 

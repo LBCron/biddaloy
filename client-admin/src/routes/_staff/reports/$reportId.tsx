@@ -31,6 +31,12 @@
  * with the choices kept (`?from=`, accepted only when it is a path inside this app). Only a designer
  * reads the definition, so only a designer sees colours and links for now (see above).
  *
+ * [8.15.47] The More menu: "Email this regularly" (an admin; `-delivery/schedule-dialog.tsx`), "Keep today's
+ * copy" (whoever may take files out; `-delivery/snapshots-panel.tsx`, which also lists the kept copies under the
+ * result) and "Show on my dashboard" (one click, no dialog; the dashboard cards are in
+ * `client-admin/src/dashboard/report-cards/`). Opening a report is noted in this browser for the
+ * dashboard's "Reports you may need" card.
+ *
  * Words come from `reports.json` `runner.*` and `prompts.*` (the 8.15 glossary), and
  * `reportDesigner.json` for the designer, legend and link words.
  */
@@ -96,14 +102,27 @@ import { PageContainer, PageHeader } from '@biddaloy/ui/shells';
 import { formatNumber } from '@biddaloy/ui/utils';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { createFileRoute, useRouter, useRouterState } from '@tanstack/react-router';
-import { ArrowLeftIcon, PrinterIcon, ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
+import {
+  ArrowLeftIcon,
+  CopyCheckIcon,
+  LayoutDashboardIcon,
+  MailIcon,
+  PinOffIcon,
+  PrinterIcon,
+  ThumbsDownIcon,
+  ThumbsUpIcon,
+} from 'lucide-react';
 import * as React from 'react';
 import type { ComponentProps } from 'react';
 import { z } from 'zod';
 
+import { useOpenedReports, usePinnedReports } from '../../../dashboard/report-cards/report-prefs';
 import { loadRouteNamespaces, swallowUnlessOffline } from '../../../route-loaders';
 import { STAFF_ROUTE_PERMISSIONS } from '../../../route-permissions';
 import { isSameAppRedirect } from '../../../same-app-redirect';
+
+import { ScheduleDialog } from './-delivery/schedule-dialog';
+import { KeepCopyDialog, SnapshotsPanel } from './-delivery/snapshots-panel';
 
 const runnerSearchSchema = z.object({
   // The answers to the report's questions. Anything wrong in them is dropped when they are read.
@@ -117,7 +136,7 @@ export const Route = createFileRoute('/_staff/reports/$reportId')({
   loader: ({ context: { queryClient } }) =>
     Promise.all([
       queryClient.ensureQueryData(reportCatalogueQueryOptions()).catch(swallowUnlessOffline),
-      loadRouteNamespaces('reports', 'reportView', 'reportDesigner', 'common', 'nav'),
+      loadRouteNamespaces('reports', 'reportView', 'reportDesigner', 'common', 'nav', 'staff'),
     ]),
   pendingComponent: ReportRunnerPending,
   component: ReportRunnerPage,
@@ -162,12 +181,26 @@ function ReportRunner({ reportId }: { reportId: string }) {
   const canDesign = useHasPermission(Permission.REPORTS_DESIGN);
   const canExport = useHasPermission(Permission.REPORTS_EXPORT);
   const canPrint = useHasPermission(Permission.DOCUMENT_PRINT);
+  const canShowOnDashboard = useHasPermission(Permission.DASHBOARD_VIEW);
   const canReadStructure = useHasPermission(Permission.ACADEMIC_STRUCTURE_READ);
   const canOpenStudents = useHasPermission(STAFF_ROUTE_PERMISSIONS['/_staff/students/']!);
 
   const catalogue = useReportCatalogue();
   const entry = catalogue.data?.flatMap((folder) => folder.reports).find((r) => r.id === reportId);
   const name = entry ? (locale === 'bn' ? entry.name_bn : entry.name_en) || entry.name_en : '';
+
+  // [8.15.47] The dashboard's "Reports you may need" card asks which reports this person has opened.
+  const { markOpened } = useOpenedReports();
+  const pins = usePinnedReports();
+  const [emailOpen, setEmailOpen] = React.useState(false);
+  const [keepOpen, setKeepOpen] = React.useState(false);
+  const noted = React.useRef(false);
+  const isKnown = entry !== undefined;
+  React.useEffect(() => {
+    if (!isKnown || noted.current) return;
+    noted.current = true;
+    markOpened(reportId);
+  }, [isKnown, markOpened, reportId]);
 
   // The layout and the questions: only a designer may read the definition (see the file header).
   const definition = useReportDefinition(reportId, { enabled: canDesign && entry !== undefined });
@@ -282,6 +315,11 @@ function ReportRunner({ reportId }: { reportId: string }) {
 
   const result: ReportRunResponse | undefined = run.data;
   const ranParams = promptParams(parameters, ran ?? {});
+  const pinned = pins.isPinned(reportId);
+  function togglePin() {
+    pins.toggle(reportId);
+    toast.success(t(pinned ? 'delivery.pinToast.removed' : 'delivery.pinToast.added'));
+  }
 
   // ---- [8.15.42] links and colours --------------------------------------------------------------
   const reportOf = (key: string) =>
@@ -390,6 +428,36 @@ function ReportRunner({ reportId }: { reportId: string }) {
               allowed: canDesign && definition.data !== undefined,
               to: `/reports/${reportId}/edit`,
             },
+            // [8.15.47] In the More menu, in plain words (D21): no "schedule", "snapshot" or "widget".
+            {
+              id: 'email-regularly',
+              label: t('delivery.menu.email'),
+              icon: <MailIcon aria-hidden="true" />,
+              priority: 'tertiary',
+              allowed: canDesign,
+              onClick: () => setEmailOpen(true),
+            },
+            {
+              id: 'keep-copy',
+              label: t('delivery.menu.keep'),
+              icon: <CopyCheckIcon aria-hidden="true" />,
+              priority: 'tertiary',
+              allowed: canExport,
+              disabled: result === undefined,
+              onClick: () => setKeepOpen(true),
+            },
+            {
+              id: 'show-on-dashboard',
+              label: t(pinned ? 'delivery.menu.unpin' : 'delivery.menu.pin'),
+              icon: pinned ? (
+                <PinOffIcon aria-hidden="true" />
+              ) : (
+                <LayoutDashboardIcon aria-hidden="true" />
+              ),
+              priority: 'tertiary',
+              allowed: canShowOnDashboard,
+              onClick: togglePin,
+            },
           ]}
         />
 
@@ -496,7 +564,20 @@ function ReportRunner({ reportId }: { reportId: string }) {
             </>
           )}
         </section>
+
+        <SnapshotsPanel definitionId={reportId} enabled={canExport} />
       </div>
+      {canDesign && (
+        <ScheduleDialog
+          open={emailOpen}
+          onOpenChange={setEmailOpen}
+          definitionId={reportId}
+          params={ranParams}
+        />
+      )}
+      {canExport && result !== undefined && (
+        <KeepCopyDialog open={keepOpen} onOpenChange={setKeepOpen} runId={result.run_id} />
+      )}
     </PageContainer>
   );
 }

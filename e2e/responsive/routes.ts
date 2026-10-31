@@ -490,5 +490,10 @@ export async function resolvePath(
       '00000000-0000-4000-8000-000000000000';
     return route.path.replace('$reportId', id);
   }
+  if (route.path.includes('$runId')) {
+    // [8.15.47] The page a regular report email opens. A run is private to the person it was made
+    // for and no run is seeded, so this opens the real "we cannot find this file" screen.
+    return route.path.replace('$runId', '00000000-0000-4000-8000-000000000000');
+  }
   throw new Error(`no resolver for ${route.path}`);
 }

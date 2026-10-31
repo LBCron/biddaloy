@@ -338,5 +338,144 @@
         "muted": "Grey"
       }
     }
+  },
+  "delivery": {
+    "menu": {
+      "email": "Email this regularly",
+      "keep": "Keep today's copy",
+      "pin": "Show on my dashboard",
+      "unpin": "Remove from my dashboard"
+    },
+    "pinToast": {
+      "added": "Shown on your dashboard.",
+      "removed": "Removed from your dashboard."
+    },
+    "email": {
+      "title": "Email this report regularly",
+      "description": "Everyone with this role gets an email with a link to the report. They sign in to open it. The numbers are fresh each time.",
+      "legend": "When and to whom",
+      "sentence": {
+        "MONTHLY": "Every [[frequency]] on day [[day]] at [[time]], send to [[role]]",
+        "WEEKLY": "Every [[frequency]] on [[day]] at [[time]], send to [[role]]",
+        "DAILY": "Every [[frequency]] at [[time]], send to [[role]]"
+      },
+      "frequencyLabel": "How often",
+      "frequency": {
+        "DAILY": "day",
+        "WEEKLY": "week",
+        "MONTHLY": "month"
+      },
+      "dayOfWeekLabel": "Day of the week",
+      "dayOfMonthLabel": "Day of the month",
+      "weekdays": {
+        "0": "Sunday",
+        "1": "Monday",
+        "2": "Tuesday",
+        "3": "Wednesday",
+        "4": "Thursday",
+        "5": "Friday",
+        "6": "Saturday"
+      },
+      "timeLabel": "Time",
+      "time": "{{hour}}:00 {{period}}",
+      "periods": {
+        "morning": "am",
+        "noon": "pm",
+        "afternoon": "pm",
+        "evening": "pm",
+        "night": "pm"
+      },
+      "roleLabel": "Send to",
+      "save": "Start emailing",
+      "saved": "Done. {{role}} will get this report by email.",
+      "error": "This could not be set up. Try again.",
+      "existing": {
+        "title": "Already emailed regularly",
+        "stop": "Stop",
+        "stopLabel": "Stop: {{sentence}}",
+        "stopped": "Stopped.",
+        "stopError": "Could not stop it. Try again.",
+        "loadError": "The regular emails could not be loaded."
+      }
+    }
+  },
+  "copies": {
+    "keep": {
+      "title": "Keep today's copy",
+      "description": "A copy of this report as it is now. It never changes, and you can download it later.",
+      "whatFor": "What is it for?",
+      "whatForPlaceholder": "For example: BANBEIS 2026 submission",
+      "asOf": "Numbers as of",
+      "save": "Keep copy",
+      "saved": "Copy kept.",
+      "error": "The copy could not be kept. Try again."
+    },
+    "panel": {
+      "title": "Kept copies",
+      "date": "Date",
+      "forWhat": "What for",
+      "download": "Download to Excel",
+      "downloadLabel": "Download to Excel: {{label}}",
+      "downloadError": "The file could not be downloaded. Try again."
+    }
+  },
+  "pinned": {
+    "open": "Open the full report",
+    "remove": "Remove from my dashboard",
+    "error": "This report could not be shown.",
+    "empty": "Nothing to show yet.",
+    "truncated": "Showing the first {{n}} rows.",
+    "hidden": "Some numbers are hidden to protect privacy."
+  },
+  "usefulCard": {
+    "title": "Reports you may need",
+    "explanation": "Ready reports you have not opened yet.",
+    "open": "Open {{name}}",
+    "dismiss": "Hide this card",
+    "thisYear": "Not opened this academic year yet.",
+    "lines": {
+      "student-list": "Every current student with class, section and guardian phone.",
+      "student-count-banbeis": "How many students there are in each class, boys and girls, by religion.",
+      "staff-by-type-gender": "How many teachers and other staff there are, by designation.",
+      "public-exam-results": "For each public exam and year, how many students sat it and how many passed.",
+      "defaulters-guardian-contact": "Students with unpaid bills, how much is still owed, and who to call."
+    }
+  },
+  "landing": {
+    "back": "See all reports",
+    "retry": "Try again",
+    "loadError": "This page could not be loaded.",
+    "preparing": {
+      "title": "Your report is being prepared",
+      "explanation": "This page updates by itself. You can wait here."
+    },
+    "ready": {
+      "title": "Your report is ready",
+      "explanation": "Press the button to get the file. The link works for 24 hours."
+    },
+    "download": "Download to Excel",
+    "downloadFile": "Download the file",
+    "downloadError": "The file could not be downloaded. Try again.",
+    "expired": {
+      "title": "This file is no longer there",
+      "explanation": "Files are kept for 24 hours. Open the report again to get fresh numbers."
+    },
+    "failed": {
+      "title": "This report could not be made",
+      "explanation": "Open the report again and narrow the filters."
+    },
+    "notFound": {
+      "title": "We cannot find this file",
+      "explanation": "It may belong to someone else, or it was removed. Sign in with the account that got the email."
+    },
+    "noFile": {
+      "title": "You can read this report on screen only",
+      "explanation": "Your role cannot take the file out. Open the report, or ask your school admin."
+    }
+  },
+  "listHint": {
+    "question": "Need this often?",
+    "action": "Keep this as a report",
+    "dismiss": "Hide this tip"
   }
 }

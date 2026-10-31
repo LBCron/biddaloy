@@ -385,7 +385,13 @@
     "path": "reports/hub",
     "route": "/reports",
     "roles": ["ADMIN", "ACCOUNTANT", "TEACHER", "EXECUTIVE", "COMMITTEE"],
-    "routes": ["/reports", "/reports/$reportId", "/reports/$reportId/edit", "/reports/new"]
+    "routes": [
+      "/reports",
+      "/reports/$reportId",
+      "/reports/$reportId/edit",
+      "/reports/new",
+      "/reports/runs/$runId"
+    ]
   },
   {
     "id": "reports.collectionsReport",

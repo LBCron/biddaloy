@@ -93,6 +93,11 @@
       "archetype": "list"
     },
     {
+      "path": "/reports-usage",
+      "role": "super_admin",
+      "archetype": "list"
+    },
+    {
       "path": "/holiday-sets/$setId",
       "params": {
         "setId": "seeded"
@@ -813,6 +818,14 @@
       "path": "/reports/$reportId",
       "params": {
         "reportId": "seeded"
+      },
+      "role": "admin",
+      "archetype": "bespoke"
+    },
+    {
+      "path": "/reports/runs/$runId",
+      "params": {
+        "runId": "seeded"
       },
       "role": "admin",
       "archetype": "bespoke"

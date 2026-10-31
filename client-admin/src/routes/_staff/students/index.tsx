@@ -41,6 +41,7 @@ import { z } from 'zod';
 import { readVisibleColumns } from '../-save-as-report/list-to-definition';
 import { SaveAsReportDialog } from '../-save-as-report/save-as-report-dialog';
 import { useLandingFlag } from '../-use-landing-flag';
+import { ListReportHint } from '../../../components/list-report-hint';
 import { previewIdsNav } from '../../../components/print/preview-ids';
 import { loadRouteNamespaces, swallowUnlessOffline } from '../../../route-loaders';
 import { isSameAppRedirect } from '../../../same-app-redirect';
@@ -193,7 +194,7 @@ export const Route = createFileRoute('/_staff/students/')({
       // (empty) list — same permission-gated one-liner as
       // `students/import.tsx`, pointed the other direction.
       // 'staff' holds the role names the keep-as-report dialog lists.
-      loadRouteNamespaces('students', 'backup', 'staff', 'reportDesigner'),
+      loadRouteNamespaces('students', 'backup', 'staff', 'reportDesigner', 'reports'),
     ]),
   pendingComponent: StudentsListPending,
   component: StudentsListPage,
@@ -498,6 +499,17 @@ function StudentsListPage() {
     },
   ];
 
+  // The Export menu and the [8.15.55] tip both open the "keep as report" dialog with the shown columns.
+  function openKeepAsReport() {
+    setKeepAsReport({
+      columns: readVisibleColumns(
+        'students-list',
+        columns.map((column) => column.id),
+        DEFAULT_COLUMN_VISIBILITY,
+      ),
+    });
+  }
+
   return (
     <RegionConfigProvider value={regionConfig}>
       <CachedDataNotice queryKey={studentsQueryOptions(studentListFilters).queryKey} />
@@ -567,19 +579,9 @@ function StudentsListPage() {
                 downloadListExport('/students/export', studentListFilters, format)
               }
               onExportSelected={exportSelectedToCsv}
-              {...(canDesignReports
-                ? {
-                    onKeepAsReport: () =>
-                      setKeepAsReport({
-                        columns: readVisibleColumns(
-                          'students-list',
-                          columns.map((column) => column.id),
-                          DEFAULT_COLUMN_VISIBILITY,
-                        ),
-                      }),
-                  }
-                : {})}
+              {...(canDesignReports ? { onKeepAsReport: openKeepAsReport } : {})}
             />
+            <ListReportHint list="students" filters={state.filters} onKeep={openKeepAsReport} />
           </div>
         }
         filters={{ fields: filterFields, values: state.filters, onChange: handleFiltersChange }}

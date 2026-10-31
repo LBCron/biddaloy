@@ -16,6 +16,7 @@ import {
   CalendarRangeIcon,
   ChartColumnIcon,
   ChartLineIcon,
+  ChartNoAxesColumnIcon,
   ChartPieIcon,
   ClipboardCheckIcon,
   ClipboardListIcon,
@@ -142,6 +143,7 @@ export const PLATFORM_NAV_ICONS = {
   '/schools': Building2Icon,
   '/holiday-sets': TreePalmIcon,
   '/subscriptions': WalletCardsIcon,
+  '/reports-usage': ChartNoAxesColumnIcon,
 } as const;
 /** @alias */
 export const STAFF_PLATFORM_EXTRA_ICONS = PLATFORM_NAV_ICONS;

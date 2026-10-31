@@ -84,6 +84,7 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
     { label: { key: 'holidaySetDetail' }, dynamic: 'entity' },
   ],
   '/_platform/subscriptions/': [{ label: { key: 'subscriptions' } }],
+  '/_platform/reports-usage': [{ label: { key: 'reportsUsage' } }],
   '/_platform/schools/': [{ label: { key: 'schools' } }],
   '/_platform/schools/new': [{ label: { key: 'schools' } }, { label: { key: 'new' } }],
   '/_platform/schools/$schoolId': [
@@ -226,6 +227,12 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
   '/_staff/reports/$reportId': [
     { label: { key: 'allReports' } },
     { label: { key: 'reportDetail' }, dynamic: 'entity' },
+  ],
+  // [8.15.47] The page a regular report email opens: "All reports › Your report".
+  // The run has no name of its own to show, so the segment keeps the plain "Your report".
+  '/_staff/reports/runs/$runId': [
+    { label: { key: 'allReports' } },
+    { label: { key: 'reportRun' }, dynamic: 'entity' },
   ],
   // [8.15.41] "Reports › New" and "Reports › <name> › Edit".
   '/_staff/reports/new': [{ label: { key: 'allReports' } }, { label: { key: 'new' } }],

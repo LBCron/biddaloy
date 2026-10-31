@@ -293,6 +293,16 @@ export const PALETTE_ALLOW_LIST: readonly PaletteAllowListEntry[] = [
       "opened from the Export menu of the students, dues and payments lists, with that list's own filters; there is nothing to keep from the palette",
   },
   {
+    file: `${R}_staff/reports/-delivery/schedule-dialog.tsx`,
+    reason:
+      "opened from the More menu of one open report, for that report's own answers; there is no report to pick in the palette",
+  },
+  {
+    file: `${R}_staff/reports/-delivery/snapshots-panel.tsx`,
+    reason:
+      "the Keep today's copy dialog, opened from the More menu of one open report, for the result on screen",
+  },
+  {
     file: `${R}_staff/reports/-designer/save-dialog.tsx`,
     reason:
       "the designer's Save step, for the report being made on that screen; the palette action `reports.new` opens the designer itself",

@@ -4888,6 +4888,7 @@ export const HELP_ROUTES = {
   '/reports/$reportId': 'reports.hub',
   '/reports/$reportId/edit': 'reports.hub',
   '/reports/new': 'reports.hub',
+  '/reports/runs/$runId': 'reports.hub',
   '/reports/collections': 'reports.collectionsReport',
   '/reports/student-count': 'reports.studentCount',
   '/reports/printables': 'reports.printables',

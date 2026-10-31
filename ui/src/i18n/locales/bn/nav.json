@@ -126,7 +126,9 @@
     "reportDetail": "রিপোর্ট",
     "alertsReport": "সতর্কতা প্রতিবেদন",
     "portalHomework": "হোমওয়ার্ক",
-    "committeeReport": "মাসিক সভার রিপোর্ট"
+    "committeeReport": "মাসিক সভার রিপোর্ট",
+    "reportsUsage": "রিপোর্ট ব্যবহার",
+    "reportRun": "আপনার রিপোর্ট"
   },
   "groups": {
     "people": "ব্যক্তিবর্গ",

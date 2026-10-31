@@ -602,3 +602,220 @@ export function useCloneReportDefinition() {
     retry: false,
   });
 }
+
+// ---------------------------------------------------------------------------
+// [8.15.47] Email regularly, keep today's copy, the dashboard tile, the email landing page
+// ---------------------------------------------------------------------------
+
+export type ReportSchedule = S['ReportScheduleDto'];
+export type CreateReportScheduleInput = S['CreateReportScheduleDto'];
+export type ReportSnapshot = S['ReportSnapshotDto'];
+export type ReportSnapshotPage = S['ReportSnapshotPageDto'];
+export type ReportWidget = S['ReportWidgetDto'];
+export type ReportRunStatus = S['ReportRunStatusDto'];
+
+export const reportScheduleKeys = createEntityKeys<{ definitionId: string }>('report-schedules');
+export const reportSnapshotKeys = createEntityKeys<Record<string, never>>('report-snapshots');
+export const reportRunStatusKeys = createEntityKeys<Record<string, never>>('report-run-status');
+export const reportWidgetKeys = createEntityKeys<{ definitionId: string }>('report-widget');
+
+/** `GET /reports/definitions/:id/schedules` — the regular emails of one report (REPORTS_DESIGN, ADMIN). */
+export function useReportSchedules(definitionId: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: reportScheduleKeys.list({ definitionId }),
+    queryFn: async ({ signal }) => {
+      const res = await apiClient.get<ReportSchedule[]>(
+        `/reports/definitions/${definitionId}/schedules`,
+        { signal },
+      );
+      return res.data;
+    },
+    enabled: options.enabled !== false,
+    retry: shouldRetryQuery,
+  });
+}
+
+/**
+ * `POST /reports/definitions/:id/schedules` — email a link to some roles every day, week or month.
+ * Sends the plain fields only, never a cron (the server builds it). One `Idempotency-Key` per body,
+ * so a double click or a lost reply never makes a second one. Never retried.
+ */
+export function useCreateReportSchedule(definitionId: string) {
+  const queryClient = useQueryClient();
+  const { keyFor, rotate } = useIdempotencyKey();
+  return useMutation({
+    mutationFn: async (body: CreateReportScheduleInput) => {
+      const res = await apiClient.post<ReportSchedule>(
+        `/reports/definitions/${definitionId}/schedules`,
+        body,
+        { headers: { 'Idempotency-Key': keyFor(body) } },
+      );
+      return res.data;
+    },
+    onSuccess: () => {
+      rotate();
+      void queryClient.invalidateQueries({ queryKey: reportScheduleKeys.all });
+    },
+    meta: { handlesUnknownOutcome: true },
+    retry: false,
+  });
+}
+
+/** `DELETE /reports/definitions/:id/schedules/:scheduleId` — stop one regular email. */
+export function useDeleteReportSchedule(definitionId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (scheduleId: string) => {
+      await apiClient.delete(`/reports/definitions/${definitionId}/schedules/${scheduleId}`);
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: reportScheduleKeys.all }),
+    meta: { handlesUnknownOutcome: true },
+    retry: false,
+  });
+}
+
+/** The most one list read returns (the server's cap). */
+export const REPORT_SNAPSHOTS_LIMIT = 100;
+
+/**
+ * `GET /reports/snapshots` — every kept copy the caller may download, newest first (not only one
+ * report's: the screen filters by `definition_id`). Empty for a role that cannot take files out.
+ */
+export function useReportSnapshots(options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: reportSnapshotKeys.list(),
+    queryFn: async ({ signal }) => {
+      const res = await apiClient.get<ReportSnapshotPage>('/reports/snapshots', {
+        params: { limit: REPORT_SNAPSHOTS_LIMIT },
+        signal,
+      });
+      return res.data;
+    },
+    enabled: options.enabled !== false,
+    retry: shouldRetryQuery,
+  });
+}
+
+export interface KeepReportCopyInput {
+  runId: string;
+  /** What the copy is for, e.g. "BANBEIS 2026 submission". */
+  label?: string;
+  /** The date the numbers are as of, `YYYY-MM-DD`; the school's today when left out. */
+  asOf?: string;
+}
+
+/**
+ * `POST /reports/runs/:id/snapshot` — keep a copy of one of your own runs. It never expires. One
+ * `Idempotency-Key` per body; never retried.
+ */
+export function useKeepReportCopy() {
+  const queryClient = useQueryClient();
+  const { keyFor, rotate } = useIdempotencyKey();
+  return useMutation({
+    mutationFn: async ({ runId, label, asOf }: KeepReportCopyInput) => {
+      const body = {
+        ...(label?.trim() ? { label: label.trim() } : {}),
+        ...(asOf ? { as_of: asOf } : {}),
+      };
+      const res = await apiClient.post<ReportSnapshot>(`/reports/runs/${runId}/snapshot`, body, {
+        headers: { 'Idempotency-Key': keyFor({ runId, ...body }) },
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      rotate();
+      void queryClient.invalidateQueries({ queryKey: reportSnapshotKeys.all });
+    },
+    meta: { handlesUnknownOutcome: true },
+    retry: false,
+  });
+}
+
+async function saveDownload(path: string, fallbackName: string): Promise<void> {
+  const res = await apiClient.get<Blob>(path, { responseType: 'blob' });
+  const blob = res.data instanceof Blob ? res.data : new Blob([res.data]);
+  saveBlob(
+    blob,
+    filenameFromContentDisposition(
+      res.headers['content-disposition'] as string | undefined,
+      fallbackName,
+    ),
+  );
+}
+
+/** `GET /reports/snapshots/:id/download` — the kept file, exactly as it was kept. */
+export function downloadReportSnapshot(id: string): Promise<void> {
+  return saveDownload(`/reports/snapshots/${id}/download`, `report-copy-${id}.xlsx`);
+}
+
+/** `GET /reports/runs/:id/download` — the file of one of your finished runs, while it has not expired. */
+export function downloadReportRun(id: string): Promise<void> {
+  return saveDownload(`/reports/runs/${id}/download`, `report-${id}.xlsx`);
+}
+
+/**
+ * `GET /reports/runs/:id` — the status of one of your own runs. While it is queued or running it
+ * asks again every few seconds, then stops. A run that is not yours is a plain 404.
+ */
+export function useReportRunStatus(runId: string) {
+  return useQuery({
+    queryKey: reportRunStatusKeys.detail(runId),
+    queryFn: async ({ signal }) => {
+      const res = await apiClient.get<ReportRunStatus>(`/reports/runs/${runId}`, { signal });
+      return res.data;
+    },
+    refetchInterval: (query) =>
+      query.state.data?.status === 'QUEUED' || query.state.data?.status === 'RUNNING'
+        ? 3000
+        : false,
+    retry: shouldRetryQuery,
+  });
+}
+
+/**
+ * `GET /dashboard/widgets/report/:definitionId` — one report as a dashboard tile (its first count,
+ * at most 50 rows, run for the caller's own role). Asks again every five minutes, like every tile.
+ */
+export function useReportWidget(definitionId: string) {
+  return useQuery({
+    queryKey: reportWidgetKeys.list({ definitionId }),
+    queryFn: async ({ signal }) => {
+      const res = await apiClient.get<ReportWidget>(`/dashboard/widgets/report/${definitionId}`, {
+        signal,
+      });
+      return res.data;
+    },
+    refetchInterval: 5 * 60_000,
+    refetchOnWindowFocus: true,
+    retry: shouldRetryQuery,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// [8.15.55] The platform usage page (platform SUPER_ADMIN only, counts only)
+// ---------------------------------------------------------------------------
+
+export type PlatformReportUsage = S['PlatformReportUsageDto'];
+export type PlatformReportUsageRow = S['PlatformReportUsageRowDto'];
+
+export const platformReportUsageKeys = createEntityKeys<{ from?: string; to?: string }>(
+  'platform-report-usage',
+);
+
+/** `GET /platform/reports/usage` — per report: runs, schools, people, helpful share, friction counts. */
+export function usePlatformReportUsage(range: { from?: string; to?: string } = {}) {
+  return useQuery({
+    queryKey: platformReportUsageKeys.list(range),
+    queryFn: async ({ signal }) => {
+      const res = await apiClient.get<PlatformReportUsage>('/platform/reports/usage', {
+        params: {
+          ...(range.from ? { from: range.from } : {}),
+          ...(range.to ? { to: range.to } : {}),
+        },
+        signal,
+      });
+      return res.data;
+    },
+    retry: shouldRetryQuery,
+  });
+}

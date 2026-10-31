@@ -366,5 +366,46 @@
       "title": "Seats",
       "caption": "Seats bought, in use, and the payments behind them."
     }
+  },
+  "reportsUsage": {
+    "title": "How reports are used",
+    "subtitle": "Counts only. No student, guardian or money rows, and no names.",
+    "rangeLabel": "Period",
+    "range": {
+      "30": "Last 30 days",
+      "90": "Last 90 days",
+      "365": "Last year"
+    },
+    "sortNote": "The least helpful reports come first. Reports nobody has answered about come last.",
+    "caption": "How often each report is opened, and where people struggle",
+    "errorMessage": "The usage numbers could not be loaded.",
+    "retry": "Try again",
+    "emptyTitle": "No report was opened in this period",
+    "emptyExplanation": "Try a longer period.",
+    "columns": {
+      "report": "Report",
+      "runs": "Times opened",
+      "schools": "Schools",
+      "people": "People",
+      "helpful": "Found useful",
+      "slow": "Too slow",
+      "empty": "Nothing to show",
+      "big": "Large downloads",
+      "comments": "What people said"
+    },
+    "columnHelp": {
+      "big": "Downloads of more than 5,000 rows."
+    },
+    "custom": "Reports schools made themselves",
+    "names": {
+      "student-list": "Student list",
+      "student-count-banbeis": "Students by class and gender (BANBEIS)",
+      "staff-by-type-gender": "Teachers and staff by type",
+      "public-exam-results": "Public exam results",
+      "defaulters-guardian-contact": "Still owed, with guardian phone"
+    },
+    "helpfulNone": "No answers yet",
+    "noComments": "No comments",
+    "period": "{{from}} to {{to}}"
   }
 }

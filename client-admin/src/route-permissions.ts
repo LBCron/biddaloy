@@ -234,6 +234,8 @@ export const STAFF_ROUTE_PERMISSIONS: Record<string, Permission> = {
   // Each report's own visibility (visible roles) is the server's answer, not a second client gate.
   '/_staff/reports/': Permission.REPORTS_VIEW,
   '/_staff/reports/$reportId': Permission.REPORTS_VIEW,
+  // [8.15.47] The email landing page: `GET /reports/runs/:id` is REPORTS_VIEW; the file itself adds REPORTS_EXPORT.
+  '/_staff/reports/runs/$runId': Permission.REPORTS_VIEW,
   // [8.15.41] The designer: `POST /reports/definitions` and an inline preview run are REPORTS_DESIGN (ADMIN only, D9).
   '/_staff/reports/new': Permission.REPORTS_DESIGN,
   '/_staff/reports/$reportId_/edit': Permission.REPORTS_DESIGN,
