@@ -43,6 +43,13 @@ import { ReportRunLogService } from './report-run-log.service';
     ReportExportProcessor,
     ReportExportCleanupProcessor,
   ],
-  exports: [ReportExportService, ReportRunLogService, ReportRowSourceRegistry, ReportExportQueue],
+  exports: [
+    ReportExportService,
+    ReportRunLogService,
+    ReportRowSourceRegistry,
+    ReportExportQueue,
+    // [8.15.44] The schedule job writes each recipient's file with the same code a queued export uses.
+    ReportExportProcessor,
+  ],
 })
 export class ReportExportModule {}

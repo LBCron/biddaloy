@@ -12,6 +12,10 @@ import { StorageModule } from '../storage/storage.module';
 import { ReportDefinitionsController } from './report-definitions.controller';
 import { ReportDefinitionsService } from './definitions/report-definitions.service';
 import { ReportExportModule } from './export/report-export.module';
+import { ReportDeliveryModule } from './delivery/report-delivery.module';
+import { ReportDeliveryController } from './report-delivery.controller';
+import { PlatformReportUsageController } from './platform-report-usage.controller';
+import { PlatformReportUsageService } from './platform-report-usage.service';
 import { ReportMetaController } from './report-meta.controller';
 import { ReportRunsController } from './report-runs.controller';
 import {
@@ -43,16 +47,19 @@ import {
     DashboardModule,
     SchoolsModule,
     ReportExportModule,
+    ReportDeliveryModule,
     ReportEngineModule,
     StorageModule,
   ],
-  providers: [CollectionsReportService, ReportDefinitionsService],
+  providers: [CollectionsReportService, ReportDefinitionsService, PlatformReportUsageService],
   controllers: [
     ReportsController,
     ReportsDashboardController,
     ReportMetaController,
     ReportDefinitionsController,
     ReportRunsController,
+    ReportDeliveryController,
+    PlatformReportUsageController,
   ],
 })
 export class ReportsModule {}

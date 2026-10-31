@@ -234,6 +234,7 @@ GET    /api/v1/dashboard/widgets/print-queue                                    
 GET    /api/v1/dashboard/widgets/recent-activity                                 401 403 403 PASS 403 403 403 403 403 403 403 403
 GET    /api/v1/dashboard/widgets/recent-payments                                 401 403 403 PASS PASS 403 403 403 403 403 403 403
 GET    /api/v1/dashboard/widgets/reminders-pending                               401 403 403 PASS PASS 403 403 403 403 403 403 403
+GET    /api/v1/dashboard/widgets/report/:definitionId                            401 PASS PASS PASS PASS PASS 403 403 PASS 403 403 PASS
 GET    /api/v1/dashboard/widgets/results-state                                   401 403 403 PASS 403 403 403 403 PASS 403 PASS 403
 GET    /api/v1/dashboard/widgets/seat-plan-status                                401 403 403 PASS 403 403 403 403 403 403 PASS 403
 GET    /api/v1/dashboard/widgets/sms-balance                                     401 403 403 PASS 403 403 403 403 403 403 403 403
@@ -420,6 +421,7 @@ PUT    /api/v1/platform/holiday-sets/:id/entries                                
 POST   /api/v1/platform/holiday-sets/:id/publish                                 401 PASS 403 403 403 403 403 403 403 403 403 403
 POST   /api/v1/platform/holiday-sets/:id/unpublish                               401 PASS 403 403 403 403 403 403 403 403 403 403
 POST   /api/v1/platform/holiday-sets/fetch                                       401 PASS 403 403 403 403 403 403 403 403 403 403
+GET    /api/v1/platform/reports/usage                                            401 PASS 403 403 403 403 403 403 403 403 403 403
 POST   /api/v1/platform/schools/:id/preset/reset                                 401 PASS 403 403 403 403 403 403 403 403 403 403
 GET    /api/v1/portal/arrival-subscriptions                                      401 PASS PASS 403 403 403 PASS 403 403 403 403 403
 PUT    /api/v1/portal/arrival-subscriptions/:studentId                           401 PASS PASS 403 403 403 PASS 403 403 403 403 403
@@ -496,12 +498,19 @@ PATCH  /api/v1/reports/definitions/:id                                          
 POST   /api/v1/reports/definitions/:id/archive                                   401 PASS PASS PASS 403 403 403 403 403 403 403 403
 POST   /api/v1/reports/definitions/:id/clone                                     401 PASS PASS PASS 403 403 403 403 403 403 403 403
 POST   /api/v1/reports/definitions/:id/publish                                   401 PASS PASS PASS 403 403 403 403 403 403 403 403
+GET    /api/v1/reports/definitions/:id/schedules                                 401 PASS PASS PASS 403 403 403 403 403 403 403 403
+POST   /api/v1/reports/definitions/:id/schedules                                 401 PASS PASS PASS 403 403 403 403 403 403 403 403
+DELETE /api/v1/reports/definitions/:id/schedules/:scheduleId                     401 PASS PASS PASS 403 403 403 403 403 403 403 403
+PATCH  /api/v1/reports/definitions/:id/schedules/:scheduleId                     401 PASS PASS PASS 403 403 403 403 403 403 403 403
 GET    /api/v1/reports/meta                                                      401 PASS PASS PASS 403 403 403 403 403 403 403 403
 POST   /api/v1/reports/run                                                       401 PASS PASS PASS PASS PASS 403 403 PASS 403 403 PASS
 GET    /api/v1/reports/runs/:id                                                  401 PASS PASS PASS PASS PASS 403 403 PASS 403 403 PASS
 GET    /api/v1/reports/runs/:id/download                                         401 PASS PASS PASS PASS 403 403 403 403 403 403 403
 POST   /api/v1/reports/runs/:id/feedback                                         401 PASS PASS PASS PASS PASS 403 403 PASS 403 403 PASS
+POST   /api/v1/reports/runs/:id/snapshot                                         401 PASS PASS PASS PASS 403 403 403 403 403 403 403
 POST   /api/v1/reports/runs/export                                               401 PASS PASS PASS PASS 403 403 403 403 403 403 403
+GET    /api/v1/reports/snapshots                                                 401 PASS PASS PASS PASS PASS 403 403 PASS 403 403 PASS
+GET    /api/v1/reports/snapshots/:id/download                                    401 PASS PASS PASS PASS 403 403 403 403 403 403 403
 GET    /api/v1/reports/student-count                                             401 PASS PASS PASS PASS PASS 403 403 PASS 403 403 PASS
 GET    /api/v1/reports/student-count/export                                      401 PASS PASS PASS PASS 403 403 403 403 403 403 403
 GET    /api/v1/routines                                                          401 PASS PASS PASS 403 PASS PASS PASS PASS PASS PASS 403
