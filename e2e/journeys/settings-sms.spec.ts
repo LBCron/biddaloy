@@ -20,6 +20,9 @@ import { makeT } from '../i18n';
  * `keyboard/organisation-structure.spec.ts`): saving a stub-backed company onto the shared seeded
  * school could change what another worker's spec sends, and a failed run would leave it pointed
  * at a closed stub. A throwaway school needs no cleanup.
+ * Local runs: Playwright starts the API with the seam when :3000 is free. A dev server already on
+ * :3000 is reused as is, so start it with `NODE_ENV=test OUTBOUND_TEST_ALLOW_LOOPBACK=true` or stop
+ * it first, or every stub call is refused. CI never reuses a server.
  */
 const t = makeT('en');
 const phone = '01712345678';
