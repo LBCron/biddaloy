@@ -1,12 +1,18 @@
 import { expect, loggedIn, test } from '../fixtures/test';
 import { makeT } from '../i18n';
-import { openFromSidebar, tabToLocator, tabUntilFocused } from './keyboard-utils';
+import {
+  openFromSidebar,
+  selectByTypeahead,
+  tabToLocator,
+  tabUntilFocused,
+} from './keyboard-utils';
 
 /**
  * [#3304] Settings › Communication › SMS, KEYBOARD ONLY: reach Settings from the sidebar, open
- * the Communication category, then Tab to the company picker, each field, Test connection,
- * Send a test message (after typing a number) and Save, with no focus trap. Nothing is pressed
- * that calls a company, so no vendor stub is needed. No `.click(` in this file.
+ * the Communication category, pick OneCodeSoft from the company picker by typeahead, then Tab to
+ * each of its fields (Sender name, API address, the API key's Add button), Send a test message
+ * (after typing a number), Test connection and Save, with no focus trap. Nothing is pressed that
+ * calls a company or saves, so no vendor stub is needed. No `.click(` in this file.
  */
 const t = makeT('en');
 
@@ -23,6 +29,11 @@ test('sidebar to Settings, Communication, then every SMS control by Tab', async 
 
   // DOM order: picker, the company's fields, the test-message block, then the footer buttons.
   await tabToLocator(page, section.getByRole('combobox', { name: t('settings.sms.provider') }));
+  await selectByTypeahead(page, 'OneCodeSoft');
+  await tabToLocator(page, section.getByLabel('Sender name'));
+  await tabToLocator(page, section.getByLabel('API address'));
+  // A secret field shows its Add button, not an input, until it is pressed.
+  await tabToLocator(page, section.getByRole('button', { name: t('settings.secret.set') }));
   await tabToLocator(page, section.getByLabel(t('settings.sendTestMessage.phone')));
   await page.keyboard.type('01712345678');
   await tabToLocator(
