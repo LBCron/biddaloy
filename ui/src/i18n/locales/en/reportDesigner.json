@@ -1,0 +1,129 @@
+{
+  "title": {
+    "new": "New report",
+    "edit": "Change report"
+  },
+  "subtitle": "Pick what you want, and see the result on the right at once.",
+  "loadError": "The report designer could not be opened.",
+  "retry": "Try again",
+  "start": {
+    "subtitle": "Start from a ready report or from a question.",
+    "ready": {
+      "title": "Start from a ready report",
+      "none": "There are no ready reports yet.",
+      "error": "Could not make a copy. Try again."
+    },
+    "question": {
+      "title": "Start from a question",
+      "any": "Anyone",
+      "go": "Start"
+    },
+    "blank": "Start blank"
+  },
+  "starters": {
+    "howMany": {
+      "title": "How many …, by …?",
+      "subject": "Of whom",
+      "first": "By",
+      "second": "And (optional)"
+    },
+    "whoList": {
+      "title": "List of those who …?",
+      "gender": "Gender",
+      "class": "Class"
+    },
+    "howMuch": {
+      "title": "How much money …, by …?",
+      "amount": "Which amount",
+      "by": "By"
+    },
+    "perMonth": {
+      "title": "How much per month …?",
+      "what": "Which amount"
+    }
+  },
+  "area": {
+    "label": "About",
+    "names": {
+      "STUDENTS": "Students",
+      "STAFF": "Teachers and staff",
+      "PUBLIC_EXAMS": "Public exam results",
+      "FEES": "Fees and bills",
+      "PAYMENTS": "Paid",
+      "ATTENDANCE": "Attendance"
+    }
+  },
+  "keyboard": {
+    "hint": "Keyboard: Tab to move, Enter to add, Alt+↑ or Alt+↓ to change the order, Ctrl+S to save."
+  },
+  "more": {
+    "title": "More"
+  },
+  "preview": {
+    "title": "Result",
+    "updating": "New result coming…",
+    "firstRows": "Showing the first 50 rows.",
+    "empty": {
+      "title": "Pick something to see the result",
+      "explanation": "On the left, add something to Show, Split by or Count."
+    }
+  },
+  "controls": {
+    "open": "Change",
+    "title": "Change report"
+  },
+  "save": {
+    "button": "Save",
+    "title": "Save this report",
+    "description": "Give it a name and choose who can see it.",
+    "nameLabel": "Report name",
+    "nameRequired": "Give the report a name",
+    "whoLabel": "Who can see it",
+    "whoHint": "Admins always see every report.",
+    "folderLabel": "Folder (optional)",
+    "saveDraft": "Save",
+    "publish": "Switch on for everyone",
+    "saved": "The report is saved. Only you can see it for now.",
+    "published": "The report is on for everyone.",
+    "open": "Open the report",
+    "error": "The report could not be saved. Try again.",
+    "defaultName": "{{count}} by {{split}}",
+    "publishError": "The report is saved, but it could not be switched on. Press \"Switch on for everyone\" again."
+  },
+  "errors": {
+    "NOT_GROUPABLE": "These two cannot be split together: {{field}} and Count. Take one away.",
+    "NOTHING_TO_SHOW": "Pick something to show: add at least one to Show or Count.",
+    "NOT_FILTERABLE": "This cannot be used to narrow the list. Remove it from \"Only those who…\".",
+    "BAD_OP": "This word does not fit that detail. Pick another word.",
+    "BAD_VALUE": "This value does not fit. Write it again.",
+    "MISSING_PARAM": "Set a starting answer for the question that is asked when the report runs.",
+    "UNKNOWN_PARAM": "A question is not joined to any condition. Remove the question.",
+    "NOT_SORTABLE": "It cannot be put in this order.",
+    "UNKNOWN_FIELD": "A detail you picked is no longer there. Remove it and pick again.",
+    "generic": "The result could not be fetched. Try again in a moment.",
+    "keyClash": "This report was already made. Open the page again."
+  },
+  "leave": {
+    "title": "Leave without saving?",
+    "description": "Your changes are not saved. If you leave now they are lost.",
+    "stay": "Stay here",
+    "leave": "Leave without saving"
+  },
+  "copy": {
+    "title": "\"{{name}}\" cannot be changed directly",
+    "explanation": "Make a copy and change that. The original stays as it is.",
+    "action": "Copy and change",
+    "error": "Could not make a copy. Try again."
+  },
+  "edit": {
+    "change": "Change",
+    "copyAndChange": "Copy and change"
+  },
+  "legend": {
+    "title": "What the colours mean"
+  },
+  "drill": {
+    "open": "See the list: {{what}} ({{value}})"
+  },
+  "back": "Go back"
+}

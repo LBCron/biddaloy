@@ -43,7 +43,7 @@ import {
 import { useLocale, useTranslation } from '@biddaloy/ui/i18n';
 import { PageContainer, PageHeader } from '@biddaloy/ui/shells';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { StarIcon } from 'lucide-react';
+import { PlusIcon, StarIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { loadRouteNamespaces, swallowUnlessOffline } from '../../../route-loaders';
@@ -59,7 +59,7 @@ export const Route = createFileRoute('/_staff/reports/')({
   loader: ({ context: { queryClient } }) =>
     Promise.all([
       queryClient.ensureQueryData(reportCatalogueQueryOptions()).catch(swallowUnlessOffline),
-      loadRouteNamespaces('reports', 'common', 'nav'),
+      loadRouteNamespaces('reports', 'reportDesigner', 'common', 'nav'),
     ]),
   pendingComponent: ReportsHubPending,
   component: ReportsHubPage,
@@ -184,6 +184,7 @@ function CardGrid({
 
 function ReportsHubPage() {
   const { t } = useTranslation('reports');
+  const { t: tDesigner } = useTranslation('reportDesigner');
   const { locale } = useLocale();
   const role = useActiveRole();
   const canDesign = useHasPermission(Permission.REPORTS_DESIGN);
@@ -247,7 +248,21 @@ function ReportsHubPage() {
   return (
     <PageContainer>
       <div className="flex flex-col gap-4 md:gap-6">
-        <PageHeader title={t('hub.title')} subtitle={t('hub.subtitle')} />
+        <PageHeader
+          title={t('hub.title')}
+          subtitle={t('hub.subtitle')}
+          actions={[
+            {
+              id: 'new-report',
+              label: tDesigner('title.new'),
+              icon: <PlusIcon aria-hidden className="size-4" />,
+              priority: 'primary',
+              // Only a person who may design reports (admin) is offered it; the route says the same.
+              allowed: canDesign,
+              to: '/reports/new',
+            },
+          ]}
+        />
 
         {catalogue.isError && (
           <ErrorState
@@ -283,13 +298,9 @@ function ReportsHubPage() {
           <div className="flex flex-col items-center gap-3">
             <EmptyState title={t('hub.empty.title')} explanation={t('hub.empty.explanation')} />
             {canDesign && (
-              <div className="flex flex-col items-center gap-1">
-                {/* Disabled until the designer ships (Wave 8). */}
-                <Button type="button" disabled>
-                  {t('hub.empty.create')}
-                </Button>
-                <p className="text-sm text-text-secondary">{t('hub.empty.createSoon')}</p>
-              </div>
+              <Button asChild>
+                <Link to="/reports/new">{t('hub.empty.create')}</Link>
+              </Button>
             )}
           </div>
         )}

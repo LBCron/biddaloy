@@ -1,6 +1,12 @@
 import { apiClient } from '@biddaloy/ui/api';
 import { i18n } from '@biddaloy/ui/i18n';
-import { academicYearFactory, cleanupTestState, renderWithRouter, server } from '@biddaloy/ui/test';
+import {
+  academicYearFactory,
+  classFactory,
+  cleanupTestState,
+  renderWithRouter,
+  server,
+} from '@biddaloy/ui/test';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -500,5 +506,92 @@ describe('glossary: no "never say" word in the strings added by 8.15.17 and 8.15
       'reports:studentCount.actions.download',
       'Excel-এ নামান',
     ]);
+  });
+});
+
+describe('/reports/student-count: a count opens the list of those people [8.15.42]', () => {
+  const CLASS_6 = '55555555-5555-4555-8555-555555555555';
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    await cleanupTestState();
+  });
+
+  function serveClasses() {
+    server.use(
+      http.get('/api/v1/classes', () =>
+        HttpResponse.json({
+          data: [classFactory({ id: CLASS_6, name: 'Class 6' })],
+          total: 1,
+          page: 1,
+          limit: 100,
+          totalPages: 1,
+        }),
+      ),
+    );
+  }
+
+  it('girls in class 6 are one click from the number, and Go back returns to the count', async () => {
+    serveCount();
+    serveClasses();
+    const { router } = renderPage();
+    const user = userEvent.setup();
+
+    // The plain-words name says where it goes and what the number is.
+    const link = await (
+      await classTable()
+    ).findByRole('link', { name: 'See the list: Class 6, Girls (38)' });
+    await user.click(link);
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/students'));
+    expect(router.state.location.search).toMatchObject({
+      class_id: CLASS_6,
+      gender: 'FEMALE',
+      // The count is of active students, so the list must be too.
+      enrollment_status: 'ACTIVE',
+      from: '/reports/student-count',
+    });
+    await user.click(await screen.findByRole('link', { name: 'Go back' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/reports/student-count'));
+  });
+
+  it('makes no link for a hidden count, so the people it hides stay hidden', async () => {
+    serveCount(
+      countResponse({
+        rows: [row('Class 6', 6, 'MALE', 40), row('Class 6', 6, 'FEMALE', null)],
+      }),
+    );
+    serveClasses();
+    renderPage();
+
+    const table = await classTable();
+    expect(
+      await table.findByRole('link', { name: 'See the list: Class 6, Boys (40)' }),
+    ).toBeTruthy();
+    expect(table.queryByRole('link', { name: /Girls/ })).toBeNull();
+  });
+
+  it('makes no link for a year the student list cannot show', async () => {
+    serveCount(countResponse({ academic_year_id: OTHER_YEAR_ID, academic_year_name: '2025' }));
+    serveClasses();
+    server.use(
+      http.get('/api/v1/academic-years', () =>
+        HttpResponse.json({
+          data: [
+            academicYearFactory({ id: YEAR_ID, name: '2026', is_current: true }),
+            academicYearFactory({ id: OTHER_YEAR_ID, name: '2025', is_current: false }),
+          ],
+          total: 2,
+          page: 1,
+          limit: 100,
+          totalPages: 1,
+        }),
+      ),
+    );
+    renderPage(`/reports/student-count?academic_year_id=${OTHER_YEAR_ID}`);
+
+    const table = await classTable();
+    expect((await table.findAllByText('38')).length).toBeGreaterThan(0);
+    expect(table.queryAllByRole('link')).toHaveLength(0);
   });
 });

@@ -18,15 +18,19 @@ import { cn } from '../../primitives/lib/utils';
 import { Button } from '../button';
 import { EmptyState } from '../empty-state';
 
+import type { DrillLinks, DrillTarget, ReportDrilling } from './drill';
 import {
   formatCell,
   columnLabel,
   isAdditiveType,
+  toneFor,
   type AddedUp,
   type CellWords,
+  type FormatTone,
+  type ReportFormatting,
 } from './format-cell';
 import { pivot, type PivotColNode, type PivotKey } from './pivot';
-import { HiddenCellMark } from './report-table';
+import { DrillLink, HiddenCellMark, ToneMark } from './report-table';
 import type { ReportColumn, ReportLayoutProps, ReportRunResult } from './types';
 
 /** Rough widths, in px, used only to decide whether the table fits its box. */
@@ -43,6 +47,10 @@ export interface ReportCrosstabProps {
   caption?: string;
   /** `auto` shows the list when the table would not fit; `table` / `list` force one. */
   view?: ReportCrosstabView;
+  /** Colour rules ([8.15.42]): a count that meets one is coloured, with an icon and a word. */
+  format?: ReportFormatting;
+  /** Counts that open the list of those people ([8.15.42]); hidden counts never do. */
+  drill?: ReportDrilling;
 }
 
 function useFormat() {
@@ -59,17 +67,50 @@ function MatrixCell({
   measure,
   suppressed,
   config,
+  tone,
+  link,
 }: {
   total: AddedUp | undefined;
   measure: ReportColumn;
   suppressed: boolean;
   config: RegionConfig;
+  tone?: { tone: FormatTone; label: string } | undefined;
+  link?: { links: DrillLinks; target: DrillTarget; what: string } | undefined;
 }) {
+  // A hidden count is a dash: no colour, and no link (opening the list would show who is hidden).
   if (total?.incomplete && suppressed) return <HiddenCellMark />;
-  return <>{matrixText(total, measure, suppressed, config)}</>;
+  const text = matrixText(total, measure, suppressed, config);
+  let content: React.ReactNode = text;
+  if (tone) {
+    content = (
+      <ToneMark tone={tone.tone} label={tone.label}>
+        {content}
+      </ToneMark>
+    );
+  }
+  // A cell nobody was counted in (0) has nobody to list.
+  if (link && total && total.value !== null && total.value > 0) {
+    content = (
+      <DrillLink
+        href={link.links.href(link.target)}
+        label={link.links.label(link.what, text)}
+        onOpen={() => link.links.open(link.target)}
+      >
+        {content}
+      </DrillLink>
+    );
+  }
+  return <>{content}</>;
 }
 
-export function ReportCrosstab({ result, layout, caption, view = 'auto' }: ReportCrosstabProps) {
+export function ReportCrosstab({
+  result,
+  layout,
+  caption,
+  view = 'auto',
+  format: formatting,
+  drill,
+}: ReportCrosstabProps) {
   const { t } = useTranslation('reportView');
   const { locale } = useLocale();
   const config = useRegionConfig();
@@ -133,6 +174,41 @@ export function ReportCrosstab({ result, layout, caption, view = 'auto' }: Repor
   const cell = (rowId: string, leafId: string) => matrix.cells[rowId]?.[leafId];
   const rowHeading = rowCols.map((c) => columnLabel(c, locale)).join(SEPARATOR);
   const depth = colCols.length;
+
+  // What names a cell: its row's and column's own values, by field. A total names only one side.
+  const named = (row: PivotKey | null, leaf: PivotKey | null) => {
+    const values: Record<string, unknown> = {};
+    const words: string[] = [];
+    const add = (cols: ReportColumn[], key: PivotKey | null) =>
+      key?.parts.forEach((part, i) => {
+        const column = cols[i];
+        if (!column) return;
+        values[column.key] = part;
+        words.push(format(part, column));
+      });
+    add(rowCols, row);
+    add(colCols, leaf);
+    return { values, what: words.join(', ') };
+  };
+  /** The link of one cell (or total), or nothing when no rule applies or the screen may not follow it. */
+  const linkOf = (row: PivotKey | null, leaf: PivotKey | null) => {
+    if (!drill) return undefined;
+    const { values, what } = named(row, leaf);
+    const fields = [...rowCols, ...colCols, measure].map((c) => c.key);
+    const target = drill.links.resolve({ fields, values });
+    return target ? { links: drill.links, target, what } : undefined;
+  };
+  /** The colour of one cell: a rule on the count, read against the count and the fields that name it. */
+  const toneOf = (total: AddedUp | undefined, row: PivotKey, leaf: PivotKey) => {
+    if (!formatting || !total || total.value === null) return undefined;
+    const tone = toneFor(
+      formatting.rules,
+      measure.key,
+      { ...named(row, leaf).values, [measure.key]: total.value },
+      columns,
+    );
+    return tone ? { tone, label: formatting.toneLabels[tone] } : undefined;
+  };
 
   // Header rows, one per column field: every node of that depth, left to right.
   const levels: PivotColNode[][] = Array.from({ length: depth }, () => []);
@@ -259,6 +335,8 @@ export function ReportCrosstab({ result, layout, caption, view = 'auto' }: Repor
                       measure={measure}
                       suppressed={suppressed}
                       config={config}
+                      tone={toneOf(cell(key.id, leaf.id), key, leaf)}
+                      link={linkOf(key, leaf)}
                     />
                   </td>
                 ))}
@@ -269,6 +347,7 @@ export function ReportCrosstab({ result, layout, caption, view = 'auto' }: Repor
                       measure={measure}
                       suppressed={suppressed}
                       config={config}
+                      link={linkOf(key, null)}
                     />
                   </td>
                 )}
@@ -288,6 +367,7 @@ export function ReportCrosstab({ result, layout, caption, view = 'auto' }: Repor
                       measure={measure}
                       suppressed={suppressed}
                       config={config}
+                      link={linkOf(null, leaf)}
                     />
                   </td>
                 ))}

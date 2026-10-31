@@ -1,5 +1,12 @@
 /** Collections report — `GET /reports/collections` (JSON) and `.csv` (same query). Types come from `schema.d.ts`. */
-import { queryOptions, useMutation, useQuery } from '@tanstack/react-query';
+import type { ReportDefinitionJson } from '@biddaloy/shared';
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query';
 
 import { apiClient } from '../api/client';
 import type { components, operations } from '../api/schema';
@@ -432,6 +439,166 @@ export function useReportFeedback() {
       });
     },
     meta: { handlesUnknownOutcome: true, handlesForbidden: true },
+    retry: false,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// [8.15.41] The report designer: the fields a person may pick, a live preview, and saving
+// ---------------------------------------------------------------------------
+
+export type ReportMeta = S['ReportMetaDto'];
+export type ReportMetaArea = S['MetaAreaDto'];
+export type ReportDefinitionSummary = S['ReportDefinitionDto'];
+
+export const reportMetaKeys = createEntityKeys<Record<string, never>>('report-meta');
+
+/** `GET /reports/meta` — the fields and counts a report may use, in words, never SQL (D19). */
+export function reportMetaQueryOptions() {
+  return queryOptions({
+    queryKey: reportMetaKeys.list(),
+    queryFn: async ({ signal }) => {
+      const res = await apiClient.get<ReportMeta>('/reports/meta', { signal });
+      return res.data;
+    },
+    // The registry changes only with a release.
+    staleTime: 5 * 60 * 1000,
+    retry: shouldRetryQuery,
+  });
+}
+
+export function useReportMeta(options: { enabled?: boolean } = {}) {
+  return useQuery({ ...reportMetaQueryOptions(), ...options });
+}
+
+export interface PreviewReportInput {
+  /** The unsaved report, as the designer builds it. */
+  definition: ReportDefinitionJson;
+  /** Answers to the report's questions, by parameter key. */
+  params?: Record<string, unknown>;
+}
+
+/**
+ * `POST /reports/run` with an inline `definition`: a preview, which needs `REPORTS_DESIGN` and is
+ * not written to the run log. A mutation so a refetch can never start one; the designer debounces
+ * it and keeps the last good result itself. The screen shows the failure beside the control, so the
+ * "could not confirm" toast is off.
+ */
+export function usePreviewReport() {
+  return useMutation({
+    mutationFn: async (input: PreviewReportInput) => {
+      const res = await apiClient.post<ReportRunResponse>('/reports/run', {
+        definition: input.definition,
+        ...(input.params && Object.keys(input.params).length > 0 ? { params: input.params } : {}),
+      });
+      return res.data;
+    },
+    meta: { handlesUnknownOutcome: true },
+    retry: false,
+  });
+}
+
+export interface CreateReportInput {
+  key: string;
+  name_en: string;
+  name_bn: string;
+  folder?: string;
+  visible_roles?: S['CreateReportDefinitionDto']['visible_roles'];
+  definition: ReportDefinitionJson;
+}
+
+export interface UpdateReportInput {
+  id: string;
+  name_en?: string;
+  name_bn?: string;
+  folder?: string;
+  visible_roles?: S['CreateReportDefinitionDto']['visible_roles'];
+  definition?: ReportDefinitionJson;
+}
+
+/** A change to the catalogue or to one report: the hub, the runner and the editor read it again. */
+function invalidateReports(queryClient: QueryClient) {
+  void queryClient.invalidateQueries({ queryKey: reportCatalogueKeys.all });
+  void queryClient.invalidateQueries({ queryKey: reportDefinitionKeys.all });
+}
+
+/**
+ * `POST /reports/definitions` — a new draft. One `Idempotency-Key` per body, so a double click or a
+ * lost reply never makes a second report. Never retried.
+ */
+export function useCreateReportDefinition() {
+  const queryClient = useQueryClient();
+  const { keyFor, rotate } = useIdempotencyKey();
+  return useMutation({
+    mutationFn: async (input: CreateReportInput) => {
+      const res = await apiClient.post<ReportDefinitionDetail>('/reports/definitions', input, {
+        headers: { 'Idempotency-Key': keyFor(input) },
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      rotate();
+      invalidateReports(queryClient);
+    },
+    meta: { handlesUnknownOutcome: true },
+    retry: false,
+  });
+}
+
+/** `PATCH /reports/definitions/:id` — change the draft (name, who sees it, the report itself). */
+export function useUpdateReportDefinition() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...body }: UpdateReportInput) => {
+      const res = await apiClient.patch<ReportDefinitionDetail>(`/reports/definitions/${id}`, body);
+      return res.data;
+    },
+    onSuccess: () => invalidateReports(queryClient),
+    meta: { handlesUnknownOutcome: true },
+    retry: false,
+  });
+}
+
+/** `POST /reports/definitions/:id/publish` — "switch on for everyone": freezes the draft as the next version. */
+export function usePublishReportDefinition() {
+  const queryClient = useQueryClient();
+  const { keyFor, rotate } = useIdempotencyKey();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiClient.post<{ id: string; definition_id: string; version: number }>(
+        `/reports/definitions/${id}/publish`,
+        undefined,
+        { headers: { 'Idempotency-Key': keyFor({ id }) } },
+      );
+      return res.data;
+    },
+    onSuccess: () => {
+      rotate();
+      invalidateReports(queryClient);
+    },
+    meta: { handlesUnknownOutcome: true },
+    retry: false,
+  });
+}
+
+/** `POST /reports/definitions/:id/clone` — a new draft from a ready report or one of your own. */
+export function useCloneReportDefinition() {
+  const queryClient = useQueryClient();
+  const { keyFor, rotate } = useIdempotencyKey();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiClient.post<ReportDefinitionDetail>(
+        `/reports/definitions/${id}/clone`,
+        undefined,
+        { headers: { 'Idempotency-Key': keyFor({ id }) } },
+      );
+      return res.data;
+    },
+    onSuccess: () => {
+      rotate();
+      invalidateReports(queryClient);
+    },
+    meta: { handlesUnknownOutcome: true },
     retry: false,
   });
 }

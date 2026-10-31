@@ -292,4 +292,9 @@ export const PALETTE_ALLOW_LIST: readonly PaletteAllowListEntry[] = [
     reason:
       "opened from the Export menu of the students, dues and payments lists, with that list's own filters; there is nothing to keep from the palette",
   },
+  {
+    file: `${R}_staff/reports/-designer/save-dialog.tsx`,
+    reason:
+      "the designer's Save step, for the report being made on that screen; the palette action `reports.new` opens the designer itself",
+  },
 ];

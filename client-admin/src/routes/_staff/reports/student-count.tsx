@@ -23,6 +23,13 @@
  * grand total is the server's true total, which is never hidden. Staff gender is not stored, so
  * staff are counted by type only.
  *
+ * [8.15.42] A count is a link: a class × gender (× religion) number opens the student list with the
+ * same class, gender and religion, so "girls in class 6" is one click from the number. The list shows
+ * the current year's active students, so a link is made only for the current year, only for a
+ * visible number above zero (a hidden count never opens the people it hides), only for a recorded
+ * gender and religion, and only for a person who may open the student list. The list's "ফিরে যান"
+ * comes back here.
+ *
  * Words come from `reports.json` `studentCount.*` (the 8.15 glossary: "Excel-এ নামান", never
  * "export"). Numbers go through `formatNumber`, so Bangla digits follow the school's setting.
  */
@@ -30,6 +37,7 @@ import { Permission } from '@biddaloy/shared';
 import {
   Button,
   Card,
+  DrillLink,
   EmptyState,
   ErrorState,
   Menu,
@@ -42,6 +50,7 @@ import {
 } from '@biddaloy/ui/components';
 import {
   academicYearsQueryOptions,
+  allClassesQueryOptions,
   downloadStudentCountExport,
   useHasPermission,
   useSchoolProfile,
@@ -60,12 +69,13 @@ import {
 import { PageContainer, PageHeader } from '@biddaloy/ui/shells';
 import { formatNumber, renderDigits } from '@biddaloy/ui/utils';
 import { useQuery } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useRouter, useRouterState } from '@tanstack/react-router';
 import { DownloadIcon, PrinterIcon } from 'lucide-react';
 import * as React from 'react';
 import { z } from 'zod';
 
 import { loadRouteNamespaces } from '../../../route-loaders';
+import { STAFF_ROUTE_PERMISSIONS } from '../../../route-permissions';
 import { useActiveSchoolName } from '../../../use-active-school-name';
 
 import './-student-count-print.css';
@@ -79,7 +89,7 @@ const studentCountSearchSchema = z.object({
 
 export const Route = createFileRoute('/_staff/reports/student-count')({
   validateSearch: studentCountSearchSchema,
-  loader: () => loadRouteNamespaces('reports', 'common'),
+  loader: () => loadRouteNamespaces('reports', 'reportDesigner', 'common'),
   pendingComponent: StudentCountPending,
   component: StudentCountPage,
 });
@@ -283,6 +293,11 @@ function StudentCountPage() {
             <CountBody
               data={data}
               region={regionConfig}
+              // The student list has no year choice, so only the current year can be opened.
+              yearIsCurrent={
+                yearId === undefined ||
+                (years.data?.data.find((y) => y.id === activeYearId)?.is_current ?? false)
+              }
               canExport={canExport}
               busyTable={busyTable}
               onDownloadStaff={() => void download('staff')}
@@ -322,13 +337,31 @@ function PrintHeader({ yearName }: { yearName: string | null }) {
 interface CountBodyProps {
   data: StudentCountResponse;
   region: RegionConfig;
+  yearIsCurrent: boolean;
   canExport: boolean;
   busyTable: 'students' | 'staff' | null;
   onDownloadStaff: () => void;
 }
 
-function CountBody({ data, region, canExport, busyTable, onDownloadStaff }: CountBodyProps) {
+function CountBody({
+  data,
+  region,
+  yearIsCurrent,
+  canExport,
+  busyTable,
+  onDownloadStaff,
+}: CountBodyProps) {
   const { t } = useTranslation('reports');
+  const { t: tDesigner } = useTranslation('reportDesigner');
+  const router = useRouter();
+  const here = useRouterState({ select: (state) => state.location.href });
+  const canOpenStudents = useHasPermission(STAFF_ROUTE_PERMISSIONS['/_staff/students/']!);
+  const canReadClasses = useHasPermission(Permission.ACADEMIC_STRUCTURE_READ);
+  // The list filters by id; this screen only has the class name.
+  const classList = useQuery({
+    ...allClassesQueryOptions(),
+    enabled: yearIsCurrent && canOpenStudents && canReadClasses,
+  });
   const model = React.useMemo(() => buildModel(data.rows), [data.rows]);
 
   if (data.academic_year_id === null) {
@@ -364,6 +397,50 @@ function CountBody({ data, region, canExport, busyTable, onDownloadStaff }: Coun
         : gender;
   const religionLabel = (religion: string) =>
     religion === NOT_GIVEN ? t('studentCount.notGiven') : religion;
+
+  /**
+   * A count as a link to the student list with the same class (and gender, and religion). No link
+   * for a hidden or zero count, an unrecorded gender or religion, another year, or a class the
+   * list cannot be filtered by.
+   */
+  const linkFor = (
+    klass: { name: string },
+    gender: string | null,
+    religion: string | null,
+    count: Count,
+    node: React.ReactNode,
+  ): React.ReactNode => {
+    if (!yearIsCurrent || count === null || count <= 0) return node;
+    if (gender === NOT_GIVEN || religion === NOT_GIVEN) return node;
+    const classId = classList.data?.find((c) => c.name === klass.name)?.id;
+    if (classId === undefined) return node;
+    const { href } = router.buildLocation({
+      to: '/students',
+      search: {
+        class_id: classId,
+        enrollment_status: 'ACTIVE',
+        ...(gender !== null ? { gender } : {}),
+        ...(religion !== null ? { religion } : {}),
+        from: here,
+      },
+    });
+    const what = [
+      klass.name,
+      gender !== null ? genderLabel(gender) : null,
+      religion !== null ? religionLabel(religion) : null,
+    ]
+      .filter((part): part is string => part !== null)
+      .join(', ');
+    return (
+      <DrillLink
+        href={href}
+        label={tDesigner('drill.open', { what, value: plain(count) })}
+        onOpen={() => router.history.push(href)}
+      >
+        {node}
+      </DrillLink>
+    );
+  };
 
   const { classes, genders, religions, split, at } = model;
   const cellOf = (classKey: string, gender: string, religion: string | null): Count =>
@@ -458,15 +535,33 @@ function CountBody({ data, region, canExport, busyTable, onDownloadStaff }: Coun
                         {genders.flatMap((gender) => [
                           ...(split ? religions : []).map((religion) => (
                             <td key={`${gender}-${religion}`} className={numberCell}>
-                              {show(cellOf(klass.key, gender, religion))}
+                              {linkFor(
+                                klass,
+                                gender,
+                                religion,
+                                cellOf(klass.key, gender, religion),
+                                show(cellOf(klass.key, gender, religion)),
+                              )}
                             </td>
                           )),
                           <td key={`${gender}-total`} className={numberCell}>
-                            {show(genderTotalOf(klass.key, gender))}
+                            {linkFor(
+                              klass,
+                              gender,
+                              null,
+                              genderTotalOf(klass.key, gender),
+                              show(genderTotalOf(klass.key, gender)),
+                            )}
                           </td>,
                         ])}
                         <td className={`${numberCell} font-medium`}>
-                          {show(classTotalOf(klass.key))}
+                          {linkFor(
+                            klass,
+                            null,
+                            null,
+                            classTotalOf(klass.key),
+                            show(classTotalOf(klass.key)),
+                          )}
                         </td>
                       </tr>
                     ))}

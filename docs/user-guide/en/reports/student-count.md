@@ -10,6 +10,8 @@ sources:
 labels:
   [
     reports:studentCount.*,
+    reportDesigner:drill.*,
+    reportDesigner:back,
     nav:items.studentCount,
     nav:groups.reports,
   ]
@@ -34,7 +36,7 @@ See, on one page, how many boys and girls each class has in an academic year, an
 
 The page shows the school's **student count table**: boys, girls and total for every class. It counts the students who have an active (ACTIVE) enrolment in that year, each student once. Below it there is a small table of teachers and staff.
 
-[See the count](#task-main) · [Another academic year](#task-year) · [Download to Excel](#task-download) · [Print](#task-print) · [Hidden numbers](#task-hidden) · [Problems and fixes](#trouble)
+[See the count](#task-main) · [Another academic year](#task-year) · [Download to Excel](#task-download) · [Print](#task-print) · [Open the list](#task-list) · [Hidden numbers](#task-hidden) · [Problems and fixes](#trouble)
 
 **On this page**
 
@@ -44,6 +46,7 @@ The page shows the school's **student count table**: boys, girls and total for e
   - [See another academic year](#task-year)
   - [Download to Excel](#task-download)
   - [Print](#task-print)
+  - [Open the list behind a number](#task-list)
   - [Numbers hidden for committee members](#task-hidden)
 - [Problems and fixes](#trouble)
 - [Who can do what](#roles)
@@ -131,6 +134,22 @@ Everyone who can see the numbers gets this. Until the numbers appear, the button
 1. Press **Print** at the top right.
 
    → The browser's print window opens. The buttons and **Change** are not printed. The paper starts with the school's name, **Student count (BANBEIS)**, the academic year and the school's EIIN. The EIIN prints only when the school's profile has a registration ID.
+
+### Open the list behind a number <a href="#task-list" id="task-list"></a>
+
+Everyone who may open the [Students](../people/students.md) list gets this, for example the admin. A role that may not (a committee member) sees plain numbers.
+
+1. In the **Students by class** table look for a number with a small arrow ↗ beside it. Move the pointer over it and it is underlined. On a phone the class cards show plain numbers.
+
+2. Press a number, for example the girls in **Class 6**. A screen reader reads it as **See the list: Class 6, Girls (38)**.
+
+   → The Students list opens with that class and that gender already chosen, showing the students who are active now. At the top is **Go back**.
+
+3. Press **Go back**.
+
+   → You return to the count, for the same academic year.
+
+A number has no link when it is hidden (**—**), when it is 0, when the gender or religion is **Not given**, or when the page shows an academic year that is not the current one. The Students list shows the current year only, so a link would not match the number.
 
 ### Numbers hidden for committee members <a href="#task-hidden" id="task-hidden"></a>
 

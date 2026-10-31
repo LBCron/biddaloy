@@ -6,6 +6,14 @@ roles: [ADMIN, ACCOUNTANT, TEACHER, EXECUTIVE, COMMITTEE]
 sources:
   - client-admin/src/routes/_staff/reports/index.tsx
   - client-admin/src/routes/_staff/reports/$reportId.tsx
+  - client-admin/src/routes/_staff/reports/new.tsx
+  - client-admin/src/routes/_staff/reports/$reportId_.edit.tsx
+  - client-admin/src/routes/_staff/reports/-designer/start-screen.tsx
+  - client-admin/src/routes/_staff/reports/-designer/designer-screen.tsx
+  - client-admin/src/routes/_staff/reports/-designer/save-dialog.tsx
+  - client-admin/src/routes/_staff/reports/-designer/question-starters.ts
+  - ui/src/components/report-view/drill.ts
+  - ui/src/components/report-view/format-cell.ts
   - client-admin/src/routes/_staff/reports/-coded-reports.ts
   - ui/src/components/report-prompts.tsx
   - ui/src/components/export-menu.tsx
@@ -20,6 +28,8 @@ labels:
     reports:hub.*,
     reports:runner.*,
     reports:prompts.*,
+    reports:designer.*,
+    reportDesigner:*,
     common:export.*,
     common:saveAsReport.*,
     common:reportPrint.*,
@@ -48,7 +58,7 @@ Find every school report in one place, open it, download it to Excel, print it o
 
 This page shows the list of **reports**. The list holds two kinds. One kind is the **ready reports**: reports the school's admin has made. They open on this page and show their answer at once. The other kind has its own page, such as the [Fee collection report](collections-report.md). Pressing its card opens that report's own page. You only see the reports your role may open.
 
-[Find and open a report](#task-main) · [Change the choices](#task-answer) · [Download to Excel](#task-download) · [Print](#task-print) · [Say if it helped](#task-feedback) · [Keep as a report](#task-keep) · [Problems and fixes](#trouble)
+[Find and open a report](#task-main) · [Change the choices](#task-answer) · [Download to Excel](#task-download) · [Print](#task-print) · [Say if it helped](#task-feedback) · [Keep as a report](#task-keep) · [Make a report](#task-design) · [Colours and links](#task-drill) · [Problems and fixes](#trouble)
 
 **On this page**
 
@@ -60,6 +70,8 @@ This page shows the list of **reports**. The list holds two kinds. One kind is t
   - [Print on A4 paper](#task-print)
   - [Say whether the report was useful](#task-feedback)
   - [Keep a list as a report](#task-keep)
+  - [Make a report](#task-design)
+  - [Colours and links in a report](#task-drill)
   - [Star a favourite report](#task-favourite)
 - [Problems and fixes](#trouble)
 - [Who can do what](#roles)
@@ -87,7 +99,7 @@ This page shows the list of **reports**. The list holds two kinds. One kind is t
    → One report brings at most 10,000 rows. If there are more, a line at the top says **Showing the first … rows only. Narrow the choices to see the rest.**
 
 <figure>
-  <img src="diagrams/reports-hub-overview.svg" alt="From All reports you open a ready report or another report; after the result, Download to Excel and Print are for the admin and the accountant, changing the choices is for the admin, feedback is for everyone; from the students, dues or payments list the admin can keep the list as a report" width="720">
+  <img src="diagrams/reports-hub-overview.svg" alt="From All reports you open a ready report or another report; after the result, Download to Excel and Print are for the admin and the accountant, changing the choices is for the admin, feedback is for everyone; from the students, dues or payments list the admin can keep the list as a report; the admin can also make a new report in the designer; a number in a report can open a list or another report" width="720">
   <figcaption><em>Who can do what from All reports</em></figcaption>
 </figure>
 
@@ -224,6 +236,75 @@ Only the admin gets this. It is not done on the **All reports** page; it is done
 
 > **Remember:** nothing is kept until you press **Keep as report**. The report does not hold that moment's rows; it holds the rules of the choices. Each time you open it, fresh data comes.
 
+### Make a report <a href="#task-design" id="task-design"></a>
+
+Only the admin gets this. It is on the **New report** button at the top right of **All reports**, and in the Ctrl+K search as **New report**.
+
+1. Press **New report**.
+
+   → The start screen opens. First **Start from a ready report** with a card for each ready report. Then **Start from a question** with four cards. Last, small, a link **Start blank**.
+
+2. Choose how to start:
+   - Press a ready report. A copy is made and opens for you to change. The ready report stays as it is.
+   - Or on a question card pick from the lists, then press **Start**. The cards are **How many …, by …?**, **List of those who …?**, **How much money …, by …?** and **How much per month …?**. The lists use the school's own names, such as **Class** and **Gender**.
+   - Or press **Start blank**.
+
+   → The designer opens on one screen. The controls are on the left and the **Result** on the right. On a phone the result is on top, and the **Change** button opens the controls from the bottom.
+
+3. Change the report by clicking:
+   - **About** picks what the report is about, such as students or fees.
+   - **Show**, **Split by** and **Count / Add up** are three boxes. Press a name under a topic to put it in a box. Type in **Search** to find a name faster.
+   - **Only those who…** narrows the report, for example "Class is Class 6". Switch on **Ask when running** to make the condition a question that is asked each time.
+   - **How it looks** has four pictures: **List**, **Grouped**, **Table of counts** and **Chart**. One is chosen for you, with a line that says why.
+   - **More** holds colour rules such as "If Still owed is more than 5,000 then Red".
+
+   → About half a second after your last click the **Result** changes, showing the first 50 rows. The old result stays, a little faded, until the new one arrives.
+
+4. If two things cannot go together, a sentence appears in red next to the part you changed, such as **These two cannot be split together: Student name and Count. Take one away.** Take one away and the result comes back.
+
+5. Press **Save** at the top, or press Ctrl+S. In the **Save this report** window check **Report name** (filled in from your choices), tick **Who can see it** (admins always see it; your own role is ticked), and write a **Folder (optional)** if you like. Then press:
+   - **Save**: the report is kept as a draft, and only you can see it.
+   - **Switch on for everyone**: the roles you ticked can open it from **All reports**.
+
+   → A message says **The report is saved. Only you can see it for now.** or **The report is on for everyone.** with **Open the report**.
+
+To change a report later, open it and press **Change** at the top right. For a ready report the button says **Copy and change**: the copy is changed and the ready report stays as it is.
+
+| Key           | What it does                                                       |
+| ------------- | ------------------------------------------------------------------ |
+| Tab           | Moves from box to box, and from name to name                       |
+| Enter         | Adds the name you are on to its box                                |
+| Alt+↑ / Alt+↓ | Moves a picked name up or down inside its box                      |
+| Ctrl+S        | Saves (a report that is already saved is saved as a draft at once) |
+
+If you try to leave with changes that are not saved, **Leave without saving?** asks first. **Stay here** keeps your work.
+
+| You press                  | What happens                                        | Saved? |
+| -------------------------- | --------------------------------------------------- | ------ |
+| **Save**                   | The report is kept as a draft. Only you see it      | Yes    |
+| **Switch on for everyone** | The report is kept and the ticked roles can open it | Yes    |
+| **Leave without saving**   | You leave and the changes are lost                  | No     |
+
+> **Remember:** the result in the designer shows only the first 50 rows, to be quick. The saved report shows all of them when it runs.
+
+### Colours and links in a report <a href="#task-drill" id="task-drill"></a>
+
+A report can colour numbers and can open the list of people behind a number. The admin sets the colours under **More** in the designer.
+
+1. Look at a coloured number. It has a small picture beside it (a tick, a clock, a triangle or a dash), so the colour is never the only sign. A screen reader reads the colour's name after the number.
+
+   → Under the report a line says what each colour means, for example **Red = If Still owed is more than 5,000 then**.
+
+2. Look for a number with a small arrow ↗ beside it. Move the pointer over it and it is underlined. Press it.
+
+   → The list of those people opens, or another report, with the same choices (for example the same class). At the top of that page is **Go back**.
+
+3. Press **Go back**.
+
+   → You return to the first report with the choices it had.
+
+A number that is hidden for privacy (shown as **—**) and a number that is 0 never have a link. Right now only the admin sees colours and links in a report, because only the admin can read a report's own layout ([Known issues](#known-issues)).
+
 ### Star a favourite report <a href="#task-favourite" id="task-favourite"></a>
 
 1. Press the star at the top right of a card (**Add … to favourites**).
@@ -258,6 +339,9 @@ Favourites stay in this browser only ([Saved on this device](#confirm)). If the 
 | **The report was saved but could not be switched on. Try again.**                         | The report is made, only not switched on. The form is locked. Pressing **Keep as report** again does not make a new report; it only switches it on. | Admin        |
 | **We could not confirm whether this was saved. Check the list before trying again.**      | First open **All reports** and see whether the new report is there. If it is, do not keep it again.                                                 | Admin        |
 | **Could not send your answer.**                                                           | Press **Yes** or **Send** again.                                                                                                                    | —            |
+| **These two cannot be split together: … Take one away.**                                  | One of the names you put under **Show** cannot be counted beside a number. Take it out of **Show**, or take the **Count / Add up** away.            | Admin        |
+| **The result could not be fetched. Try again in a moment.**                               | The designer could not get the result. Change something or wait a moment; the old result stays on screen.                                           | Admin        |
+| **The report could not be saved. Try again.**                                             | Press **Save** again. The same report is not made twice.                                                                                            | Admin        |
 
 ---
 
@@ -273,6 +357,8 @@ Favourites stay in this browser only ([Saved on this device](#confirm)). If the 
 | Office staff, Exam controller | No (no menu item)          | No                | No    | No                                         | No               |
 
 **Which cards you see:** the admin sees every **ready report**. Others see only the ones whose maker let their role see them. A card for another report shows only when your role may open that report's page; for example the Fee collection report is for the admin, the accountant and the academic coordinator.
+
+**New report:** only the admin can make a report, copy a ready report and change a report ([Make a report](#task-design)). The button is not shown to other roles.
 
 **Change choices and the report's own layout:** a report's layout (grouped list, table of counts, chart) and its questions come only to the admin. Others see the report in a plain table, with its starting choices. Printing follows the same rule.
 

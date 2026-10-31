@@ -354,6 +354,9 @@ export function FieldPicker({ fields, value, onChange, labels, className }: Fiel
                     {picked.map((field) => (
                       <li
                         key={field.key}
+                        // The screen reorders with Alt+↑ / Alt+↓ and finds the chip by these two.
+                        data-tray={tray}
+                        data-field-key={field.key}
                         className="inline-flex items-center gap-1 rounded-full bg-surface ps-3 pe-1 text-label ring-1 ring-border"
                       >
                         {labelOf(field)}

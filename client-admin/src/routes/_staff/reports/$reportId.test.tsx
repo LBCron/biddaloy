@@ -580,3 +580,126 @@ describe('/reports [8.15.29]', () => {
     expect(page().getByRole('link', { name: 'ফি আদায়ের প্রতিবেদন' })).toBeTruthy();
   });
 });
+
+describe('/reports: New report [8.15.41]', () => {
+  afterEach(async () => {
+    localStorage.clear();
+    await cleanupTestState();
+  });
+
+  it('offers New report to the admin only, as a link to the designer', async () => {
+    serveCatalogue();
+    renderHub('ADMIN');
+    const link = await screen.findByRole('link', { name: 'New report' });
+    expect(link.getAttribute('href')).toBe('/reports/new');
+  });
+
+  it('does not offer it to an accountant, who may not design reports', async () => {
+    serveCatalogue();
+    renderHub('ACCOUNTANT');
+    await screen.findByRole('heading', { level: 1, name: 'All reports' });
+    expect(screen.queryByRole('link', { name: 'New report' })).toBeNull();
+  });
+});
+
+describe('/reports/$reportId: colours and links [8.15.42]', () => {
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+    await cleanupTestState();
+  });
+
+  /** A table of counts with a drill to the student list report and a rule that colours counts over 39. */
+  function serveWithDrill() {
+    const served = serve();
+    const body = definition({ ...crosstab, totals: true });
+    body.draft.drill = [
+      {
+        field: 'class',
+        target: { report: 'student-list' },
+        pass: { class: 'class' },
+      },
+    ] as never;
+    body.draft.format = [
+      {
+        field: 'students',
+        when: { field: 'students', op: 'GT', value: 39 },
+        style: { tone: 'bad' },
+      },
+    ] as never;
+    server.use(
+      http.get('/api/v1/reports/definitions/:id', () => HttpResponse.json(body)),
+      http.get('/api/v1/reports/catalogue', () =>
+        HttpResponse.json([
+          {
+            folder: null,
+            reports: [
+              ...catalogue[0]!.reports,
+              {
+                id: OTHER_ID,
+                key: 'student-list',
+                name_en: 'Student list',
+                name_bn: 'ছাত্রছাত্রীর তালিকা',
+                version_id: 'v2',
+                system_template_key: 'student-list',
+              },
+            ],
+          },
+        ]),
+      ),
+    );
+    return served;
+  }
+
+  it('colours a count with an icon and a word, and says what the colour means under the report', async () => {
+    serveWithDrill();
+    await renderRunner();
+    await page().findAllByText('40');
+
+    // 40 is over 39: it is read out with its colour. 38 is not.
+    expect(page().getAllByText('(Red)')).toHaveLength(1);
+    // The legend is the designer's own sentence.
+    expect(page().getByRole('region', { name: 'What the colours mean' }).textContent).toContain(
+      'Red = If Students is more than 39 then',
+    );
+  });
+
+  it("opens the other report with the clicked class, and Go back keeps the first report's choices", async () => {
+    const served = serveWithDrill();
+    const { router } = await renderRunner();
+    const user = userEvent.setup();
+    await page().findAllByText('40');
+
+    await user.click(page().getByRole('link', { name: 'See the list: Class 6, Boy (40)' }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/reports/${OTHER_ID}`));
+    // The other report really runs for that class only, not for every class.
+    await waitFor(() =>
+      expect(served.runs.at(-1)).toMatchObject({
+        definitionId: OTHER_ID,
+        params: { class: ['Class 6'] },
+      }),
+    );
+    expect(router.state.location.search).toMatchObject({
+      p: { class: 'Class 6' },
+      from: `/reports/${REPORT_ID}`,
+    });
+    await user.click(await page().findByRole('link', { name: 'Go back' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/reports/${REPORT_ID}`));
+  });
+
+  it('ignores a "from" that leaves the app', async () => {
+    serve();
+    await renderRunner(REPORT_ID, 'ADMIN', 'en', '?from=https%3A%2F%2Fevil.example%2F');
+    await page().findAllByText('40');
+    expect(page().queryByRole('link', { name: 'Go back' })).toBeNull();
+  });
+
+  it('shows a designer the way into the editor', async () => {
+    serve();
+    await renderRunner();
+    await page().findAllByText('40');
+    const link = await page().findByRole('link', { name: 'Change' });
+    expect(link.getAttribute('href')).toBe(`/reports/${REPORT_ID}/edit`);
+  });
+});

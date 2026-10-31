@@ -99,6 +99,7 @@ import { Route as StaffReportsIndexRouteImport } from './routes/_staff/reports/i
 import { Route as StaffReportsReportIdRouteImport } from './routes/_staff/reports/$reportId'
 import { Route as StaffReportsAlertsRouteImport } from './routes/_staff/reports/alerts'
 import { Route as StaffReportsCollectionsRouteImport } from './routes/_staff/reports/collections'
+import { Route as StaffReportsNewRouteImport } from './routes/_staff/reports/new'
 import { Route as StaffReportsPrintablesRouteImport } from './routes/_staff/reports/printables'
 import { Route as StaffReportsStudentCountRouteImport } from './routes/_staff/reports/student-count'
 import { Route as StaffResultsIndexRouteImport } from './routes/_staff/results/index'
@@ -149,6 +150,7 @@ import { Route as StaffFeesFinesRulesRouteImport } from './routes/_staff/fees/fi
 import { Route as StaffFeesSchedulesIndexRouteImport } from './routes/_staff/fees/schedules/index'
 import { Route as StaffFeesSchedulesIdRouteImport } from './routes/_staff/fees/schedules/$id'
 import { Route as StaffPrintTemplatesTemplateIdEditRouteImport } from './routes/_staff/print-templates/$templateId.edit'
+import { Route as StaffReportsReportIdEditRouteImport } from './routes/_staff/reports/$reportId_.edit'
 import { Route as StaffResultsExamIdStudentIdRouteImport } from './routes/_staff/results/$examId.$studentId'
 import { Route as StaffStudentsStudentIdEditRouteImport } from './routes/_staff/students/$studentId_.edit'
 import { Route as StaffMarksExamIdSectionIdSubjectIdRouteImport } from './routes/_staff/marks/$examId.$sectionId.$subjectId'
@@ -616,6 +618,11 @@ const StaffReportsCollectionsRoute = StaffReportsCollectionsRouteImport.update({
   path: '/reports/collections',
   getParentRoute: () => StaffRoute,
 } as any)
+const StaffReportsNewRoute = StaffReportsNewRouteImport.update({
+  id: '/reports/new',
+  path: '/reports/new',
+  getParentRoute: () => StaffRoute,
+} as any)
 const StaffReportsPrintablesRoute = StaffReportsPrintablesRouteImport.update({
   id: '/reports/printables',
   path: '/reports/printables',
@@ -891,6 +898,12 @@ const StaffPrintTemplatesTemplateIdEditRoute =
     path: '/print-templates/$templateId/edit',
     getParentRoute: () => StaffRoute,
   } as any)
+const StaffReportsReportIdEditRoute =
+  StaffReportsReportIdEditRouteImport.update({
+    id: '/reports/$reportId_/edit',
+    path: '/reports/$reportId/edit',
+    getParentRoute: () => StaffRoute,
+  } as any)
 const StaffResultsExamIdStudentIdRoute =
   StaffResultsExamIdStudentIdRouteImport.update({
     id: '/results/$examId/$studentId',
@@ -988,6 +1001,7 @@ export interface FileRoutesByFullPath {
   '/reports/$reportId': typeof StaffReportsReportIdRoute
   '/reports/alerts': typeof StaffReportsAlertsRoute
   '/reports/collections': typeof StaffReportsCollectionsRoute
+  '/reports/new': typeof StaffReportsNewRoute
   '/reports/printables': typeof StaffReportsPrintablesRoute
   '/reports/student-count': typeof StaffReportsStudentCountRoute
   '/routines/$sectionId': typeof StaffRoutinesSectionIdRoute
@@ -1049,6 +1063,7 @@ export interface FileRoutesByFullPath {
   '/fees/fines/rules': typeof StaffFeesFinesRulesRoute
   '/fees/schedules/$id': typeof StaffFeesSchedulesIdRoute
   '/print-templates/$templateId/edit': typeof StaffPrintTemplatesTemplateIdEditRoute
+  '/reports/$reportId/edit': typeof StaffReportsReportIdEditRoute
   '/results/$examId/$studentId': typeof StaffResultsExamIdStudentIdRoute
   '/students/$studentId/edit': typeof StaffStudentsStudentIdEditRoute
   '/academics/homework/': typeof StaffAcademicsHomeworkIndexRoute
@@ -1131,6 +1146,7 @@ export interface FileRoutesByTo {
   '/reports/$reportId': typeof StaffReportsReportIdRoute
   '/reports/alerts': typeof StaffReportsAlertsRoute
   '/reports/collections': typeof StaffReportsCollectionsRoute
+  '/reports/new': typeof StaffReportsNewRoute
   '/reports/printables': typeof StaffReportsPrintablesRoute
   '/reports/student-count': typeof StaffReportsStudentCountRoute
   '/routines/$sectionId': typeof StaffRoutinesSectionIdRoute
@@ -1192,6 +1208,7 @@ export interface FileRoutesByTo {
   '/fees/fines/rules': typeof StaffFeesFinesRulesRoute
   '/fees/schedules/$id': typeof StaffFeesSchedulesIdRoute
   '/print-templates/$templateId/edit': typeof StaffPrintTemplatesTemplateIdEditRoute
+  '/reports/$reportId/edit': typeof StaffReportsReportIdEditRoute
   '/results/$examId/$studentId': typeof StaffResultsExamIdStudentIdRoute
   '/students/$studentId/edit': typeof StaffStudentsStudentIdEditRoute
   '/academics/homework': typeof StaffAcademicsHomeworkIndexRoute
@@ -1279,6 +1296,7 @@ export interface FileRoutesById {
   '/_staff/reports/$reportId': typeof StaffReportsReportIdRoute
   '/_staff/reports/alerts': typeof StaffReportsAlertsRoute
   '/_staff/reports/collections': typeof StaffReportsCollectionsRoute
+  '/_staff/reports/new': typeof StaffReportsNewRoute
   '/_staff/reports/printables': typeof StaffReportsPrintablesRoute
   '/_staff/reports/student-count': typeof StaffReportsStudentCountRoute
   '/_staff/routines/$sectionId': typeof StaffRoutinesSectionIdRoute
@@ -1340,6 +1358,7 @@ export interface FileRoutesById {
   '/_staff/fees/fines/rules': typeof StaffFeesFinesRulesRoute
   '/_staff/fees/schedules/$id': typeof StaffFeesSchedulesIdRoute
   '/_staff/print-templates/$templateId/edit': typeof StaffPrintTemplatesTemplateIdEditRoute
+  '/_staff/reports/$reportId_/edit': typeof StaffReportsReportIdEditRoute
   '/_staff/results/$examId/$studentId': typeof StaffResultsExamIdStudentIdRoute
   '/_staff/students/$studentId_/edit': typeof StaffStudentsStudentIdEditRoute
   '/_staff/academics/homework/': typeof StaffAcademicsHomeworkIndexRoute
@@ -1426,6 +1445,7 @@ export interface FileRouteTypes {
     | '/reports/$reportId'
     | '/reports/alerts'
     | '/reports/collections'
+    | '/reports/new'
     | '/reports/printables'
     | '/reports/student-count'
     | '/routines/$sectionId'
@@ -1487,6 +1507,7 @@ export interface FileRouteTypes {
     | '/fees/fines/rules'
     | '/fees/schedules/$id'
     | '/print-templates/$templateId/edit'
+    | '/reports/$reportId/edit'
     | '/results/$examId/$studentId'
     | '/students/$studentId/edit'
     | '/academics/homework/'
@@ -1569,6 +1590,7 @@ export interface FileRouteTypes {
     | '/reports/$reportId'
     | '/reports/alerts'
     | '/reports/collections'
+    | '/reports/new'
     | '/reports/printables'
     | '/reports/student-count'
     | '/routines/$sectionId'
@@ -1630,6 +1652,7 @@ export interface FileRouteTypes {
     | '/fees/fines/rules'
     | '/fees/schedules/$id'
     | '/print-templates/$templateId/edit'
+    | '/reports/$reportId/edit'
     | '/results/$examId/$studentId'
     | '/students/$studentId/edit'
     | '/academics/homework'
@@ -1716,6 +1739,7 @@ export interface FileRouteTypes {
     | '/_staff/reports/$reportId'
     | '/_staff/reports/alerts'
     | '/_staff/reports/collections'
+    | '/_staff/reports/new'
     | '/_staff/reports/printables'
     | '/_staff/reports/student-count'
     | '/_staff/routines/$sectionId'
@@ -1777,6 +1801,7 @@ export interface FileRouteTypes {
     | '/_staff/fees/fines/rules'
     | '/_staff/fees/schedules/$id'
     | '/_staff/print-templates/$templateId/edit'
+    | '/_staff/reports/$reportId_/edit'
     | '/_staff/results/$examId/$studentId'
     | '/_staff/students/$studentId_/edit'
     | '/_staff/academics/homework/'
@@ -2447,6 +2472,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffReportsCollectionsRouteImport
       parentRoute: typeof StaffRoute
     }
+    '/_staff/reports/new': {
+      id: '/_staff/reports/new'
+      path: '/reports/new'
+      fullPath: '/reports/new'
+      preLoaderRoute: typeof StaffReportsNewRouteImport
+      parentRoute: typeof StaffRoute
+    }
     '/_staff/reports/printables': {
       id: '/_staff/reports/printables'
       path: '/reports/printables'
@@ -2797,6 +2829,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffPrintTemplatesTemplateIdEditRouteImport
       parentRoute: typeof StaffRoute
     }
+    '/_staff/reports/$reportId_/edit': {
+      id: '/_staff/reports/$reportId_/edit'
+      path: '/reports/$reportId/edit'
+      fullPath: '/reports/$reportId/edit'
+      preLoaderRoute: typeof StaffReportsReportIdEditRouteImport
+      parentRoute: typeof StaffRoute
+    }
     '/_staff/results/$examId/$studentId': {
       id: '/_staff/results/$examId/$studentId'
       path: '/results/$examId/$studentId'
@@ -2917,6 +2956,7 @@ interface StaffRouteChildren {
   StaffReportsReportIdRoute: typeof StaffReportsReportIdRoute
   StaffReportsAlertsRoute: typeof StaffReportsAlertsRoute
   StaffReportsCollectionsRoute: typeof StaffReportsCollectionsRoute
+  StaffReportsNewRoute: typeof StaffReportsNewRoute
   StaffReportsPrintablesRoute: typeof StaffReportsPrintablesRoute
   StaffReportsStudentCountRoute: typeof StaffReportsStudentCountRoute
   StaffRoutinesSectionIdRoute: typeof StaffRoutinesSectionIdRoute
@@ -2966,6 +3006,7 @@ interface StaffRouteChildren {
   StaffExamsSeatPlansPlanIdRoute: typeof StaffExamsSeatPlansPlanIdRoute
   StaffExamsTemplatesTemplateIdRoute: typeof StaffExamsTemplatesTemplateIdRoute
   StaffPrintTemplatesTemplateIdEditRoute: typeof StaffPrintTemplatesTemplateIdEditRoute
+  StaffReportsReportIdEditRoute: typeof StaffReportsReportIdEditRoute
   StaffResultsExamIdStudentIdRoute: typeof StaffResultsExamIdStudentIdRoute
   StaffStudentsStudentIdEditRoute: typeof StaffStudentsStudentIdEditRoute
   StaffAcademicsHomeworkIndexRoute: typeof StaffAcademicsHomeworkIndexRoute
@@ -3019,6 +3060,7 @@ const StaffRouteChildren: StaffRouteChildren = {
   StaffReportsReportIdRoute: StaffReportsReportIdRoute,
   StaffReportsAlertsRoute: StaffReportsAlertsRoute,
   StaffReportsCollectionsRoute: StaffReportsCollectionsRoute,
+  StaffReportsNewRoute: StaffReportsNewRoute,
   StaffReportsPrintablesRoute: StaffReportsPrintablesRoute,
   StaffReportsStudentCountRoute: StaffReportsStudentCountRoute,
   StaffRoutinesSectionIdRoute: StaffRoutinesSectionIdRoute,
@@ -3071,6 +3113,7 @@ const StaffRouteChildren: StaffRouteChildren = {
   StaffExamsTemplatesTemplateIdRoute: StaffExamsTemplatesTemplateIdRoute,
   StaffPrintTemplatesTemplateIdEditRoute:
     StaffPrintTemplatesTemplateIdEditRoute,
+  StaffReportsReportIdEditRoute: StaffReportsReportIdEditRoute,
   StaffResultsExamIdStudentIdRoute: StaffResultsExamIdStudentIdRoute,
   StaffStudentsStudentIdEditRoute: StaffStudentsStudentIdEditRoute,
   StaffAcademicsHomeworkIndexRoute: StaffAcademicsHomeworkIndexRoute,

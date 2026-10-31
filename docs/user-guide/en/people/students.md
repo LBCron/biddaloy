@@ -207,6 +207,8 @@ If you choose both **Class** and **Section** in the filters, a **Print ID cards 
 
 At the end of each row in the list are **View** (opens the profile), **Edit** and **Collect fees**.
 
+If you got here by pressing a number in the [Student count (BANBEIS)](../reports/student-count.md) report, the class and gender are already chosen, and **Go back** at the top returns you to that report.
+
 ### Change a student's details <a href="#task-edit" id="task-edit"></a>
 
 1. Press **Edit** on the row in the list, or **Edit** at the top of the profile.

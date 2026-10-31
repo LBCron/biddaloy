@@ -25,8 +25,16 @@ import { RegionConfigProvider, useTenantRegionConfig, useTranslation } from '@bi
 import { ListShell, useListShellState, type FilterFieldDescriptor } from '@biddaloy/ui/shells';
 import { downloadCsv, formatDate, formatNumber } from '@biddaloy/ui/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { IdCardIcon, ImageUpIcon, PlusIcon, SendIcon, UploadIcon, XIcon } from 'lucide-react';
+import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router';
+import {
+  ArrowLeftIcon,
+  IdCardIcon,
+  ImageUpIcon,
+  PlusIcon,
+  SendIcon,
+  UploadIcon,
+  XIcon,
+} from 'lucide-react';
 import * as React from 'react';
 import { z } from 'zod';
 
@@ -35,6 +43,7 @@ import { SaveAsReportDialog } from '../-save-as-report/save-as-report-dialog';
 import { useLandingFlag } from '../-use-landing-flag';
 import { previewIdsNav } from '../../../components/print/preview-ids';
 import { loadRouteNamespaces, swallowUnlessOffline } from '../../../route-loaders';
+import { isSameAppRedirect } from '../../../same-app-redirect';
 
 import { BulkPhotoDialog } from './-bulk-photo-dialog';
 import { DEFAULT_PAGE_SIZE } from './-constants';
@@ -103,6 +112,8 @@ const studentsSearchSchema = z.object({
   // [28.4.5/D22] Palette "Open performance" flag: row "View" links open the
   // student's Performance tab. TanStack parses `?x=1` as a number, so coerce.
   openPerformance: z.coerce.string().optional().catch(undefined),
+  // [8.15.42] Opened from a report's count: the address of that report, for "ফিরে যান".
+  from: z.string().optional().catch(undefined),
 });
 
 function toStudentListFilters(filters: StudentFilters, sortColumnId: string | undefined) {
@@ -182,7 +193,7 @@ export const Route = createFileRoute('/_staff/students/')({
       // (empty) list — same permission-gated one-liner as
       // `students/import.tsx`, pointed the other direction.
       // 'staff' holds the role names the keep-as-report dialog lists.
-      loadRouteNamespaces('students', 'backup', 'staff'),
+      loadRouteNamespaces('students', 'backup', 'staff', 'reportDesigner'),
     ]),
   pendingComponent: StudentsListPending,
   component: StudentsListPage,
@@ -194,7 +205,11 @@ function StudentsListPage() {
   const queryClient = useQueryClient();
   const [state, actions] = useListShellState();
   const filters = state.filters as StudentFilters;
-  const { openPerformance } = Route.useSearch();
+  const { openPerformance, from } = Route.useSearch();
+  const router = useRouter();
+  const { t: tDesigner } = useTranslation('reportDesigner');
+  // [8.15.42] Only a path inside this app is followed.
+  const backTo = from !== undefined && isSameAppRedirect(from) ? from : null;
 
   const vocabularyQuery = useOrganisationVocabulary();
   // [D5] A shift/version filter field only exists once the tenant has 2+
@@ -527,29 +542,45 @@ function StudentsListPage() {
         // [8.15.17] One button downloads every student matching the filters above; the ticked
         // rows' CSV is the secondary item.
         tabs={
-          <ExportMenu
-            totalCount={studentsQuery.data?.total ?? 0}
-            selectedCount={state.selectedIds.size}
-            canExportAll={canExportAll}
-            unit="people"
-            narrowByClass
-            onExportAll={(format) =>
-              downloadListExport('/students/export', studentListFilters, format)
-            }
-            onExportSelected={exportSelectedToCsv}
-            {...(canDesignReports
-              ? {
-                  onKeepAsReport: () =>
-                    setKeepAsReport({
-                      columns: readVisibleColumns(
-                        'students-list',
-                        columns.map((column) => column.id),
-                        DEFAULT_COLUMN_VISIBILITY,
-                      ),
-                    }),
-                }
-              : {})}
-          />
+          <div className="flex flex-wrap items-center gap-3">
+            {backTo !== null && (
+              <Button asChild variant="link" className="h-auto px-0">
+                <a
+                  href={backTo}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    router.history.push(backTo);
+                  }}
+                >
+                  <ArrowLeftIcon aria-hidden="true" />
+                  {tDesigner('back')}
+                </a>
+              </Button>
+            )}
+            <ExportMenu
+              totalCount={studentsQuery.data?.total ?? 0}
+              selectedCount={state.selectedIds.size}
+              canExportAll={canExportAll}
+              unit="people"
+              narrowByClass
+              onExportAll={(format) =>
+                downloadListExport('/students/export', studentListFilters, format)
+              }
+              onExportSelected={exportSelectedToCsv}
+              {...(canDesignReports
+                ? {
+                    onKeepAsReport: () =>
+                      setKeepAsReport({
+                        columns: readVisibleColumns(
+                          'students-list',
+                          columns.map((column) => column.id),
+                          DEFAULT_COLUMN_VISIBILITY,
+                        ),
+                      }),
+                  }
+                : {})}
+            />
+          </div>
         }
         filters={{ fields: filterFields, values: state.filters, onChange: handleFiltersChange }}
         tableId="students-list"

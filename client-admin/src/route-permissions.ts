@@ -234,6 +234,9 @@ export const STAFF_ROUTE_PERMISSIONS: Record<string, Permission> = {
   // Each report's own visibility (visible roles) is the server's answer, not a second client gate.
   '/_staff/reports/': Permission.REPORTS_VIEW,
   '/_staff/reports/$reportId': Permission.REPORTS_VIEW,
+  // [8.15.41] The designer: `POST /reports/definitions` and an inline preview run are REPORTS_DESIGN (ADMIN only, D9).
+  '/_staff/reports/new': Permission.REPORTS_DESIGN,
+  '/_staff/reports/$reportId_/edit': Permission.REPORTS_DESIGN,
   // [32.4.1] Print module: templates, preview (printing itself) and history.
   '/_staff/print-templates/': Permission.PRINT_TEMPLATE_MANAGE,
   '/_staff/print-templates/$templateId/edit': Permission.PRINT_TEMPLATE_MANAGE,

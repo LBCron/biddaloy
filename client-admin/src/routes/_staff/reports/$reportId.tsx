@@ -24,9 +24,22 @@
  * Failures are said in place, in plain words: a report that is too slow asks the person to narrow
  * the choices (and opens the form), a missing answer says so, a report that is gone says so.
  *
- * Words come from `reports.json` `runner.*` and `prompts.*` (the 8.15 glossary).
+ * [8.15.42] Colour rules and links. A report's `format` rules colour cells (never by colour alone: an
+ * icon and a word go with it) and a legend under the report says what each colour means, in the
+ * sentence the designer wrote. Its `drill` rules turn counts into links that open another report or
+ * the student list with the same choices; the page it opens shows "ফিরে যান", which comes back here
+ * with the choices kept (`?from=`, accepted only when it is a path inside this app). Only a designer
+ * reads the definition, so only a designer sees colours and links for now (see above).
+ *
+ * Words come from `reports.json` `runner.*` and `prompts.*` (the 8.15 glossary), and
+ * `reportDesigner.json` for the designer, legend and link words.
  */
-import { Permission, type ReportDefinitionJson, type ReportLayout } from '@biddaloy/shared';
+import {
+  Permission,
+  type ReportDefinitionJson,
+  type ReportFormatRule,
+  type ReportLayout,
+} from '@biddaloy/shared';
 import { ApiError } from '@biddaloy/ui/api';
 import {
   Button,
@@ -42,12 +55,18 @@ import {
   RoutePending,
   Skeleton,
   Textarea,
+  FORMAT_TONES,
   defaultPromptValues,
+  describeRule,
+  resolveDrill,
+  useDesignerLabels,
   missingPrompts,
   promptParams,
   sanitizePromptValues,
   toast,
   withDefaults,
+  type DrillLinks,
+  type DrillTarget,
   type PromptChoices,
   type PromptParameter,
   type PromptValues,
@@ -76,16 +95,21 @@ import {
 import { PageContainer, PageHeader } from '@biddaloy/ui/shells';
 import { formatNumber } from '@biddaloy/ui/utils';
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
-import { PrinterIcon, ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
+import { createFileRoute, useRouter, useRouterState } from '@tanstack/react-router';
+import { ArrowLeftIcon, PrinterIcon, ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
 import * as React from 'react';
+import type { ComponentProps } from 'react';
 import { z } from 'zod';
 
 import { loadRouteNamespaces, swallowUnlessOffline } from '../../../route-loaders';
+import { STAFF_ROUTE_PERMISSIONS } from '../../../route-permissions';
+import { isSameAppRedirect } from '../../../same-app-redirect';
 
 const runnerSearchSchema = z.object({
   // The answers to the report's questions. Anything wrong in them is dropped when they are read.
   p: z.record(z.string(), z.unknown()).optional().catch(undefined),
+  // [8.15.42] Where "ফিরে যান" goes: the address of the report this one was opened from.
+  from: z.string().optional().catch(undefined),
 });
 
 export const Route = createFileRoute('/_staff/reports/$reportId')({
@@ -93,7 +117,7 @@ export const Route = createFileRoute('/_staff/reports/$reportId')({
   loader: ({ context: { queryClient } }) =>
     Promise.all([
       queryClient.ensureQueryData(reportCatalogueQueryOptions()).catch(swallowUnlessOffline),
-      loadRouteNamespaces('reports', 'reportView', 'common', 'nav'),
+      loadRouteNamespaces('reports', 'reportView', 'reportDesigner', 'common', 'nav'),
     ]),
   pendingComponent: ReportRunnerPending,
   component: ReportRunnerPage,
@@ -128,14 +152,18 @@ function ReportRunnerPage() {
 
 function ReportRunner({ reportId }: { reportId: string }) {
   const { t } = useTranslation('reports');
+  const { t: tDesigner } = useTranslation('reportDesigner');
   const { locale } = useLocale();
   const regionConfig = useRegionConfig();
+  const router = useRouter();
+  const here = useRouterState({ select: (state) => state.location.href });
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const canDesign = useHasPermission(Permission.REPORTS_DESIGN);
   const canExport = useHasPermission(Permission.REPORTS_EXPORT);
   const canPrint = useHasPermission(Permission.DOCUMENT_PRINT);
   const canReadStructure = useHasPermission(Permission.ACADEMIC_STRUCTURE_READ);
+  const canOpenStudents = useHasPermission(STAFF_ROUTE_PERMISSIONS['/_staff/students/']!);
 
   const catalogue = useReportCatalogue();
   const entry = catalogue.data?.flatMap((folder) => folder.reports).find((r) => r.id === reportId);
@@ -149,8 +177,12 @@ function ReportRunner({ reportId }: { reportId: string }) {
 
   // Choices for the questions. A role that cannot read the school's structure sees none, and then
   // the report simply runs on the server's own default answers.
-  const needsYears = parameters.some((p) => p.type === 'ACADEMIC_YEAR');
-  const needsClasses = parameters.some((p) => p.type === 'CLASS' || p.type === 'SECTION');
+  // A link to the student list turns a class name into the class's id, and only fits the current year.
+  const drillRules = body?.drill ?? [];
+  const drillsToStudents = drillRules.some((rule) => 'route' in rule.target);
+  const needsYears = parameters.some((p) => p.type === 'ACADEMIC_YEAR') || drillsToStudents;
+  const needsClasses =
+    parameters.some((p) => p.type === 'CLASS' || p.type === 'SECTION') || drillsToStudents;
   const needsSections = parameters.some((p) => p.type === 'SECTION');
   const years = useQuery({
     ...academicYearsQueryOptions({ limit: 100 }),
@@ -250,6 +282,42 @@ function ReportRunner({ reportId }: { reportId: string }) {
 
   const result: ReportRunResponse | undefined = run.data;
   const ranParams = promptParams(parameters, ran ?? {});
+
+  // ---- [8.15.42] links and colours --------------------------------------------------------------
+  const reportOf = (key: string) =>
+    catalogue.data?.flatMap((f) => f.reports).find((r) => r.key === key);
+  const locationOf = (target: DrillTarget) =>
+    target.kind === 'report'
+      ? router.buildLocation({
+          to: '/reports/$reportId',
+          params: { reportId: target.reportId },
+          search: {
+            ...(Object.keys(target.params).length > 0 ? { p: target.params } : {}),
+            from: here,
+          },
+        })
+      : router.buildLocation({ to: '/students', search: { ...target.search, from: here } });
+  const drill = React.useMemo(() => {
+    if (drillRules.length === 0) return undefined;
+    const links: DrillLinks = {
+      resolve: ({ fields, values }) =>
+        resolveDrill(drillRules, fields, values, {
+          reportIdByKey: (key) => reportOf(key)?.id,
+          classIdByName: (name) => classList.data?.find((c) => c.name === name)?.id,
+          params: ranParams,
+          canOpen: (kind) => kind === 'report' || canOpenStudents,
+          isCurrentYear: (name) => years.data?.data.find((y) => y.name === name)?.is_current,
+        }),
+      href: (target) => locationOf(target).href,
+      open: (target) => router.history.push(locationOf(target).href),
+      label: (what, value) => tDesigner('drill.open', { what, value }),
+    };
+    return { rules: drillRules, links };
+    // The links read these; `ranParams` is rebuilt every render, `ran` says when it really changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drillRules, catalogue.data, classList.data, years.data, canOpenStudents, here, ran]);
+  const formatRules: ReportFormatRule[] = body?.format ?? [];
+  const backTo = search.from !== undefined && isSameAppRedirect(search.from) ? search.from : null;
   const notFound =
     (catalogue.isSuccess && entry === undefined) ||
     (run.error instanceof ApiError && run.error.statusCode === 404);
@@ -293,7 +361,37 @@ function ReportRunner({ reportId }: { reportId: string }) {
   return (
     <PageContainer>
       <div className="flex flex-col gap-4 md:gap-6">
-        <PageHeader title={name} />
+        {backTo !== null && (
+          <div className="print:hidden">
+            <Button asChild variant="link" className="h-auto px-0">
+              <a
+                href={backTo}
+                onClick={(event) => {
+                  event.preventDefault();
+                  router.history.push(backTo);
+                }}
+              >
+                <ArrowLeftIcon aria-hidden="true" />
+                {tDesigner('back')}
+              </a>
+            </Button>
+          </div>
+        )}
+        <PageHeader
+          title={name}
+          actions={[
+            {
+              id: 'edit',
+              label: tDesigner(
+                definition.data?.draft === null ? 'edit.copyAndChange' : 'edit.change',
+              ),
+              priority: 'secondary',
+              // Only a designer, and only once the report's own definition has arrived.
+              allowed: canDesign && definition.data !== undefined,
+              to: `/reports/${reportId}/edit`,
+            },
+          ]}
+        />
 
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between print:hidden">
           {values !== null && parameters.length > 0 ? (
@@ -390,7 +488,10 @@ function ReportRunner({ reportId }: { reportId: string }) {
                 caption={name}
                 loading={run.isPending}
                 onPageChange={(next) => ran && execute(ran, next)}
+                formatRules={formatRules}
+                drill={drill}
               />
+              <FormatLegend rules={formatRules} columns={result.columns} />
               <UsefulLine reportId={reportId} runId={result.run_id} />
             </>
           )}
@@ -407,18 +508,33 @@ function ResultView({
   caption,
   loading,
   onPageChange,
+  formatRules,
+  drill,
 }: {
   result: ReportRunResponse;
   layout: ReportLayout | undefined;
   caption: string;
   loading: boolean;
   onPageChange: (page: number) => void;
+  formatRules: ReportFormatRule[];
+  drill: ComponentProps<typeof ReportTable>['drill'];
 }) {
+  const designer = useDesignerLabels();
+  const format =
+    formatRules.length > 0 ? { rules: formatRules, toneLabels: designer.format.tones } : undefined;
   switch (layout?.type) {
     case 'GROUPED':
       return <ReportGrouped result={result} layout={layout} caption={caption} />;
     case 'CROSSTAB':
-      return <ReportCrosstab result={result} layout={layout} caption={caption} />;
+      return (
+        <ReportCrosstab
+          result={result}
+          layout={layout}
+          caption={caption}
+          {...(format ? { format } : {})}
+          {...(drill ? { drill } : {})}
+        />
+      );
     case 'CHART':
       return <ReportChart result={result} layout={layout} caption={caption} />;
     default:
@@ -428,10 +544,55 @@ function ResultView({
           caption={caption}
           tableId="report-run"
           isFetching={loading}
+          {...(format ? { format } : {})}
+          {...(drill ? { drill } : {})}
           {...(result.total_pages > 1 ? { onPageChange } : {})}
         />
       );
   }
+}
+
+/**
+ * [8.15.42] The sentence behind every colour, under the report: "লাল = যদি বাকি বেশি ৫,০০০ হয়". The
+ * words are the designer's own (`useDesignerLabels`), so a colour is never unexplained.
+ */
+function FormatLegend({
+  rules,
+  columns,
+}: {
+  rules: ReportFormatRule[];
+  columns: ReportRunResponse['columns'];
+}) {
+  const { t } = useTranslation('reportDesigner');
+  const { locale } = useLocale();
+  const regionConfig = useRegionConfig();
+  const { format } = useDesignerLabels();
+  const lines = rules.flatMap((rule) => {
+    const sentence = describeRule(rule, columns, locale, regionConfig);
+    return sentence ? [{ rule, sentence }] : [];
+  });
+  if (lines.length === 0) return null;
+  return (
+    <section
+      aria-label={t('legend.title', { ns: 'reportDesigner' })}
+      className="flex flex-col gap-1 text-text-secondary"
+    >
+      <ul className="flex flex-col gap-1">
+        {lines.map(({ rule, sentence }, index) => {
+          const { fg, icon: Icon } = FORMAT_TONES[rule.style.tone];
+          return (
+            <li key={index} className="flex items-center gap-2">
+              <Icon aria-hidden="true" className={`size-4 shrink-0 ${fg}`} />
+              <span>
+                {format.tones[rule.style.tone]} = {format.if} {sentence.field}{' '}
+                {format.ops[sentence.op]} {sentence.value} {format.then}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
 }
 
 const feedbackKey = (reportId: string) => `reports.feedback.${reportId}`;

@@ -227,6 +227,13 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
     { label: { key: 'allReports' } },
     { label: { key: 'reportDetail' }, dynamic: 'entity' },
   ],
+  // [8.15.41] "Reports › New" and "Reports › <name> › Edit".
+  '/_staff/reports/new': [{ label: { key: 'allReports' } }, { label: { key: 'new' } }],
+  '/_staff/reports/$reportId_/edit': [
+    { label: { key: 'allReports' } },
+    { label: { key: 'reportDetail' }, dynamic: 'entity' },
+    { label: { key: 'edit' } },
+  ],
   // [32.4.1] The editor is chromeless (no crumb bar), so this only sets the tab title: the template's name.
   '/_staff/print-templates/': [{ label: { key: 'printTemplates' } }],
   '/_staff/print-templates/$templateId/edit': [

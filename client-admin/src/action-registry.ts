@@ -762,6 +762,16 @@ export const ACTIONS: readonly PaletteAction[] = [
     group: 'reports',
     run: (ctx) => ctx.navigate({ to: '/reports' }),
   },
+  // [8.15.41] "New report": the designer's start screen. Same gate as its route (ADMIN only).
+  {
+    id: 'reports.new',
+    label: { en: 'New report', bn: 'নতুন রিপোর্ট' },
+    synonyms: ['report', 'create report', 'designer', 'রিপোর্ট', 'প্রতিবেদন'],
+    permission: Permission.REPORTS_DESIGN,
+    kind: 'navigate',
+    group: 'reports',
+    run: (ctx) => ctx.navigate({ to: '/reports/new' }),
+  },
   {
     id: 'print.history',
     label: { en: 'Print history', bn: 'প্রিন্টের ইতিহাস' },
