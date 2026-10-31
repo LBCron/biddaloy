@@ -12,6 +12,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../help/test-utils';
 import { routeTree } from '../../../routeTree.gen';
 
 import { CODED_REPORTS, visibleCodedReports } from './-coded-reports';
@@ -807,5 +808,56 @@ describe('/reports/$reportId: colours and links [8.15.42]', () => {
     await page().findAllByText('40');
     const link = await page().findByRole('link', { name: 'Change' });
     expect(link.getAttribute('href')).toBe(`/reports/${REPORT_ID}/edit`);
+  });
+});
+
+/** [8.15.49] The (?) beside the hub and runner controls, each linking into the reports guide page. */
+describe('(?) help ids [8.15.49]', () => {
+  afterEach(async () => {
+    vi.unstubAllEnvs();
+    localStorage.clear();
+    await cleanupTestState();
+  });
+
+  const helpIds = () =>
+    [...document.querySelectorAll('[data-help-id]')].map((el) => el.getAttribute('data-help-id'));
+
+  it('puts a (?) on the hub title, New report and the search box', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    serveCatalogue();
+    renderHub();
+
+    await expectHelp('reports.hub'); // the page title: the route says which page this is
+    await expectHelp('reports.hub.action.newReport');
+    await expectHelp('reports.hub.field.search'); // its text is the `help.search` key
+  });
+
+  it('puts a (?) on the runner title, the questions, Show report, Print, the download and the useful question', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    serve();
+    vi.spyOn(window, 'open').mockImplementation(() => null);
+    await renderRunner();
+    const user = userEvent.setup();
+    await page().findAllByText('40');
+
+    await expectHelp('reports.hub');
+    await expectHelp('reports.hub.section.questions');
+    await expectHelp('reports.hub.action.print');
+    await expectHelp('reports.hub.action.downloadExcel');
+    await expectHelp('reports.hub.section.feedback');
+    // Show report only exists while the questions form is open.
+    expect(helpIds()).not.toContain('reports.hub.action.showReport');
+    await user.click(page().getByRole('button', { name: /Change/ }));
+    await expectHelp('reports.hub.action.showReport');
+    // The More-menu items draw no (?): the toggle has no dialog (#3078); the two dialogs carry theirs.
+    expect(helpIds()).not.toContain('reports.hub.action.showOnDashboard');
+  });
+
+  it('keeps the runner free of a lone download (?) for someone who may not download', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    serve();
+    await renderRunner(REPORT_ID, 'TEACHER');
+    await page().findAllByText('40');
+    expect(helpIds()).not.toContain('reports.hub.action.downloadExcel');
   });
 });

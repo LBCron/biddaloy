@@ -34,6 +34,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  HelpHint,
   Select,
   SelectContent,
   SelectItem,
@@ -280,7 +281,10 @@ function ScheduleForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{t('delivery.email.title')}</DialogTitle>
+        <div className="flex items-center gap-1">
+          <DialogTitle>{t('delivery.email.title')}</DialogTitle>
+          <HelpHint helpId="reports.hub.action.emailRegularly" />
+        </div>
         <DialogDescription>{t('delivery.email.description')}</DialogDescription>
       </DialogHeader>
       <form onSubmit={save} className="flex flex-col gap-4">

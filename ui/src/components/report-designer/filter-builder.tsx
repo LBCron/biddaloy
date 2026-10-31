@@ -37,6 +37,7 @@ import { renderDigits } from '../../utils/digits';
 import { parseNumber } from '../../utils/number';
 import { Button } from '../button';
 import { DatePicker } from '../date-picker';
+import { HelpHint, useHelp } from '../help-hint';
 import { Input } from '../input';
 import { Label } from '../label';
 import { MultiCombobox } from '../multi-combobox';
@@ -559,6 +560,8 @@ export interface FilterBuilderProps extends FilterBuilderValue {
   onChange: (value: FilterBuilderValue) => void;
   labels: FilterBuilderLabels;
   enumLabel?: EnumLabel;
+  /** A (?) after the title (Epic 44). The row wrapper exists only when the (?) renders. */
+  helpId?: string | undefined;
   className?: string;
 }
 
@@ -569,8 +572,10 @@ export function FilterBuilder({
   onChange,
   labels,
   enumLabel = RAW_ENUM,
+  helpId,
   className,
 }: FilterBuilderProps) {
+  const { resolve } = useHelp();
   const baseId = React.useId();
   const usable = React.useMemo(
     () => fields.filter((f) => f.kind === 'field' && f.filterable),
@@ -658,9 +663,18 @@ export function FilterBuilder({
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
-      <h3 id={`${baseId}-title`} className="text-h3 text-text-primary">
-        {labels.title}
-      </h3>
+      {resolve(helpId) ? (
+        <div className="flex items-center gap-1">
+          <h3 id={`${baseId}-title`} className="text-h3 text-text-primary">
+            {labels.title}
+          </h3>
+          <HelpHint helpId={helpId} />
+        </div>
+      ) : (
+        <h3 id={`${baseId}-title`} className="text-h3 text-text-primary">
+          {labels.title}
+        </h3>
+      )}
       {filters.length === 0 ? (
         <p className="text-body text-text-secondary">{labels.empty}</p>
       ) : (

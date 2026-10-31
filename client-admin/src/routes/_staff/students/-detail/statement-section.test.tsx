@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import bnFees from '../../../../../../ui/src/i18n/locales/bn/fees.json';
 import enFees from '../../../../../../ui/src/i18n/locales/en/fees.json';
+import { expectHelp, withHelp } from '../../../../help/test-utils';
 
 import { StatementSection } from './statement-section';
 
@@ -175,6 +176,22 @@ describe('students/-detail/statement-section', () => {
     expect(screen.getByRole('heading', { name: 'Advance money' })).toBeTruthy();
     // The wallet is not in the running table.
     expect(within(screen.getByRole('table')).queryByText(/Advance money/)).toBeNull();
+  });
+
+  // [8.15.49] The (?) beside the date range, linking to the Statement part of the student guide.
+  it('puts a (?) on the statement, and keeps the Print button as it was', async () => {
+    serve(statement());
+    const { localeReady } = renderWithProviders(
+      withHelp(<StatementSection studentId={STUDENT_ID} />),
+      {
+        locale: 'en',
+        tenantId: 'tenant-1',
+        role: 'ADMIN',
+      },
+    );
+    await localeReady;
+    await expectHelp('people.students.section.statement');
+    expect(await screen.findByRole('button', { name: 'Print' })).toBeTruthy();
   });
 
   it('has a Print button that prints only this section, then lets the page back', async () => {

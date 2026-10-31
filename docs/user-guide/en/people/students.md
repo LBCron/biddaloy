@@ -52,6 +52,7 @@ helpIds:
     people.students.field.rollNumber,
     people.students.field.bloodGroup,
     people.students.field.preferredCommunication,
+    people.students.section.statement#task-fees,
   ]
 devices: [desktop]
 entry: [sidebar, palette, page:welcome]

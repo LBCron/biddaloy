@@ -40,6 +40,7 @@ import { cn } from '../primitives/lib/utils';
 import { formatNumber } from '../utils';
 
 import { Button } from './button';
+import { HelpHint, useHelp } from './help-hint';
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from './menu';
 
 export type ExportMenuFormat = 'xlsx' | 'csv';
@@ -60,6 +61,11 @@ export interface ExportMenuProps {
    * `REPORTS_DESIGN`; leave it out and the item is not shown.
    */
   onKeepAsReport?: () => void;
+  /**
+   * A (?) after the download button (Epic 44). Shown only with the download button itself, so a
+   * person who may not download never sees a lone (?).
+   */
+  helpId?: string | undefined;
   /** What a row is: a person ("1,234 people") or a thing ("1,234 items"). */
   unit?: 'people' | 'items';
   /** The "too large" sentence suggests narrowing by class or section instead of by filters. */
@@ -83,9 +89,11 @@ export function ExportMenu({
   onKeepAsReport,
   unit = 'items',
   narrowByClass = false,
+  helpId,
   className,
 }: ExportMenuProps) {
   const { t } = useTranslation();
+  const { resolve } = useHelp();
   const regionConfig = useRegionConfig();
   const [busy, setBusy] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
@@ -198,9 +206,19 @@ export function ExportMenu({
     </div>
   );
 
+  // The row wrapper only exists when a (?) renders, so a menu without help keeps its DOM.
+  const hinted = canExportAll && helpId !== undefined && resolve(helpId) !== null;
+
   return (
     <div className={cn('flex flex-col items-start gap-1 md:items-end', className)}>
-      {body}
+      {hinted ? (
+        <div className="inline-flex items-center gap-1">
+          {body}
+          <HelpHint helpId={helpId} />
+        </div>
+      ) : (
+        body
+      )}
       {message !== null && (
         <p role="alert" className="text-sm text-destructive">
           {message}

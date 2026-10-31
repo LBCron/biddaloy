@@ -47,7 +47,25 @@ labels:
     nav:items.allReports,
     nav:groups.reports,
   ]
-helpIds: [reports.hub]
+helpIds:
+  [
+    reports.hub,
+    reports.hub.action.newReport#task-design,
+    reports.hub.field.search#task-main,
+    reports.hub.section.questions#task-answer,
+    reports.hub.action.showReport#task-answer,
+    reports.hub.action.downloadExcel#task-download,
+    reports.hub.action.print#task-print,
+    reports.hub.action.emailRegularly#task-email,
+    reports.hub.action.keepCopy#task-copy,
+    reports.hub.action.showOnDashboard#task-pin,
+    reports.hub.section.feedback#task-feedback,
+    reports.hub.section.designTrays#task-design,
+    reports.hub.section.designFilters#task-design,
+    reports.hub.section.designLayout#task-design,
+    reports.hub.section.designMore#task-design,
+    reports.hub.field.whoCanSee#task-design,
+  ]
 devices: [desktop, phone]
 entry: [sidebar, palette]
 keywords:
@@ -535,6 +553,27 @@ knownIssues:
 | পেমেন্ট            | দিন ও পদ্ধতি অনুযায়ী মোট                           | তারিখ (তালিকায় তারিখ বাছা থাকলে) |
 
 শ্রেণি আর শাখা নাম ধরে রিপোর্টে বসে, আইডি ধরে নয়। তাই শ্রেণির নাম বদলালে রিপোর্টটিও আবার দেখে নিন।
+
+</details>
+
+<details>
+<summary><strong>ঘরগুলোর অর্থ</strong></summary>
+
+<!-- guide:generated:fields:reports:search -->
+
+| ঘর             | কী লিখবেন                                                                  | বাধ্যতামূলক? |
+| -------------- | -------------------------------------------------------------------------- | ------------ |
+| রিপোর্ট খুঁজুন | রিপোর্টের নামের একটু অংশ লিখুন। বাংলা বা ইংরেজি, যেকোনো নামেই খুঁজে পাবেন। | না           |
+
+<!-- /guide:generated -->
+
+<!-- guide:generated:fields:reportDesigner:whoCanSee -->
+
+| ঘর               | কী লিখবেন                                                                                    | বাধ্যতামূলক? |
+| ---------------- | -------------------------------------------------------------------------------------------- | ------------ |
+| কারা দেখতে পাবেন | যে ভূমিকার মানুষ রিপোর্টটি খুলতে পারবেন, তাঁদের ঘরে টিক দিন। অ্যাডমিন সব রিপোর্টই দেখতে পান। | না           |
+
+<!-- /guide:generated -->
 
 </details>
 

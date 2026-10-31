@@ -13,6 +13,7 @@ import bnPlatform from '../../../../../../ui/src/i18n/locales/bn/platform.json';
 import bnReports from '../../../../../../ui/src/i18n/locales/bn/reports.json';
 import enPlatform from '../../../../../../ui/src/i18n/locales/en/platform.json';
 import enReports from '../../../../../../ui/src/i18n/locales/en/reports.json';
+import { expectHelp, withHelp } from '../../../../help/test-utils';
 import { routeTree } from '../../../../routeTree.gen';
 
 import { ScheduleDialog } from './schedule-dialog';
@@ -610,5 +611,34 @@ describe('/reports/runs/$runId [8.15.47]: where the email link lands', () => {
   it('has no jargon word in its text', () => {
     const text = JSON.stringify(enReports.landing);
     expect(text).not.toMatch(/schedul|snapshot|cron|widget/i);
+  });
+});
+
+/** [8.15.49] A More-menu item draws no (?), so the id sits beside the title of the dialog it opens. */
+describe('(?) help ids [8.15.49]', () => {
+  it('puts a (?) beside the title of the regular-email dialog', async () => {
+    server.use(
+      http.get(`/api/v1/reports/definitions/${REPORT_ID}/schedules`, () => HttpResponse.json([])),
+    );
+    renderWithProviders(
+      withHelp(
+        inRegion(
+          <ScheduleDialog open onOpenChange={() => {}} definitionId={REPORT_ID} params={{}} />,
+        ),
+      ),
+      { tenantId: 'tenant-1', role: 'ACCOUNTANT', locale: 'en' },
+    );
+    // The dialog keeps its plain name: the (?) is beside the title, not inside it.
+    await screen.findByRole('dialog', { name: 'Email this report regularly' });
+    await expectHelp('reports.hub.action.emailRegularly');
+  });
+
+  it("puts a (?) beside the title of the keep-today's-copy dialog", async () => {
+    renderWithProviders(
+      withHelp(inRegion(<KeepCopyDialog open onOpenChange={() => {}} runId={RUN_ID} />)),
+      { tenantId: 'tenant-1', role: 'ADMIN', locale: 'en' },
+    );
+    await screen.findByRole('dialog', { name: "Keep today's copy" });
+    await expectHelp('reports.hub.action.keepCopy');
   });
 });

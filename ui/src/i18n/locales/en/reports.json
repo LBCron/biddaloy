@@ -75,13 +75,15 @@
     "preset": "Date range",
     "method": "Method",
     "collector": "Collector",
-    "customRange": "Custom range"
+    "customRange": "Custom range",
+    "search": "Find a report"
   },
   "help": {
     "preset": "Which days to show. Starts on Today. This week starts on Monday. Days are counted in Bangladesh time.",
     "customRange": "Shows only when Date range is Custom. Both the From and To days are included.",
     "method": "Show money that came one way only, such as Cash or bKash. Leave empty for all methods.",
-    "collector": "Show money taken by one staff member only. The list holds only people who took money in this range."
+    "collector": "Show money taken by one staff member only. The list holds only people who took money in this range.",
+    "search": "Type part of a report's name. Bangla and English names both work."
   },
   "studentCount": {
     "title": "Student count (BANBEIS)",

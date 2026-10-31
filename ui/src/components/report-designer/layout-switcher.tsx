@@ -21,6 +21,7 @@ import * as React from 'react';
 
 import { cn } from '../../primitives/lib/utils';
 import { Button } from '../button';
+import { HelpHint, useHelp } from '../help-hint';
 
 import type { LayoutReason, LayoutSuggestion } from './suggest-layout';
 
@@ -46,6 +47,8 @@ export interface LayoutSwitcherProps {
   onChange: (layout: ReportLayoutType) => void;
   suggestion: LayoutSuggestion;
   labels: LayoutSwitcherLabels;
+  /** A (?) after the title (Epic 44). The wrapper exists only when the (?) renders. */
+  helpId?: string | undefined;
   className?: string;
 }
 
@@ -54,14 +57,30 @@ export function LayoutSwitcher({
   onChange,
   suggestion,
   labels,
+  helpId,
   className,
 }: LayoutSwitcherProps) {
+  const { resolve } = useHelp();
+  const hinted = resolve(helpId) !== null;
   const name = React.useId();
   const following = value === suggestion.layout;
   return (
     <div className={cn('flex flex-col gap-2', className)}>
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-2 text-h3 text-text-primary">{labels.title}</legend>
+      {/* With a (?) in the legend, the group is named by the title text alone, not "Help: …". */}
+      <fieldset
+        className="flex flex-col gap-2"
+        aria-labelledby={hinted ? `${name}-title` : undefined}
+      >
+        <legend className="mb-2 text-h3 text-text-primary">
+          {hinted ? (
+            <span className="inline-flex items-center gap-1">
+              <span id={`${name}-title`}>{labels.title}</span>
+              <HelpHint helpId={helpId} />
+            </span>
+          ) : (
+            labels.title
+          )}
+        </legend>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {LAYOUT_CHOICES.map(({ type, icon: Icon }) => {
             const chosen = value === type;

@@ -4,6 +4,7 @@ import {
   DatePicker,
   EmptyState,
   ErrorState,
+  HelpHint,
   RoutePending,
   Skeleton,
   StudentPicker,
@@ -210,15 +211,18 @@ function PortalStatement() {
               min={from}
             />
           </div>
-          <Button
-            type="button"
-            className="w-full sm:ms-auto sm:w-auto"
-            onClick={handlePrint}
-            disabled={statement === undefined}
-          >
-            <PrinterIcon aria-hidden className="size-4" />
-            {t('statement.portal.download')}
-          </Button>
+          <div className="flex w-full items-center gap-1 sm:ms-auto sm:w-auto">
+            <Button
+              type="button"
+              className="flex-1 sm:flex-none"
+              onClick={handlePrint}
+              disabled={statement === undefined}
+            >
+              <PrinterIcon aria-hidden className="size-4" />
+              {t('statement.portal.download')}
+            </Button>
+            <HelpHint helpId="portal.statement.action.print" />
+          </div>
         </div>
         {from === undefined && (
           <p className="text-text-secondary print:hidden">{t('statement.portal.allDates')}</p>

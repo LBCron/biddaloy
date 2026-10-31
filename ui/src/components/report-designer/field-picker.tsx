@@ -32,6 +32,7 @@ import { useLocale, useRegionConfig } from '../../i18n';
 import { cn } from '../../primitives/lib/utils';
 import { toLatinDigits } from '../../utils/digits';
 import { formatNumber } from '../../utils/number';
+import { HelpHint, useHelp } from '../help-hint';
 import { Input } from '../input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../tooltip';
 
@@ -251,10 +252,20 @@ export interface FieldPickerProps {
   value: FieldPickerValue;
   onChange: (value: FieldPickerValue) => void;
   labels: FieldPickerLabels;
+  /** A (?) after the title (Epic 44). The row wrapper exists only when the (?) renders. */
+  helpId?: string | undefined;
   className?: string;
 }
 
-export function FieldPicker({ fields, value, onChange, labels, className }: FieldPickerProps) {
+export function FieldPicker({
+  fields,
+  value,
+  onChange,
+  labels,
+  helpId,
+  className,
+}: FieldPickerProps) {
+  const { resolve } = useHelp();
   const config = useRegionConfig();
   const labelOf = useFieldLabel();
   const [query, setQuery] = React.useState('');
@@ -331,9 +342,18 @@ export function FieldPicker({ fields, value, onChange, labels, className }: Fiel
   return (
     <TooltipProvider>
       <div className={cn('flex flex-col gap-4', className)}>
-        <h3 id={`${baseId}-title`} className="text-h3 text-text-primary">
-          {labels.title}
-        </h3>
+        {resolve(helpId) ? (
+          <div className="flex items-center gap-1">
+            <h3 id={`${baseId}-title`} className="text-h3 text-text-primary">
+              {labels.title}
+            </h3>
+            <HelpHint helpId={helpId} />
+          </div>
+        ) : (
+          <h3 id={`${baseId}-title`} className="text-h3 text-text-primary">
+            {labels.title}
+          </h3>
+        )}
 
         <div className="grid gap-3 md:grid-cols-3">
           {FIELD_TRAYS.map((tray) => {

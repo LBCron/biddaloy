@@ -54,6 +54,7 @@ import {
   EmptyState,
   ErrorState,
   ExportMenu,
+  HelpHint,
   PromptSummary,
   ReportChart,
   ReportCrosstab,
@@ -478,13 +479,16 @@ function ReportRunner({ reportId }: { reportId: string }) {
 
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between print:hidden">
           {values !== null && parameters.length > 0 ? (
-            <div className="min-w-0 flex-1">
-              <PromptSummary
-                parameters={parameters}
-                value={values}
-                expanded={promptsOpen}
-                onToggle={() => setPromptsOpen((open) => !open)}
-              />
+            <div className="flex min-w-0 flex-1 items-center gap-1">
+              <div className="min-w-0 flex-1">
+                <PromptSummary
+                  parameters={parameters}
+                  value={values}
+                  expanded={promptsOpen}
+                  onToggle={() => setPromptsOpen((open) => !open)}
+                />
+              </div>
+              <HelpHint helpId="reports.hub.section.questions" />
             </div>
           ) : (
             <div className="flex-1" />
@@ -503,10 +507,12 @@ function ReportRunner({ reportId }: { reportId: string }) {
                 {t('runner.print')}
               </Button>
             )}
+            {canPrint && <HelpHint helpId="reports.hub.action.print" />}
             <ExportMenu
               totalCount={result?.total_rows ?? 0}
               canExportAll={canExport && result !== undefined}
               unit="items"
+              helpId="reports.hub.action.downloadExcel"
               onExportAll={async (format) => {
                 const outcome = await exportReport.mutateAsync({
                   definitionId: reportId,
@@ -531,6 +537,7 @@ function ReportRunner({ reportId }: { reportId: string }) {
               running={run.isPending}
               open={promptsOpen}
               onOpenChange={setPromptsOpen}
+              runHelpId="reports.hub.action.showReport"
             />
           </div>
         )}
@@ -775,6 +782,7 @@ function UsefulLine({ reportId, runId }: { reportId: string; runId: string }) {
         >
           <ThumbsDownIcon aria-hidden="true" />
         </Button>
+        <HelpHint helpId="reports.hub.section.feedback" />
       </div>
       {phase === 'comment' && (
         <form

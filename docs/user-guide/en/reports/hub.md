@@ -47,7 +47,25 @@ labels:
     nav:items.allReports,
     nav:groups.reports,
   ]
-helpIds: [reports.hub]
+helpIds:
+  [
+    reports.hub,
+    reports.hub.action.newReport#task-design,
+    reports.hub.field.search#task-main,
+    reports.hub.section.questions#task-answer,
+    reports.hub.action.showReport#task-answer,
+    reports.hub.action.downloadExcel#task-download,
+    reports.hub.action.print#task-print,
+    reports.hub.action.emailRegularly#task-email,
+    reports.hub.action.keepCopy#task-copy,
+    reports.hub.action.showOnDashboard#task-pin,
+    reports.hub.section.feedback#task-feedback,
+    reports.hub.section.designTrays#task-design,
+    reports.hub.section.designFilters#task-design,
+    reports.hub.section.designLayout#task-design,
+    reports.hub.section.designMore#task-design,
+    reports.hub.field.whoCanSee#task-design,
+  ]
 devices: [desktop, phone]
 entry: [sidebar, palette]
 keywords:
@@ -535,6 +553,27 @@ Verified on version 0.1.0 on 2026-10-31. This section is removed once the fixes 
 | Payments     | Totals by day and method                                      | Dates (if dates were set on the list) |
 
 Class and section go into the report by name, not by id. If a class is renamed, check the report again.
+
+</details>
+
+<details>
+<summary><strong>What each field means</strong></summary>
+
+<!-- guide:generated:fields:reports:search -->
+
+| Field         | What to enter                                                     | Required? |
+| ------------- | ----------------------------------------------------------------- | --------- |
+| Find a report | Type part of a report's name. Bangla and English names both work. | No        |
+
+<!-- /guide:generated -->
+
+<!-- guide:generated:fields:reportDesigner:whoCanSee -->
+
+| Field          | What to enter                                                             | Required? |
+| -------------- | ------------------------------------------------------------------------- | --------- |
+| Who can see it | Tick each role that may open this report. Admins always see every report. | No        |
+
+<!-- /guide:generated -->
 
 </details>
 
