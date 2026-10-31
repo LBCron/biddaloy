@@ -122,7 +122,7 @@ Do this after you add students, so that guardians can sign in to the app. You se
 
 5. If it looks right, press **Send invitations**.
 
-   → Sending starts. The dialog says "Sending… {queued} of {total} still in progress." When it finishes, the text changes to "Done — {number} sent, {number} failed, {number} skipped." Then press **Close**.
+   → Sending starts. The dialog says "Sending… {queued} of {total} still in progress." When it finishes, the text changes to "Done — {number} sent, {number} failed, {number} skipped." Then press **Close**. An invitation that the [Message log](../communications/message-log.md) later shows as **Delivered** still counts as sent.
 
 > **Remember:** nothing goes out before you press **Send invitations**. You cannot pick a few guardians in this dialog: every eligible guardian comes into the preview together. If you close the dialog after sending, the work keeps going.
 
