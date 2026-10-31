@@ -472,4 +472,31 @@ describe('sms.metering is never imported', () => {
       communications: { sms: { provider: 'greenweb' } },
     });
   });
+  const stored = () => ({
+    communications: {
+      sms: { metering: 'PLATFORM', provider: 'greenweb', greenweb: { apiKey: 'enc:key' } },
+      email: { provider: 'smtp' },
+    },
+  });
+
+  it('a null communications.sms cannot wipe the stored metering or credentials', () => {
+    const merged = mergeImportedSettings(stored(), {
+      communications: { sms: null, email: { provider: 'ses' } },
+    });
+    expect(merged).toEqual({
+      communications: {
+        sms: { metering: 'PLATFORM', provider: 'greenweb', greenweb: { apiKey: 'enc:key' } },
+        email: { provider: 'ses' },
+      },
+    });
+  });
+
+  it('a null communications cannot wipe the stored block', () => {
+    const merged = mergeImportedSettings(stored(), { communications: null, region: 'BD' });
+    expect(merged).toEqual({ ...stored(), region: 'BD' });
+  });
+
+  it('a non-object communications.sms (a string) is dropped the same way', () => {
+    expect(mergeImportedSettings(stored(), { communications: { sms: 'OFF' } })).toEqual(stored());
+  });
 });

@@ -161,13 +161,19 @@ export function deepMergePresent(
 /**
  * `communications.sms.metering` says who pays for the school's SMS, and only the platform sets it
  * (#3346). A school ADMIN holds BACKUP_MANAGE, so an imported value must never reach the stored
- * settings: the destination keeps its own, whatever the file says.
+ * settings: the destination keeps its own, whatever the file says. A non-object `communications`
+ * or `communications.sms` (e.g. `null`) is dropped too: the merge would replace the stored object
+ * with it, wiping the stored metering and every saved credential under it.
  */
 function withoutPlatformOnlyPaths(settings: Record<string, unknown>): Record<string, unknown> {
-  const communications = settings.communications;
-  if (!isPlainObject(communications) || !isPlainObject(communications.sms)) return settings;
-  const { metering: _dropped, ...sms } = communications.sms;
-  return { ...settings, communications: { ...communications, sms } };
+  if (!('communications' in settings)) return settings;
+  const { communications, ...rest } = settings;
+  if (!isPlainObject(communications)) return rest;
+  if (!('sms' in communications)) return settings;
+  const { sms, ...otherMedia } = communications;
+  if (!isPlainObject(sms)) return { ...rest, communications: otherMedia };
+  const { metering: _dropped, ...smsKept } = sms;
+  return { ...rest, communications: { ...otherMedia, sms: smsKept } };
 }
 
 /**
