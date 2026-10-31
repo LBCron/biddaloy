@@ -3,6 +3,35 @@ import { describe, expect, it } from 'vitest';
 import { Permission, ROLE_PERMISSIONS, roleHasPermission } from './permissions';
 import { UserRole } from './index';
 
+describe('notice board grants (53.0 D20)', () => {
+  const four = [
+    Permission.NOTICE_POST,
+    Permission.NOTICE_MANAGE,
+    Permission.NOTICE_READ,
+    Permission.NOTICE_SMS_APPROVE,
+  ];
+  const has = (r: UserRole, p: Permission) => ROLE_PERMISSIONS[r].includes(p);
+
+  it('every role reads', () => {
+    for (const r of Object.values(UserRole)) {
+      expect(roleHasPermission(r, Permission.NOTICE_READ)).toBe(true);
+    }
+  });
+  it('TEACHER posts but does not manage', () => {
+    expect(has(UserRole.TEACHER, Permission.NOTICE_POST)).toBe(true);
+    expect(has(UserRole.TEACHER, Permission.NOTICE_MANAGE)).toBe(false);
+  });
+  it('PARENT and STUDENT have only NOTICE_READ', () => {
+    for (const r of [UserRole.PARENT, UserRole.STUDENT]) {
+      expect(four.filter((p) => has(r, p))).toEqual([Permission.NOTICE_READ]);
+    }
+  });
+  it('SMS approve is ADMIN + EXECUTIVE only (SUPER_ADMIN holds all)', () => {
+    const who = Object.values(UserRole).filter((r) => has(r, Permission.NOTICE_SMS_APPROVE));
+    expect(who.sort()).toEqual([UserRole.ADMIN, UserRole.EXECUTIVE, UserRole.SUPER_ADMIN].sort());
+  });
+});
+
 describe('bulk-upload role grants [8.11.8]', () => {
   /**
    * `POST /students/bulk-upload` is declared
@@ -117,6 +146,8 @@ describe('family read grants [5.1]', () => {
     Permission.PROGRAM_READ,
     // [52.1.1] D22/D45 — families may submit (own) applications.
     Permission.APPLICATION_SUBMIT,
+    // [53.1.01] D20 — families read notices addressed to them.
+    Permission.NOTICE_READ,
   ] as const;
 
   for (const role of FAMILY_ROLES) {
@@ -882,6 +913,8 @@ describe('new role grants [#1358]', () => {
   // drops REPORT_COLLECTIONS_READ, as D16 allows: that report names students.
   const D16: Record<(typeof NEW_ROLES)[number], Permission[]> = {
     [UserRole.OFFICE_STAFF]: [
+      Permission.NOTICE_POST, // [53.1.01] D20
+      Permission.NOTICE_READ,
       Permission.APPLICATION_SUBMIT, // [52.1.1] D22
       Permission.APPLICATION_MANAGE,
       Permission.CERTIFICATE_ISSUE, // [48.1.01] D6
@@ -913,6 +946,7 @@ describe('new role grants [#1358]', () => {
     ],
     [UserRole.EXAM_CONTROLLER]: [
       Permission.STEP_UP_REQUEST, // [2639] approver role
+      Permission.NOTICE_READ, // [53.1.01] D20
       Permission.APPLICATION_SUBMIT, // [52.1.1] D22
       Permission.EXAM_MANAGE,
       Permission.SEAT_PLAN_MANAGE,
@@ -932,6 +966,7 @@ describe('new role grants [#1358]', () => {
       Permission.STAFF_ATTENDANCE_MARK,
     ],
     [UserRole.COMMITTEE]: [
+      Permission.NOTICE_READ, // [53.1.01] D20
       Permission.DASHBOARD_VIEW,
       Permission.COMMITTEE_REPORT_READ, // [8.10.7] D44
       Permission.ACR_READ,
