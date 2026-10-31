@@ -25,7 +25,15 @@ import { insertChunked } from '../bulk';
 import { orgIds, type OrgTenant } from './org';
 import { studentIds } from './students';
 
-const DEMO_PROVIDER = 'mailpit-sink';
+/**
+ * [97.4.04] D27: the company that would have sent each medium, as the worker records it in
+ * `metadata.provider`. The demo schools chose OneCodeSoft (`demoMessagingSettings`); PUSH has no
+ * company, so its rows carry none. The ids are fake and the sink delivers, so nothing is ever called.
+ */
+const COMPANY: Partial<Record<CommunicationMedium, string>> = {
+  [CommunicationMedium.SMS]: 'onecodesoft',
+  [CommunicationMedium.EMAIL]: 'smtp',
+};
 /** Issue comment on #2176: reminders spend credit, so every branch keeps this much after the history. */
 const CREDIT_FLOOR = 10_000;
 const CONDUCT = 'সন্তোষজনক';
@@ -142,11 +150,17 @@ async function messages(ctx: DemoSeedContext, tenant: OrgTenant, adminId: string
     const email = kind === 'INVOICE' && g.email;
     if (!email && !g.phone) return;
     const medium = email ? CommunicationMedium.EMAIL : CommunicationMedium.SMS;
-    const status = ctx.weighted([
+    const drawn = ctx.weighted([
       [CommunicationStatus.SENT, 40],
       [CommunicationStatus.DELIVERED, 58],
       [CommunicationStatus.FAILED, 2],
     ] as const);
+    // SMTP has no delivery report, so an email stops at SENT. Remapped after the draw, so the
+    // random stream (and every later value: keys, tokens, print jobs) stays the same.
+    const status =
+      medium === CommunicationMedium.EMAIL && drawn === CommunicationStatus.DELIVERED
+        ? CommunicationStatus.SENT
+        : drawn;
     const when = at(
       date,
       9 + rng.number.int({ min: 0, max: 7 }),
@@ -170,14 +184,18 @@ async function messages(ctx: DemoSeedContext, tenant: OrgTenant, adminId: string
         (kind === 'RESULT' ? CommunicationTrigger.RESULT_SMS : CommunicationTrigger.AUTOMATED),
       student_id: studentId,
       guardian_id: g.id,
-      sent_by_user_id: null,
+      // A reminder round records who started it (RemindersService), so "Sent by" has data.
+      sent_by_user_id: extra.batchId ? adminId : null,
       reminder_batch_id: extra.batchId ?? null,
-      provider_message_id:
-        status === CommunicationStatus.FAILED ? null : `${DEMO_PROVIDER}-${rng.string.uuid()}`,
-      metadata:
-        status === CommunicationStatus.FAILED
-          ? { provider: DEMO_PROVIDER, reason: 'SIMULATED_FAILURE' }
-          : { provider: DEMO_PROVIDER, kind },
+      provider_message_id: status === CommunicationStatus.FAILED ? null : vendorId(medium),
+      metadata: {
+        provider: COMPANY[medium],
+        kind,
+        // Any `error` text reads as "Failed" in Why it failed (delivery-error-code.ts).
+        ...(status === CommunicationStatus.FAILED ? { error: 'SIMULATED_FAILURE' } : {}),
+        // DELIVERED only ever comes from Check status (D23), which records what it read.
+        ...(status === CommunicationStatus.DELIVERED ? { delivery: delivered(when) } : {}),
+      },
       reference_key: referenceKey,
       created_at: when,
       updated_at: when,
@@ -185,6 +203,12 @@ async function messages(ctx: DemoSeedContext, tenant: OrgTenant, adminId: string
     if (medium === CommunicationMedium.SMS && status !== CommunicationStatus.FAILED) {
       debits.push({ id, at: when });
     }
+  };
+
+  /** Same single `rng` draw as before Epic 97, shaped like the company's own id. */
+  const vendorId = (medium: CommunicationMedium) => {
+    const raw = rng.string.uuid();
+    return medium === CommunicationMedium.EMAIL ? `<${raw}@bmsc.example>` : raw;
   };
 
   for (const year of years) {
@@ -235,6 +259,35 @@ async function messages(ctx: DemoSeedContext, tenant: OrgTenant, adminId: string
       } as never);
     }
   }
+  // D28: one "Send a test message" from Settings, shaped like ConnectionTestService writes it, so
+  // the Test badge has a row. A guardian's seeded number; no `rng` draw (stableId, anchor time).
+  const testTo = [...guardian.values()].find((g) => g.phone)?.phone;
+  if (testTo) {
+    const id = stableId(`${tenant.slug}:settings-test`);
+    const when = at(addDays(ctx.anchor, -1), 11);
+    const [school] = await ctx.ds.query(`SELECT name FROM schools WHERE id = $1`, [tenant.id]);
+    logs.push({
+      id,
+      tenant_id: tenant.id,
+      medium: CommunicationMedium.SMS,
+      recipient_address: testTo,
+      recipient_name: 'Test',
+      message_body: `Biddaloy test message from ${school.name} — সব ঠিক আছে / all good`,
+      subject: null,
+      status: CommunicationStatus.SENT,
+      trigger: CommunicationTrigger.MANUAL,
+      student_id: null,
+      guardian_id: null,
+      sent_by_user_id: adminId,
+      reminder_batch_id: null,
+      provider_message_id: id,
+      metadata: { test: true, provider: COMPANY[CommunicationMedium.SMS] },
+      reference_key: null,
+      created_at: when,
+      updated_at: when,
+    });
+    debits.push({ id, at: when });
+  }
   let rows = await insertChunked(ctx.ds.getRepository(CommunicationLog), logs as never);
 
   // SMS credit: top-ups cover the history and leave CREDIT_FLOOR; the ledger sums to the balance.
@@ -273,6 +326,12 @@ async function messages(ctx: DemoSeedContext, tenant: OrgTenant, adminId: string
   );
   return rows + 1;
 }
+
+/** What Check status writes for a DELIVERED answer (D23), a few minutes after the send. */
+const delivered = (sent: Date) => ({
+  status: 'DELIVERED',
+  checkedAt: new Date(sent.getTime() + 20 * 60_000).toISOString(),
+});
 
 /** A stable uuid-shaped id from a string, so the log ids take no `ctx.rng` draw. */
 const stableId = (seed: string) => {
@@ -366,8 +425,13 @@ export async function arrivalLogs(ctx: DemoSeedContext): Promise<number> {
         student_id: sub.student_id,
         guardian_id: sub.guardian_id,
         sent_by_user_id: null,
-        provider_message_id: `${DEMO_PROVIDER}-${id}`,
-        metadata: { provider: DEMO_PROVIDER, kind: 'ARRIVAL', subscription_id: sub.id },
+        // A push has no company and no company id (CommunicationsProcessor.pushToGuardian).
+        provider_message_id: sms ? id : null,
+        metadata: {
+          ...(sms ? { provider: COMPANY[CommunicationMedium.SMS] } : {}),
+          kind: 'ARRIVAL',
+          subscription_id: sub.id,
+        },
         reference_key: referenceKey,
         created_at: when,
         updated_at: when,

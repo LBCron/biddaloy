@@ -36,6 +36,8 @@ import { SchoolSettingsReader } from '../../../modules/schools/settings/school-s
 import { problemWith } from '../../../modules/schools/settings/messaging-settings.validator';
 import { buildMessagingProvidersResponse } from '../../../modules/schools/settings/messaging-descriptors';
 import type { CommunicationMedium } from '@biddaloy/shared';
+import { canCheckStatus } from '../../../modules/communications/reminders.service';
+import type { CommunicationLog } from '../../../modules/communications/entities/communication-log.entity';
 
 const ANCHOR = '2026-10-10';
 
@@ -117,13 +119,27 @@ describe('comms-print slice (integration, 2 years, scale 0.05)', () => {
          FROM print_job_items i`,
       [ANCHOR],
     );
+    // [97.4.04] Per medium: which company, and whether the company id, delivery and error are set.
     facts.logs = await q(
-      `SELECT count(*)::int AS n,
-              count(*) FILTER (WHERE status = 'FAILED')::int AS failed,
-              count(*) FILTER (WHERE status <> 'FAILED'
-                  AND provider_message_id NOT LIKE 'mailpit-sink-%')::int AS other_provider,
-              count(*) FILTER (WHERE metadata->>'provider' IS DISTINCT FROM 'mailpit-sink')::int AS no_tag
-         FROM communication_logs`,
+      `SELECT medium, status, metadata->>'provider' AS provider,
+              count(*)::int AS n,
+              count(*) FILTER (WHERE provider_message_id IS NULL)::int AS no_vendor_id,
+              count(*) FILTER (WHERE metadata #>> '{delivery,status}' = 'DELIVERED'
+                                 AND metadata #>> '{delivery,checkedAt}' IS NOT NULL)::int AS delivery,
+              count(*) FILTER (WHERE metadata->>'error' IS NOT NULL)::int AS error
+         FROM communication_logs GROUP BY 1, 2, 3`,
+    );
+    facts.testSends = await q(
+      `SELECT l.tenant_id, l.trigger, l.medium, l.status, l.sent_by_user_id IS NOT NULL AS has_sender
+         FROM communication_logs l WHERE l.metadata->>'test' = 'true'`,
+    );
+    facts.batchSenders = await q(
+      `SELECT count(*) FILTER (WHERE sent_by_user_id IS NULL)::int AS missing
+         FROM communication_logs WHERE reminder_batch_id IS NOT NULL`,
+    );
+    facts.sentSms = await q(
+      `SELECT status, medium, provider_message_id, metadata FROM communication_logs
+        WHERE medium = 'SMS' AND status = 'SENT' LIMIT 1`,
     );
     facts.batches = await q(
       `SELECT b.total_recipients,
@@ -172,11 +188,73 @@ describe('comms-print slice (integration, 2 years, scale 0.05)', () => {
     }
   });
 
-  it('tags every message as mailpit-sink so nothing implies a real provider', () => {
-    expect(facts.logs[0].n).toBeGreaterThan(0);
-    expect(facts.logs[0].other_provider).toBe(0);
-    expect(facts.logs[0].no_tag).toBe(0);
-    expect(facts.logs[0].failed).toBeGreaterThan(0);
+  // [97.4.04] D27: every Message log filter has rows in the demo.
+  it('tags each message with the company of its medium, like the worker does', () => {
+    const rows = facts.logs as {
+      medium: string;
+      status: string;
+      provider: string | null;
+      n: number;
+      no_vendor_id: number;
+      delivery: number;
+      error: number;
+    }[];
+    const companyOf: Record<string, string | null> = {
+      SMS: 'onecodesoft',
+      EMAIL: 'smtp',
+      PUSH: null,
+    };
+    for (const r of rows) expect(r.provider, `${r.medium} ${r.status}`).toBe(companyOf[r.medium]);
+    const sum = (f: (r: (typeof rows)[number]) => boolean, k: keyof (typeof rows)[number] = 'n') =>
+      rows.filter(f).reduce((a, r) => a + (r[k] as number), 0);
+    // Statuses: SMS shows SENT, DELIVERED and FAILED; an email never reads DELIVERED (no report).
+    for (const st of ['SENT', 'DELIVERED', 'FAILED']) {
+      expect(
+        sum((r) => r.medium === 'SMS' && r.status === st),
+        st,
+      ).toBeGreaterThan(0);
+    }
+    expect(sum((r) => r.medium === 'EMAIL')).toBeGreaterThan(0);
+    expect(sum((r) => r.medium === 'EMAIL' && r.status === 'DELIVERED')).toBe(0);
+    // A sent SMS carries the company's id; a failed one none, and an error for Why it failed.
+    expect(sum((r) => r.medium === 'SMS' && r.status !== 'FAILED', 'no_vendor_id')).toBe(0);
+    expect(sum((r) => r.status === 'FAILED', 'no_vendor_id')).toBe(
+      sum((r) => r.status === 'FAILED'),
+    );
+    expect(sum((r) => r.status === 'FAILED', 'error')).toBe(sum((r) => r.status === 'FAILED'));
+    // Every DELIVERED row says what Check status read (D23).
+    expect(sum((r) => r.status === 'DELIVERED', 'delivery')).toBe(
+      sum((r) => r.status === 'DELIVERED'),
+    );
+  });
+
+  it('has one Settings test message per branch and a sender on every reminder-round message', () => {
+    expect(facts.testSends.length).toBe(facts.tenants[0].n);
+    for (const t of facts.testSends) {
+      expect(t).toMatchObject({
+        trigger: 'MANUAL',
+        medium: 'SMS',
+        status: 'SENT',
+        has_sender: true,
+      });
+    }
+    expect(facts.batchSenders[0].missing).toBe(0);
+  });
+
+  // The hosted demo runs on the test inbox (MESSAGE_SINK), which hides Check status by design.
+  it('gives a sent SMS everything Check status needs, which the test inbox then hides', () => {
+    const log = facts.sentSms[0] as CommunicationLog;
+    expect(log).toBeDefined();
+    const before = process.env.MESSAGE_SINK;
+    try {
+      delete process.env.MESSAGE_SINK;
+      expect(canCheckStatus(log)).toBe(true);
+      process.env.MESSAGE_SINK = 'mailpit';
+      expect(canCheckStatus(log)).toBe(false);
+    } finally {
+      if (before === undefined) delete process.env.MESSAGE_SINK;
+      else process.env.MESSAGE_SINK = before;
+    }
   });
 
   it('links each reminder batch to exactly its logs', () => {
