@@ -3825,6 +3825,16 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'task-main',
     knownIssues: 0,
   },
+  'portal.statement': {
+    title: { bn: 'হিসাব দেখুন ও প্রিন্ট করুন', en: 'See and print the statement' },
+    summary: {
+      bn: 'সন্তানের কত বিল হয়েছে, কত জমা হয়েছে আর এখন কত বাকি, তারিখ ধরে দেখুন; আর হিসাবটি ডাউনলোড বা প্রিন্ট করুন।',
+      en: 'See what was charged, what was paid and what is still owed for your child, by date, and download or print the statement.',
+    },
+    path: 'portal/statement',
+    anchor: '',
+    knownIssues: 0,
+  },
   'portal.attendance': {
     title: { bn: 'উপস্থিতি', en: 'Attendance' },
     summary: {
@@ -4908,6 +4918,7 @@ export const HELP_ROUTES = {
   '/curriculum-preset': 'administration.curriculumPreset',
   '/portal': 'portal.overview',
   '/portal/fees': 'portal.fees',
+  '/portal/statement': 'portal.statement',
   '/portal/attendance': 'portal.attendance',
   '/portal/routine': 'portal.routine',
   '/portal/calendar': 'portal.calendar',

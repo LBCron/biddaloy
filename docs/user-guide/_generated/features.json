@@ -526,6 +526,14 @@
     "routes": ["/portal/fees"]
   },
   {
+    "id": "portal.statement",
+    "kind": "portal",
+    "path": "portal/statement",
+    "route": "/portal/statement",
+    "roles": ["PARENT", "STUDENT"],
+    "routes": ["/portal/statement"]
+  },
+  {
     "id": "portal.attendance",
     "kind": "portal",
     "path": "portal/attendance",

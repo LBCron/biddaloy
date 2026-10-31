@@ -106,6 +106,7 @@
 - [অভিভাবক ও শিক্ষার্থীর পোর্টাল](portal/overview.md)
   - [সারসংক্ষেপ](portal/overview.md)
   - [ফি ও চালান](portal/fees.md)
+  - [হিসাব দেখুন ও প্রিন্ট করুন](portal/statement.md)
   - [উপস্থিতি](portal/attendance.md)
   - [রুটিন](portal/routine.md)
   - [ক্যালেন্ডার](portal/calendar.md)

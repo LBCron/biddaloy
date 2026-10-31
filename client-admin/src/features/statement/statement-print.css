@@ -1,0 +1,52 @@
+/**
+ * [8.15.38] Student statement, printed from the Fees tab. The statement sits deep inside the
+ * student page (header, tabs, summary), so printing the page would print all of that too.
+ * `statement-section.tsx` puts `printing-statement` on <html> for the moment of printing; this
+ * file then hides every element that is neither the statement, inside it, nor holding it.
+ * A4 portrait, black on white, opening and closing rows kept with the table.
+ * Print CSS needs a manual print-preview check (page breaks differ per browser).
+ */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+
+  html.printing-statement
+    body
+    :not(.student-statement):not(.student-statement *):not(:has(.student-statement)) {
+    display: none !important;
+  }
+
+  html.printing-statement .student-statement {
+    max-width: none;
+    padding: 0;
+    background: #fff;
+    color: #000;
+  }
+
+  html.printing-statement .student-statement * {
+    color: #000;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  html.printing-statement .student-statement table {
+    border-collapse: collapse;
+    width: 100%;
+    break-inside: avoid;
+  }
+
+  html.printing-statement .student-statement th,
+  html.printing-statement .student-statement td {
+    border: 1px solid #000;
+  }
+
+  html.printing-statement .student-statement li {
+    break-inside: avoid;
+  }
+
+  html.printing-statement .student-statement thead {
+    display: table-header-group;
+  }
+}

@@ -6,6 +6,7 @@ import {
   BellRingIcon,
   BlocksIcon,
   BookOpenIcon,
+  BookTextIcon,
   BookUserIcon,
   BriefcaseIcon,
   Building2Icon,
@@ -146,6 +147,7 @@ export const STAFF_PLATFORM_EXTRA_ICONS = PLATFORM_NAV_ICONS;
 export const PORTAL_NAV_ICONS: Record<string, LucideIcon> = {
   '/portal': HouseIcon,
   '/portal/fees': CreditCardIcon,
+  '/portal/statement': BookTextIcon,
   '/portal/attendance': CalendarCheck2Icon,
   '/portal/routine': CalendarClockIcon,
   '/portal/calendar': CalendarDaysIcon,

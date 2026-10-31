@@ -106,6 +106,7 @@
 - [Parent and student portal](portal/overview.md)
   - [Overview](portal/overview.md)
   - [Fees and invoices](portal/fees.md)
+  - [See and print the statement](portal/statement.md)
   - [Attendance](portal/attendance.md)
   - [Routine](portal/routine.md)
   - [Calendar](portal/calendar.md)

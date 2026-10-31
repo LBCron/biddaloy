@@ -20,6 +20,7 @@ sources:
 labels:
   [
     students:*,
+    fees:statement.*,
     student-lifecycle:*,
     student-notes:*,
     student-records:*,
@@ -240,7 +241,7 @@ The tabs come in this order:
 | **Subject choices**                                 | Choosing one of the optional subjects the class has (for example the fourth subject).                                                       |
 | **Programs**                                        | The program the student is enrolled in, with progress and milestones.                                                                       |
 | **Performance**                                     | A summary built from marks. Only people who may see marks get this tab.                                                                     |
-| **Fees**                                            | Total billed, total paid, dues; **Open bills**, **Credit balance**, **History** and **Discounts**.                                          |
+| **Fees**                                            | Total billed, total paid, dues; **Open bills**, **Credit balance**, **History**, **Discounts** and **Statement**.                           |
 | [**Fines**](../finance/fines.md)                    | All of this student's [fines](../help/glossary.md#fine).                                                                                    |
 | **Automatic billing**                               | Which recurring bills the student is on, and which they are left out of.                                                                    |
 | [**Payments**](../finance/payments.md)              | All money received, with date and method.                                                                                                   |
@@ -270,6 +271,7 @@ The guardian's own page (**Guardians**) is not written in this guide yet.
 
 - **Collect fees:** press **Collect fees** on a row in the list or at the top of the profile. → The page for taking money opens, with this student already chosen. The rest happens on the [**Payments**](../finance/payments.md) page.
 - **How much is [due](../help/glossary.md#dues):** look at the profile's **Fees** tab (the [**Student dues**](../finance/dues.md) page shows all students).
+- **See or print the statement:** on the profile's **Fees** tab, open **Statement**. → At the top, **Still owed now: ৳…** in large type, or **All paid**, with the date of the last payment. Under it, a table: **Date**, **What**, **Charged**, **Paid** and **Still owed** after each line, with **Still owed at the start** and **Still owed at the end** in bold. It opens at the start of the current academic year; change **From** or **To** to see other dates (with **To** set, the top line reads **Still owed up to** that date). Money kept in advance is listed under the table and is not part of what is still owed. Press **Print** to print this statement alone, with the school's name on top. You need to be allowed to read both invoices and payments to see this tab.
 - **Send reminder:** on the profile, or choose several students in the list and press **Send reminder**. Type a **Message** and press **Send**. → **Reminder sent to N guardians.** The message goes out. There is a limit on how many students one reminder can go to; if you choose more, the dialog says so.
 
 ### Move to another class or section <a href="#task-move" id="task-move"></a>

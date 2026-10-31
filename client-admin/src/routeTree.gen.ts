@@ -39,6 +39,7 @@ import { Route as PortalNotificationsRouteImport } from './routes/portal/notific
 import { Route as PortalProgramsRouteImport } from './routes/portal/programs'
 import { Route as PortalResultsRouteImport } from './routes/portal/results'
 import { Route as PortalRoutineRouteImport } from './routes/portal/routine'
+import { Route as PortalStatementRouteImport } from './routes/portal/statement'
 import { Route as PortalSurveysRouteImport } from './routes/portal/surveys'
 import { Route as PortalSyllabusRouteImport } from './routes/portal/syllabus'
 import { Route as VTokenRouteImport } from './routes/v/$token'
@@ -300,6 +301,11 @@ const PortalResultsRoute = PortalResultsRouteImport.update({
 const PortalRoutineRoute = PortalRoutineRouteImport.update({
   id: '/routine',
   path: '/routine',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalStatementRoute = PortalStatementRouteImport.update({
+  id: '/statement',
+  path: '/statement',
   getParentRoute: () => PortalRoute,
 } as any)
 const PortalSurveysRoute = PortalSurveysRouteImport.update({
@@ -944,6 +950,7 @@ export interface FileRoutesByFullPath {
   '/portal/programs': typeof PortalProgramsRoute
   '/portal/results': typeof PortalResultsRoute
   '/portal/routine': typeof PortalRoutineRoute
+  '/portal/statement': typeof PortalStatementRoute
   '/portal/surveys': typeof PortalSurveysRoute
   '/portal/syllabus': typeof PortalSyllabusRoute
   '/v/$token': typeof VTokenRoute
@@ -1086,6 +1093,7 @@ export interface FileRoutesByTo {
   '/portal/programs': typeof PortalProgramsRoute
   '/portal/results': typeof PortalResultsRoute
   '/portal/routine': typeof PortalRoutineRoute
+  '/portal/statement': typeof PortalStatementRoute
   '/portal/surveys': typeof PortalSurveysRoute
   '/portal/syllabus': typeof PortalSyllabusRoute
   '/v/$token': typeof VTokenRoute
@@ -1233,6 +1241,7 @@ export interface FileRoutesById {
   '/portal/programs': typeof PortalProgramsRoute
   '/portal/results': typeof PortalResultsRoute
   '/portal/routine': typeof PortalRoutineRoute
+  '/portal/statement': typeof PortalStatementRoute
   '/portal/surveys': typeof PortalSurveysRoute
   '/portal/syllabus': typeof PortalSyllabusRoute
   '/v/$token': typeof VTokenRoute
@@ -1379,6 +1388,7 @@ export interface FileRouteTypes {
     | '/portal/programs'
     | '/portal/results'
     | '/portal/routine'
+    | '/portal/statement'
     | '/portal/surveys'
     | '/portal/syllabus'
     | '/v/$token'
@@ -1521,6 +1531,7 @@ export interface FileRouteTypes {
     | '/portal/programs'
     | '/portal/results'
     | '/portal/routine'
+    | '/portal/statement'
     | '/portal/surveys'
     | '/portal/syllabus'
     | '/v/$token'
@@ -1667,6 +1678,7 @@ export interface FileRouteTypes {
     | '/portal/programs'
     | '/portal/results'
     | '/portal/routine'
+    | '/portal/statement'
     | '/portal/surveys'
     | '/portal/syllabus'
     | '/v/$token'
@@ -2013,6 +2025,13 @@ declare module '@tanstack/react-router' {
       path: '/routine'
       fullPath: '/portal/routine'
       preLoaderRoute: typeof PortalRoutineRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/statement': {
+      id: '/portal/statement'
+      path: '/statement'
+      fullPath: '/portal/statement'
+      preLoaderRoute: typeof PortalStatementRouteImport
       parentRoute: typeof PortalRoute
     }
     '/portal/surveys': {
@@ -3085,6 +3104,7 @@ interface PortalRouteChildren {
   PortalProgramsRoute: typeof PortalProgramsRoute
   PortalResultsRoute: typeof PortalResultsRoute
   PortalRoutineRoute: typeof PortalRoutineRoute
+  PortalStatementRoute: typeof PortalStatementRoute
   PortalSurveysRoute: typeof PortalSurveysRoute
   PortalSyllabusRoute: typeof PortalSyllabusRoute
   PortalIndexRoute: typeof PortalIndexRoute
@@ -3104,6 +3124,7 @@ const PortalRouteChildren: PortalRouteChildren = {
   PortalProgramsRoute: PortalProgramsRoute,
   PortalResultsRoute: PortalResultsRoute,
   PortalRoutineRoute: PortalRoutineRoute,
+  PortalStatementRoute: PortalStatementRoute,
   PortalSurveysRoute: PortalSurveysRoute,
   PortalSyllabusRoute: PortalSyllabusRoute,
   PortalIndexRoute: PortalIndexRoute,

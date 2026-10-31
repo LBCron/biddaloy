@@ -642,6 +642,11 @@
       "archetype": "list"
     },
     {
+      "path": "/portal/statement",
+      "role": "parent",
+      "archetype": "list"
+    },
+    {
       "path": "/portal/routine",
       "role": "parent",
       "archetype": "list"

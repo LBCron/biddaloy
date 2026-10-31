@@ -1075,6 +1075,16 @@ export {
   type SortOrder,
 } from './fee-dues';
 export {
+  studentStatementKeys,
+  studentStatementQueryOptions,
+  useStudentStatement,
+  type StatementAudience,
+  type StatementEntry,
+  type StatementWalletMove,
+  type StudentStatement,
+  type StudentStatementParams,
+} from './student-statement';
+export {
   useStudentWallet,
   useWalletPayout,
   walletKeys,
