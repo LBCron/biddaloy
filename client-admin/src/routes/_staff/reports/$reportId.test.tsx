@@ -114,13 +114,44 @@ function runResult(overrides: Record<string, unknown> = {}) {
 interface Served {
   runs: Record<string, unknown>[];
   definitionRequests: number;
+  presentationRequests: number;
   feedback: Record<string, unknown>[];
 }
 
-function serve(options: { run?: () => Response | Promise<Response>; designer?: boolean } = {}) {
-  const served: Served = { runs: [], definitionRequests: 0, feedback: [] };
+/** [8.15.50] What everyone else reads: the published version's look, with no dataset. */
+function presentation(body = definition().draft) {
+  const { parameters, layout, page, format, drill, schema, subjectArea } = body;
+  return { version_id: 'v1', schema, subjectArea, parameters, layout, page, format, drill };
+}
+
+function serve(
+  options: {
+    run?: () => Response | Promise<Response>;
+    designer?: boolean;
+    /** What `GET /reports/catalogue/:id/definition` answers: the look, or a 404 (hidden or gone). */
+    look?: 'ok' | 'missing';
+  } = {},
+) {
+  const served: Served = { runs: [], definitionRequests: 0, presentationRequests: 0, feedback: [] };
   server.use(
     http.get('/api/v1/reports/catalogue', () => HttpResponse.json(catalogue)),
+    http.get('/api/v1/reports/catalogue/:id/definition', () => {
+      served.presentationRequests += 1;
+      if (options.look === 'missing') {
+        return HttpResponse.json(
+          {
+            statusCode: 404,
+            message: 'Report not found',
+            error: 'Not Found',
+            requestId: 'r',
+            path: '/',
+            timestamp: '',
+          },
+          { status: 404 },
+        );
+      }
+      return HttpResponse.json(presentation());
+    }),
     http.get('/api/v1/reports/definitions/:id', () => {
       served.definitionRequests += 1;
       return HttpResponse.json(definition());
@@ -244,15 +275,60 @@ describe('/reports/$reportId [8.15.29]', () => {
     });
   });
 
-  it('gives someone who may not design reports a plain table, and never asks for the definition', async () => {
+  it('gives someone who may not design reports the questions and the layout, from the presentation', async () => {
     const served = serve();
+    await renderRunner(REPORT_ID, 'ACCOUNTANT');
+
+    // The table of counts (a column per gender), not a plain table with a "Students" column.
+    expect(await page().findByRole('columnheader', { name: 'Boy' })).toBeTruthy();
+    expect(page().queryByRole('columnheader', { name: 'Students' })).toBeNull();
+    // Never the designer route, which only a designer may read.
+    expect(served.definitionRequests).toBe(0);
+    expect(served.presentationRequests).toBe(1);
+    // The questions are asked: the year defaults to the current one, and the form is one line away.
+    expect(served.runs).toEqual([{ definitionId: REPORT_ID, params: { year: '2026' } }]);
+    expect(page().getByRole('button', { name: /2026.*All classes.*Change/ })).toBeTruthy();
+    // No editor for someone who may not design.
+    expect(page().queryByRole('link', { name: 'Change' })).toBeNull();
+  });
+
+  it('lets someone who may not design reports answer a question, and runs again with the answer', async () => {
+    const served = serve();
+    await renderRunner(REPORT_ID, 'TEACHER');
+    const user = userEvent.setup();
+    await page().findAllByText('40');
+
+    await user.click(page().getByRole('button', { name: /Change/ }));
+    await user.click(await page().findByRole('combobox', { name: 'Class' }));
+    await user.click(await screen.findByRole('option', { name: 'Class 7' }));
+    await user.keyboard('{Escape}');
+    await user.click(page().getByRole('button', { name: 'Show report' }));
+
+    await waitFor(() => expect(served.runs).toHaveLength(2));
+    expect(served.runs[1]).toEqual({
+      definitionId: REPORT_ID,
+      params: { year: '2026', class: ['Class 7'] },
+    });
+  });
+
+  it('gives a plain table, and runs on the server defaults, when the presentation is refused', async () => {
+    const served = serve({ look: 'missing' });
     await renderRunner(REPORT_ID, 'TEACHER');
 
     expect(await page().findByRole('columnheader', { name: 'Students' })).toBeTruthy();
     expect(served.definitionRequests).toBe(0);
+    expect(served.presentationRequests).toBe(1);
     // No questions are known, so none are asked; the server applies the report's own defaults.
     expect(served.runs).toEqual([{ definitionId: REPORT_ID }]);
     expect(page().queryByRole('button', { name: /Change/ })).toBeNull();
+  });
+
+  it('a designer reads the definition and not the presentation', async () => {
+    const served = serve();
+    await renderRunner();
+    await page().findAllByText('40');
+    expect(served.definitionRequests).toBe(1);
+    expect(served.presentationRequests).toBe(0);
   });
 
   it('says "narrow the filters" when the report is too slow, and opens the form to do it', async () => {
@@ -689,6 +765,33 @@ describe('/reports/$reportId: colours and links [8.15.42]', () => {
     });
     await user.click(await page().findByRole('link', { name: 'Go back' }));
     await waitFor(() => expect(router.state.location.pathname).toBe(`/reports/${REPORT_ID}`));
+  });
+
+  it('shows colours and links to someone who may not design reports, from the presentation', async () => {
+    serveWithDrill();
+    const look = presentation(
+      (() => {
+        const d = definition({ ...crosstab, totals: true }).draft;
+        d.drill = [
+          { field: 'class', target: { report: 'student-list' }, pass: { class: 'class' } },
+        ] as never;
+        d.format = [
+          {
+            field: 'students',
+            when: { field: 'students', op: 'GT', value: 39 },
+            style: { tone: 'bad' },
+          },
+        ] as never;
+        return d;
+      })(),
+    );
+    server.use(http.get('/api/v1/reports/catalogue/:id/definition', () => HttpResponse.json(look)));
+    await renderRunner(REPORT_ID, 'ACCOUNTANT');
+    await page().findAllByText('40');
+
+    expect(page().getAllByText('(Red)')).toHaveLength(1);
+    expect(page().getByRole('region', { name: 'What the colours mean' })).toBeTruthy();
+    expect(page().getByRole('link', { name: 'See the list: Class 6, Boy (40)' })).toBeTruthy();
   });
 
   it('ignores a "from" that leaves the app', async () => {

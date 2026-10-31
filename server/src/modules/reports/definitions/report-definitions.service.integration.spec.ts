@@ -205,6 +205,96 @@ describe('ReportDefinitionsService (integration)', () => {
     expect(own.map((r) => r.key).sort()).toEqual(['admins-only', 'for-everyone', 'for-teachers']);
   });
 
+  describe('presentation (how a report looks, for any role that may run it)', () => {
+    const asteacher = (): DefinitionViewer => ({ ...admin, role: UserRole.TEACHER });
+
+    /** A report whose dataset, calculated fields and layout all differ from its draft later on. */
+    const publishWithSecrets = async (key: string, roles: string[] = []) => {
+      const secret = studentsReport();
+      secret.parameters = [
+        { key: 'year', type: 'ACADEMIC_YEAR', label_en: 'Year', label_bn: 'বছর', required: false },
+      ] as ReportDefinitionJson['parameters'];
+      secret.dataset.filters = [
+        { field: 'name', op: 'EQ', value: 'internal-filter-value' },
+      ] as never;
+      secret.calculated = [
+        { key: 'calc', label_en: 'C', label_bn: 'C', expression: 'internal_expression' },
+      ];
+      const d = await service.createDraft(
+        admin,
+        dto(key, { visible_roles: roles, definition: secret }),
+      );
+      const v = await service.publish(admin, d.id);
+      return { d, v };
+    };
+
+    it('a role that may run the report gets the presentation and NO dataset', async () => {
+      const { d, v } = await publishWithSecrets('shown');
+      const res = await service.presentation(asteacher(), d.id);
+
+      expect(Object.keys(res).sort()).toEqual([
+        'drill',
+        'format',
+        'layout',
+        'page',
+        'parameters',
+        'schema',
+        'subjectArea',
+        'version_id',
+      ]);
+      expect(res.version_id).toBe(v.id);
+      expect(res.parameters).toHaveLength(1);
+      expect(res.layout.type).toBe(ReportLayoutType.TABLE);
+      // The report's internals stay with the designer.
+      const text = JSON.stringify(res);
+      expect(text).not.toContain('internal-filter-value');
+      expect(text).not.toContain('internal_expression');
+      expect(text).not.toContain('dataset');
+    });
+
+    it('answers from the published version, never from a newer draft', async () => {
+      const { d } = await publishWithSecrets('frozen-look');
+      const changed = studentsReport();
+      changed.layout = { type: ReportLayoutType.GROUPED, group_by: ['name'] };
+      changed.page = { title_en: 'Draft title', title_bn: 'Draft title', orientation: 'landscape' };
+      await service.updateDraft(admin, d.id, { definition: changed });
+
+      const res = await service.presentation(asteacher(), d.id);
+      expect(res.layout.type).toBe(ReportLayoutType.TABLE);
+      expect(res.page.title_en).toBe('T');
+      expect(res.parameters).toHaveLength(1);
+    });
+
+    it('a role the report was not made for gets 404, the same as an unknown id', async () => {
+      const { d } = await publishWithSecrets('admins-only-look', [UserRole.ADMIN]);
+      await expect(service.presentation(asteacher(), d.id)).rejects.toThrow('Report not found');
+      // The designer roles see every published report.
+      await expect(service.presentation(admin, d.id)).resolves.toBeDefined();
+    });
+
+    it('another school gets 404', async () => {
+      const { d } = await publishWithSecrets('other-school-look');
+      const [other] = await ds.query(
+        `INSERT INTO schools (name, slug) VALUES ($1, $2) RETURNING id`,
+        [`Defs other ${Math.random()}`, `defs-other-${Math.random()}`],
+      );
+      const stranger = { ...admin, tenantId: other.id };
+      await expect(service.presentation(stranger, d.id)).rejects.toThrow('Report not found');
+    });
+
+    it('a draft that was never published gets 404', async () => {
+      const d = await service.createDraft(admin, dto('draft-only-look'));
+      await expect(service.presentation(asteacher(), d.id)).rejects.toThrow('Report not found');
+      await expect(service.presentation(admin, d.id)).rejects.toThrow('Report not found');
+    });
+
+    it('an archived report gets 404', async () => {
+      const { d } = await publishWithSecrets('archived-look');
+      await service.archive(admin, d.id);
+      await expect(service.presentation(asteacher(), d.id)).rejects.toThrow('Report not found');
+    });
+  });
+
   it('a school with no ready-made reports gets them on first look, once', async () => {
     const first = await service.catalogue(admin);
     const keys = first.flatMap((f) => f.reports.map((r) => r.system_template_key));

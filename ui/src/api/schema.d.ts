@@ -5247,6 +5247,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/catalogue/{id}/definition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How one report looks (questions, layout, page, colours, links), from its published version. Same visibility as the catalogue; no dataset. */
+        get: operations["ReportDefinitionsController_presentation_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/definitions": {
         parameters: {
             query?: never;
@@ -14417,6 +14434,29 @@ export interface components {
         CatalogueFolderDto: {
             folder: string | null;
             reports: components["schemas"]["CatalogueEntryDto"][];
+        };
+        ReportPresentationDto: {
+            /** @description The published version a run uses. */
+            version_id: string;
+            /** @example 1 */
+            schema: number;
+            /** @enum {string} */
+            subjectArea: "STUDENTS" | "STAFF" | "PUBLIC_EXAMS" | "FEES" | "PAYMENTS" | "ATTENDANCE";
+            parameters: {
+                [key: string]: unknown;
+            }[];
+            layout: {
+                [key: string]: unknown;
+            };
+            page: {
+                [key: string]: unknown;
+            };
+            format: {
+                [key: string]: unknown;
+            }[];
+            drill: {
+                [key: string]: unknown;
+            }[];
         };
         ReportDefinitionDto: {
             id: string;
@@ -30956,6 +30996,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CatalogueFolderDto"][];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDefinitionsController_presentation_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportPresentationDto"];
                 };
             };
             /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */

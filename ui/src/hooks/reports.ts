@@ -203,9 +203,19 @@ export async function downloadListExport(
 export type ReportCatalogueFolder = S['CatalogueFolderDto'];
 export type ReportCatalogueEntry = S['CatalogueEntryDto'];
 export type ReportDefinitionDetail = S['ReportDefinitionDetailDto'];
+/**
+ * How a published report looks: the questions, layout, page, colour rules and links, and nothing of
+ * its dataset. The server types the parts loosely, so they are narrowed to the shared definition's.
+ */
+export type ReportPresentation = Pick<
+  ReportDefinitionJson,
+  'schema' | 'subjectArea' | 'parameters' | 'layout' | 'page' | 'format' | 'drill'
+> & { version_id: string };
 
 export const reportCatalogueKeys = createEntityKeys<Record<string, never>>('report-catalogue');
 export const reportDefinitionKeys = createEntityKeys<Record<string, never>>('report-definition');
+export const reportPresentationKeys =
+  createEntityKeys<Record<string, never>>('report-presentation');
 
 /** `GET /reports/catalogue` — the reports this role may run, grouped by folder (folder `null` first). */
 export function reportCatalogueQueryOptions() {
@@ -224,9 +234,9 @@ export function useReportCatalogue() {
 }
 
 /**
- * `GET /reports/definitions/:id` — the layout and the prompts of one report. The server answers
- * only a caller who holds `REPORTS_DESIGN` (ADMIN), so everyone else gets a 403 here and the
- * runner shows a plain table instead. Follow-up: a catalogue-level endpoint for every viewer.
+ * `GET /reports/definitions/:id` — the draft of one report, for the designer. The server answers
+ * only a caller who holds `REPORTS_DESIGN` (ADMIN), so everyone else gets a 403 here: they read
+ * `reportPresentationQueryOptions` instead.
  */
 export function reportDefinitionQueryOptions(id: string) {
   return queryOptions({
@@ -244,6 +254,31 @@ export function reportDefinitionQueryOptions(id: string) {
 export function useReportDefinition(id: string | undefined, options: { enabled?: boolean } = {}) {
   return useQuery({
     ...reportDefinitionQueryOptions(id ?? ''),
+    enabled: id !== undefined && options.enabled !== false,
+  });
+}
+
+/**
+ * `GET /reports/catalogue/:id/definition` — how one report looks, for every role that may run it
+ * (the catalogue's own rules: an unknown, hidden or unpublished report is a 404). It is the PUBLISHED
+ * version, the one a run uses, and carries no dataset.
+ */
+export function reportPresentationQueryOptions(id: string) {
+  return queryOptions({
+    queryKey: reportPresentationKeys.detail(id),
+    queryFn: async ({ signal }) => {
+      const res = await apiClient.get<ReportPresentation>(`/reports/catalogue/${id}/definition`, {
+        signal,
+      });
+      return res.data;
+    },
+    retry: shouldRetryQuery,
+  });
+}
+
+export function useReportPresentation(id: string | undefined, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    ...reportPresentationQueryOptions(id ?? ''),
     enabled: id !== undefined && options.enabled !== false,
   });
 }

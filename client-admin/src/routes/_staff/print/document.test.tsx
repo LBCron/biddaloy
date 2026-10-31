@@ -508,11 +508,12 @@ function stubWide(wide: boolean) {
 interface Seen {
   runs: { definitionId: string; params: unknown; page?: number }[];
   definitionReads: number;
+  presentationReads: number;
   documentPrints: number;
 }
 
-function mockApi(options: { totalPages?: number } = {}): Seen {
-  const seen: Seen = { runs: [], definitionReads: 0, documentPrints: 0 };
+function mockApi(options: { totalPages?: number; presentation?: 'ok' | 'missing' } = {}): Seen {
+  const seen: Seen = { runs: [], definitionReads: 0, presentationReads: 0, documentPrints: 0 };
   const totalPages = options.totalPages ?? 1;
   server.use(
     http.get(`${API}/schools/me/profile`, () => HttpResponse.json(REPORT_PROFILE)),
@@ -540,6 +541,26 @@ function mockApi(options: { totalPages?: number } = {}): Seen {
         name_en: 'Students by class',
         name_bn: 'শ্রেণিভিত্তিক শিক্ষার্থী',
         draft: { layout: GROUPED, page: { orientation: 'portrait', title_en: '', title_bn: '' } },
+      });
+    }),
+    // [8.15.50] How the report looks for everyone else: the published version's layout and page.
+    http.get(`${API}/reports/catalogue/${REPORT_ID}/definition`, () => {
+      seen.presentationReads += 1;
+      if (options.presentation === 'missing') {
+        return HttpResponse.json(
+          apiErrorBody(404, 'Report not found', `${API}/reports/catalogue/${REPORT_ID}/definition`),
+          { status: 404 },
+        );
+      }
+      return HttpResponse.json({
+        version_id: 'v1',
+        schema: 1,
+        subjectArea: 'STUDENTS',
+        parameters: [],
+        layout: GROUPED,
+        page: { orientation: 'landscape', title_en: '', title_bn: '' },
+        format: [],
+        drill: [],
       });
     }),
     http.post(`${API}/reports/run`, async ({ request }) => {
@@ -624,12 +645,41 @@ describe('/print/document?doc=report', () => {
     expect(seen.runs[0]?.params).toEqual({});
   });
 
-  it('prints a plain table, and never asks for the definition, without the design permission', async () => {
+  it("prints the report's own layout and page from the presentation, and never asks the designer route, without the design permission", async () => {
     const seen = mockApi();
-    renderReportDoc(`doc=report&definitionId=${REPORT_ID}&params=${PARAMS}`, 'ACCOUNTANT');
+    const { container } = renderReportDoc(
+      `doc=report&definitionId=${REPORT_ID}&params=${PARAMS}`,
+      'ACCOUNTANT',
+    );
     expect(await screen.findByText('Class 7', {}, { timeout: 5000 })).toBeTruthy();
     expect(seen.definitionReads).toBe(0);
+    expect(seen.presentationReads).toBe(1);
     expect(screen.getAllByText('Students by class').length).toBeGreaterThan(0);
+    // The page the presentation asks for (landscape) reaches the sheet.
+    const sheet = container.querySelector<HTMLElement>('[data-slot="a4-document"]');
+    expect(sheet?.dataset.orientation).toBe('landscape');
+  });
+
+  it('prints a plain table when the presentation is refused (the report is hidden or gone)', async () => {
+    const seen = mockApi({ presentation: 'missing' });
+    const { container } = renderReportDoc(
+      `doc=report&definitionId=${REPORT_ID}&params=${PARAMS}`,
+      'ACCOUNTANT',
+    );
+    expect(await screen.findByText('Class 7', {}, { timeout: 5000 })).toBeTruthy();
+    expect(seen.definitionReads).toBe(0);
+    expect(seen.presentationReads).toBe(1);
+    // No layout to follow: the default sheet, not an error.
+    const sheet = container.querySelector<HTMLElement>('[data-slot="a4-document"]');
+    expect(sheet?.dataset.orientation).toBe('portrait');
+  });
+
+  it('a designer prints from the definition and does not ask for the presentation', async () => {
+    const seen = mockApi();
+    renderReportDoc(`doc=report&definitionId=${REPORT_ID}&params=${PARAMS}`);
+    expect(await screen.findByText('Class 7', {}, { timeout: 5000 })).toBeTruthy();
+    expect(seen.definitionReads).toBe(1);
+    expect(seen.presentationReads).toBe(0);
   });
 
   it('says so when the person may not run reports, and runs nothing', async () => {

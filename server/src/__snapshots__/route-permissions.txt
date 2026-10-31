@@ -295,6 +295,7 @@ GET /public/admission/:slug | PublicAdmissionController | allowlist: none
 GET /public/invoices/:token | PublicInvoiceController | allowlist: none
 GET /public/verify/:token | PublicVerifyController | allowlist: none
 GET /reports/catalogue | ReportDefinitionsController | perm: REPORTS_VIEW
+GET /reports/catalogue/:id/definition | ReportDefinitionsController | perm: REPORTS_VIEW
 GET /reports/collections | ReportsController | perm: REPORT_COLLECTIONS_READ
 GET /reports/collections.csv | ReportsController | perm: REPORT_COLLECTIONS_READ
 GET /reports/definitions | ReportDefinitionsController | perm: REPORTS_DESIGN

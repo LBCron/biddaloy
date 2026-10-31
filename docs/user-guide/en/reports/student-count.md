@@ -90,13 +90,13 @@ The student count is an ordinary **ready report**, the same kind as every other 
 
 ### See another academic year <a href="#task-year" id="task-year"></a>
 
-Only the admin gets the question. See [Change a report's questions](hub.md#task-answer).
+Anyone who can open the report gets the question. See [Change a report's questions](hub.md#task-answer).
 
 1. On the line above the result press **Change**, pick another year, and press **Show report**.
 
    → The table shows that year's numbers. The year is kept in the page address, so a link reopens the same year.
 
-Everyone else sees the current year only ([Known issues](#known-issues)).
+The report opens on the current year; pick another year in the same way.
 
 ### Download to Excel <a href="#task-download" id="task-download"></a>
 
@@ -116,7 +116,7 @@ Only the admin and the accountant get this. See [Print on A4 paper](hub.md#task-
 
 ### Open the list behind a number <a href="#task-list" id="task-list"></a>
 
-Only the admin sees links in a report for now. See [Colours and links in a report](hub.md#task-drill).
+Everyone who opens the report sees its links; the student list opens only for a role that may open it. See [Colours and links in a report](hub.md#task-drill).
 
 1. Press a class in the table.
 
@@ -138,7 +138,7 @@ For other roles nothing is hidden.
 | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
 | **Student count report not found for your role**   | Your role cannot open this report ([Known issues](#known-issues)). Press [**All reports**](hub.md) to see what you may open, or ask an admin. | Admin        |
 | **The ready reports could not be loaded.**         | Press **Try again**.                                                                                                                          | Admin        |
-| **Nobody matches these choices**                   | This year has no active enrolments. If you are the admin, pick another year ([see above](#task-year)).                                        | —            |
+| **Nobody matches these choices**                   | This year has no active enrolments. Pick another year ([see above](#task-year)).                                                              | —            |
 | You cannot find **Download to Excel** or **Print** | Your role cannot take files out or print. See [Who can do what](#roles).                                                                      | Admin        |
 | A cell shows **—**                                 | You are a committee member and the cell has fewer than five people. See [hidden numbers](#task-hidden).                                       | —            |
 

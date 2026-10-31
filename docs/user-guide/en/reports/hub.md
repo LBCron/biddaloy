@@ -115,7 +115,7 @@ This page shows the list of **reports**. The list holds two kinds. One kind is t
    → One report brings at most 10,000 rows. If there are more, a line at the top says **Showing the first … rows only. Narrow the choices to see the rest.**
 
 <figure>
-  <img src="diagrams/reports-hub-overview.svg" alt="From All reports you open a ready report or another report; after the result, Download to Excel and Print are for the admin and the accountant, changing the choices is for the admin, feedback is for everyone; from the students, dues or payments list the admin can keep the list as a report; the admin can also make a new report in the designer; a number in a report can open a list or another report" width="720">
+  <img src="diagrams/reports-hub-overview.svg" alt="From All reports you open a ready report or another report; after the result, Download to Excel and Print are for the admin and the accountant, changing the choices and feedback are for everyone who opens the report; from the students, dues or payments list the admin can keep the list as a report; the admin can also make a new report in the designer; a number in a report can open a list or another report" width="720">
   <figcaption><em>Who can do what from All reports</em></figcaption>
 </figure>
 
@@ -138,7 +138,7 @@ This page shows the list of **reports**. The list holds two kinds. One kind is t
 
 ### Change a report's questions <a href="#task-answer" id="task-answer"></a>
 
-Only the admin can do this. Other roles do not get this line; they see the report with its starting choices ([Known issues](#known-issues)).
+Anyone who can open the report can do this, when the report asks questions. The line is not there for a report that asks none.
 
 Some reports ask questions when they run, such as which academic year or which class.
 
@@ -321,7 +321,7 @@ A report can colour numbers and can open the list of people behind a number. The
 
    → You return to the first report with the choices it had.
 
-A number that is hidden for privacy (shown as **—**) and a number that is 0 never have a link. Right now only the admin sees colours and links in a report, because only the admin can read a report's own layout ([Known issues](#known-issues)).
+A number that is hidden for privacy (shown as **—**) and a number that is 0 never have a link. Everyone who opens the report sees its colours and links. A link to the list of students shows only to a role that may open the student list.
 
 ### Email a report regularly <a href="#task-email" id="task-email"></a>
 
@@ -448,8 +448,8 @@ Favourites stay in this browser only ([Saved on this device](#confirm)). If the 
 | **No report matches**                                                                     | Try another word, or press **Clear search**.                                                                                                        | —            |
 | **This report is not available**                                                          | It was removed, or it is not meant for your role. Press **See all reports**.                                                                        | Admin        |
 | **Nobody matches these choices**                                                          | Try another class, or change the choices above.                                                                                                     | —            |
-| **This report is taking too long. Narrow the filters and try again.**                     | For the admin the choices form opens by itself. Narrow the class, section or dates and press **Show report**. Other roles tell the admin.           | Admin        |
-| **Answer the questions above first, then show the report.**                               | The admin answers in the form and presses **Show report**. Other roles do not see the questions, so tell the admin ([Known issues](#known-issues)). | Admin        |
+| **This report is taking too long. Narrow the filters and try again.**                     | The choices form opens by itself. Narrow the class, section or dates and press **Show report**.                                                     | Admin        |
+| **Answer the questions above first, then show the report.**                               | The choices form opens by itself. Answer the questions in it and press **Show report**.                                                             | Admin        |
 | **This report has nothing to show yet.**                                                  | The report is empty. Tell the admin.                                                                                                                | Admin        |
 | **The report could not be shown. Try again.**                                             | Press **Try again**. If it still fails, reload the page.                                                                                            | Admin        |
 | **The file could not be downloaded. Try again.**                                          | Press **Download to Excel** again after a while.                                                                                                    | Admin        |
@@ -471,20 +471,20 @@ Favourites stay in this browser only ([Saved on this device](#confirm)). If the 
 
 ## Who can do what <a href="#roles" id="roles"></a>
 
-| Role                          | See reports                | Download to Excel | Print | Change choices and the report's own layout | Keep as a report |
-| ----------------------------- | -------------------------- | ----------------- | ----- | ------------------------------------------ | ---------------- |
-| Admin                         | All reports                | Yes               | Yes   | Yes                                        | Yes              |
-| Accountant                    | Those made visible to them | Yes               | Yes   | No                                         | No               |
-| Teacher                       | Those made visible to them | No                | No    | No                                         | No               |
-| Academic coordinator          | Those made visible to them | No                | No    | No                                         | No               |
-| Committee member              | Those made visible to them | No                | No    | No                                         | No               |
-| Office staff, Exam controller | No (no menu item)          | No                | No    | No                                         | No               |
+| Role                          | See reports                | Download to Excel | Print | Change the report itself | Keep as a report |
+| ----------------------------- | -------------------------- | ----------------- | ----- | ------------------------ | ---------------- |
+| Admin                         | All reports                | Yes               | Yes   | Yes                      | Yes              |
+| Accountant                    | Those made visible to them | Yes               | Yes   | No                       | No               |
+| Teacher                       | Those made visible to them | No                | No    | No                       | No               |
+| Academic coordinator          | Those made visible to them | No                | No    | No                       | No               |
+| Committee member              | Those made visible to them | No                | No    | No                       | No               |
+| Office staff, Exam controller | No (no menu item)          | No                | No    | No                       | No               |
 
 **Which cards you see:** the admin sees every **ready report**. Others see only the ones whose maker let their role see them. A card for another report shows only when your role may open that report's page; for example the Fee collection report is for the admin, the accountant and the academic coordinator.
 
 **New report:** only the admin can make a report, copy a ready report and change a report ([Make a report](#task-design)). The button is not shown to other roles.
 
-**Change choices and the report's own layout:** a report's layout (grouped list, table of counts, chart) and its questions come only to the admin. Others see the report in a plain table, with its starting choices. Printing follows the same rule.
+**Change the report itself:** only the admin can change a report's layout, questions and colours (the **Change** button at the top of a report). Everyone who opens a report sees its layout (grouped list, table of counts, chart), its colours and links, and can answer its questions in the choices form. The print page follows the same layout. If a report is not meant for your role, it does not open at all.
 
 **Email regularly, keep a copy, show on the dashboard:** only the admin can email a report regularly. The admin and the accountant can keep today's copy and download it later. Anyone who has a dashboard and can open reports can show a report on it. The admin, the accountant and the academic coordinator see **Reports you may need** on the dashboard.
 
