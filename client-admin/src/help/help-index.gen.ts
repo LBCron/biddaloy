@@ -10,7 +10,7 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'dashboard/dashboard',
     anchor: '',
-    knownIssues: 0,
+    knownIssues: 1,
   },
   applications: {
     title: { bn: 'আবেদনপত্র', en: 'Applications' },
