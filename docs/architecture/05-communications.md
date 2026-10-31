@@ -637,3 +637,20 @@ Dated learning (2026-10-31, Wave 3 close #3306):
 - **Rule candidate:** a wave that adds routes closes with `yarn api:types` and `check-api-types`, unlike Wave 1 where "no diff" was the proof.
 - **Guard shrank:** the schema-driven form removed the vendor names from `SmsSection.tsx`, `connection-test-status.tsx` (deleted), `ui/src/hooks/school-settings.ts` and the bn settings locale, so they left `KNOWN`. Only the en locale's legacy labels and the doc-comment entries remain. The form's test data, `provider-config-form.fixtures.ts`, joined the allow-list because it copies the real descriptors.
 - **Surprise (rebase onto PR #3323 round 3):** the resolver now reads the old flat shape (field keys straight on `communications.sms`) only for a single-provider medium. The deprecated `PLATFORM_SMS_*` override was flat, so platform alerts lost their SMS config. Fix: the override goes under the chosen provider's block, or the registry default's.
+
+Dated learning (2026-11-01, Wave 4 close #3310 and epic close):
+
+```mermaid
+flowchart LR
+  S[demo seed comms-print.ts] -->|metadata.provider, delivery, error, test| L[(communication_logs)]
+  L --> M[Message log: Company, Status, Sent by, Why it failed, Test]
+  L -.SENT + company id + status capability.-> C{MESSAGE_SINK set?}
+  C -- yes, the hosted demo --> H[no Check status button]
+  C -- no --> B[Check status button]
+```
+
+- **Demo rows look like real sends.** `comms-print.ts` writes `metadata.provider` per medium (`onecodesoft` for SMS, `smtp` for email, none for push), `metadata.delivery` on every DELIVERED row, `metadata.error` on every FAILED row, one Settings test message (`metadata.test`, `MANUAL`, sent by the admin) per branch, and the admin as sender of every reminder-round row. Example: a demo DELIVERED SMS stores `{ provider: 'onecodesoft', kind: 'FEE', delivery: { status: 'DELIVERED', checkedAt: '…' } }`.
+- **Surprise:** every demo row used to say `mailpit-sink`, and the guide screenshots showed that word in the **Company** column. Fix: the seed names the company the demo school chose; the screenshots were re-shot. Rule candidate: a seeded value a user can read on screen uses the real vocabulary, never an internal tag.
+- **Surprise:** the hosted demo can never show **Check status**: it runs on the test inbox, and `canCheckStatus` and the route both refuse under `MESSAGE_SINK` (Rule 6 of the demo seed: nothing leaves the demo). The seeded SENT SMS rows still carry everything the button needs, and the slice spec proves it by toggling `MESSAGE_SINK`. Rule candidate: an issue that asks the demo to "show" a vendor action first checks what the sink allows.
+- **Surprise:** the seed's random stream is shared by every later value (fake API keys, calendar tokens, print jobs), and a settings screenshot shows a key's last four characters. Fix: the new company ids reuse the old single `rng.string.uuid()` draw, an email's DELIVERED is remapped after its draw, and the test row takes `stableId` and an anchor-derived time. Rule candidate: a demo-seed edit keeps the number and kind of `ctx.rng` draws, or re-shoots every screenshot that shows a random value.
+- **No API change:** `yarn api:types` produced no diff in this wave; `check-api-types` passes.
