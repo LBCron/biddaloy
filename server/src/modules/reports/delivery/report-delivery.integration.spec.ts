@@ -367,6 +367,10 @@ describe('report delivery (integration)', () => {
         // No row data: not a student name, not a religion value.
         expect(mail.message_body + mail.subject).not.toMatch(/Rahim|Sumon|ISLAM|HINDU/i);
         expect(mail.subject).toContain('Student list');
+        // The words are the glossary's (D21): "your report is ready", never schedule, snapshot or cron.
+        expect(mail.message_body).toContain('আপনার রিপোর্ট প্রস্তুত');
+        expect(mail.message_body).toContain('Your report is ready');
+        expect(mail.message_body + mail.subject).not.toMatch(/schedul|snapshot|cron|নিয়মিত/i);
       }
       // Nobody outside the allowed set got a run or a mail.
       for (const userId of [suspended, noEmail, elsewhere]) {

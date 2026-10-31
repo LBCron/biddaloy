@@ -248,10 +248,11 @@ export class ReportScheduleProcessor extends WorkerHost implements OnModuleInit 
         recipient_name: person.user.full_name.slice(0, 100),
         subject: `${definition.name_bn} (${definition.name_en})`.slice(0, 200),
         message_body: [
-          `আপনার নিয়মিত রিপোর্ট প্রস্তুত: ${definition.name_bn}`,
-          `Your scheduled report is ready: ${definition.name_en}`,
+          `আপনার রিপোর্ট প্রস্তুত: ${definition.name_bn}`,
+          `Your report is ready: ${definition.name_en}`,
           '',
           `Download: ${link}`,
+          'লিংকটি ২৪ ঘণ্টা চলবে। নামাতে সাইন ইন করুন।',
           'The link works for 24 hours. Sign in to download.',
         ].join('\n'),
       },
