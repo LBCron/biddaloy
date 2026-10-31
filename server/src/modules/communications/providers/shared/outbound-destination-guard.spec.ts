@@ -213,16 +213,30 @@ describe('OUTBOUND_TEST_ALLOW_LOOPBACK seam (#3324)', () => {
     expect(d.addresses).toEqual([{ address: '127.0.0.1', family: 4 }]);
   });
 
-  it.each([
-    ['flag unset', 'test', ''],
-    ['flag "1"', 'test', '1'],
-    ['flag "TRUE"', 'test', 'TRUE'],
-    ['NODE_ENV=production', 'production', 'true'],
-    ['NODE_ENV=development', 'development', 'true'],
-  ])('still rejects http loopback: %s', async (_name, nodeEnv, flag) => {
+  const expectLoopbackRejected = async (nodeEnv: string, flag: string) => {
     vi.stubEnv('NODE_ENV', nodeEnv);
     vi.stubEnv('OUTBOUND_TEST_ALLOW_LOOPBACK', flag);
     await expect(assertSafeHttpDestination(stub)).rejects.toBeInstanceOf(DestinationBlockedError);
+  };
+
+  it('still rejects http loopback when the flag is unset', async () => {
+    await expectLoopbackRejected('test', '');
+  });
+
+  it('still rejects http loopback when the flag is "1"', async () => {
+    await expectLoopbackRejected('test', '1');
+  });
+
+  it('still rejects http loopback when the flag is "TRUE" (exact match only)', async () => {
+    await expectLoopbackRejected('test', 'TRUE');
+  });
+
+  it('still rejects http loopback when NODE_ENV=production, even with the flag on', async () => {
+    await expectLoopbackRejected('production', 'true');
+  });
+
+  it('still rejects http loopback when NODE_ENV=development, even with the flag on', async () => {
+    await expectLoopbackRejected('development', 'true');
   });
 
   it('with the seam on, still rejects https loopback, metadata and private http', async () => {
