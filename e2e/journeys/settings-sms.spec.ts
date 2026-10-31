@@ -1,6 +1,14 @@
-import type { Page } from '@playwright/test';
+import type { BrowserContext, Page } from '@playwright/test';
 
-import { expect, loggedIn, test } from '../fixtures/test';
+import {
+  activateInvite,
+  patch,
+  provisionSchool,
+  resendSchoolAdminInvitation,
+  superAdminApiSession,
+} from '../api';
+import { shells } from '../config';
+import { expect, test } from '../fixtures/test';
 import { startVendorStub, type VendorStub } from '../fixtures/vendor-stub';
 import { makeT } from '../i18n';
 
@@ -8,55 +16,76 @@ import { makeT } from '../i18n';
  * [#3304] Settings › Communication › SMS against a fake OneCodeSoft on 127.0.0.1: choose the
  * company, Test connection, Send a test message, Save, then the Message log row and Check status.
  * The server accepts this loopback address only under the e2e-only seam (08-security Rule 7).
- * Serial: it changes the school's one SMS company, and `afterEach` removes it again even when a
- * step fails, so a failure here cannot leave later specs pointed at a closed stub.
+ * Runs against its own school, provisioned over the API (`provisionSchool`, same pattern as
+ * `keyboard/organisation-structure.spec.ts`): saving a stub-backed company onto the shared seeded
+ * school could change what another worker's spec sends, and a failed run would leave it pointed
+ * at a closed stub. A throwaway school needs no cleanup.
  */
-test.describe.configure({ mode: 'serial' });
-test.use({ ...loggedIn('admin'), e2eLocale: 'en' });
-
 const t = makeT('en');
 const phone = '01712345678';
 // The Message log shows a number the way the region formats it.
 const shownPhone = '01712-345678';
+const suffix = `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
 let stub: VendorStub;
+let adminContext: BrowserContext;
+let page: Page;
 
-test.beforeAll(async () => {
+test.beforeAll(async ({ browser, playwright }) => {
   stub = await startVendorStub();
+  const setupRequest = await playwright.request.newContext({ baseURL: shells.app.baseURL });
+  try {
+    const superAdmin = await superAdminApiSession(setupRequest);
+    const provisioned = await provisionSchool(
+      setupRequest,
+      superAdmin,
+      `E2E SMS School ${suffix}`,
+      `e2e-sms-school-${suffix}`,
+      'SMS Admin',
+      `sms-admin-${suffix}@e2e.example.com`,
+    );
+    const inviteToken = await resendSchoolAdminInvitation(
+      setupRequest,
+      superAdmin,
+      provisioned.schoolId,
+      provisioned.adminUserId,
+    );
+    const activated = await activateInvite(setupRequest, inviteToken, 'A-strong-sms-pw-1');
+    // [13.5.1] A fresh school's admin is sent to the setup wizard once; mark it seen.
+    await patch(
+      setupRequest,
+      { token: activated.token, tenantId: activated.tenantId },
+      '/onboarding',
+      { seen: true },
+    );
+    const state = await setupRequest.storageState();
+    adminContext = await browser.newContext({
+      storageState: {
+        ...state,
+        origins: [
+          {
+            origin: shells.app.baseURL.replace(/\/$/, ''),
+            localStorage: [
+              {
+                name: 'biddaloy:activeTenant',
+                value: JSON.stringify({ tenantId: activated.tenantId, role: activated.role }),
+              },
+              { name: 'biddaloy:locale', value: 'en' },
+            ],
+          },
+        ],
+      },
+    });
+  } finally {
+    await setupRequest.dispose();
+  }
+  page = await adminContext.newPage();
 });
 test.afterAll(async () => {
-  await stub.close();
-});
-/** Takes the saved SMS company off the school, if there is one (before and after: a failed run
- * must not leave later specs pointed at a closed stub). */
-async function removeSavedSms(page: Page) {
-  await page.goto('/settings?section=communication');
-  const section = page.locator('#sms-section');
-  await expect(section).toBeVisible();
-  const remove = section.getByRole('button', { name: t('settings.messaging.removeSaved') });
-  // The button appears once the saved settings have loaded.
-  const saved = await remove
-    .waitFor({ state: 'visible', timeout: 5_000 })
-    .then(() => true)
-    .catch(() => false);
-  if (!saved) return;
-  await remove.click();
-  await page
-    .getByRole('alertdialog')
-    .getByRole('button', { name: t('settings.messaging.removeConfirmYes') })
-    .click();
-  await expect(section.getByText(t('settings.channelStatus.notReady'))).toBeVisible();
-}
-
-test.beforeEach(async ({ page }) => {
-  await removeSavedSms(page);
-});
-test.afterEach(async ({ page }) => {
-  await removeSavedSms(page);
+  await adminContext?.close();
+  await stub?.close();
 });
 
-test('OneCodeSoft: test connection, test message, save, log row, check status', async ({
-  page,
-}) => {
+test('OneCodeSoft: test connection, test message, save, log row, check status', async () => {
   test.setTimeout(120_000);
   const section = page.locator('#sms-section');
 
