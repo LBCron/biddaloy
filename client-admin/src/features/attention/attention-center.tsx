@@ -10,6 +10,7 @@ import {
   type NotificationBellAttention,
 } from '@biddaloy/ui/components';
 import {
+  attentionKeys,
   useAttentionItems,
   useAttentionSummary,
   useHideAttentionItem,
@@ -18,10 +19,12 @@ import {
   type AlertItem,
 } from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import * as React from 'react';
 
 import { useLandingFlag } from '../../routes/_staff/-use-landing-flag';
+import { useAcknowledgeNotice } from '../notices/read/use-my-notices';
 
 export function useAttentionCenter({ todoTo }: { todoTo: string }) {
   const summary = useAttentionSummary();
@@ -33,10 +36,13 @@ export function useAttentionCenter({ todoTo }: { todoTo: string }) {
   const items = useAttentionItems({ tab: 'active', pageSize: 100 }, { enabled: open });
   const hide = useHideAttentionItem();
   const snooze = useSnoozeAttentionItem();
+  const acknowledge = useAcknowledgeNotice();
+  const queryClient = useQueryClient();
   const { t } = useTranslation('attention');
   const { mutate: markSeen } = useMarkAttentionSeen();
   const { reset: resetHide } = hide;
   const { reset: resetSnooze } = snooze;
+  const { reset: resetAck } = acknowledge;
 
   const openItems = React.useMemo(
     () =>
@@ -52,11 +58,12 @@ export function useAttentionCenter({ todoTo }: { todoTo: string }) {
       seenSent.current = false;
       resetHide();
       resetSnooze();
+      resetAck();
     } else if (items.data && !seenSent.current) {
       seenSent.current = true;
       if (openItems.length > 0) markSeen(openItems.map((i) => i.recipientId).slice(0, 100));
     }
-  }, [open, items.data, openItems, markSeen, resetHide, resetSnooze]);
+  }, [open, items.data, openItems, markSeen, resetHide, resetSnooze, resetAck]);
 
   // One failed or pending hide/snooze at a time: show it on that card only.
   const itemState: Record<string, { busy?: boolean; error?: string }> = {};
@@ -64,6 +71,13 @@ export function useAttentionCenter({ todoTo }: { todoTo: string }) {
     const id = typeof m.variables === 'string' ? m.variables : m.variables?.recipientId;
     if (id && m.isPending) itemState[id] = { busy: true };
     else if (id && m.isError) itemState[id] = { error: t('item.actionFailed') };
+  }
+
+  // The acknowledge call is keyed by notice id; show it on the notice card with that id.
+  if (acknowledge.variables && (acknowledge.isPending || acknowledge.isError)) {
+    const card = openItems.find((i) => i.actionUrl?.includes(acknowledge.variables));
+    if (card && acknowledge.isPending) itemState[card.recipientId] = { busy: true };
+    else if (card) itemState[card.recipientId] = { error: t('item.actionFailed') };
   }
 
   const todoHref = `${todoTo}?tab=active`;
@@ -102,6 +116,11 @@ export function useAttentionCenter({ todoTo }: { todoTo: string }) {
       onHide={(item) => hide.mutate(item.recipientId)}
       onSnooze={(item, choice, date) =>
         snooze.mutate({ recipientId: item.recipientId, choice, ...(date ? { date } : {}) })
+      }
+      onAcknowledge={(id) =>
+        acknowledge.mutate(id, {
+          onSuccess: () => void queryClient.invalidateQueries({ queryKey: attentionKeys.all }),
+        })
       }
       itemState={itemState}
       todoHref={todoHref}
