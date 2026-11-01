@@ -535,6 +535,25 @@ describe('GuardianProvisioningService', () => {
       });
     });
 
+    it('counts DELIVERED and READ rows as sent, so a checked invitation leaves queued', async () => {
+      auditLogRepo.createQueryBuilder.mockReturnValue(
+        fakeQueryBuilder({ one: { new_values: { batch_id: 'b1', queued: 4 } } }),
+      );
+      logRepo.createQueryBuilder.mockReturnValue(
+        fakeQueryBuilder({
+          raw: [
+            { status: CommunicationStatus.SENT, count: '1' },
+            { status: CommunicationStatus.DELIVERED, count: '2' },
+            { status: CommunicationStatus.READ, count: '1' },
+          ],
+        }),
+      );
+
+      const result = await service.batchStatus(TENANT, 'b1');
+
+      expect(result).toMatchObject({ total: 4, sent: 4, failed: 0, queued: 0 });
+    });
+
     it('subtracts skip rows from queued, clamps at 0, and filters by action and tenant', async () => {
       const totalQb = fakeQueryBuilder({ one: { new_values: { batch_id: 'b1', queued: 2 } } });
       const skipQb = fakeQueryBuilder({ rawOne: { count: '3' } });

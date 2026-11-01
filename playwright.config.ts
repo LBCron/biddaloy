@@ -185,7 +185,8 @@ export default defineConfig({
           url: 'http://localhost:3000/api/health',
           reuseExistingServer: !CI,
           timeout: 300_000,
-          env: { NODE_ENV: 'test' },
+          // Test-only seam (08-security Rule 7): lets the guard reach the 127.0.0.1 vendor stub.
+          env: { NODE_ENV: 'test', OUTBOUND_TEST_ALLOW_LOOPBACK: 'true' },
         },
         {
           command: CI ? 'yarn e2e:serve:client' : 'yarn dev:client-admin',

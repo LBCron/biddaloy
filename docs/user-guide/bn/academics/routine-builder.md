@@ -35,7 +35,6 @@ helpIds:
   [
     academics.routineBuilder,
     academics.routineBuilder.action.fillAssist,
-    academics.routineBuilder.action.clearCell,
     academics.routineBuilder.field.teachers,
     academics.routineBuilder.field.recurrence,
     academics.routineBuilder.action.review,

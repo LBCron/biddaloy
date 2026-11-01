@@ -181,7 +181,8 @@ Fill the template below into a file and post it:
 ```bash
 # new ticket (default)
 gh issue create --title "[UI] Calendar: clearer header, spanning events, mobile agenda" \
-  --label enhancement,module-client,task,size-M --body-file <folder>/ticket.md
+  --label enhancement,module-client,task,size-M --milestone "<milestone>" --body-file <folder>/ticket.md
+gh project item-add 2 --owner tareq89 --url <issue-url>   # Biddaloy Development
 
 # the user named an existing issue
 gh issue comment 1402 --body-file <folder>/ticket.md

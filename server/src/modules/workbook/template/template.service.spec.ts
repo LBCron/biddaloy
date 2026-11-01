@@ -45,7 +45,8 @@ describe('TemplateService', () => {
     });
   });
 
-  describe('build', () => {
+  // Each build is a CPU-bound xlsx write; ~1s alone, over the 5s default when the full suite runs in parallel.
+  describe('build', { timeout: 30_000 }, () => {
     it('produces every EXPECTED_TABS sheet plus _meta and _readme, in order', async () => {
       const service = new TemplateService(makeRepo(fakeSchool()));
       const { buffer } = await service.build(TENANT_ID, 'en');

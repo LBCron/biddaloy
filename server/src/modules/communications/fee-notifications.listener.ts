@@ -17,6 +17,7 @@ import { FeeGenerationsService } from '../fees/fee-generations.service';
 import { SchoolsService } from '../schools/schools.service';
 import { SmsCreditService } from './credits/sms-credit.service';
 import { COMMUNICATIONS_QUEUE } from './communications.constants';
+import { whatsappConfigured } from '../schools/settings/messaging-descriptors';
 import { addressForMedium, resolveReminderAudience } from './reminder-recipients.util';
 import {
   buildFeeNotificationMessage,
@@ -163,7 +164,7 @@ export class FeeNotificationsListener {
     // `isMetered` only tells us whether credit is charged for it, not
     // whether it's turned on, so both checks are needed.
     const smsAvailable = !!settings.communications?.sms?.provider;
-    const whatsappAvailable = !!settings.communications?.whatsapp?.phoneNumberId;
+    const whatsappAvailable = whatsappConfigured(settings);
     const metered = await this.smsCreditService.isMetered(tenantId);
 
     // Group by GUARDIAN, not student: the Tests/Acceptance contract keys

@@ -24,15 +24,15 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiExtraModels, ApiProperty, ApiPropertyOptional, getSchemaPath } from '@nestjs/swagger';
-import { Secret } from '../settings/secret-field.decorator';
 import { NestedSettings } from '../settings/nested-settings.decorator';
 import { OptionalSetting } from '../settings/optional-setting.decorator';
 import { IsRegexSourceConstraint } from '../settings/regex-source.validator';
-import { SmsProviderIsConfiguredConstraint } from '../settings/sms-provider-config.validator';
+import { MessagingMediumSettings } from '../settings/messaging-settings.validator';
 import { AttentionRulesConstraint } from '../settings/attention-rules.validator';
 import { UniqueLabelListConstraint } from '../settings/unique-labels.validator';
 import {
   ApprovalMode,
+  CommunicationMedium,
   DiscountKind,
   FeeType,
   SERIAL_PREFIX_PATTERN,
@@ -42,8 +42,7 @@ import type {
   NumeralSystem,
   CurrencyGrouping,
   CurrencyPosition,
-  SmsGatewayName,
-  SmsMeteringMode,
+  MediumSettings,
   BackupScheduleMode,
   StudyPlansSettings,
 } from '@biddaloy/shared';
@@ -196,123 +195,11 @@ export class RegionSettingsDto {
   calendar?: RegionCalendarDto;
 }
 
-export class GreenwebSmsDto {
-  // Optional + nullable: omitting the key leaves the stored secret
-  // unchanged (a PATCH doesn't have to resend a credential it isn't
-  // touching); an explicit `null` clears it. See
-  // `tenant-settings-merge.util.ts`'s `deepMergeCommunications` for the
-  // write side of this contract, and `../schools.controller.ts` for why
-  // a *read* never round-trips the real value here regardless.
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty() // `null` clears the secret; `''` is a client bug, not a third clearing idiom
-  @Secret()
-  apiKey?: string | null;
-
-  @OptionalSetting()
-  @IsString()
-  apiUrl?: string;
-}
-
-export class MimSmsDto {
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty() // `null` clears the secret; `''` is a client bug, not a third clearing idiom
-  @Secret()
-  apiKey?: string | null;
-
-  @IsString()
-  senderId: string;
-
-  @OptionalSetting()
-  @IsString()
-  apiUrl?: string;
-}
-
-export class SmsSettingsDto {
-  @IsIn(['greenweb', 'mimsms'])
-  @Validate(SmsProviderIsConfiguredConstraint)
-  provider: SmsGatewayName;
-
-  @OptionalSetting()
-  @NestedSettings(() => GreenwebSmsDto)
-  greenweb?: GreenwebSmsDto;
-
-  @OptionalSetting()
-  @NestedSettings(() => MimSmsDto)
-  mimsms?: MimSmsDto;
-
-  // [15.6/#508 D5] Absent ⇒ OFF (today's unmetered behaviour). PLATFORM
-  // turns on metering against sms_credit_ledger/sms_credit_balance (#546).
-  @OptionalSetting()
-  @IsIn(['OFF', 'PLATFORM'])
-  metering?: SmsMeteringMode;
-}
-
-export class WhatsAppSettingsDto {
-  @IsString()
-  phoneNumberId: string;
-
-  @OptionalSetting()
-  @IsString()
-  apiVersion?: string;
-
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty() // `null` clears the secret; `''` is a client bug, not a third clearing idiom
-  @Secret()
-  accessToken?: string | null;
-}
-
-export class EmailSettingsDto {
-  @IsString()
-  host: string;
-
-  @IsInt()
-  @Min(1)
-  @Max(65535)
-  port: number;
-
-  @IsString()
-  user: string;
-
-  @IsString()
-  from: string;
-
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty() // `null` clears the secret; `''` is a client bug, not a third clearing idiom
-  @Secret()
-  password?: string | null;
-}
-
-export class MessengerSettingsDto {
-  @IsString()
-  pageId: string;
-
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty() // `null` clears the secret; `''` is a client bug, not a third clearing idiom
-  @Secret()
-  accessToken?: string | null;
-}
-
 export class CommunicationsSettingsDto {
-  @OptionalSetting()
-  @NestedSettings(() => SmsSettingsDto)
-  sms?: SmsSettingsDto;
-
-  @OptionalSetting()
-  @NestedSettings(() => WhatsAppSettingsDto)
-  whatsapp?: WhatsAppSettingsDto;
-
-  @OptionalSetting()
-  @NestedSettings(() => EmailSettingsDto)
-  email?: EmailSettingsDto;
-
-  @OptionalSetting()
-  @NestedSettings(() => MessengerSettingsDto)
-  messenger?: MessengerSettingsDto;
+  @MessagingMediumSettings(CommunicationMedium.SMS) sms?: MediumSettings;
+  @MessagingMediumSettings(CommunicationMedium.WHATSAPP) whatsapp?: MediumSettings;
+  @MessagingMediumSettings(CommunicationMedium.EMAIL) email?: MediumSettings;
+  @MessagingMediumSettings(CommunicationMedium.MESSENGER) messenger?: MediumSettings;
 }
 
 const HH_MM_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;

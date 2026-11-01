@@ -14,6 +14,7 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/r
 import { apiClient } from '../api/client';
 import type { components } from '../api/schema';
 
+import { useIdempotencyKey } from './idempotency-key';
 import { createEntityKeys } from './query-keys';
 import { shouldRetryQuery } from './retry';
 
@@ -31,7 +32,10 @@ export type TenantSettingsInput = components['schemas']['TenantSettingsDto'] & {
   /** [TIME-11] Until `schema.d.ts` is regenerated against `HomeworkSettingsDto`. */
   homework?: HomeworkSettings;
 };
-export type TestConnectionInput = components['schemas']['TestConnectionDto'];
+/** A plain connection test: never `sendTo`, so it can never send a message. */
+export type TestConnectionInput = Omit<components['schemas']['TestConnectionDto'], 'sendTo'>;
+/** A real test message to `sendTo` (see `useSendTestMessage`). */
+export type SendTestMessageInput = TestConnectionInput & { sendTo: string };
 export type TestableMedium = TestConnectionInput['medium'];
 
 /** `slug`/`status`/`created_at` (#533) aren't in `schema.d.ts` yet —
@@ -69,47 +73,18 @@ export interface MaskedSecret {
 
 export type MaskedRegionSettings = NonNullable<TenantSettingsInput['region']>;
 
-export interface MaskedGreenwebSmsSettings {
-  apiKey?: MaskedSecret;
-  apiUrl?: string;
-}
-
-export interface MaskedMimSmsSettings {
-  apiKey?: MaskedSecret;
-  senderId: string;
-  apiUrl?: string;
-}
-
-export interface MaskedSmsSettings {
-  provider: 'greenweb' | 'mimsms';
-  greenweb?: MaskedGreenwebSmsSettings;
-  mimsms?: MaskedMimSmsSettings;
-}
-
-export interface MaskedWhatsAppSettings {
-  phoneNumberId: string;
-  apiVersion?: string;
-  accessToken?: MaskedSecret;
-}
-
-export interface MaskedEmailSettings {
-  host: string;
-  port: number;
-  user: string;
-  from: string;
-  password?: MaskedSecret;
-}
-
-export interface MaskedMessengerSettings {
-  pageId: string;
-  accessToken?: MaskedSecret;
-}
+/** D6: one `communications.<medium>` block as the settings GET returns it:
+ * `{ provider?, <company>: { <field>: value | MaskedSecret } }`. Which companies
+ * and fields exist comes from `useMessagingProviders`, never from a type here. */
+export type MaskedMessagingBlock = { provider?: string } & {
+  [company: string]: unknown;
+};
 
 export interface MaskedCommunicationsSettings {
-  sms?: MaskedSmsSettings;
-  whatsapp?: MaskedWhatsAppSettings;
-  email?: MaskedEmailSettings;
-  messenger?: MaskedMessengerSettings;
+  sms?: MaskedMessagingBlock;
+  whatsapp?: MaskedMessagingBlock;
+  email?: MaskedMessagingBlock;
+  messenger?: MaskedMessagingBlock;
 }
 
 /** [9.10] Not secret data, unlike `communications` above — the attendance
@@ -200,7 +175,13 @@ export interface MaskedTenantSettings {
 export interface ConnectionTestResult {
   success: boolean;
   message: string;
+  /** Present when `sendTo` was sent and the connection test passed: SENT, or FAILED if the gateway rejected it. */
+  testMessage?: { logId: string; status: string };
 }
+
+export type MessagingProviderDescriptor = components['schemas']['ProviderDescriptorResponseDto'];
+export type MessagingMediumProviders = components['schemas']['MessagingMediumProvidersResponseDto'];
+export type MessagingProviders = components['schemas']['MessagingProvidersResponseDto'];
 
 export const schoolsKeys = createEntityKeys('schools');
 export const schoolSettingsKeys = createEntityKeys('school-settings');
@@ -307,19 +288,52 @@ export function useUpdateSchoolSettings(schoolId: string) {
       (await apiClient.patch<MaskedTenantSettings>(`/schools/${schoolId}/settings`, input)).data,
     onSuccess: (settings) => {
       queryClient.setQueryData(schoolSettingsKeys.detail(schoolId), settings);
+      // `configured` / `selected` come from the saved settings.
+      void queryClient.invalidateQueries({ queryKey: messagingProvidersKey(schoolId) });
     },
   });
 }
 
+const messagingProvidersKey = (schoolId: string) =>
+  ['school-settings', 'messaging-providers', schoolId] as const;
+
+/** Per medium: the companies and their fields, the selected one, and whether it is set up. */
+export function useMessagingProviders(schoolId: string) {
+  return useQuery({
+    queryKey: messagingProvidersKey(schoolId),
+    queryFn: async () =>
+      (await apiClient.get<MessagingProviders>(`/schools/${schoolId}/settings/messaging/providers`))
+        .data,
+    enabled: Boolean(schoolId),
+    retry: shouldRetryQuery,
+  });
+}
+
 /** Doesn't touch the settings cache — a connection test changes nothing
- * persisted, whether it passes or fails. */
+ * persisted, whether it passes or fails. It sends no message, so "could not
+ * confirm" would be wrong: it opts out of that toast. */
 export function useTestSchoolConnection(schoolId: string) {
   return useMutation({
     mutationFn: async (input: TestConnectionInput) =>
       (await apiClient.post<ConnectionTestResult>(`/schools/${schoolId}/settings/test`, input))
         .data,
-    // Writes nothing, so "could not confirm it was saved" would be wrong.
     meta: { handlesUnknownOutcome: true },
+  });
+}
+
+/** "Send a test message": a real (paid) send. One Idempotency-Key per attempt (Rule 25): a retry
+ * after a lost reply, or a reload, replays instead of sending again; a reply rotates it, so the
+ * next click is a new send. Keeps the app's "could not confirm" toast for a lost reply. */
+export function useSendTestMessage(schoolId: string) {
+  const { keyFor, rotate } = useIdempotencyKey();
+  return useMutation({
+    mutationFn: async (input: SendTestMessageInput) =>
+      (
+        await apiClient.post<ConnectionTestResult>(`/schools/${schoolId}/settings/test`, input, {
+          headers: { 'Idempotency-Key': keyFor(input) },
+        })
+      ).data,
+    onSuccess: rotate,
   });
 }
 

@@ -55,7 +55,7 @@ test.describe('office staff', () => {
       .getByRole('textbox', { name: t('communications.send.messageLabel') })
       .fill('School closed tomorrow.');
 
-    await page.getByRole('button', { name: t('communications.send.submit') }).click();
+    await page.getByRole('button', { name: t('communications.send.submit'), exact: true }).click();
     await page.getByRole('button', { name: t('communications.send.confirmSend') }).click();
 
     // [2604] The e2e school has no SMS gateway, so the send is recorded and then fails;

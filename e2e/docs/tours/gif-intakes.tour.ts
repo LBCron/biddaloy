@@ -12,7 +12,7 @@ const OPEN = process.env.GUIDE_INTAKE_OPEN ?? '2026-10-20';
 const CLOSE = process.env.GUIDE_INTAKE_CLOSE ?? '2026-12-15';
 
 async function pickDate(p: Page, label: string, iso: string): Promise<void> {
-  await p.getByLabel(label).click();
+  await p.getByLabel(label, { exact: true }).click();
   await expect(p.getByRole('grid', { name: tr('common', 'date.calendar') })).toBeVisible();
   const cell = p.locator(`[role="grid"] [data-date="${iso}"]`);
   for (let i = 0; i < 6 && !(await cell.isVisible()); i++) {

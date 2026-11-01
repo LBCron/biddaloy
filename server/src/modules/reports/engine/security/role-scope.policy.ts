@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { FieldSensitivity, UserRole } from '@biddaloy/shared';
+import { AggregateFn, FieldSensitivity, UserRole } from '@biddaloy/shared';
 import { TeacherScopeService } from '../../../classes/teacher-scope.service';
 import type { FieldDef, MeasureDef, SubjectAreaDef } from '../registry/registry.types';
 import { roleMaySee } from './sensitivity-permissions';
@@ -28,6 +28,7 @@ export class ReportAccessDeniedError extends ForbiddenException {
 
 /** The only fields a COMMITTEE member may see besides PUBLIC ones (D14: counts, never people). */
 export const COMMITTEE_EXTRA_FIELDS: ReadonlySet<string> = new Set(['religion']);
+const COUNT_FNS = new Set<string>([AggregateFn.COUNT, AggregateFn.COUNT_DISTINCT]);
 
 /**
  * [8.15.19] Decides what the person RUNNING a report may see (D5), whatever the author could.
@@ -67,6 +68,8 @@ export class RoleScopePolicy {
     def: Pick<FieldDef | MeasureDef, 'key' | 'sensitivity'>,
   ): boolean {
     if (ctx.role === UserRole.COMMITTEE) {
+      // Counts, never people: a measure must be a COUNT, so no average or sum can narrow to one person.
+      if ('fn' in def && !COUNT_FNS.has(String(def.fn))) return false;
       return def.sensitivity === FieldSensitivity.PUBLIC || COMMITTEE_EXTRA_FIELDS.has(def.key);
     }
     return roleMaySee(ctx.role, def.sensitivity);

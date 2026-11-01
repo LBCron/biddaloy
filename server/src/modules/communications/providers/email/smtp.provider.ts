@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
+import { CommunicationMedium, isValidPort, type ProviderDescriptor } from '@biddaloy/shared';
 import {
-  CommunicationProvider,
   CommunicationSendParams,
   CommunicationSendResult,
 } from '../communication-provider.interface';
+import { MessagingProvider } from '../messaging-provider';
 import { ConnectionTestResult } from '../shared/connection-test.types';
 import {
   assertSafeSmtpDestination,
@@ -13,15 +14,33 @@ import {
   SafeSmtpDestination,
 } from '../shared/outbound-destination-guard';
 import { ProviderNotConfiguredError } from '../../config/provider-not-configured.error';
-import {
-  ResolvedEmailConfig,
-  TenantProviderConfigResolver,
-} from '../../config/tenant-provider-config.resolver';
+
+/** `port` arrives as a string from the generic resolver (or a number from older callers). */
+export interface ResolvedEmailConfig {
+  host: string;
+  port: string | number;
+  user: string;
+  password: string;
+  from: string;
+}
+
+const DEFAULT_SMTP_PORT = 587;
+
+/** Digits only, 1-65535 (blank = 587); anything else is a definite config error (never reaches the network). */
+function parsePort(raw: string | number | undefined): number {
+  const value = raw === undefined || raw === '' ? DEFAULT_SMTP_PORT : raw;
+  if (!isValidPort(value)) {
+    throw new ProviderNotConfiguredError(
+      'Email',
+      'SMTP port must be an integer between 1 and 65535.',
+    );
+  }
+  return Number(value);
+}
 
 function mapSmtpError(err: unknown): string {
-  if (err instanceof OutboundDestinationError) {
-    return err.message;
-  }
+  if (err instanceof OutboundDestinationError) return err.publicMessage;
+  if (err instanceof ProviderNotConfiguredError) return err.message;
   const code = (err as { code?: string } | null)?.code;
   if (code === 'EAUTH') {
     return 'Authentication rejected — check the SMTP username and password.';
@@ -31,6 +50,9 @@ function mapSmtpError(err: unknown): string {
   }
   return 'Connection test failed — could not verify the credentials.';
 }
+
+const SEND_FAILED_ERROR =
+  'Could not reach the SMTP server; the message may or may not have been sent.';
 
 const SMTP_CONNECTION_ERROR_CODES = new Set([
   'ECONNECTION',
@@ -86,15 +108,61 @@ async function withPinnedAddressFallback<T>(
  * tenant after it (#8.7.10).
  */
 @Injectable()
-export class SmtpEmailProvider implements CommunicationProvider {
-  constructor(private readonly configResolver: TenantProviderConfigResolver) {}
+export class SmtpProvider extends MessagingProvider<ResolvedEmailConfig> {
+  readonly descriptor: ProviderDescriptor = {
+    medium: CommunicationMedium.EMAIL,
+    name: 'smtp',
+    label: { en: 'SMTP email server', bn: 'এসএমটিপি ইমেইল সার্ভার' },
+    capabilities: [],
+    fields: [
+      {
+        key: 'host',
+        label: { en: 'Email server (SMTP)', bn: 'ইমেইল সার্ভার (SMTP)' },
+        kind: 'text',
+        required: true,
+        destination: true,
+      },
+      // Optional: parsePort defaults 587. Still destination-owned (see MessagingConfigResolver).
+      {
+        key: 'port',
+        label: { en: 'Port', bn: 'পোর্ট' },
+        kind: 'text',
+        required: false,
+        destination: true,
+        format: 'port',
+      },
+      {
+        key: 'user',
+        label: { en: 'Server username', bn: 'সার্ভারের ব্যবহারকারীর নাম' },
+        kind: 'text',
+        required: true,
+      },
+      {
+        key: 'password',
+        label: { en: 'Server password', bn: 'সার্ভারের পাসওয়ার্ড' },
+        kind: 'secret',
+        required: true,
+      },
+      {
+        key: 'from',
+        label: { en: 'Send emails from', bn: 'যে ঠিকানা থেকে ইমেইল যাবে' },
+        kind: 'text',
+        required: true,
+        // testConnection never reads it, so testing a new server does not need it.
+        sendOnly: true,
+      },
+    ],
+    supportsTestMessage: true,
+  };
+  readonly envPrefix = 'SMTP';
 
   async send(
     params: CommunicationSendParams,
-    tenantId: string | null,
+    config: ResolvedEmailConfig,
   ): Promise<CommunicationSendResult> {
     try {
-      const { host, port, user, password, from } = await this.configResolver.resolveEmail(tenantId);
+      const { host, user, password, from } = config;
+      const port = parsePort(config.port);
       const destination = await assertSafeSmtpDestination(host, port);
       const info = await withPinnedAddressFallback(
         destination,
@@ -130,7 +198,14 @@ export class SmtpEmailProvider implements CommunicationProvider {
       return {
         success: false,
         providerMessageId: null,
-        error: err instanceof Error ? err.message : String(err),
+        // Rules 23/24: fixed text only. The guard's message carries the host, nodemailer's the
+        // server's reply; the not-configured sentence is secret-free (deliveryErrorCode reads it).
+        error:
+          err instanceof OutboundDestinationError
+            ? err.publicMessage
+            : err instanceof ProviderNotConfiguredError
+              ? err.message
+              : SEND_FAILED_ERROR,
         retryable: isDefinitelyRejected ? false : undefined,
         outcome: isDefinitelyRejected ? 'REJECTED' : 'AMBIGUOUS',
       };
@@ -145,14 +220,15 @@ export class SmtpEmailProvider implements CommunicationProvider {
    */
   async testConnection(config: ResolvedEmailConfig): Promise<ConnectionTestResult> {
     try {
-      const destination = await assertSafeSmtpDestination(config.host, config.port);
+      const port = parsePort(config.port);
+      const destination = await assertSafeSmtpDestination(config.host, port);
       await withPinnedAddressFallback(
         destination,
         (pinnedHost) =>
           nodemailer.createTransport({
             host: pinnedHost,
-            port: config.port,
-            secure: config.port === 465,
+            port,
+            secure: port === 465,
             auth: { user: config.user, pass: config.password },
             ...(destination.servername ? { tls: { servername: destination.servername } } : {}),
           }),

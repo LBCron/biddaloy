@@ -4,7 +4,12 @@ import { Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Job } from 'bullmq';
 import * as Sentry from '@sentry/node';
-import { CommunicationLog, PUSH_MEDIUM } from '../entities/communication-log.entity';
+import {
+  ACCEPTED_STATUSES,
+  CommunicationLog,
+  isTerminalStatus,
+  PUSH_MEDIUM,
+} from '../entities/communication-log.entity';
 import { CommunicationMedium, CommunicationStatus, CommunicationTrigger } from '@biddaloy/shared';
 import { CommunicationProviderRegistryService } from '../providers/communication-provider.registry';
 import { recordBatchOutcome, BatchOutcome } from '../reminder-batch-counters';
@@ -296,11 +301,12 @@ export class CommunicationsProcessor extends WorkerHost {
     // that crashed or missed a lock-renewal deadline after settling the log
     // gets its job picked up again. Resending here would duplicate the
     // message to the guardian and double-count a batch that already
-    // recorded this outcome, so a log that's already SENT/FAILED is treated
-    // as done rather than reprocessed. This runs before the suspension
+    // recorded this outcome, so a log that's already terminal (SENT/FAILED, or
+    // DELIVERED/READ from Check status) is treated as done rather than reprocessed.
+    // This runs before the suspension
     // check below on purpose: a replayed SENT log for a since-suspended
     // tenant must stay SENT, not be rewritten to FAILED and settled twice.
-    if (log.status === CommunicationStatus.SENT || log.status === CommunicationStatus.FAILED) {
+    if (isTerminalStatus(log.status)) {
       // A worker can commit settle() and die before settleSmsCredit runs.
       // A terminal log with no recorded credit disposition still owns a
       // slice of its batch RESERVE, so finish that slice here instead of
@@ -310,11 +316,10 @@ export class CommunicationsProcessor extends WorkerHost {
       // reservation is pending reconciliation, not a release.
       const credit = (log.metadata as { credit?: string } | null)?.credit;
       if (!credit && this.isSettleableSmsBatchJob(job, log)) {
-        await this.settleSmsCredit(
-          job,
-          log,
-          log.status === CommunicationStatus.SENT ? 'DEBIT' : 'RELEASE',
-        );
+        // The vendor took it: SENT/DELIVERED/READ, or a FAILED that Check status wrote after the
+        // send (only an accepted send stores a vendor id). That is a debit, never a release.
+        const accepted = ACCEPTED_STATUSES.includes(log.status) || !!log.provider_message_id;
+        await this.settleSmsCredit(job, log, accepted ? 'DEBIT' : 'RELEASE');
       } else if (
         !credit &&
         log.medium === PUSH_MEDIUM &&
@@ -492,13 +497,19 @@ export class CommunicationsProcessor extends WorkerHost {
     // [15.6.1] SMS-only — `result.segments` comes from the shared
     // `countSmsSegments`; every other provider leaves it `undefined`, so
     // `metadata.segments` is only ever set for SMS.
-    const segmentsMetadata = result.segments !== undefined ? { segments: result.segments } : {};
+    const sendMetadata = {
+      ...(result.segments !== undefined ? { segments: result.segments } : {}),
+      // [97.4.01] D23: which company sent it, so check-status asks the same one (all media).
+      ...('provider' in result && result.provider ? { provider: result.provider } : {}),
+      // #3350: and whose account, so check-status does not read a draft the send ignored.
+      ...('source' in result && result.source ? { source: result.source } : {}),
+    };
     const settleable = this.isSettleableSmsBatchJob(job, log);
 
     if (result.success) {
       log.status = CommunicationStatus.SENT;
       log.provider_message_id = result.providerMessageId;
-      log.metadata = { ...log.metadata, raw: result.raw, ...segmentsMetadata };
+      log.metadata = { ...log.metadata, raw: result.raw, ...sendMetadata };
       await this.settle(log, 'success');
       // [15.6.6/#549] Settlement runs AFTER the provider call and the
       // settle() transaction, and outside both — a credit-ledger hiccup
@@ -510,7 +521,7 @@ export class CommunicationsProcessor extends WorkerHost {
       return;
     }
 
-    log.metadata = { ...log.metadata, error: result.error, raw: result.raw, ...segmentsMetadata };
+    log.metadata = { ...log.metadata, error: result.error, raw: result.raw, ...sendMetadata };
 
     const maxAttempts = job.opts.attempts ?? 1;
     const isFinalAttempt = job.attemptsMade + 1 >= maxAttempts;

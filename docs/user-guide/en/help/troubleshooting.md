@@ -244,6 +244,8 @@ For a report card you may see **The print could not be recorded, so it was not p
 
 You can see who got the message and who did not. For fee reminders, open the [Reminder history](../communications/reminder-history.md) page. Next to each message that did not arrive it says **Why it failed**. <!-- source: docs/user-guide/en/communications/reminder-history.md#trouble -->
 
+For any one message, find it in the [Message log](../communications/message-log.md) by name or phone. When **Check status** shows there, press it to ask the company whether it arrived. <!-- source: docs/user-guide/en/communications/message-log.md#task-check -->
+
 ### "This school has no SMS credit left, …"
 
 - **Why:** The school's SMS credit has run out. For result SMS, if the credit is not enough, no message goes at all. <!-- source: ui/src/i18n/locales/en/communications.json send.smsNotReady.NO_CREDIT; docs/user-guide/en/exams-results/results.md#trouble -->

@@ -393,7 +393,12 @@ export function AcrForm({
   const closeLabel = t('actions.close', { ns: 'common' });
   const primary = completed
     ? canWrite
-      ? { label: t('acr.reopen'), onClick: () => void handleReopen(), busy: reopen.isPending }
+      ? {
+          label: t('acr.reopen'),
+          onClick: () => void handleReopen(),
+          busy: reopen.isPending,
+          helpId: 'people.evaluations.action.reopenAcr',
+        }
       : { label: closeLabel, onClick: onClose }
     : index < ACR_STEPS.length - 1
       ? {
@@ -402,7 +407,12 @@ export function AcrForm({
         }
       : readOnly
         ? { label: closeLabel, onClick: onClose }
-        : { label: t('acr.submit'), onClick: () => void submit(), busy: complete.isPending };
+        : {
+            label: t('acr.submit'),
+            onClick: () => void submit(),
+            busy: complete.isPending,
+            helpId: 'people.evaluations.action.completeAcr',
+          };
   const secondary =
     !completed && index > 0
       ? {

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { plainToInstance } from 'class-transformer';
 import {
   clearPresetSettings,
@@ -8,6 +8,11 @@ import {
 } from './tenant-settings-merge.util';
 import { TenantSettingsDto } from '../dto/tenant-settings.dto';
 import { DEFAULT_REGION_SETTINGS } from './tenant-settings-defaults';
+
+vi.mock(
+  '../../communications/providers/messaging-providers',
+  () => import('./testing/messaging-stubs.fixture'),
+);
 
 function toPatch(plain: Record<string, unknown>): Record<string, unknown> {
   return toPlainSettingsPatch(plainToInstance(TenantSettingsDto, plain));
@@ -141,7 +146,7 @@ describe('mergeTenantSettings', () => {
     const existing = {
       version: 1,
       region: DEFAULT_REGION_SETTINGS,
-      communications: { sms: { provider: 'greenweb', greenweb: { apiKey: 'enc:old' } } },
+      communications: { sms: { provider: 'alpha', alpha: { apiKey: 'enc:old' } } },
     };
     const patch = toPatch({ version: 1, region: { ...DEFAULT_REGION_SETTINGS, locale: 'en-BD' } });
 
@@ -155,14 +160,7 @@ describe('mergeTenantSettings', () => {
     const existing = {
       version: 1,
       communications: {
-        sms: { provider: 'greenweb', greenweb: { apiKey: 'enc:old-sms' } },
-        email: {
-          host: 'smtp.old.example',
-          port: 587,
-          user: 'a',
-          from: 'a@x.com',
-          password: 'enc:old-email',
-        },
+        sms: { provider: 'alpha', alpha: { apiKey: 'enc:old-sms' } },
       },
     };
     const patch = toPatch({
@@ -176,7 +174,6 @@ describe('mergeTenantSettings', () => {
     const communications = merged.communications as Record<string, unknown>;
 
     expect(communications.sms).toEqual(existing.communications.sms);
-    expect(communications.email).toEqual(existing.communications.email);
     expect(communications.whatsapp).toEqual({ phoneNumberId: '999', accessToken: 'enc:new-wa' });
   });
 
@@ -374,7 +371,8 @@ describe('mergeTenantSettings', () => {
       expect(whatsapp.accessToken).toBe('enc:old-token');
     });
 
-    it('an explicit null clears a secret field rather than leaving it unchanged', () => {
+    // #3331: null removes the key (a cleared secret and a never-set one read the same).
+    it('an explicit null removes a secret field rather than leaving it unchanged', () => {
       const existing = {
         version: 1,
         communications: {
@@ -392,33 +390,56 @@ describe('mergeTenantSettings', () => {
         unknown
       >;
 
-      expect(whatsapp.accessToken).toBeNull();
+      expect(whatsapp).toEqual({ phoneNumberId: '111' });
     });
 
-    it('merges two levels deep — sms.mimsms.apiKey omitted preserves it while senderId updates', () => {
+    // #3331: clearing a saved optional field (senderId) must actually remove it; omission keeps it.
+    it('an explicit null removes a saved optional field; an omitted one is kept', () => {
       const existing = {
         version: 1,
         communications: {
           sms: {
-            provider: 'mimsms',
-            mimsms: { apiKey: 'enc:old-key', senderId: 'OLD' },
+            provider: 'beta',
+            beta: { token: 'enc:t', senderId: 'OLD', apiUrl: 'https://x.example' },
+          },
+        },
+      };
+      const patch = toPatch({
+        version: 1,
+        communications: { sms: { provider: 'beta', beta: { senderId: null } } },
+      });
+
+      const merged = mergeTenantSettings(existing, patch);
+      expect((merged.communications as Record<string, unknown>).sms).toEqual({
+        provider: 'beta',
+        beta: { token: 'enc:t', apiUrl: 'https://x.example' },
+      });
+    });
+
+    it('merges two levels deep — sms.beta.token omitted preserves it while senderId updates', () => {
+      const existing = {
+        version: 1,
+        communications: {
+          sms: {
+            provider: 'beta',
+            beta: { token: 'enc:old-key', senderId: 'OLD' },
           },
         },
       };
       const patch = toPatch({
         version: 1,
         communications: {
-          sms: { provider: 'mimsms', mimsms: { senderId: 'NEW' } },
+          sms: { provider: 'beta', beta: { senderId: 'NEW' } },
         },
       });
 
       const merged = mergeTenantSettings(existing, patch);
-      const mimsms = (
+      const beta = (
         (merged.communications as Record<string, unknown>).sms as Record<string, unknown>
-      ).mimsms as Record<string, unknown>;
+      ).beta as Record<string, unknown>;
 
-      expect(mimsms.senderId).toBe('NEW');
-      expect(mimsms.apiKey).toBe('enc:old-key');
+      expect(beta.senderId).toBe('NEW');
+      expect(beta.token).toBe('enc:old-key');
     });
 
     it('a fresh field value on a never-configured medium still requires an unset field to be genuinely absent from the patch', () => {
@@ -561,5 +582,62 @@ describe('mergeTenantSettings weeklyOffHistory (TIME-02)', () => {
     };
     const m = mergeTenantSettings(stored, { version: 1, attendance: { weeklyOffDays: [6] } }, NOW);
     expect((m.attendance as any).weeklyOffHistory).toEqual([{ until: '2026-10-10', days: [5] }]);
+  });
+});
+
+describe('mergeTenantSettings - flat/nested alignment (D6 + D31)', () => {
+  const merge = (stored: unknown, patch: unknown) =>
+    (mergeTenantSettings({ version: 1, communications: stored } as any, {
+      version: 1,
+      communications: patch,
+    }).communications ?? {}) as any;
+
+  it('flat stored + nested patch that omits the secret keeps the stored secret, nested, no flat keys', () => {
+    const out = merge(
+      { whatsapp: { phoneNumberId: '1', accessToken: 'enc:old' } },
+      { whatsapp: { solo: { phoneNumberId: '2' } } },
+    );
+
+    expect(out.whatsapp).toEqual({ solo: { phoneNumberId: '2', accessToken: 'enc:old' } });
+  });
+
+  it('nested stored + flat patch gives nested with the patch values', () => {
+    const out = merge(
+      { whatsapp: { solo: { phoneNumberId: '1', accessToken: 'enc:old' } } },
+      { whatsapp: { phoneNumberId: '2', accessToken: 'enc:new' } },
+    );
+
+    expect(out.whatsapp).toEqual({ solo: { phoneNumberId: '2', accessToken: 'enc:new' } });
+  });
+
+  it('flat + flat stays flat', () => {
+    const out = merge(
+      { whatsapp: { phoneNumberId: '1', accessToken: 'enc:old' } },
+      { whatsapp: { phoneNumberId: '2' } },
+    );
+
+    expect(out.whatsapp).toEqual({ phoneNumberId: '2', accessToken: 'enc:old' });
+  });
+
+  it('a multi-provider medium is never lifted', () => {
+    const out = merge(
+      { sms: { provider: 'alpha', alpha: { apiKey: 'enc:a', senderId: 's' } } },
+      { sms: { provider: 'beta', beta: { token: 'enc:b' } } },
+    );
+
+    expect(out.sms).toEqual({
+      provider: 'beta',
+      alpha: { apiKey: 'enc:a', senderId: 's' },
+      beta: { token: 'enc:b' },
+    });
+  });
+
+  it('does not mutate its inputs', () => {
+    const stored = { whatsapp: { phoneNumberId: '1', accessToken: 'enc:old' } };
+    const patch = { whatsapp: { solo: { phoneNumberId: '2' } } };
+    merge(stored, patch);
+
+    expect(stored).toEqual({ whatsapp: { phoneNumberId: '1', accessToken: 'enc:old' } });
+    expect(patch).toEqual({ whatsapp: { solo: { phoneNumberId: '2' } } });
   });
 });

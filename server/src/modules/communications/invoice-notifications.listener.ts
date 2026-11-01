@@ -21,6 +21,7 @@ import { ConfigService } from '@nestjs/config';
 import { resolvePublicAppUrl } from '../invoices/public-app-url.util';
 import { COMMUNICATIONS_QUEUE } from './communications.constants';
 import { addressForMedium, resolveReminderAudience } from './reminder-recipients.util';
+import { whatsappConfigured } from '../schools/settings/messaging-descriptors';
 import { buildInvoiceReceiptMessage } from './invoice-template.util';
 import { resolveFeeNotificationLocale } from './fee-notification-template.util';
 import {
@@ -139,7 +140,7 @@ export class InvoiceNotificationsListener {
     const settings = await this.schoolsService.getResolvedSettings(tenantId);
     const locale = resolveFeeNotificationLocale(settings.region?.locale);
     const smsAvailable = !!settings.communications?.sms?.provider;
-    const whatsappAvailable = !!settings.communications?.whatsapp?.phoneNumberId;
+    const whatsappAvailable = whatsappConfigured(settings);
     const metered = await this.smsCreditService.isMetered(tenantId);
 
     interface PlannedSend {

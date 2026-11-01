@@ -87,12 +87,15 @@ describe('ReportGrouped', () => {
   });
 
   it('labels totals in Bangla with Bangla digits, never Σ or aggregate', async () => {
-    renderWithProviders(
+    const view = renderWithProviders(
       <RegionConfigProvider value={REGION_BD_BN}>
         <ReportGrouped result={run()} layout={layout} view="table" />
       </RegionConfigProvider>,
       { locale: 'bn' },
     );
+    await act(async () => {
+      await view.localeReady;
+    });
     const table = await screen.findByRole('table');
     const six = within(table).getByRole('row', { name: /Six — মোট/ });
     expect(rowText(six)).toEqual(['৭৮', '৳০.৩০']);

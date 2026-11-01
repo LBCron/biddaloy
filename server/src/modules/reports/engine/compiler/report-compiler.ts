@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, type SelectQueryBuilder } from 'typeorm';
-import { type AggregateFn, type ReportDefinitionJson, ReportFieldType } from '@biddaloy/shared';
+import {
+  type AggregateFn,
+  type ReportDefinitionJson,
+  ReportFieldType,
+  UserRole,
+} from '@biddaloy/shared';
 import { ExpressionError } from '../expressions/expression.parser';
 import { compileExpression } from '../expressions/expression.compiler';
 import type { ValueType } from '../expressions/expression.functions';
@@ -171,7 +176,17 @@ export class ReportCompiler {
       if (this.policy.fieldAllowed(ctx, measure)) visible.add(alias);
       else masked.push(alias);
     }
+    // A filter on a field the runner may not see would leak it through the row set; refuse, never drop it.
+    for (const { field } of validated.filters) {
+      if (!this.policy.fieldAllowed(ctx, field)) {
+        throw new ReportCompileError('NOT_FILTERABLE', `dataset.filters.${field.key}`);
+      }
+    }
     if (visible.size === 0) throw new ReportCompileError('NOTHING_TO_SHOW', 'dataset');
+    // COMMITTEE sees counts only: a dimension-only report would list people-level rows.
+    if (ctx.role === UserRole.COMMITTEE && !validated.measures.some((m) => visible.has(m.alias))) {
+      throw new ReportCompileError('NOTHING_TO_SHOW', 'dataset');
+    }
 
     const referenced = new Set<string>();
     const addEntities = (def: { entity: string; entities?: readonly string[] }) => {

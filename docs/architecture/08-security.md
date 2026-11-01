@@ -116,10 +116,20 @@ The layers diagram above shows where most of these rules sit on a request's way 
 
 ### Rule 7: Outbound HTTP goes through the SSRF guard or a reviewed fixed host
 
-- **Rule.** A URL that a user or tenant can influence (a webhook, an SMS gateway `apiUrl`, a push endpoint) is called only through `fetchPinnedJson` (`server/src/modules/communications/providers/shared/pinned-http.ts`), after `assertSafeHttpDestination` has checked the address. Any other outbound call (`fetch`, `ws`, `net`, `tls`, an SDK client) goes to a fixed host, a code constant or operator config, and its file is on the reviewed `REVIEWED_OUTBOUND` list in the contract spec, with the host and who controls it.
+- **Rule.** A URL that a user or tenant can influence (a webhook, an SMS gateway `apiUrl`, a push endpoint) is called only through `fetchPinnedJson`, or `fetchPinnedJsonWithStatus` when the caller needs the HTTP status (`server/src/modules/communications/providers/shared/pinned-http.ts`), after `assertSafeHttpDestination` has checked the address. Any other outbound call (`fetch`, `ws`, `net`, `tls`, an SDK client) goes to a fixed host, a code constant or operator config, and its file is on the reviewed `REVIEWED_OUTBOUND` list in the contract spec, with the host and who controls it.
 - **Why.** A configurable URL could be pointed at internal addresses (75.24, #2332).
 - **Example.** `turnstile.service.ts` calls the constant host `challenges.cloudflare.com` with a plain `fetch`, and is listed in `REVIEWED_OUTBOUND`. The SMS gateways resolve a tenant's `apiUrl` once, refuse private, loopback and metadata addresses, and connect to exactly the checked address (no second DNS answer can sneak in). `mailpit-sink.provider.ts` is also listed: its SMTP host is the compose alias `<stack>-mailpit` set by `deploy/stack.yml` (dev `.env`: `MESSAGE_SINK_SMTP_URL`), never tenant input, and it is reached only when `MESSAGE_SINK=mailpit`. Staging alone can opt out of the inbox with `ALLOW_REAL_PROVIDERS_ON_STAGING=true` (real messages reach real contacts); demo and prod refuse the flag at boot and in config-check.
-- **Test.** `server/src/outbound-http.contract.spec.ts`.
+- **Schema-declared URLs (Epic 97).** A provider's `apiUrl` field is declared in its descriptor as `kind: 'url'`. That declaration does **not** guard the URL: the guard never reads descriptors. `kind: 'url'` only marks the field as a destination the medium's owner sets (D11). Each provider must call `assertSafeHttpDestination(apiUrl)` itself and send through `fetchPinnedJson` / `fetchPinnedJsonWithStatus`, as `onecodesoft.provider.ts` does; a new company that skips either call is not protected by this rule.
+- **Test seam (e2e only).** `OUTBOUND_TEST_ALLOW_LOOPBACK=true` lets `assertSafeHttpDestination` accept `http://127.0.0.1:<port>` so Playwright can point a gateway at the local vendor stub (`e2e/fixtures/vendor-stub.ts`). It works only when `NODE_ENV=test` and the value is exactly `true`; `localhost`, `[::1]`, https, private ranges and metadata stay blocked.
+
+```mermaid
+flowchart LR
+  A[apiUrl] --> B{NODE_ENV=test and flag=true and http://127.0.0.1?}
+  B -- yes --> C[allowed: e2e stub]
+  B -- no --> D[normal guard: private, loopback, metadata refused]
+```
+
+- **Test.** `server/src/outbound-http.contract.spec.ts` (only the guard and `env.validation.ts` may mention the flag), `outbound-destination-guard.spec.ts`.
 
 ### Rule 8: Suspend, remove or reset bumps tokens_valid_after
 
@@ -140,6 +150,7 @@ The layers diagram above shows where most of these rules sit on a request's way 
 - **Rule.** With `NODE_ENV=production` the server refuses placeholder or weak secrets, bad `CORS_ORIGINS` and missing URLs (`assertProductionConfig`; `yarn config:check` runs it on demand). JWTs are HS256 with a pinned `iss` and `aud`. `JWT_SECRET_PREVIOUS` is verify-only during a rotation.
 - **Why.** A deploy with `.env.example` values must fail loudly, and a token must not verify for another app (75.9, 75.10, D21).
 - **Example.** Rotation: move the old value to `JWT_SECRET_PREVIOUS`, wait 15 minutes, remove it. See [Token signing and rotating JWT_SECRET](#token-signing-and-rotating-jwt_secret-759).
+- **Test seam refused.** `OUTBOUND_TEST_ALLOW_LOOPBACK` set at all in production stops boot (Rule 7's e2e seam).
 - **Test.** `env.validation.spec.ts`, `jwt-secrets.spec.ts`, `jwt-rotation.e2e-spec.ts`.
 
 ### Rule 11: Client IP comes only from req.ip

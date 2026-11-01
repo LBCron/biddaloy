@@ -305,14 +305,46 @@ The **Test connection** button tests with what is in the fields now, without sav
 
 After saving, a secret key or token is never shown in full again, only **Added — ends …**. Press **Change** to replace it, **Remove** to take it away.
 
+To take a saved value off an optional field (for example **Sender name (Sender ID)** for OneCodeSoft), empty the field and press **Save**. A required field cannot be emptied this way.
+
+To take off everything saved for a part, press **Remove saved details**, then **Remove** at the question "Remove this channel's saved details?". Every saved company, key and address of that part goes. A school on platform credit then sends its messages through the platform's company.
+
 **SMS** — "All SMS from this school go through this company."
+
+First choose the **SMS company**: **Greenweb**, **MimSMS** or **OneCodeSoft**. The fields below it change with the company.
+
+**Greenweb**
+
+| Field                      | What to enter                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------- |
+| **API key**                | Required. Copy it from your Greenweb account page.                              |
+| **API address (optional)** | In the **Advanced settings** part. If empty, the company's own address is used. |
+
+**MimSMS**
 
 | Field                       | What to enter                                                                   |
 | --------------------------- | ------------------------------------------------------------------------------- |
-| **SMS company**             | **Greenweb** or **MimSMS**.                                                     |
-| **API key**                 | Copy it from the company's account page.                                        |
-| **Sender name (Sender ID)** | Only for MimSMS, and then it is required. Use the name the company approved.    |
+| **API key**                 | Required. Copy it from your MimSMS account page.                                |
+| **Sender name (Sender ID)** | Required. Use the name MimSMS approved.                                         |
 | **API address (optional)**  | In the **Advanced settings** part. If empty, the company's own address is used. |
+
+**OneCodeSoft**
+
+| Field                       | What to enter                                                                              |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| **API key**                 | Required. Copy it from your OneCodeSoft account page.                                      |
+| **Sender name (Sender ID)** | Optional. Use the name OneCodeSoft approved.                                               |
+| **API address**             | Required. Copy the base address from OneCodeSoft Dashboard › API; it must end with `/api`. |
+
+Under **Test connection**, the SMS and Email parts also have **Send a test message**. Enter a phone number (or, for Email, an address) and press the button; a real message is sent with the details in the fields now. When it goes, the part says **Sent.** with the link **See it in Message log**. If the company refuses the message, the part says **Couldn't send the test message. Check the details and try again.**, and the link opens the failed messages. A school can send 20 test messages in any 24 hours; after that it says so, and you can try again once the oldest of them is 24 hours old. You can type the number in Bangla digits too.
+
+A saved key or password is used as it is; you do not need to type it again to test. If you change the server or API address, type the key or password again too.
+
+| The part says                                                                   | What to do                                                                                                     |
+| ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Not enough SMS credit to send the test message. …**                           | The school is on platform credit and has too little. Ask for more credit.                                      |
+| **That number or address isn't valid. Check it and try again.**                 | Fix the number or address.                                                                                     |
+| **We couldn't confirm it was sent. Check the Message log before trying again.** | The reply was lost. Open [**Message log**](../communications/message-log.md) first; the message may have gone. |
 
 **SMS credit** — this part is view-only; you cannot change anything here. There are two kinds:
 
@@ -550,39 +582,39 @@ See: [**Roles & access**](roles.md).
 
 <!-- guide:generated:fields:settings -->
 
-| Field                                           | What to enter                                                                                                                                                                                   | Required? |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| Name                                            | The school's name. It shows on receipts, invoices and printouts. It cannot be left empty.                                                                                                       | Yes       |
-| Logo                                            | PNG, JPEG or WebP, up to 512 KB and 2048 pixels per side. It saves as soon as you pick the image.                                                                                               | No        |
-| Shift, version & group                          | Names used to arrange classes and sections. A value that a class or section still uses cannot be removed; rename it instead.                                                                    | No        |
-| Academic year start month                       | The month the academic year starts, 1 to 12.                                                                                                                                                    | No        |
-| What do you call a grading period?              | What a grading period is called in exams and results: Term, Semester or Trimester.                                                                                                              | No        |
-| Country                                         | Public holidays come from this country.                                                                                                                                                         | No        |
-| Late after                                      | A student who arrives after this time is marked late.                                                                                                                                           | Yes       |
-| Absent after                                    | A student who arrives after this time is marked absent.                                                                                                                                         | Yes       |
-| Correction window (days)                        | Past attendance can be corrected for this many days; 0 to 365.                                                                                                                                  | Yes       |
-| Low attendance threshold (%)                    | A student below this is shown as low attendance; 0 to 100.                                                                                                                                      | Yes       |
-| Automatic absence message                       | When on, the guardian of every absent student gets a message automatically, every day. You confirm once before it turns on.                                                                     | No        |
-| Arrival notices                                 | When on, a guardian who asks for it gets a message when their child arrives at school.                                                                                                          | No        |
-| SMS for arrival notices                         | When on, the arrival message can go by SMS, which spends the school's SMS credit.                                                                                                               | No        |
-| Tell the head teacher and admin after           | If a status is not reported for this many school days, the head teacher and admin are told; 1 to 10, holidays are not counted.                                                                  | No        |
-| Approval method                                 | How an admin confirms once more before a sensitive action: OTP only, or OTP or password.                                                                                                        | No        |
-| Always need a second admin to reverse a payment | When on, cancelling a payment always needs a second person. When off, the only admin can approve it themselves.                                                                                 | No        |
-| Grace days                                      | No late fee is charged for this many days after the bill's due date; 0 to 60.                                                                                                                   | No        |
-| Value                                           | For a percentage, 0 to 100. For a flat amount, zero or more taka.                                                                                                                               | No        |
-| SMS company                                     | The company all of this school's SMS go through: Greenweb or MimSMS. Test the connection before you change it.                                                                                  | No        |
-| Sender name (Sender ID)                         | Only for MimSMS, and then it is required. Use the name the company approved.                                                                                                                    | Yes       |
-| Phone number ID                                 | The long number in Meta's WhatsApp Manager, not a phone number. It cannot be left empty.                                                                                                        | Yes       |
-| Facebook Page ID                                | The ID of the school's Facebook page. Find it under the page's About section. It cannot be left empty.                                                                                          | Yes       |
-| Send emails from                                | The address the recipient sees. Enter a valid email address.                                                                                                                                    | Yes       |
-| Port                                            | 1 to 65535; usually 587. Do not change it unless your email server says so.                                                                                                                     | No        |
-| Withhold admit cards when fees are due          | When on, a family cannot print the admit card of a student with dues from the portal. Staff can still print it, with a warning. Off at the start.                                               | No        |
-| School short code (optional)                    | 2 to 8 capital English letters or digits. It goes before every certificate serial number. It can be left empty.                                                                                 | No        |
-| Name                                            | 1 to 80 characters. You pick the printer by this name when you print.                                                                                                                           | Yes       |
-| Shift left–right (mm)                           | Enter how many mm the measuring page printed off; −10 to 10. The up–down field has the same limit.                                                                                              | No        |
-| Size                                            | 1 means actual size; 0.90 to 1.10.                                                                                                                                                              | No        |
-| Cutting gap between cards (mm)                  | Office printers only; 0 to 20 mm.                                                                                                                                                               | No        |
-| Allow sign-in with a code sent to the phone     | When off, everyone in this school must sign in with a password. If someone is in several schools, sign-in with a code is off for them as soon as it is off in any one of them. On at the start. | No        |
+| Field                                           | What to enter                                                                                                                                                                                   | Required?   |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| Name                                            | The school's name. It shows on receipts, invoices and printouts. It cannot be left empty.                                                                                                       | Yes         |
+| Logo                                            | PNG, JPEG or WebP, up to 512 KB and 2048 pixels per side. It saves as soon as you pick the image.                                                                                               | No          |
+| Shift, version & group                          | Names used to arrange classes and sections. A value that a class or section still uses cannot be removed; rename it instead.                                                                    | No          |
+| Academic year start month                       | The month the academic year starts, 1 to 12.                                                                                                                                                    | No          |
+| What do you call a grading period?              | What a grading period is called in exams and results: Term, Semester or Trimester.                                                                                                              | No          |
+| Country                                         | Public holidays come from this country.                                                                                                                                                         | No          |
+| Late after                                      | A student who arrives after this time is marked late.                                                                                                                                           | Yes         |
+| Absent after                                    | A student who arrives after this time is marked absent.                                                                                                                                         | Yes         |
+| Correction window (days)                        | Past attendance can be corrected for this many days; 0 to 365.                                                                                                                                  | Yes         |
+| Low attendance threshold (%)                    | A student below this is shown as low attendance; 0 to 100.                                                                                                                                      | Yes         |
+| Automatic absence message                       | When on, the guardian of every absent student gets a message automatically, every day. You confirm once before it turns on.                                                                     | No          |
+| Arrival notices                                 | When on, a guardian who asks for it gets a message when their child arrives at school.                                                                                                          | No          |
+| SMS for arrival notices                         | When on, the arrival message can go by SMS, which spends the school's SMS credit.                                                                                                               | No          |
+| Tell the head teacher and admin after           | If a status is not reported for this many school days, the head teacher and admin are told; 1 to 10, holidays are not counted.                                                                  | No          |
+| Approval method                                 | How an admin confirms once more before a sensitive action: OTP only, or OTP or password.                                                                                                        | No          |
+| Always need a second admin to reverse a payment | When on, cancelling a payment always needs a second person. When off, the only admin can approve it themselves.                                                                                 | No          |
+| Grace days                                      | No late fee is charged for this many days after the bill's due date; 0 to 60.                                                                                                                   | No          |
+| Value                                           | For a percentage, 0 to 100. For a flat amount, zero or more taka.                                                                                                                               | No          |
+| SMS company                                     | The company all of this school's SMS go through. Test the connection before you change it.                                                                                                      | No          |
+| Sender name (Sender ID)                         | Required for MimSMS; optional for OneCodeSoft. Use the name the company approved.                                                                                                               | MimSMS only |
+| Phone number ID                                 | The long number in Meta's WhatsApp Manager, not a phone number. It cannot be left empty.                                                                                                        | Yes         |
+| Facebook Page ID                                | The ID of the school's Facebook page. Find it under the page's About section. It cannot be left empty.                                                                                          | Yes         |
+| Send emails from                                | The address the recipient sees. Enter a valid email address.                                                                                                                                    | Yes         |
+| Port                                            | 1 to 65535; usually 587. Do not change it unless your email server says so.                                                                                                                     | No          |
+| Withhold admit cards when fees are due          | When on, a family cannot print the admit card of a student with dues from the portal. Staff can still print it, with a warning. Off at the start.                                               | No          |
+| School short code (optional)                    | 2 to 8 capital English letters or digits. It goes before every certificate serial number. It can be left empty.                                                                                 | No          |
+| Name                                            | 1 to 80 characters. You pick the printer by this name when you print.                                                                                                                           | Yes         |
+| Shift left–right (mm)                           | Enter how many mm the measuring page printed off; −10 to 10. The up–down field has the same limit.                                                                                              | No          |
+| Size                                            | 1 means actual size; 0.90 to 1.10.                                                                                                                                                              | No          |
+| Cutting gap between cards (mm)                  | Office printers only; 0 to 20 mm.                                                                                                                                                               | No          |
+| Allow sign-in with a code sent to the phone     | When off, everyone in this school must sign in with a password. If someone is in several schools, sign-in with a code is off for them as soon as it is off in any one of them. On at the start. | No          |
 
 <!-- /guide:generated -->
 

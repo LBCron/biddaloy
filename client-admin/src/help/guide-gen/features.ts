@@ -132,7 +132,6 @@ const OWNED: Record<string, string[]> = {
   'academics.syllabus': ['/academics/study-plans/$planId'],
   'people.evaluations': ['/staff/$userId/acr/$assessmentId'],
   'people.admissionIntakes': ['/admission/$slug', '/admission/$slug/status'],
-  'communications.reminderHistory': ['/communications/message-log'],
 };
 
 const pathOf = (id: string) => {

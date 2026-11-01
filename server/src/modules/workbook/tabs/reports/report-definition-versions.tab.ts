@@ -1,4 +1,4 @@
-import type { EntityManager } from 'typeorm';
+import { IsNull, type EntityManager } from 'typeorm';
 import type { ReportDefinitionJson } from '@biddaloy/shared';
 import { ReportDefinition } from '../../../reports/entities/report-definition.entity';
 import { ReportDefinitionVersion } from '../../../reports/entities/report-definition-version.entity';
@@ -87,7 +87,9 @@ export const reportDefinitionVersionsTab: TabSpec<
 
   load(tenantId: string, m: EntityManager): Promise<ReportDefinitionVersion[]> {
     return m.find(ReportDefinitionVersion, {
-      where: { tenant_id: tenantId },
+      // A soft-deleted report is absent from the report_definitions export, so its versions
+      // would make `keyOf` throw; leave them out.
+      where: { tenant_id: tenantId, report_definition: { deleted_at: IsNull() } },
       relations: ['report_definition'],
     });
   },
@@ -130,6 +132,21 @@ export const reportDefinitionVersionsTab: TabSpec<
             message: `Column "report": no report with the key "${reportKey}" was found.`,
             severity: 'error',
             value: reportKey,
+          },
+        ],
+      };
+    }
+
+    const definition = v.definition;
+    if (typeof definition !== 'object' || definition === null || Array.isArray(definition)) {
+      return {
+        errors: [
+          {
+            tab: 'report_definition_versions',
+            row: rowNo,
+            column: 'definition',
+            message: 'Column "definition": expected a JSON object.',
+            severity: 'error',
           },
         ],
       };

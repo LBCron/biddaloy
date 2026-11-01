@@ -73,18 +73,29 @@ export class ReportExportService {
     });
 
     const out = new PassThrough();
-    void this.pump(req, buffered, out)
-      .then(() =>
-        this.runLog.finish(req.tenantId, run.id, {
-          rowCount: buffered.length,
-          durationMs: Date.now() - startedAt,
-        }),
-      )
-      .catch(async (err: unknown) => {
-        this.logger.error(`Export ${run.id} failed: ${err instanceof Error ? err.message : err}`);
+    const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
+    // Two failures, two handlers: only a failed write may destroy the stream; a bookkeeping
+    // failure after a complete write must not truncate a download that is still being read.
+    void this.pump(req, buffered, out).then(
+      () =>
+        this.runLog
+          .finish(req.tenantId, run.id, {
+            rowCount: buffered.length,
+            durationMs: Date.now() - startedAt,
+          })
+          .catch((err: unknown) =>
+            this.logger.error(`Export ${run.id} finished but was not logged: ${message(err)}`),
+          ),
+      async (err: unknown) => {
+        this.logger.error(`Export ${run.id} failed: ${message(err)}`);
         out.destroy(err instanceof Error ? err : new Error('export failed'));
-        await this.runLog.fail(req.tenantId, run.id, 'EXPORT_WRITE_FAILED');
-      });
+        await this.runLog
+          .fail(req.tenantId, run.id, 'EXPORT_WRITE_FAILED')
+          .catch((e: unknown) =>
+            this.logger.error(`Export ${run.id} not marked failed: ${message(e)}`),
+          );
+      },
+    );
 
     const extension = req.format === ExportFormat.XLSX ? 'xlsx' : 'csv';
     return new StreamableFile(out, {

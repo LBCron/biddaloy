@@ -145,9 +145,12 @@ test.describe('apply a curriculum preset', () => {
         const card = page.getByRole('group', { name: NCTB_NAME_BN });
         await expect(card).toBeFocused();
         await page.keyboard.press('Enter');
-        await expect(page.getByRole('dialog')).toBeVisible();
+        // Only the open dialog: the palette that launched this page may still be animating out
+        // (data-state="closed"), and an unscoped role match is then a strict-mode violation.
+        const preview = page.locator('[role="dialog"][data-state="open"]');
+        await expect(preview).toBeVisible();
         await page.keyboard.press('Escape');
-        await expect(page.getByRole('dialog')).toBeHidden();
+        await expect(preview).toBeHidden();
         // The preview opens from state (no Radix trigger), so the page hands
         // focus back to the card that opened it.
         await expect(card).toBeFocused();

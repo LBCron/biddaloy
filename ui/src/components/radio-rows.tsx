@@ -23,7 +23,10 @@ export interface RadioRowsProps {
   options: RadioRowOption[];
   legend: string;
   legendHidden?: boolean;
-  /** A (?) beside the legend, outside it, so the group's name stays the legend alone. */
+  /**
+   * A (?) beside the legend, outside it, so the group's name stays the legend alone.
+   * Ignored with `legendHidden`: a (?) with no visible label beside it means nothing.
+   */
   helpId?: string | undefined;
   className?: string;
 }
@@ -38,14 +41,22 @@ export function RadioRows({
   className,
 }: RadioRowsProps) {
   const { resolve } = useHelp();
-  const hasHint = resolve(helpId) !== null;
+  const hasHint = !legendHidden && resolve(helpId) !== null;
   const baseId = React.useId();
   const legendId = `${baseId}-legend`;
+  // The legend stays the fieldset's first child, so it names the fieldset natively (floated or
+  // not). No aria-labelledby on the fieldset: that would make it and the radiogroup both match
+  // a label query for the legend. With a (?), the legend's line box matches the icon's height
+  // (44px on phones) so the text and the icon share one centre line.
   return (
-    <fieldset aria-labelledby={legendId} className={cn('min-w-0', className)}>
+    <fieldset className={cn('min-w-0', className)}>
       <legend
         id={legendId}
-        className={cn('mb-2 text-label', legendHidden && 'sr-only', hasHint && 'float-start me-1')}
+        className={cn(
+          'mb-2 text-label',
+          legendHidden && 'sr-only',
+          hasHint && 'float-start me-1 flex min-h-11 items-center md:min-h-6',
+        )}
       >
         {legend}
       </legend>

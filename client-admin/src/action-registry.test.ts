@@ -33,6 +33,7 @@ const PERMISSION_VALUES = new Set(Object.values(Permission));
  * small subset here, only the routes seeded actions actually target. */
 const NAV_PATH_TO_ROUTE_ID: Record<string, string> = {
   '/payments/record': '/_staff/payments/record',
+  '/communications/message-log': '/_staff/communications/message-log/',
   '/applications/new': '/_staff/applications/new',
   '/applications?view=inbox': '/_staff/applications/',
   '/applications/new?type=STAFF_LEAVE': '/_staff/applications/new',

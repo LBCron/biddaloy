@@ -74,6 +74,15 @@ describe('assertProductionConfig (via validate)', () => {
     expect(run).not.toThrow(bad);
   });
 
+  it('refuses the test-only OUTBOUND_TEST_ALLOW_LOOPBACK flag on production (#3324)', () => {
+    expect(() => validate({ ...prodConfig, OUTBOUND_TEST_ALLOW_LOOPBACK: 'true' })).toThrow(
+      /OUTBOUND_TEST_ALLOW_LOOPBACK/,
+    );
+    expect(() =>
+      validate({ ...validConfig, NODE_ENV: 'test', OUTBOUND_TEST_ALLOW_LOOPBACK: 'true' }),
+    ).not.toThrow();
+  });
+
   it('rejects change-me in S3_SECRET_ACCESS_KEY', () => {
     expect(() => validate({ ...prodConfig, S3_SECRET_ACCESS_KEY: 'change-me' })).toThrow(
       /S3_SECRET_ACCESS_KEY/,

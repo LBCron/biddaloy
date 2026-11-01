@@ -48,8 +48,8 @@ export const feesArea: SubjectAreaDef = {
   scope: { sectionSql: 's.class_section_id', alias: 's' },
   joins: [
     { from: 'sf', to: students, on: 'sf.student_id = s.id', kind: 'inner' },
-    { from: 's', to: sections, on: 's.class_section_id = cs.id', kind: 'inner' },
-    { from: 'cs', to: classes, on: 'cs.class_id = c.id', kind: 'inner' },
+    { from: 's', to: sections, on: 's.class_section_id = cs.id', kind: 'left' },
+    { from: 'cs', to: classes, on: 'cs.class_id = c.id', kind: 'left' },
     {
       from: 'sf',
       to: {

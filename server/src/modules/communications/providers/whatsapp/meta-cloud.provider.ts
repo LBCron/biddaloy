@@ -1,21 +1,28 @@
 import { Injectable } from '@nestjs/common';
+import { CommunicationMedium, type ProviderDescriptor } from '@biddaloy/shared';
 import {
-  CommunicationProvider,
   CommunicationSendParams,
   CommunicationSendResult,
 } from '../communication-provider.interface';
+import { MessagingProvider } from '../messaging-provider';
 import { normalizeBdPhoneNumber } from '../shared/phone-number.util';
 import { ConnectionTestResult } from '../shared/connection-test.types';
 import { isValidGraphApiId, isValidGraphApiVersion } from '../shared/graph-api-path-segment.util';
 import { mapMetaGraphError } from '../shared/meta-graph-error.util';
 import { ProviderNotConfiguredError } from '../../config/provider-not-configured.error';
 import { DEFAULT_WHATSAPP_TEMPLATE_LANGUAGE } from '../../whatsapp-template.util';
-import {
-  ResolvedWhatsAppConfig,
-  TenantProviderConfigResolver,
-} from '../../config/tenant-provider-config.resolver';
+
+export interface ResolvedWhatsAppConfig {
+  phoneNumberId: string;
+  accessToken: string;
+  apiVersion?: string;
+}
+
+const DEFAULT_API_VERSION = 'v21.0';
 
 const REQUEST_TIMEOUT_MS = 10_000;
+const SEND_FAILED_ERROR =
+  'Could not reach the WhatsApp Cloud API; the message may or may not have been sent.';
 
 /**
  * Meta WhatsApp Business Cloud API.
@@ -30,16 +37,54 @@ const REQUEST_TIMEOUT_MS = 10_000;
  * Manager — that's an external setup step, not something this code does.
  */
 @Injectable()
-export class WhatsAppCloudProvider implements CommunicationProvider {
-  constructor(private readonly configResolver: TenantProviderConfigResolver) {}
+export class MetaCloudProvider extends MessagingProvider<ResolvedWhatsAppConfig> {
+  readonly descriptor: ProviderDescriptor = {
+    medium: CommunicationMedium.WHATSAPP,
+    name: 'meta-cloud',
+    label: {
+      en: 'WhatsApp Cloud API (Meta)',
+      bn: 'হোয়াটসঅ্যাপ ক্লাউড এপিআই (Meta)',
+    },
+    capabilities: [],
+    fields: [
+      {
+        key: 'phoneNumberId',
+        label: { en: 'Phone number ID', bn: 'ফোন নম্বর আইডি' },
+        kind: 'text',
+        required: true,
+      },
+      {
+        key: 'accessToken',
+        label: { en: 'Access token', bn: 'অ্যাক্সেস টোকেন' },
+        kind: 'secret',
+        required: true,
+      },
+      {
+        key: 'apiVersion',
+        label: { en: 'API version (optional)', bn: 'এপিআই ভার্সন (ঐচ্ছিক)' },
+        kind: 'text',
+        required: false,
+        advanced: true,
+      },
+    ],
+    supportsTestMessage: false,
+  };
+  readonly envPrefix = 'WHATSAPP';
 
-  async send(params: CommunicationSendParams, tenantId: string): Promise<CommunicationSendResult> {
+  async send(
+    params: CommunicationSendParams,
+    config: ResolvedWhatsAppConfig,
+  ): Promise<CommunicationSendResult> {
     try {
-      // A ProviderNotConfiguredError from this call is caught by the same
-      // catch block as a network failure below — this provider's contract
-      // is "never throw" regardless of which step failed.
-      const { phoneNumberId, accessToken, apiVersion } =
-        await this.configResolver.resolveWhatsApp(tenantId);
+      const { phoneNumberId, accessToken } = config;
+      const apiVersion = config.apiVersion ?? DEFAULT_API_VERSION;
+      // #3315: these go straight into the URL path; a stored/overridden value must be a real Graph shape.
+      if (!isValidGraphApiId(phoneNumberId) || !isValidGraphApiVersion(apiVersion)) {
+        throw new ProviderNotConfiguredError(
+          'WhatsApp',
+          'Phone number ID or API version is not a valid Graph API value.',
+        );
+      }
       const url = `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`;
       const to = normalizeBdPhoneNumber(params.to);
 
@@ -110,7 +155,8 @@ export class WhatsAppCloudProvider implements CommunicationProvider {
       return {
         success: false,
         providerMessageId: null,
-        error: err instanceof Error ? err.message : String(err),
+        // Rules 23/24: fixed text; the not-configured sentence is secret-free (deliveryErrorCode reads it).
+        error: err instanceof ProviderNotConfiguredError ? err.message : SEND_FAILED_ERROR,
         retryable: err instanceof ProviderNotConfiguredError ? false : undefined,
         outcome: err instanceof ProviderNotConfiguredError ? 'REJECTED' : 'AMBIGUOUS',
       };
@@ -129,11 +175,12 @@ export class WhatsAppCloudProvider implements CommunicationProvider {
     if (!isValidGraphApiId(config.phoneNumberId)) {
       return { success: false, message: 'Phone number ID is not a valid WhatsApp identifier.' };
     }
-    if (!isValidGraphApiVersion(config.apiVersion)) {
+    const apiVersion = config.apiVersion ?? DEFAULT_API_VERSION;
+    if (!isValidGraphApiVersion(apiVersion)) {
       return { success: false, message: 'API version is not a valid Graph API version.' };
     }
     try {
-      const url = `https://graph.facebook.com/${config.apiVersion}/${config.phoneNumberId}?fields=id`;
+      const url = `https://graph.facebook.com/${apiVersion}/${config.phoneNumberId}?fields=id`;
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${config.accessToken}` },
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),

@@ -124,7 +124,7 @@ Measured on 2026-10-21 (built site, 3G profile): performance 0.83 to 0.93, LCP 2
 
 What got the numbers where they are:
 
-- Fonts are `font-display: optional` and `public/fonts/fonts.css` is added by a small script **after the first paint**. A slow phone paints text in the system font first; the Hind Siliguri file is cached for the next page. Before this, fonts (190 KB) pushed LCP past 5 s and caused layout shift.
+- Fonts are `font-display: optional`. On a first visit the page keeps the system font; **after the first paint** a small script in `Base.astro` only prefetches the Hind Siliguri files and sets `localStorage` `sm:wf`. When that flag is set, the next page links `public/fonts/fonts.css` in the head, so the cached font is there at first paint and nothing re-wraps. Before this, fonts (190 KB) pushed LCP past 5 s and caused layout shift.
 - All CSS is inlined into each page (`inlineStylesheets: 'always'`), so there is no extra stylesheet request.
 
 ## Tests and CI
@@ -193,7 +193,7 @@ CI is the only builder: the `landing` job uploads `landing-dist-<sha>.tar.gz`. T
 | The chat button sat on top of the consent bar's "No" button                             | consent could not be clicked on desktop      | consent bar `z-index: 50`, above the chat button                                | A bar the visitor must answer goes above floating buttons |
 | Web fonts delayed first paint and LCP (5 s on 3G)                                       | Lighthouse performance 0.65                  | `font-display: optional`, fonts added after first paint                         | Nothing render-critical depends on a font download        |
 | The 3G profile cannot reach LCP 1.5 s                                                   | the written target was not testable as given | gate at the measured floor, target kept in the config comment                   | Check a budget is reachable before writing it into CI     |
-| Home page linked to `/sm-ek-pata.pdf`, which did not exist yet                          | link check returned 404                      | `.pdf` was skipped in the link test; the skip is gone now that the PDF ships         | Never skip a link kind in the link test                        |
+| Home page linked to `/sm-ek-pata.pdf`, which did not exist yet                          | link check returned 404                      | `.pdf` was skipped in the link test; the skip is gone now that the PDF ships    | Never skip a link kind in the link test                   |
 
 ## Events (D22)
 
