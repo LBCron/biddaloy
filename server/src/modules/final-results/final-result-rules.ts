@@ -176,8 +176,11 @@ export function combineStudent(
   settings: FinalSettings,
 ): Array<SubjectTotal & { subject_id: string }> {
   const bySubject = new Map<string, ExamSubjectMark[]>();
-  for (const m of allMarks)
-    bySubject.set(m.subject_id, [...(bySubject.get(m.subject_id) ?? []), m]);
+  for (const m of allMarks) {
+    const list = bySubject.get(m.subject_id);
+    if (list) list.push(m);
+    else bySubject.set(m.subject_id, [m]);
+  }
 
   return [...bySubject.entries()].map(([subject_id, marks]) => {
     const c = combineSubject(marks, settings);
