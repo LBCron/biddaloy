@@ -26,8 +26,11 @@ test.describe('admin: coordinators', () => {
     });
     await expect(dialog).toBeVisible();
 
-    await dialog.getByRole('combobox', { name: t('teacherAssignments.fields.teacher') }).click();
-    await page.getByRole('option').last().click();
+    const teacher = dialog.getByRole('combobox', { name: t('teacherAssignments.fields.teacher') });
+    await teacher.click();
+    await teacher.fill('SEED-TEACHER-0001');
+    // The list re-renders while the dialog's other pickers load, so skip the "stable" wait.
+    await page.getByRole('option', { name: /SEED-TEACHER-0001/ }).click({ force: true });
     const classes = dialog.getByRole('combobox', {
       name: t('teacherAssignments.fields.coordinatorClasses'),
     });
