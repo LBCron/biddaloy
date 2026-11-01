@@ -35,6 +35,12 @@ export interface FinalSettings {
   weights: FinalWeight[];
 }
 
+/**
+ * Caller contract: one row per counted exam that has the subject, for every student.
+ * No mark for the student = a row with `obtained: null` (absent, 0, D2). A missing
+ * row means "this exam has no such subject" and the other exams renormalise (D22),
+ * so dropping a row silently inflates the student's mark.
+ */
 export interface ExamSubjectMark {
   exam_id: string;
   subject_id: string;
