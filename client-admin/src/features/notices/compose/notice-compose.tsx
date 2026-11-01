@@ -8,6 +8,12 @@ import { NoticeStatus, NOTICE_LIMITS, UserRole } from '@biddaloy/shared';
 import { AudienceBuilder } from '@biddaloy/ui';
 import {
   Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Checkbox,
   DatePicker,
   Input,
@@ -43,6 +49,7 @@ import {
   useAllRecipients,
   useAudiencePeople,
   useNotice,
+  useNewPublicLink,
   usePublishNotice,
   useRecipients,
   useRemoveNoticeFile,
@@ -133,6 +140,11 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
   const removeRecipients = useRemoveRecipients(id ?? '');
   const addMatching = useAddMatching(id ?? '');
   const publish = usePublishNotice(id ?? '');
+  const newLink = useNewPublicLink(id ?? '');
+  // The public link is shown once: hold the page here until the admin has seen it.
+  const [linkDone, setLinkDone] = React.useState<{ id: string; token: string } | undefined>();
+  const finish = (noticeId: string, token?: string | null) =>
+    token ? setLinkDone({ id: noticeId, token }) : onPublished(noticeId);
 
   const columns = useAudienceColumns();
   const setFilter = (next: Partial<AudienceFilterState>) => {
@@ -163,6 +175,7 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
   }
 
   /** Create or update the draft, then upload the files that are still waiting. */
+  const mintedToken = React.useRef<string | undefined>(undefined);
   async function persist(): Promise<string> {
     let current = id;
     if (current === undefined || dirty) {
@@ -179,6 +192,7 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
       });
       current = notice.id;
       setId(current);
+      if (notice.publicLinkToken) mintedToken.current = notice.publicLinkToken;
     }
     if (pending.length > 0) {
       const files = await upload.mutateAsync({ id: current, files: pending });
@@ -227,7 +241,9 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
       if (step === 'write' && !validate()) return;
       if (last) {
         // A published notice: save the edit and go to the detail page.
-        onPublished(await persist());
+        const saved = await persist();
+        finish(saved, mintedToken.current);
+        mintedToken.current = undefined;
         return;
       }
       if (step === 'write' || dirty) await persist();
@@ -243,8 +259,11 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
   const publishNow = () =>
     guarded(async () => {
       const saved2 = await persist();
-      await publish.mutateAsync(sms);
-      onPublished(saved2);
+      const notice = await publish.mutateAsync(sms);
+      // Publish never returns the token (its answer is cached); ask for it.
+      const link = notice.isPublic ? await newLink.mutateAsync() : undefined;
+      setConfirmOpen(false);
+      finish(saved2, link?.token);
     }, 'errors.publishFailed');
 
   // Edit mode: never show (or overwrite) the form before the notice has loaded.
@@ -443,15 +462,20 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
               rowKey={(r) => r.key}
               columns={columns}
               onAddSelected={(rows) =>
-                addRecipients.mutate(
-                  rows.flatMap((r) => (r.ref ? [r.ref] : [])),
-                  { onError: failed },
-                )
+                addRecipients
+                  .mutateAsync(rows.flatMap((r) => (r.ref ? [r.ref] : [])))
+                  .catch((e: unknown) => {
+                    failed();
+                    throw e;
+                  })
               }
               onAddAll={() =>
-                addMatching.mutate(audienceQuery(tab, filters, 1, RECIPIENTS_PAGE), {
-                  onError: failed,
-                })
+                addMatching
+                  .mutateAsync(audienceQuery(tab, filters, 1, RECIPIENTS_PAGE))
+                  .catch((e: unknown) => {
+                    failed();
+                    throw e;
+                  })
               }
               chosen={{
                 rows: (recipients.data?.items ?? []).map(recipientRow),
@@ -512,6 +536,26 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
           </Button>
         </div>
       )}
+
+      <Dialog open={linkDone !== undefined}>
+        <DialogContent size="md">
+          <DialogHeader>
+            <DialogTitle>{t('publicLink.title')}</DialogTitle>
+            <DialogDescription>{t('publicLink.hint')}</DialogDescription>
+          </DialogHeader>
+          <Input
+            readOnly
+            aria-label={t('publicLink.title')}
+            value={linkDone ? `${window.location.origin}/n/${linkDone.token}` : ''}
+            onFocus={(e) => e.currentTarget.select()}
+          />
+          <DialogFooter>
+            <Button type="button" onClick={() => linkDone && onPublished(linkDone.id)}>
+              {t('publicLink.done')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <PublishConfirmDialog
         open={confirmOpen}

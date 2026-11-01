@@ -171,3 +171,11 @@ export function usePublishNotice(id: string) {
     },
   });
 }
+
+/** Mints a new public link (the old one stops). No Idempotency-Key: the server keeps the token out of Redis. */
+export function useNewPublicLink(id: string) {
+  return useMutation({
+    mutationFn: async () =>
+      (await apiClient.post<S['PublicLinkDto']>(`/notices/${id}/public-link`)).data,
+  });
+}

@@ -147,6 +147,34 @@ describe('NoticeCompose', () => {
     expect(onPublish).toHaveBeenCalledTimes(1);
   });
 
+  it('public notice: mints the link after publish (no Idempotency-Key) and shows it before leaving', async () => {
+    mock();
+    let linkKey: string | null | undefined;
+    server.use(
+      http.get('/api/v1/notices/:id', () => HttpResponse.json(notice({ isPublic: true }))),
+      http.post('/api/v1/notices/:id/publish', () =>
+        HttpResponse.json(notice({ status: 'PUBLISHED', isPublic: true })),
+      ),
+      http.post('/api/v1/notices/:id/public-link', ({ request }) => {
+        linkKey = request.headers.get('Idempotency-Key');
+        return HttpResponse.json({ token: 'tok123' }, { status: 201 });
+      }),
+    );
+    const onPublished = vi.fn();
+    const user = userEvent.setup();
+    const { localeReady } = mount({ noticeId: ID, onPublished });
+    await localeReady;
+    await toReview(user);
+    await user.click(screen.getByRole('button', { name: 'Publish' }));
+    await user.click(await screen.findByRole('button', { name: 'Yes, publish' }));
+    const field = await screen.findByRole('textbox', { name: 'Public link' });
+    expect((field as HTMLInputElement).value).toContain('/n/tok123');
+    expect(linkKey).toBeNull();
+    expect(onPublished).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+    expect(onPublished).toHaveBeenCalledWith(ID);
+  });
+
   it('SMS ticked: the confirm says it goes to an admin, never "sent"', async () => {
     mock();
     const user = userEvent.setup();

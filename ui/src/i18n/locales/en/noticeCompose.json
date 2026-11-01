@@ -11,6 +11,11 @@
     "retry": "Retry",
     "cancel": "Cancel"
   },
+  "publicLink": {
+    "title": "Public link",
+    "hint": "Copy it now. It is shown only once; a new one replaces it.",
+    "done": "Done"
+  },
   "saved": "Draft saved",
   "fields": {
     "title": "Title",
