@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_CONDUCT_ITEMS } from '../types/report-card-note.types';
 import {
   ExamComponentKind,
   ExamComponentSource,
@@ -23,6 +24,15 @@ describe('exam enums', () => {
     const values = Object.values(obj);
     expect(values.length).toBeGreaterThan(0);
     expect(new Set(values).size).toBe(values.length);
+  });
+
+  it('DEFAULT_CONDUCT_ITEMS is the four D30 items', () => {
+    expect(DEFAULT_CONDUCT_ITEMS.map((i) => i.key)).toEqual([
+      'discipline',
+      'neatness',
+      'punctuality',
+      'sports',
+    ]);
   });
 
   it('ExamKind has the four kinds', () => {
