@@ -198,6 +198,17 @@ describe('system reports (integration)', () => {
       expect(girls.rows.map((r) => r.name)).toEqual(['Girl']);
     });
 
+    it('the student list narrows by the class list a prompt sends', async () => {
+      await fx.student(tenantId, year, six, { name: 'Boy', gender: 'MALE' });
+      const seven = await fx.klass(tenantId, year, 'Seven', 7);
+      await fx.student(tenantId, year, seven, { name: 'Girl', gender: 'FEMALE' });
+
+      const sixOnly = await run('student-list', { class: ['Six'] });
+      expect(sixOnly.rows.map((r) => r.name)).toEqual(['Boy']);
+      const both = await run('student-list', { class: ['Six', 'Seven'] });
+      expect(both.rows.map((r) => r.name)).toEqual(['Boy', 'Girl']);
+    });
+
     it('the defaulters list covers the same students the dues list shows, with the guardian phone', async () => {
       const a = await fx.student(tenantId, year, six, { name: 'A' });
       const b = await fx.student(tenantId, year, six, { name: 'B' });

@@ -71,8 +71,9 @@ export const studentList: SystemReportDef = {
         filters: [
           { field: 'status', op: FilterOp.EQ, value: 'ACTIVE' },
           { field: 'academic_year', op: FilterOp.EQ, value: ask('academic_year') },
-          { field: 'class', op: FilterOp.EQ, value: ask('class') },
-          { field: 'section', op: FilterOp.EQ, value: ask('section') },
+          // A CLASS / SECTION prompt answers with a list ("pick several"), so these are IN, not EQ.
+          { field: 'class', op: FilterOp.IN, value: ask('class') },
+          { field: 'section', op: FilterOp.IN, value: ask('section') },
           { field: 'gender', op: FilterOp.EQ, value: ask('gender') },
           { field: 'religion', op: FilterOp.EQ, value: ask('religion') },
         ],

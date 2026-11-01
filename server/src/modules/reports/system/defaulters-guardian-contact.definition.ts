@@ -50,8 +50,9 @@ export const defaultersGuardianContact: SystemReportDef = {
         filters: [
           // The same set the dues list calls "open": bills that still owe money.
           { field: 'status', op: FilterOp.IN, value: ['PENDING', 'PARTIALLY_PAID', 'OVERDUE'] },
-          { field: 'class', op: FilterOp.EQ, value: { param: 'class' } },
-          { field: 'section', op: FilterOp.EQ, value: { param: 'section' } },
+          // A CLASS / SECTION prompt answers with a list ("pick several"), so these are IN, not EQ.
+          { field: 'class', op: FilterOp.IN, value: { param: 'class' } },
+          { field: 'section', op: FilterOp.IN, value: { param: 'section' } },
         ],
         sort: [
           { field: 'class', dir: 'asc' },
