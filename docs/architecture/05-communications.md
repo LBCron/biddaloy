@@ -666,3 +666,52 @@ flowchart LR
 - **Surprise:** the hosted demo can never show **Check status**: it runs on the test inbox, and `canCheckStatus` and the route both refuse under `MESSAGE_SINK` (Rule 6 of the demo seed: nothing leaves the demo). The seeded SENT SMS rows still carry everything the button needs, and the slice spec proves it by toggling `MESSAGE_SINK`. Rule candidate: an issue that asks the demo to "show" a vendor action first checks what the sink allows.
 - **Surprise:** the seed's random stream is shared by every later value (fake API keys, calendar tokens, print jobs), and a settings screenshot shows a key's last four characters. Fix: the new company ids reuse the old single `rng.string.uuid()` draw, an email's DELIVERED is remapped after its draw, and the test row takes `stableId` and an anchor-derived time. Rule candidate: a demo-seed edit keeps the number and kind of `ctx.rng` draws, or re-shoots every screenshot that shows a random value.
 - **No API change:** `yarn api:types` produced no diff in this wave; `check-api-types` passes.
+
+## Notice board (Epic 53)
+
+A notice is a message pinned on the school board. People read it in the app. It is different from a manual alert (a one-off bar for a chosen audience, no read list) and from SMS (a paid text sent per person). A notice keeps a read list: `notice_recipients.seen_at` tells who has read it. SMS is optional and waits for admin approval.
+
+```mermaid
+erDiagram
+  schools ||--o{ notices : "tenant_id (CASCADE)"
+  notices ||--o{ notice_attachments : "notice_id (RESTRICT)"
+  notices ||--o{ notice_recipients : "notice_id (RESTRICT)"
+  users ||--o{ notices : "author_user_id (RESTRICT)"
+  users ||--o{ notice_recipients : "user_id, STAFF"
+  students ||--o{ notice_recipients : "student_id"
+  guardians ||--o{ notice_recipients : "guardian_id"
+  communication_logs ||--o{ notice_recipients : "communication_log_id (SET NULL)"
+  notices {
+    uuid id
+    varchar title
+    text body
+    varchar status "DRAFT PUBLISHED WITHDRAWN"
+    boolean important
+    boolean pinned
+    boolean is_public
+    date expires_on
+    varchar sms_status "NONE PENDING APPROVED DECLINED"
+    int recipient_count
+  }
+  notice_attachments {
+    uuid id
+    varchar storage_key
+    varchar mime_type "pdf png jpeg webp"
+    int size_bytes "max 5 MB"
+  }
+  notice_recipients {
+    uuid id
+    varchar kind "STAFF STUDENT GUARDIAN"
+    timestamptz seen_at
+    timestamptz acknowledged_at
+    boolean sms_wanted
+  }
+```
+
+Example: a published notice "Eid holiday" with 2 staff and 1 guardian has 3 `notice_recipients` rows. When a teacher opens it, her row gets `seen_at`.
+
+Every table has `tenant_id`. Only SHA-256 hashes of public and link tokens are stored. Source: `server/src/migrations/1791900001200-Notices.ts`.
+
+### Notice board: Wave 1 learning (2026-11-01)
+
+See the dated bullets in [27-qa-audit-lessons.md](27-qa-audit-lessons.md) (Docker hang, stale lock), [22-demo-seed.md](22-demo-seed.md) (coverage guard) and [36-domain-invariants.md](36-domain-invariants.md) (reset order, delete guard).

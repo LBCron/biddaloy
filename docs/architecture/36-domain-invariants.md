@@ -305,3 +305,8 @@ file name is never part of the key. Separately, a Riverside admin who pastes
 the id of a Greenview staff document into a download link gets `404`,
 because `staff-document.service.ts` looks the row up by id **and**
 Riverside's `tenant_id`.
+
+Dated learning (2026-11-01, Epic 53 Wave 1):
+
+- **Surprise:** `server/test/reset-order.ts` must list new tables child-first, or test cleanup fails on a foreign key. Fix: add `notice_recipients` and `notice_attachments` before `notices`. Rule candidate: a new-table ticket edits the reset order file.
+- **Surprise:** `delete-guard-registry` lists only protected parents. A new table that is not protected gets RESTRICT foreign keys plus delete-refused tests instead (D27 for notices). Rule candidate: pick one of the two, never neither.

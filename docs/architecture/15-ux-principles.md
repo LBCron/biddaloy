@@ -89,6 +89,7 @@ Roles: **A** admin · **Ac** accountant · **E** executive · **T** teacher ·
 
 ```text
 Dashboard [have]                                                    A Ac E T
+  Latest notices card [53.0]
 Applications [52.0] — top level, pending-count badge                A Ac E T (+ office, exam controller)
   New application · Application detail
 
@@ -154,7 +155,7 @@ Communications
   Send an alert [67.0] — one-off bar alert to a chosen audience      A E
   Fee reminders [have] · Reminder history [have]                    A Ac (+ office)
   Message log [have] (97.0) — every message sent, Check status      A Ac (+ office)
-  Notices [have]                                                    A E T
+  নোটিশ / Notices [53.0] — list, new, detail (কে পড়েছে)             A E OS T
   Automatic notices [partial: absent ✓ · fine ✓ (38.0) · result/marks 19.0 · homework 22.0 · receipt 3.0]
 
 Reports [8.15] — a hub that LINKS to screens that live with their data; no copies
@@ -185,7 +186,8 @@ Overview [have]
 Fees & invoices [have] · Pay online [3.0] · Statement [8.15] · Fines [38.0]
 Attendance [have]
 Results [19.0] · Homework [have] · Syllabus [22.0] · Routine [21.0]
-Calendar & notices [17.0; notices have]
+Calendar [17.0]
+Notices [53.0]
 Online exam & class [N6] · Programs [34.0] · Documents [Print module — follow-up epic]
 Applications [52.0] — under More on a phone
 Account [have] — includes Notification preferences [67.0]
