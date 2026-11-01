@@ -150,19 +150,22 @@ flowchart LR
 `homeroom` and `subjectIds` never include coordinator rows, so the marks write
 gate (`assertCanWrite`, `writableSubjects`) is unchanged. `coordinatedClasses()`
 lists the caller's rows for My coordination.
+The flag can also be `'classLevel'`: only class coordinators widen, for reads that show every
+subject at once (results, analysis), so a subject coordinator never sees another subject's marks
+there.
 
-| Call site                                                            | Passes the flag?    | Why                                          |
-| -------------------------------------------------------------------- | ------------------- | -------------------------------------------- |
-| `students.controller` lists, `GET /students/:id`, guardians          | yes                 | D4 read                                      |
-| `results.controller`, `analysis.controller`                          | yes                 | D4 read                                      |
-| `MarksAuthorizationService.assertCanRead` (grid read)                | yes (`coordinated`) | subject coordinators read their subject only |
-| attendance register view, record history, periods, section summaries | yes                 | D4 read; marking never passes it             |
-| homework analytics (`assertCanViewSection` / `assertCanViewClass`)   | yes                 | D4 read                                      |
-| study plans `canRead`                                                | yes (`coordinated`) | D4 read; `canWrite` unchanged                |
-| `search.service`, `attention-query.service` student alerts           | yes                 | D4 read                                      |
-| homework list / detail                                               | **no**              | the same `findOne` gates homework writes     |
-| marks write, attendance marking, finalize, corrections, matrix save  | **no**              | D4: coordinators never write                 |
-| fees, fines, checkout, payments, communications                      | **no**              | D5: oversight is academic                    |
+| Call site                                                            | Passes the flag?    | Why                                                   |
+| -------------------------------------------------------------------- | ------------------- | ----------------------------------------------------- |
+| `students.controller` lists, `GET /students/:id`, guardians          | yes                 | D4 read                                               |
+| `results.controller`, `analysis.controller`                          | `'classLevel'`      | D4: every subject at once, so class coordinators only |
+| `MarksAuthorizationService.assertCanRead` (grid read)                | yes (`coordinated`) | subject coordinators read their subject only          |
+| attendance register view, record history, periods, section summaries | yes                 | D4 read; marking never passes it                      |
+| homework analytics (`assertCanViewSection` / `assertCanViewClass`)   | yes                 | D4 read                                               |
+| study plans `canRead`                                                | yes (`coordinated`) | D4 read; `canWrite` unchanged                         |
+| `search.service`, `attention-query.service` student alerts           | yes                 | D4 read                                               |
+| homework list / detail                                               | **no**              | the same `findOne` gates homework writes              |
+| marks write, attendance marking, finalize, corrections, matrix save  | **no**              | D4: coordinators never write                          |
+| fees, fines, checkout, payments, communications                      | **no**              | D5: oversight is academic                             |
 
 Example: Rahim teaches only 6-A but coordinates Class 7. `GET /students/<a 7-B
 student>` is 200; `PUT /attendance/sections/<7-B>/register` is still 404, and so is

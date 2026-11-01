@@ -54,13 +54,22 @@ const COORDINATOR_ROWS_FROM_SQL = `
     AND (ca.subject_id IS NULL OR s.id IS NOT NULL)`;
 
 /**
+ * [83.3.1] Which coordinator rows widen a read. `true`: class and subject coordinators (reads that
+ * are not per subject: students, attendance…). `'classLevel'`: class coordinators only, for reads
+ * that show every subject at once (results, analysis), so a subject coordinator never sees
+ * another subject's marks there (D4). `false` / omitted: teaching rows only.
+ */
+export type CoordinatedScope = boolean | 'classLevel';
+
+/**
  * The section-id subquery a scope check filters on: teaching rows, plus coordinator rows when
  * `includeCoordinated` (D18). Exported for the unit spec only.
  */
-export function visibleSectionIdsSql(includeCoordinated: boolean | undefined): string {
+export function visibleSectionIdsSql(includeCoordinated: CoordinatedScope | undefined): string {
   const teaching = `SELECT tcs.section_id ${TEACHER_ROWS_FROM_SQL}`;
   if (!includeCoordinated) return teaching;
-  return `${teaching} UNION SELECT cs.id AS section_id ${COORDINATOR_ROWS_FROM_SQL}`;
+  const classLevelOnly = includeCoordinated === 'classLevel' ? ' AND ca.subject_id IS NULL' : '';
+  return `${teaching} UNION SELECT cs.id AS section_id ${COORDINATOR_ROWS_FROM_SQL}${classLevelOnly}`;
 }
 
 export interface TeacherAssignmentRow {
@@ -78,7 +87,7 @@ interface TeacherScopeInput {
    * keeps today's answer. Only **read** call sites pass true; write gates and the fees, fines,
    * checkout and communications routes never do (D5).
    */
-  includeCoordinated?: boolean;
+  includeCoordinated?: CoordinatedScope;
 }
 
 /** One coordinated class (or class + subject) of the caller, current academic year (83.2.1). */
@@ -115,7 +124,7 @@ export async function teacherSectionIds(
 ): Promise<string[]> {
   // UNION de-duplicates; the teaching-only form keeps today's DISTINCT query unchanged.
   const sql = includeCoordinated
-    ? visibleSectionIdsSql(true)
+    ? visibleSectionIdsSql(includeCoordinated)
     : `SELECT DISTINCT tcs.section_id ${TEACHER_ROWS_FROM_SQL}`;
   const rows: { section_id: string }[] = await manager.query(sql, [tenantId, userId]);
   return rows.map((r) => r.section_id);
@@ -206,7 +215,7 @@ export class TeacherScopeService {
     role: string;
     userId: string;
     tenantId: string;
-    includeCoordinated?: boolean;
+    includeCoordinated?: CoordinatedScope;
   }): Promise<string[] | null> {
     const scope = roleScope(input.role);
     if (scope === null) return [];
@@ -220,7 +229,7 @@ export class TeacherScopeService {
     role: string;
     userId: string;
     tenantId: string;
-    includeCoordinated?: boolean;
+    includeCoordinated?: CoordinatedScope;
     scope?: string[] | null;
   }): Promise<string[] | null> {
     const scope = input.scope !== undefined ? input.scope : await this.sectionScope(input);
@@ -245,7 +254,7 @@ export class TeacherScopeService {
     userId: string;
     tenantId: string;
     guardianId: string;
-    includeCoordinated?: boolean;
+    includeCoordinated?: CoordinatedScope;
   }): Promise<string[] | null> {
     const scope = await this.sectionScope(input);
     if (scope === null) return null;

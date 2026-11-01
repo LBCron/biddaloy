@@ -756,6 +756,30 @@ describe('TeacherScopeService (integration)', () => {
       expect(roles.subjectIds).toEqual([]);
     });
 
+    it("'classLevel' widens for a class row but not for a subject row (results / analysis, D4)", async () => {
+      await coordinate(sec6A);
+      await coordinate(sec7A, liveSubjectId);
+      const scoped = await service.sectionIds({
+        userId,
+        tenantId: TENANT_A,
+        includeCoordinated: 'classLevel',
+      });
+      expect(scoped.sort()).toEqual([sec6A, sec6B].sort());
+      // A student of the subject-coordinated class stays out of the all-subject reads.
+      const st = await dataSource.getRepository(Student).save({
+        full_name: 'Subject Coord Student',
+        registration_number: `REG-SC-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+        roll_number: 2,
+        class_section_id: sec7A,
+        tenant_id: TENANT_A,
+      } as Partial<Student> as Student);
+      const base = { userId, tenantId: TENANT_A, studentId: st.id };
+      expect(await service.canSeeStudent({ ...base, includeCoordinated: 'classLevel' })).toBe(
+        false,
+      );
+      expect(await service.canSeeStudent({ ...base, includeCoordinated: true })).toBe(true);
+    });
+
     it('a row on a past-year class is not listed (current year only, D14)', async () => {
       await coordinate(secOld);
       expect(await ids(true)).toEqual([]);

@@ -23,5 +23,14 @@ describe('visibleSectionIdsSql (83.2.1)', () => {
     // Tenant filter on the coordinator table itself, and the current-year join (D3/D14).
     expect(sql).toContain('ca.tenant_id = $1');
     expect(sql).toMatch(/ay\.is_current = true/);
+    // Subject coordinators count too: no class-level-only filter at the end.
+    expect(sql.trimEnd().endsWith('AND ca.subject_id IS NULL')).toBe(false);
+  });
+
+  // [83.3.1] D4: results and analysis show every subject, so only class coordinators widen them.
+  it("'classLevel' keeps class-coordinator rows only", () => {
+    const sql = visibleSectionIdsSql('classLevel');
+    expect(sql).toContain('FROM coordinator_assignments ca');
+    expect(sql.trimEnd().endsWith('AND ca.subject_id IS NULL')).toBe(true);
   });
 });
