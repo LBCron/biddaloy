@@ -934,6 +934,7 @@ describe('new role grants [#1358]', () => {
     [UserRole.COMMITTEE]: [
       Permission.DASHBOARD_VIEW,
       Permission.COMMITTEE_REPORT_READ, // [8.10.7] D44
+      Permission.REPORTS_VIEW, // [8.15.53] D14
       Permission.ACR_READ,
       Permission.ACADEMIC_STRUCTURE_READ,
       Permission.CALENDAR_READ,

@@ -167,7 +167,19 @@ export function validateDefinition(
   }
   if (!area) throw new ReportCompileError('UNKNOWN_AREA', 'subjectArea');
 
-  const { dataset } = definition;
+  // Structure first: decorators only prove it is an object, so a missing array must be a 422, not a TypeError.
+  const raw = definition.dataset as Partial<ReportDefinitionJson['dataset']> | undefined;
+  if (
+    !raw ||
+    typeof raw !== 'object' ||
+    !Array.isArray(raw.dimensions) ||
+    !Array.isArray(raw.measures) ||
+    !Array.isArray(raw.filters) ||
+    !Array.isArray(raw.sort)
+  ) {
+    throw new ReportCompileError('BAD_VALUE', 'dataset');
+  }
+  const dataset = raw as ReportDefinitionJson['dataset'];
   const dimensions = dataset.dimensions.map((d, i) => {
     const path = `dataset.dimensions[${i}]`;
     const field = area.fields.find((f) => f.key === d.field);

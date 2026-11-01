@@ -386,6 +386,16 @@ describe('ReportCompiler', () => {
     it('nothing to show', () => {
       refuse(definition(), 'NOTHING_TO_SHOW');
     });
+
+    it('a dataset with a missing array is a coded error, not a TypeError', () => {
+      const bad = definition();
+      (bad.dataset as unknown as Record<string, unknown>).dimensions = undefined;
+      refuse(bad, 'BAD_VALUE');
+      refuse(
+        { ...definition(), dataset: undefined } as unknown as ReportDefinitionJson,
+        'BAD_VALUE',
+      );
+    });
   });
 
   describe('row limit', () => {
@@ -431,6 +441,19 @@ describe('ReportCompiler', () => {
           {},
           500,
           makeCompiler(new HideSensitive(noTeacherScope)),
+        ),
+      ).toThrowError(expect.objectContaining({ code: 'NOTHING_TO_SHOW' }));
+    });
+
+    it('COMMITTEE gets nothing from a report with no count measure', () => {
+      const committee = { ...ctx, role: UserRole.COMMITTEE };
+      expect(() =>
+        makeCompiler().compileWithScope(
+          definition({ dimensions: [{ field: 'class' }] }),
+          {},
+          committee,
+          500,
+          [],
         ),
       ).toThrowError(expect.objectContaining({ code: 'NOTHING_TO_SHOW' }));
     });

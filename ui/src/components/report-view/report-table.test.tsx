@@ -65,11 +65,15 @@ async function renderEn(ui: React.ReactElement) {
   return view;
 }
 
-function renderBn(ui: React.ReactElement) {
-  return renderWithProviders(
+async function renderBn(ui: React.ReactElement) {
+  const view = renderWithProviders(
     <RegionConfigProvider value={REGION_BD_BN}>{ui}</RegionConfigProvider>,
     { locale: 'bn' },
   );
+  await act(async () => {
+    await view.localeReady;
+  });
+  return view;
 }
 
 describe('ReportTable', () => {
@@ -88,7 +92,7 @@ describe('ReportTable', () => {
   });
 
   it('uses Bangla labels and digits under bn', async () => {
-    renderBn(<ReportTable result={run()} caption="ছাত্রছাত্রী" layout="table" />);
+    await renderBn(<ReportTable result={run()} caption="ছাত্রছাত্রী" layout="table" />);
     const table = await screen.findByRole('table', { name: 'ছাত্রছাত্রী' });
     expect(within(table).getByRole('columnheader', { name: 'বিল' })).toBeTruthy();
     const first = within(table).getAllByRole('row')[1]!;

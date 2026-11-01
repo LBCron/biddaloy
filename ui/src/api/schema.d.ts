@@ -30708,8 +30708,17 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 202 when queued; otherwise the file. */
+            /** @description The file (up to 5,000 rows). */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            /** @description Queued; poll the run status. */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };

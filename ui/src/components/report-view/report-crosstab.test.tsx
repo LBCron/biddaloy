@@ -109,12 +109,15 @@ describe('ReportCrosstab table', () => {
   });
 
   it('labels totals and digits in Bangla', async () => {
-    renderWithProviders(
+    const view = renderWithProviders(
       <RegionConfigProvider value={REGION_BD_BN}>
         <ReportCrosstab result={run()} layout={layout} view="table" />
       </RegionConfigProvider>,
       { locale: 'bn' },
     );
+    await act(async () => {
+      await view.localeReady;
+    });
     const table = await screen.findByRole('table');
     expect(table.querySelector('thead tr')!.textContent).toContain('মোট');
     expect(table.querySelector('thead tr')!.textContent).toContain('শ্রেণি');
@@ -201,7 +204,7 @@ describe('ReportCrosstab list', () => {
   });
 
   it('reads in Bangla like the ticket example', async () => {
-    renderWithProviders(
+    const view = renderWithProviders(
       <RegionConfigProvider value={REGION_BD_BN}>
         <ReportCrosstab
           result={run({ rows: rows.filter((r) => r.religion === 'Islam') })}
@@ -211,6 +214,9 @@ describe('ReportCrosstab list', () => {
       </RegionConfigProvider>,
       { locale: 'bn' },
     );
+    await act(async () => {
+      await view.localeReady;
+    });
     const items = (await screen.findAllByRole('listitem')).map((i) => i.textContent);
     expect(items[0]).toBe('Six — Boy ৩০, Girl ২৮, মোট ৫৮');
   });

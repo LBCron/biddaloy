@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, type SelectQueryBuilder } from 'typeorm';
+import { UserRole } from '@biddaloy/shared';
 import type { AggregateFn, ReportDefinitionJson, ReportFieldType } from '@biddaloy/shared';
 import { ReportRegistry } from '../registry/registry';
 import {
@@ -84,6 +85,10 @@ export class ReportCompiler {
       else masked.push(alias);
     }
     if (visible.size === 0) throw new ReportCompileError('NOTHING_TO_SHOW', 'dataset');
+    // COMMITTEE sees counts only: a dimension-only report would list people-level rows.
+    if (ctx.role === UserRole.COMMITTEE && !validated.measures.some((m) => visible.has(m.alias))) {
+      throw new ReportCompileError('NOTHING_TO_SHOW', 'dataset');
+    }
 
     const referenced = new Set<string>();
     for (const { field } of validated.dimensions)
