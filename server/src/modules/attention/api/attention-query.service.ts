@@ -76,7 +76,7 @@ export class AttentionQueryService {
         ...(m.action !== undefined ? { actionLabel: m.action } : {}),
       };
     }
-    if (row.source === AlertSource.MANUAL) {
+    if (row.source === AlertSource.MANUAL || row.source === AlertSource.NOTICE) {
       return { title: row.manual_title ?? row.rule_key, why: row.manual_body ?? '', steps: [] };
     }
     return { title: row.rule_key, why: '', steps: [] };
