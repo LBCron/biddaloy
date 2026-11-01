@@ -175,6 +175,16 @@ describe('final-result-rules', () => {
       expect(combineSubject(marks, settings()).obtained).toBe(80.5);
       const frac = [mark('a', 80.01), mark('b', 80)]; // 80.005 -> 80.01, not 80.00
       expect(combineSubject(frac, settings()).obtained).toBe(80.01);
+      // WHOLE rounds once: 80.495 is below 80.5, so 80 (not 80.5 -> 81).
+      const near = [mark('a', 80.49), mark('b', 80.5)];
+      expect(combineSubject(near, settings({ rounding: FinalResultRounding.WHOLE })).obtained).toBe(
+        80,
+      );
+      // Thirds: float gives 80.4999..., still the exact .5 that rounds up.
+      const thirds = [mark('a', 80), mark('b', 81), mark('c', 80.5)];
+      expect(
+        combineSubject(thirds, settings({ rounding: FinalResultRounding.WHOLE })).obtained,
+      ).toBe(81);
     });
 
     it('fails the subject from an exam only when the switch is on', () => {
