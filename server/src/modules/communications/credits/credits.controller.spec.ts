@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Reflector } from '@nestjs/core';
 import { ForbiddenException } from '@nestjs/common';
-import { UserRole, Permission } from '@biddaloy/shared';
+import { UserRole, Permission, CommunicationMedium } from '@biddaloy/shared';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { CreditsController } from './credits.controller';
 import { SmsCreditService } from './sms-credit.service';
-import { TenantProviderConfigResolver } from '../config/tenant-provider-config.resolver';
+import { MessagingConfigResolver } from '../config/messaging-config.resolver';
 import { ProviderNotConfiguredError } from '../config/provider-not-configured.error';
 import {
   SmsCreditLedgerKind,
@@ -31,20 +31,20 @@ describe('CreditsController', () => {
       isMetered: vi.fn(),
       getBalance: vi.fn(),
     };
-    providerConfig = { resolveSms: vi.fn().mockResolvedValue({}) };
+    providerConfig = { resolve: vi.fn().mockResolvedValue({}) };
     controller = new CreditsController(
       service as unknown as SmsCreditService,
-      providerConfig as unknown as TenantProviderConfigResolver,
+      providerConfig as unknown as MessagingConfigResolver,
     );
   });
 
   // [78 D37]
   describe('getSmsReadiness', () => {
     it('NO_GATEWAY when the resolver throws ProviderNotConfiguredError, without reading the balance', async () => {
-      providerConfig.resolveSms.mockRejectedValue(new ProviderNotConfiguredError('SMS', 'x'));
+      providerConfig.resolve.mockRejectedValue(new ProviderNotConfiguredError('SMS', 'x'));
 
       await expect(controller.getSmsReadiness(TENANT_A)).resolves.toEqual({ sms: 'NO_GATEWAY' });
-      expect(providerConfig.resolveSms).toHaveBeenCalledWith('tenant-a');
+      expect(providerConfig.resolve).toHaveBeenCalledWith(CommunicationMedium.SMS, 'tenant-a');
       expect(service.isMetered).not.toHaveBeenCalled();
       expect(service.getBalance).not.toHaveBeenCalled();
     });
@@ -72,7 +72,7 @@ describe('CreditsController', () => {
     });
 
     it('rethrows any other resolver error', async () => {
-      providerConfig.resolveSms.mockRejectedValue(new Error('boom'));
+      providerConfig.resolve.mockRejectedValue(new Error('boom'));
 
       await expect(controller.getSmsReadiness(TENANT_A)).rejects.toThrow('boom');
     });
@@ -214,9 +214,7 @@ describe('CreditsController', () => {
       const readiness = CreditsController.prototype.getSmsReadiness;
       const ctx = (role: UserRole) => ({ ...context(role), getHandler: () => readiness }) as any;
       expect(permissionsGuard.canActivate(ctx(UserRole.OFFICE_STAFF))).toBe(true);
-      expect(() => permissionsGuard.canActivate(ctx(UserRole.TEACHER))).toThrow(
-        ForbiddenException,
-      );
+      expect(() => permissionsGuard.canActivate(ctx(UserRole.TEACHER))).toThrow(ForbiddenException);
     });
 
     it('denies a role holding COMMUNICATION_LOG_READ but not COMMUNICATION_CREDIT_READ at the PermissionsGuard', () => {

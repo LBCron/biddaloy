@@ -30,8 +30,8 @@ interface FormValues {
 interface EvaluationsSectionProps {
   schoolId: string;
   evaluations: MaskedTenantSettings['evaluations'] | undefined;
-  /** Same test the server uses before sending (`communications.sms.provider` is set). */
-  smsConfigured?: boolean;
+  /** The server's "SMS is set up" (D32). `null` = not known yet (loading or failed): no warning. */
+  smsConfigured?: boolean | null;
 }
 
 export function EvaluationsSection({
@@ -93,25 +93,27 @@ export function EvaluationsSection({
           <p id="evaluations-incidentSmsHint" className="text-caption text-text-secondary">
             {t('evaluations.incidentSmsHint')} {t('evaluations.pushAlwaysOn')}
           </p>
-          <div className="flex flex-col gap-2 rounded-md bg-muted p-3 md:flex-row md:items-center md:justify-between">
-            <StatusBadge
-              tone={smsConfigured ? 'success' : 'warning'}
-              label={t(
-                smsConfigured ? 'evaluations.providerReady' : 'evaluations.providerNotConfigured',
+          {smsConfigured !== null && (
+            <div className="flex flex-col gap-2 rounded-md bg-muted p-3 md:flex-row md:items-center md:justify-between">
+              <StatusBadge
+                tone={smsConfigured ? 'success' : 'warning'}
+                label={t(
+                  smsConfigured ? 'evaluations.providerReady' : 'evaluations.providerNotConfigured',
+                )}
+              />
+              {!smsConfigured && (
+                <Link
+                  to="/settings"
+                  search={{ section: 'communication' }}
+                  className="inline-flex h-11 items-center gap-1 rounded-md px-2 font-medium text-primary hover:bg-surface md:h-8"
+                >
+                  <ArrowRightIcon aria-hidden="true" className="size-4" />
+                  {t('evaluations.openSmsSettings')}
+                </Link>
               )}
-            />
-            {!smsConfigured && (
-              <Link
-                to="/settings"
-                search={{ section: 'communication' }}
-                className="inline-flex h-11 items-center gap-1 rounded-md px-2 font-medium text-primary hover:bg-surface md:h-8"
-              >
-                <ArrowRightIcon aria-hidden="true" className="size-4" />
-                {t('evaluations.openSmsSettings')}
-              </Link>
-            )}
-          </div>
-          {smsOn && !smsConfigured && (
+            </div>
+          )}
+          {smsOn && smsConfigured === false && (
             <p role="alert" className="flex items-center gap-1 text-caption text-destructive">
               <CircleAlertIcon aria-hidden="true" className="size-3.5 shrink-0" />
               {t('evaluations.providerMissingWarning')}

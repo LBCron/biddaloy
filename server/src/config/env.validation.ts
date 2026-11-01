@@ -166,11 +166,31 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
+  GREENWEB_API_URL?: string;
+
+  @IsOptional()
+  @IsString()
   MIMSMS_API_KEY?: string;
 
   @IsOptional()
   @IsString()
   MIMSMS_SENDER_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  MIMSMS_API_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  ONECODESOFT_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  ONECODESOFT_SENDER_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  ONECODESOFT_API_URL?: string;
 
   @IsOptional()
   @IsString()
@@ -490,6 +510,10 @@ export function assertProductionConfig(config: Record<string, unknown>): void {
 
   if (Boolean(str('TURNSTILE_SITE_KEY')) !== Boolean(str('TURNSTILE_SECRET_KEY'))) {
     problems.push('TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY must be set together or not at all');
+  }
+
+  if (str('OUTBOUND_TEST_ALLOW_LOOPBACK')) {
+    problems.push('OUTBOUND_TEST_ALLOW_LOOPBACK is a test-only flag and must not be set');
   }
 
   if (problems.length > 0) {

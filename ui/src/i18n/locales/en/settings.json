@@ -56,8 +56,7 @@
     "replace": "Change",
     "clear": "Remove",
     "cancel": "Cancel",
-    "set": "Add",
-    "metaTokenHelp": "Copy it from Meta Business."
+    "set": "Add"
   },
   "testConnection": {
     "action": "Test connection",
@@ -113,44 +112,20 @@
   },
   "whatsapp": {
     "legend": "WhatsApp",
-    "phoneNumberId": "Phone number ID",
-    "apiVersion": "API version (optional)",
-    "accessToken": "Access token",
-    "description": "Enter your Meta Business account details to message guardians on WhatsApp.",
-    "phoneNumberIdHelp": "Find it in Meta's WhatsApp Manager. It is a long number, not a phone number.",
-    "apiVersionHelp": "Leave empty to use the version the app is set to."
+    "description": "Enter your Meta Business account details to message guardians on WhatsApp."
   },
   "messenger": {
     "legend": "Messenger",
-    "pageId": "Facebook Page ID",
-    "accessToken": "Access token",
-    "description": "Enter your Facebook Page details to message guardians on Messenger.",
-    "pageIdHelp": "Find it under the page's About section."
+    "description": "Enter your Facebook Page details to message guardians on Messenger."
   },
   "email": {
     "legend": "Email",
-    "host": "Email server (SMTP)",
-    "port": "Port",
-    "user": "Server username",
-    "from": "Send emails from",
-    "password": "Server password",
-    "description": "Emails from this school are sent through this server.",
-    "portHelp": "Usually 587. Change it only if your email server says so."
+    "description": "Emails from this school are sent through this server."
   },
   "sms": {
     "legend": "SMS",
     "provider": "SMS company",
-    "providerGreenweb": "Greenweb",
-    "providerMimsms": "MimSMS",
-    "greenwebApiKey": "API key",
-    "greenwebApiUrl": "API address (optional)",
-    "mimsmsApiKey": "API key",
-    "mimsmsSenderId": "Sender name (Sender ID)",
-    "mimsmsApiUrl": "API address (optional)",
-    "description": "All SMS from this school go through this company.",
-    "apiKeyHelp": "Copy it from your {{company}} account page. After saving, the full key is never shown again.",
-    "apiUrlHelp": "Leave empty to use the company's own address.",
-    "senderIdHelp": "The name people see as the sender. Use the one the company approved."
+    "description": "All SMS from this school go through this company."
   },
   "attendance": {
     "legend": "Attendance policy",
@@ -557,8 +532,8 @@
     "requireSecondApprover": "When on, cancelling a payment always needs a second person. When off, the only admin can approve it themselves.",
     "lateFeeGraceDays": "No late fee is charged for this many days after the bill's due date; 0 to 60.",
     "lateFeeValue": "For a percentage, 0 to 100. For a flat amount, zero or more taka.",
-    "smsProvider": "The company all of this school's SMS go through: Greenweb or MimSMS. Test the connection before you change it.",
-    "mimsmsSenderId": "Only for MimSMS, and then it is required. Use the name the company approved.",
+    "smsProvider": "The company all of this school's SMS go through. Test the connection before you change it.",
+    "mimsmsSenderId": "Required for MimSMS; optional for OneCodeSoft. Use the name the company approved.",
     "whatsappPhoneNumberId": "The long number in Meta's WhatsApp Manager, not a phone number. It cannot be left empty.",
     "messengerPageId": "The ID of the school's Facebook page. Find it under the page's About section. It cannot be left empty.",
     "emailFrom": "The address the recipient sees. Enter a valid email address.",
@@ -569,7 +544,35 @@
     "printerOffset": "Enter how many mm the measuring page printed off; −10 to 10. The up–down field has the same limit.",
     "printerScale": "1 means actual size; 0.90 to 1.10.",
     "printerGap": "Office printers only; 0 to 20 mm.",
-    "otpLoginEnabled": "When off, everyone in this school must sign in with a password. If someone is in several schools, sign-in with a code is off for them as soon as it is off in any one of them. On at the start."
+    "otpLoginEnabled": "When off, everyone in this school must sign in with a password. If someone is in several schools, sign-in with a code is off for them as soon as it is off in any one of them. On at the start.",
+    "messaging": {
+      "greenweb": {
+        "apiKey": "Copy it from your Greenweb account page. After saving, the full key is never shown again.",
+        "apiUrl": "Leave empty to use the company's own address."
+      },
+      "mimsms": {
+        "apiKey": "Copy it from your MimSMS account page. After saving, the full key is never shown again.",
+        "senderId": "The name people see as the sender. Use the one the company approved.",
+        "apiUrl": "Leave empty to use the company's own address."
+      },
+      "onecodesoft": {
+        "apiKey": "Copy it from your OneCodeSoft account page. After saving, the full key is never shown again.",
+        "senderId": "The name people see as the sender. Use the one the company approved.",
+        "apiUrl": "Copy the base address from OneCodeSoft Dashboard › API. It must end with /api."
+      },
+      "smtp": {
+        "port": "Usually 587. Change it only if your email server says so."
+      },
+      "meta-cloud": {
+        "phoneNumberId": "Find it in Meta's WhatsApp Manager. It is a long number, not a phone number.",
+        "accessToken": "Copy it from Meta Business.",
+        "apiVersion": "Leave empty to use the version the app is set to."
+      },
+      "meta-page": {
+        "pageId": "Find it under the page's About section.",
+        "accessToken": "Copy it from Meta Business."
+      }
+    }
   },
   "helpRequired": {
     "schoolName": "Yes",
@@ -577,10 +580,32 @@
     "absentAfter": "Yes",
     "correctionWindowDays": "Yes",
     "lowAttendanceThresholdPercent": "Yes",
-    "mimsmsSenderId": "Yes",
+    "mimsmsSenderId": "MimSMS only",
     "whatsappPhoneNumberId": "Yes",
     "messengerPageId": "Yes",
     "emailFrom": "Yes",
     "printerName": "Yes"
+  },
+  "messaging": {
+    "loadError": "Couldn't load the company settings. Try again.",
+    "required": "Fill in this field.",
+    "invalid": "Check this value.",
+    "removeSaved": "Remove saved details",
+    "removeConfirm": "Remove this channel's saved details?",
+    "removeConfirmDescription": "Every saved company, key and address for this channel is removed. A school on platform credit then sends its messages through the platform's company.",
+    "removeConfirmYes": "Remove"
+  },
+  "sendTestMessage": {
+    "label": "Send a test message",
+    "phone": "Phone number",
+    "email": "Email address",
+    "sent": "Sent.",
+    "openLog": "See it in Message log",
+    "sink": "Nothing was sent: this school is set to a test inbox.",
+    "failed": "Couldn't send the test message. Check the details and try again.",
+    "capReached": "You've reached the limit of 20 test messages in 24 hours. Try again later.",
+    "noCredit": "Not enough SMS credit to send the test message. Ask the platform to add credit, then try again.",
+    "invalidAddress": "That number or address isn't valid. Check it and try again.",
+    "unconfirmed": "We couldn't confirm it was sent. Check the Message log before trying again."
   }
 }

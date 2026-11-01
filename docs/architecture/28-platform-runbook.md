@@ -526,8 +526,9 @@ may move to another VM. Kuma's and Beszel's own Telegram alerts are set in their
 ### SMS gateway
 
 Use the gateway you already use for school SMS. You need an API key, a sender id, and the
-gateway's HTTP API URL. They fill `PLATFORM_SMS_PROVIDER`, `PLATFORM_SMS_API_KEY`,
-`PLATFORM_SMS_SENDER_ID`, `PLATFORM_SMS_API_URL` in `prod.enc.env`, plus
+gateway's HTTP API URL. Set `SMS_PROVIDER` to the provider's name and fill that provider's own keys (for example
+`ONECODESOFT_API_KEY`, `ONECODESOFT_SENDER_ID`, `ONECODESOFT_API_URL`) in `prod.enc.env`. The old
+`PLATFORM_SMS_*` keys still work for one more release when `SMS_PROVIDER` is unset. Also set
 `PLATFORM_ALERT_PHONES` (fallback phone numbers for platform alerts, comma separated).
 Staging and demo never get SMS keys (`config:check --env staging` refuses them).
 
@@ -732,236 +733,263 @@ sha**, so a secret you change later needs a new commit and a new deploy.
 
 Every key of the five example files. "From" says which part gives you the value.
 
-| Key                                  | File              | From                 | Value shape                                                                       |
-| ------------------------------------ | ----------------- | -------------------- | --------------------------------------------------------------------------------- |
-| `ENV_NAME`                           | `prod.enc.env`    | part 7               | already filled in the example (`prod`)                                            |
-| `COMPOSE_PROFILES`                   | `prod.enc.env`    | part 8               | leave the example value (`replica,backup`)                                        |
-| `APP_VERSION`                        | `prod.enc.env`    | the deploy / default | leave empty; the deploy sets it                                                   |
-| `APP_MEM`                            | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `PG_MEM`                             | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `REDIS_MEM`                          | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `S3_MEM`                             | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `APP_CPUS`                           | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `PG_CPUS`                            | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `REDIS_CPUS`                         | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `S3_CPUS`                            | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `APP_BASE_URL`                       | `prod.enc.env`    | part 8               | `https://app.schoolmanagerp.com` (no trailing slash)                              |
-| `PUBLIC_APP_URL`                     | `prod.enc.env`    | part 8               | same as `APP_BASE_URL`                                                            |
-| `CORS_ORIGINS`                       | `prod.enc.env`    | part 8               | same origin as `APP_BASE_URL`                                                     |
-| `SUPPORT_CONTACT_URL`                | `prod.enc.env`    | part 8               | `https://wa.me/8801XXXXXXXXX`                                                     |
-| `PLATFORM_TENANT_ID`                 | `prod.enc.env`    | part 11              | id of the platform school (uuid); fill after part 11, then redeploy               |
-| `POSTGRES_USER`                      | `prod.enc.env`    | part 8               | `biddaloy`                                                                        |
-| `POSTGRES_DB`                        | `prod.enc.env`    | part 8               | prod `biddaloy`; staging must be `biddaloy_staging`; demo must be `biddaloy_demo` |
-| `POSTGRES_PASSWORD`                  | `prod.enc.env`    | part 8               | openssl rand -hex 32                                                              |
-| `S3_BUCKET`                          | `prod.enc.env`    | part 8               | prod `biddaloy`; staging must be `biddaloy-staging`; demo must be `biddaloy-demo` |
-| `S3_REGION`                          | `prod.enc.env`    | part 8               | `us-east-1`                                                                       |
-| `S3_ACCESS_KEY_ID`                   | `prod.enc.env`    | part 8               | `openssl rand -hex 16`                                                            |
-| `S3_SECRET_ACCESS_KEY`               | `prod.enc.env`    | part 8               | openssl rand -hex 32                                                              |
-| `DB_SSL_REJECT_UNAUTHORIZED`         | `prod.enc.env`    | part 8               | leave empty                                                                       |
-| `JWT_SECRET`                         | `prod.enc.env`    | part 8               | openssl rand -hex 32                                                              |
-| `JWT_SECRET_PREVIOUS`                | `prod.enc.env`    | the deploy / default | leave empty until you rotate                                                      |
-| `SETTINGS_ENCRYPTION_KEY`            | `prod.enc.env`    | part 8               | `openssl rand -base64 32`                                                         |
-| `SETTINGS_ENCRYPTION_KEY_PREVIOUS`   | `prod.enc.env`    | the deploy / default | leave empty until you rotate                                                      |
-| `HEALTH_TOKEN`                       | `prod.enc.env`    | part 8               | openssl rand -hex 32                                                              |
-| `BACKUP_AGE_PUBLIC_KEY`              | `prod.enc.env`    | part 9               | `age1qz...` (public half of the backup key)                                       |
-| `BACKUP_S3_ENDPOINT`                 | `prod.enc.env`    | part 4               | `https://<account-id>.r2.cloudflarestorage.com`                                   |
-| `BACKUP_S3_BUCKET`                   | `prod.enc.env`    | part 4               | `biddaloy-backups`                                                                |
-| `BACKUP_S3_ACCESS_KEY_ID`            | `prod.enc.env`    | part 4               | R2 token 1 (prod, read+write) or token 2 (staging, read-only)                     |
-| `BACKUP_S3_SECRET_ACCESS_KEY`        | `prod.enc.env`    | part 4               | same token as the key id above                                                    |
-| `BACKUP_RCLONE_CRYPT_PASSWORD`       | `prod.enc.env`    | part 8               | openssl rand -hex 32                                                              |
-| `BACKUP_RCLONE_CRYPT_SALT`           | `prod.enc.env`    | part 8               | openssl rand -hex 32                                                              |
-| `BACKUP_PUSH_URL`                    | `prod.enc.env`    | part 11              | `https://kuma.schoolmanagerp.com/api/push/<token>`                                |
-| `LOG_ARCHIVE_PUSH_URL`               | `prod.enc.env`    | part 11              | `https://kuma.schoolmanagerp.com/api/push/<token>`                                |
-| `SENTRY_CRON_MONITOR_URL`            | `prod.enc.env`    | part 6               | Sentry cron monitor check-in URL (optional)                                       |
-| `BACKUP_SCHEDULE`                    | `prod.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `BACKUP_RETENTION_DAYS`              | `prod.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `BACKUP_HOURLY_KEEP`                 | `prod.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `BACKUP_DAILY_KEEP`                  | `prod.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `BACKUP_TRASH_DAYS`                  | `prod.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `BACKUP_FILES_MAX_DELETE`            | `prod.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `BACKUP_NET_WAIT_SECS`               | `prod.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `BACKUP_MEM`                         | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `BACKUP_CPUS`                        | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `JOBS_MEM`                           | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `JOBS_CPUS`                          | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `TURNSTILE_SITE_KEY`                 | `prod.enc.env`    | part 4               | prod/demo: widget site key; staging/demo example already holds the test pair      |
-| `TURNSTILE_SECRET_KEY`               | `prod.enc.env`    | part 4               | prod: widget secret; staging/demo example already holds the test pair             |
-| `SENTRY_DSN`                         | `prod.enc.env`    | part 6               | `https://<key>@o0.ingest.sentry.io/0` (server project)                            |
-| `SENTRY_DSN_WEB`                     | `prod.enc.env`    | part 6               | `https://<key>@o0.ingest.sentry.io/1` (browser project)                           |
-| `SENTRY_TRACES_SAMPLE_RATE`          | `prod.enc.env`    | part 6               | `0.1`                                                                             |
-| `GOOGLE_OAUTH_CLIENT_ID`             | `prod.enc.env`    | part 6               | Google Cloud console (prod only; staging stays empty)                             |
-| `GOOGLE_OAUTH_CLIENT_SECRET`         | `prod.enc.env`    | part 6               | same console (prod only)                                                          |
-| `FACEBOOK_OAUTH_CLIENT_ID`           | `prod.enc.env`    | part 6               | Meta developers console (prod only)                                               |
-| `FACEBOOK_OAUTH_CLIENT_SECRET`       | `prod.enc.env`    | part 6               | same console (prod only)                                                          |
-| `PLATFORM_SMS_PROVIDER`              | `prod.enc.env`    | part 6               | provider name your gateway uses (prod only)                                       |
-| `PLATFORM_SMS_API_KEY`               | `prod.enc.env`    | part 6               | gateway API key (prod only)                                                       |
-| `PLATFORM_SMS_SENDER_ID`             | `prod.enc.env`    | part 6               | sender id approved by the gateway (prod only)                                     |
-| `PLATFORM_SMS_API_URL`               | `prod.enc.env`    | part 6               | gateway HTTP API URL (prod only)                                                  |
-| `PLATFORM_ALERT_PHONES`              | `prod.enc.env`    | part 6               | `+8801700000000,+8801800000000`                                                   |
-| `OTP_SMS_ALLOWED_PREFIXES`           | `prod.enc.env`    | the deploy / default | leave empty (default `+880`)                                                      |
-| `SMOKE_SCHOOL_SLUG`                  | `prod.enc.env`    | part 11              | slug of the Smoke Test School, e.g. `smoke-test`                                  |
-| `SMOKE_ADMIN_EMAIL`                  | `prod.enc.env`    | part 11              | login you create in part 11                                                       |
-| `SMOKE_ADMIN_PASSWORD`               | `prod.enc.env`    | part 11              | `openssl rand -hex 16`; staging must equal `STAGING_PASSWORD`                     |
-| `SMOKE_TEACHER_EMAIL`                | `prod.enc.env`    | part 11              | login you create in part 11                                                       |
-| `SMOKE_TEACHER_PASSWORD`             | `prod.enc.env`    | part 11              | `openssl rand -hex 16`; staging must equal `STAGING_PASSWORD`                     |
-| `SMOKE_SUPER_ADMIN_EMAIL`            | `prod.enc.env`    | part 11              | the platform super admin login                                                    |
-| `SMOKE_SUPER_ADMIN_PASSWORD`         | `prod.enc.env`    | part 11              | its password; staging must equal `STAGING_PASSWORD`                               |
-| `ENV_NAME`                           | `staging.enc.env` | part 7               | already filled in the example (`prod`)                                            |
-| `DEMO_MODE`                          | `staging.enc.env` | part 8               | leave the example value                                                           |
-| `APP_VERSION`                        | `staging.enc.env` | the deploy / default | leave empty; the deploy sets it                                                   |
-| `APP_MEM`                            | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                            |
-| `PG_MEM`                             | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                            |
-| `REDIS_MEM`                          | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                            |
-| `S3_MEM`                             | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                            |
-| `APP_CPUS`                           | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                            |
-| `PG_CPUS`                            | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                            |
-| `REDIS_CPUS`                         | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                            |
-| `S3_CPUS`                            | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                            |
-| `APP_BASE_URL`                       | `staging.enc.env` | part 8               | `https://app.schoolmanagerp.com` (no trailing slash)                              |
-| `PUBLIC_APP_URL`                     | `staging.enc.env` | part 8               | same as `APP_BASE_URL`                                                            |
-| `CORS_ORIGINS`                       | `staging.enc.env` | part 8               | same origin as `APP_BASE_URL`                                                     |
-| `SUPPORT_CONTACT_URL`                | `staging.enc.env` | part 8               | `https://wa.me/8801XXXXXXXXX`                                                     |
-| `PLATFORM_TENANT_ID`                 | `staging.enc.env` | part 11              | id of the platform school (uuid); fill after part 11, then redeploy               |
-| `POSTGRES_USER`                      | `staging.enc.env` | part 8               | `biddaloy`                                                                        |
-| `POSTGRES_DB`                        | `staging.enc.env` | part 8               | prod `biddaloy`; staging must be `biddaloy_staging`; demo must be `biddaloy_demo` |
-| `POSTGRES_PASSWORD`                  | `staging.enc.env` | part 8               | openssl rand -hex 32                                                              |
-| `S3_BUCKET`                          | `staging.enc.env` | part 8               | prod `biddaloy`; staging must be `biddaloy-staging`; demo must be `biddaloy-demo` |
-| `S3_REGION`                          | `staging.enc.env` | part 8               | `us-east-1`                                                                       |
-| `S3_ACCESS_KEY_ID`                   | `staging.enc.env` | part 8               | `openssl rand -hex 16`                                                            |
-| `S3_SECRET_ACCESS_KEY`               | `staging.enc.env` | part 8               | openssl rand -hex 32                                                              |
-| `DB_SSL_REJECT_UNAUTHORIZED`         | `staging.enc.env` | part 8               | leave empty                                                                       |
-| `JWT_SECRET`                         | `staging.enc.env` | part 8               | openssl rand -hex 32                                                              |
-| `JWT_SECRET_PREVIOUS`                | `staging.enc.env` | the deploy / default | leave empty until you rotate                                                      |
-| `SETTINGS_ENCRYPTION_KEY`            | `staging.enc.env` | part 8               | `openssl rand -base64 32`                                                         |
-| `SETTINGS_ENCRYPTION_KEY_PREVIOUS`   | `staging.enc.env` | the deploy / default | leave empty until you rotate                                                      |
-| `HEALTH_TOKEN`                       | `staging.enc.env` | part 8               | openssl rand -hex 32                                                              |
-| `STAGING_PASSWORD`                   | `staging.enc.env` | part 8               | at least 12 characters: `openssl rand -hex 16`                                    |
-| `BACKUP_AGE_PUBLIC_KEY`              | `staging.enc.env` | part 9               | `age1qz...` (public half of the backup key)                                       |
-| `BACKUP_AGE_PRIVATE_KEY`             | `staging.enc.env` | part 9               | `AGE-SECRET-KEY-1...` (staging only)                                              |
-| `BACKUP_S3_ENDPOINT`                 | `staging.enc.env` | part 4               | `https://<account-id>.r2.cloudflarestorage.com`                                   |
-| `BACKUP_S3_BUCKET`                   | `staging.enc.env` | part 4               | `biddaloy-backups`                                                                |
-| `BACKUP_S3_ACCESS_KEY_ID`            | `staging.enc.env` | part 4               | R2 token 1 (prod, read+write) or token 2 (staging, read-only)                     |
-| `BACKUP_S3_SECRET_ACCESS_KEY`        | `staging.enc.env` | part 4               | same token as the key id above                                                    |
-| `BACKUP_PUSH_URL`                    | `staging.enc.env` | part 11              | `https://kuma.schoolmanagerp.com/api/push/<token>`                                |
-| `RESTORE_DRILL_PUSH_URL`             | `staging.enc.env` | part 11              | `https://kuma.schoolmanagerp.com/api/push/<token>`                                |
-| `SENTRY_CRON_MONITOR_URL`            | `staging.enc.env` | part 6               | Sentry cron monitor check-in URL (optional)                                       |
-| `BACKUP_SCHEDULE`                    | `staging.enc.env` | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `BACKUP_RETENTION_DAYS`              | `staging.enc.env` | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `BACKUP_HOURLY_KEEP`                 | `staging.enc.env` | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `BACKUP_DAILY_KEEP`                  | `staging.enc.env` | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `BACKUP_TRASH_DAYS`                  | `staging.enc.env` | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `BACKUP_FILES_MAX_DELETE`            | `staging.enc.env` | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `BACKUP_NET_WAIT_SECS`               | `staging.enc.env` | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `BACKUP_MEM`                         | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                            |
-| `BACKUP_CPUS`                        | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                            |
-| `JOBS_MEM`                           | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                            |
-| `JOBS_CPUS`                          | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                            |
-| `TURNSTILE_SITE_KEY`                 | `staging.enc.env` | part 4               | prod/demo: widget site key; staging/demo example already holds the test pair      |
-| `TURNSTILE_SECRET_KEY`               | `staging.enc.env` | part 4               | prod: widget secret; staging/demo example already holds the test pair             |
-| `SENTRY_DSN`                         | `staging.enc.env` | part 6               | `https://<key>@o0.ingest.sentry.io/0` (server project)                            |
-| `SENTRY_DSN_WEB`                     | `staging.enc.env` | part 6               | `https://<key>@o0.ingest.sentry.io/1` (browser project)                           |
-| `SENTRY_TRACES_SAMPLE_RATE`          | `staging.enc.env` | part 6               | `0.1`                                                                             |
-| `GOOGLE_OAUTH_CLIENT_ID`             | `staging.enc.env` | part 6               | Google Cloud console (prod only; staging stays empty)                             |
-| `GOOGLE_OAUTH_CLIENT_SECRET`         | `staging.enc.env` | part 6               | same console (prod only)                                                          |
-| `FACEBOOK_OAUTH_CLIENT_ID`           | `staging.enc.env` | part 6               | Meta developers console (prod only)                                               |
-| `FACEBOOK_OAUTH_CLIENT_SECRET`       | `staging.enc.env` | part 6               | same console (prod only)                                                          |
-| `PLATFORM_SMS_PROVIDER`              | `staging.enc.env` | part 6               | provider name your gateway uses (prod only)                                       |
-| `PLATFORM_SMS_API_KEY`               | `staging.enc.env` | part 6               | gateway API key (prod only)                                                       |
-| `PLATFORM_SMS_SENDER_ID`             | `staging.enc.env` | part 6               | sender id approved by the gateway (prod only)                                     |
-| `PLATFORM_SMS_API_URL`               | `staging.enc.env` | part 6               | gateway HTTP API URL (prod only)                                                  |
-| `PLATFORM_ALERT_PHONES`              | `staging.enc.env` | part 6               | `+8801700000000,+8801800000000`                                                   |
-| `OTP_SMS_ALLOWED_PREFIXES`           | `staging.enc.env` | the deploy / default | leave empty (default `+880`)                                                      |
-| `SMOKE_SCHOOL_SLUG`                  | `staging.enc.env` | part 11              | slug of the Smoke Test School, e.g. `smoke-test`                                  |
-| `SMOKE_ADMIN_EMAIL`                  | `staging.enc.env` | part 11              | login you create in part 11                                                       |
-| `SMOKE_ADMIN_PASSWORD`               | `staging.enc.env` | part 11              | `openssl rand -hex 16`; staging must equal `STAGING_PASSWORD`                     |
-| `SMOKE_TEACHER_EMAIL`                | `staging.enc.env` | part 11              | login you create in part 11                                                       |
-| `SMOKE_TEACHER_PASSWORD`             | `staging.enc.env` | part 11              | `openssl rand -hex 16`; staging must equal `STAGING_PASSWORD`                     |
-| `SMOKE_SUPER_ADMIN_EMAIL`            | `staging.enc.env` | part 11              | the platform super admin login                                                    |
-| `SMOKE_SUPER_ADMIN_PASSWORD`         | `staging.enc.env` | part 11              | its password; staging must equal `STAGING_PASSWORD`                               |
-| `STAGING_PASSWORD_HASH_B64`          | `staging.enc.env` | part 8               | base64 of the bcrypt cost-12 hash of `STAGING_PASSWORD` (see part 8, step 4)      |
-| `STAGING_REFRESH_DEADLINE`           | `staging.enc.env` | the deploy / default | leave empty (default 02:50)                                                       |
-| `ENV_NAME`                           | `demo.enc.env`    | part 7               | already filled in the example (`prod`)                                            |
-| `DEMO_MODE`                          | `demo.enc.env`    | part 8               | leave the example value                                                           |
-| `APP_VERSION`                        | `demo.enc.env`    | the deploy / default | leave empty; the deploy sets it                                                   |
-| `APP_MEM`                            | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `PG_MEM`                             | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `REDIS_MEM`                          | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `S3_MEM`                             | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `APP_CPUS`                           | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `PG_CPUS`                            | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `REDIS_CPUS`                         | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `S3_CPUS`                            | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `APP_BASE_URL`                       | `demo.enc.env`    | part 8               | `https://app.schoolmanagerp.com` (no trailing slash)                              |
-| `PUBLIC_APP_URL`                     | `demo.enc.env`    | part 8               | same as `APP_BASE_URL`                                                            |
-| `CORS_ORIGINS`                       | `demo.enc.env`    | part 8               | same origin as `APP_BASE_URL`                                                     |
-| `SUPPORT_CONTACT_URL`                | `demo.enc.env`    | part 8               | `https://wa.me/8801XXXXXXXXX`                                                     |
-| `POSTGRES_USER`                      | `demo.enc.env`    | part 8               | `biddaloy`                                                                        |
-| `POSTGRES_DB`                        | `demo.enc.env`    | part 8               | prod `biddaloy`; staging must be `biddaloy_staging`; demo must be `biddaloy_demo` |
-| `POSTGRES_PASSWORD`                  | `demo.enc.env`    | part 8               | openssl rand -hex 32                                                              |
-| `S3_BUCKET`                          | `demo.enc.env`    | part 8               | prod `biddaloy`; staging must be `biddaloy-staging`; demo must be `biddaloy-demo` |
-| `S3_REGION`                          | `demo.enc.env`    | part 8               | `us-east-1`                                                                       |
-| `S3_ACCESS_KEY_ID`                   | `demo.enc.env`    | part 8               | `openssl rand -hex 16`                                                            |
-| `S3_SECRET_ACCESS_KEY`               | `demo.enc.env`    | part 8               | openssl rand -hex 32                                                              |
-| `DB_SSL_REJECT_UNAUTHORIZED`         | `demo.enc.env`    | part 8               | leave empty                                                                       |
-| `JWT_SECRET`                         | `demo.enc.env`    | part 8               | openssl rand -hex 32                                                              |
-| `JWT_SECRET_PREVIOUS`                | `demo.enc.env`    | the deploy / default | leave empty until you rotate                                                      |
-| `SETTINGS_ENCRYPTION_KEY`            | `demo.enc.env`    | part 8               | `openssl rand -base64 32`                                                         |
-| `SETTINGS_ENCRYPTION_KEY_PREVIOUS`   | `demo.enc.env`    | the deploy / default | leave empty until you rotate                                                      |
-| `HEALTH_TOKEN`                       | `demo.enc.env`    | part 8               | openssl rand -hex 32                                                              |
-| `DEMO_PASSWORD`                      | `demo.enc.env`    | part 8               | `openssl rand -hex 16`                                                            |
-| `DEMO_RESET_PUSH_URL`                | `demo.enc.env`    | part 11              | `https://kuma.schoolmanagerp.com/api/push/<token>`                                |
-| `SENTRY_CRONS_URL`                   | `demo.enc.env`    | part 6               | Sentry crons check-in URL (optional)                                              |
-| `DEMO_SWEEP_CMD`                     | `demo.enc.env`    | part 8               | set this or `DEMO_SKIP_SWEEP`; start with `DEMO_SKIP_SWEEP=true`                  |
-| `DEMO_SKIP_SWEEP`                    | `demo.enc.env`    | part 8               | `true`                                                                            |
-| `DEMO_SWEEP_URL`                     | `demo.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `DEMO_SWEEP_TIMEOUT`                 | `demo.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `DEMO_SCALE`                         | `demo.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `DEMO_YEARS`                         | `demo.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                       |
-| `DEMO_RESET_MEM`                     | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `DEMO_RESET_CPUS`                    | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `TURNSTILE_SITE_KEY`                 | `demo.enc.env`    | part 4               | prod/demo: widget site key; staging/demo example already holds the test pair      |
-| `TURNSTILE_SECRET_KEY`               | `demo.enc.env`    | part 4               | prod: widget secret; staging/demo example already holds the test pair             |
-| `SENTRY_DSN`                         | `demo.enc.env`    | part 6               | `https://<key>@o0.ingest.sentry.io/0` (server project)                            |
-| `SENTRY_DSN_WEB`                     | `demo.enc.env`    | part 6               | `https://<key>@o0.ingest.sentry.io/1` (browser project)                           |
-| `SENTRY_TRACES_SAMPLE_RATE`          | `demo.enc.env`    | part 6               | `0.1`                                                                             |
-| `EDGE_MODE`                          | `edge.enc.env`    | part 4               | `tunnel` (`direct` in part 14)                                                    |
-| `NGINX_MEM`                          | `edge.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `NGINX_CPUS`                         | `edge.enc.env`    | the deploy / default | leave the example value or empty (D23)                                            |
-| `APP_DOMAIN`                         | `edge.enc.env`    | part 4               | `app.schoolmanagerp.com`                                                          |
-| `STAGING_DOMAIN`                     | `edge.enc.env`    | part 4               | `staging.schoolmanagerp.com`                                                      |
-| `DEMO_DOMAIN`                        | `edge.enc.env`    | part 4               | `demo.schoolmanagerp.com`                                                         |
-| `INBOX_DEMO_DOMAIN`                  | `edge.enc.env`    | part 4               | `inbox-demo.schoolmanagerp.com` (public Mailpit UI, no login)                     |
-| `INBOX_STAGING_DOMAIN`               | `edge.enc.env`    | part 4               | `inbox-staging.schoolmanagerp.com` (behind the Staging Access app)                |
-| `LANDING_DOMAIN`                     | `edge.enc.env`    | part 4               | `schoolmanagerp.com`                                                              |
-| `KUMA_DOMAIN`                        | `edge.enc.env`    | part 4               | `kuma.schoolmanagerp.com`                                                         |
-| `BESZEL_DOMAIN`                      | `edge.enc.env`    | part 4               | `beszel.schoolmanagerp.com`                                                       |
-| `LOGS_DOMAIN`                        | `edge.enc.env`    | part 4               | `logs.schoolmanagerp.com`                                                         |
-| `OPS_UPSTREAM_HOST`                  | `edge.enc.env`    | part 8               | `uptime-kuma` (any non-empty value; empty = ops is on another host)               |
-| `LANDING_VERSION`                    | `edge.enc.env`    | the deploy / default | leave empty; the deploy sets it                                                   |
-| `CLOUDFLARE_TUNNEL_ID`               | `edge.enc.env`    | part 4               | uuid printed by `cloudflared tunnel create`                                       |
-| `CLOUDFLARE_TUNNEL_CREDENTIALS_JSON` | `edge.enc.env`    | part 4               | the credentials JSON, on one line                                                 |
-| `CF_ACCESS_TEAM`                     | `edge.enc.env`    | part 4               | `myteam` (from `myteam.cloudflareaccess.com`)                                     |
-| `CF_ACCESS_AUD_STAGING`              | `edge.enc.env`    | part 4               | 64-hex Application Audience tag of the staging Access app                         |
-| `CF_ACCESS_AUD_OPS`                  | `edge.enc.env`    | part 4               | 64-hex Application Audience tag of the ops Access app                             |
-| `BASIC_AUTH_HTPASSWD`                | `edge.enc.env`    | part 14              | `htpasswd -nbB user pass`; leave empty in tunnel mode                             |
-| `LETSENCRYPT_EMAIL`                  | `edge.enc.env`    | part 14              | `ops@schoolmanagerp.com`; leave empty in tunnel mode                              |
-| `GHCR_PULL_USER`                     | `edge.enc.env`    | part 5               | your GitHub username                                                              |
-| `GHCR_PULL_TOKEN`                    | `edge.enc.env`    | part 5               | classic PAT with only `read:packages`: `ghp_...`                                  |
-| `TELEGRAM_BOT_TOKEN`                 | `edge.enc.env`    | part 6               | `123456:ABC...` from BotFather                                                    |
-| `TELEGRAM_CHAT_ID`                   | `edge.enc.env`    | part 6               | `-1001234567890`                                                                  |
-| `LOG_ARCHIVE_PUSH_URL`               | `edge.enc.env`    | part 11              | `https://kuma.schoolmanagerp.com/api/push/<token>`                                |
-| `LOG_ARCHIVE_S3_ENDPOINT`            | `edge.enc.env`    | part 4               | same as prod `BACKUP_S3_ENDPOINT`                                                 |
-| `LOG_ARCHIVE_S3_BUCKET`              | `edge.enc.env`    | part 4               | `biddaloy-backups`                                                                |
-| `LOG_ARCHIVE_S3_ACCESS_KEY_ID`       | `edge.enc.env`    | part 4               | R2 token 1                                                                        |
-| `LOG_ARCHIVE_S3_SECRET_ACCESS_KEY`   | `edge.enc.env`    | part 4               | R2 token 1                                                                        |
-| `LOG_ARCHIVE_RCLONE_CRYPT_PASSWORD`  | `edge.enc.env`    | part 8               | same value as prod `BACKUP_RCLONE_CRYPT_PASSWORD`                                 |
-| `LOG_ARCHIVE_RCLONE_CRYPT_SALT`      | `edge.enc.env`    | part 8               | same value as prod `BACKUP_RCLONE_CRYPT_SALT`                                     |
-| `BESZEL_KEY`                         | `edge.enc.env`    | part 11              | public key from the Beszel hub "Add system"; same value in `edge` and `ops`       |
-| `BESZEL_KEY`                         | `ops.enc.env`     | part 11              | public key from the Beszel hub "Add system"; same value in `edge` and `ops`       |
-| `DOZZLE_USERS_YML`                   | `ops.enc.env`     | part 11              | the whole `users.yml` on one line, `\n` for newlines                              |
-| `BESZEL_MEM`                         | `ops.enc.env`     | the deploy / default | leave the example value or empty (D23)                                            |
-| `KUMA_MEM`                           | `ops.enc.env`     | the deploy / default | leave the example value or empty (D23)                                            |
-| `DOZZLE_MEM`                         | `ops.enc.env`     | the deploy / default | leave the example value or empty (D23)                                            |
+| Key                                  | File              | From                 | Value shape                                                                            |
+| ------------------------------------ | ----------------- | -------------------- | -------------------------------------------------------------------------------------- |
+| `ENV_NAME`                           | `prod.enc.env`    | part 7               | already filled in the example (`prod`)                                                 |
+| `COMPOSE_PROFILES`                   | `prod.enc.env`    | part 8               | leave the example value (`replica,backup`)                                             |
+| `APP_VERSION`                        | `prod.enc.env`    | the deploy / default | leave empty; the deploy sets it                                                        |
+| `APP_MEM`                            | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `PG_MEM`                             | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `REDIS_MEM`                          | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `S3_MEM`                             | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `APP_CPUS`                           | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `PG_CPUS`                            | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `REDIS_CPUS`                         | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `S3_CPUS`                            | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `APP_BASE_URL`                       | `prod.enc.env`    | part 8               | `https://app.schoolmanagerp.com` (no trailing slash)                                   |
+| `PUBLIC_APP_URL`                     | `prod.enc.env`    | part 8               | same as `APP_BASE_URL`                                                                 |
+| `CORS_ORIGINS`                       | `prod.enc.env`    | part 8               | same origin as `APP_BASE_URL`                                                          |
+| `SUPPORT_CONTACT_URL`                | `prod.enc.env`    | part 8               | `https://wa.me/8801XXXXXXXXX`                                                          |
+| `PLATFORM_TENANT_ID`                 | `prod.enc.env`    | part 11              | id of the platform school (uuid); fill after part 11, then redeploy                    |
+| `POSTGRES_USER`                      | `prod.enc.env`    | part 8               | `biddaloy`                                                                             |
+| `POSTGRES_DB`                        | `prod.enc.env`    | part 8               | prod `biddaloy`; staging must be `biddaloy_staging`; demo must be `biddaloy_demo`      |
+| `POSTGRES_PASSWORD`                  | `prod.enc.env`    | part 8               | openssl rand -hex 32                                                                   |
+| `S3_BUCKET`                          | `prod.enc.env`    | part 8               | prod `biddaloy`; staging must be `biddaloy-staging`; demo must be `biddaloy-demo`      |
+| `S3_REGION`                          | `prod.enc.env`    | part 8               | `us-east-1`                                                                            |
+| `S3_ACCESS_KEY_ID`                   | `prod.enc.env`    | part 8               | `openssl rand -hex 16`                                                                 |
+| `S3_SECRET_ACCESS_KEY`               | `prod.enc.env`    | part 8               | openssl rand -hex 32                                                                   |
+| `DB_SSL_REJECT_UNAUTHORIZED`         | `prod.enc.env`    | part 8               | leave empty                                                                            |
+| `JWT_SECRET`                         | `prod.enc.env`    | part 8               | openssl rand -hex 32                                                                   |
+| `JWT_SECRET_PREVIOUS`                | `prod.enc.env`    | the deploy / default | leave empty until you rotate                                                           |
+| `SETTINGS_ENCRYPTION_KEY`            | `prod.enc.env`    | part 8               | `openssl rand -base64 32`                                                              |
+| `SETTINGS_ENCRYPTION_KEY_PREVIOUS`   | `prod.enc.env`    | the deploy / default | leave empty until you rotate                                                           |
+| `HEALTH_TOKEN`                       | `prod.enc.env`    | part 8               | openssl rand -hex 32                                                                   |
+| `BACKUP_AGE_PUBLIC_KEY`              | `prod.enc.env`    | part 9               | `age1qz...` (public half of the backup key)                                            |
+| `BACKUP_S3_ENDPOINT`                 | `prod.enc.env`    | part 4               | `https://<account-id>.r2.cloudflarestorage.com`                                        |
+| `BACKUP_S3_BUCKET`                   | `prod.enc.env`    | part 4               | `biddaloy-backups`                                                                     |
+| `BACKUP_S3_ACCESS_KEY_ID`            | `prod.enc.env`    | part 4               | R2 token 1 (prod, read+write) or token 2 (staging, read-only)                          |
+| `BACKUP_S3_SECRET_ACCESS_KEY`        | `prod.enc.env`    | part 4               | same token as the key id above                                                         |
+| `BACKUP_RCLONE_CRYPT_PASSWORD`       | `prod.enc.env`    | part 8               | openssl rand -hex 32                                                                   |
+| `BACKUP_RCLONE_CRYPT_SALT`           | `prod.enc.env`    | part 8               | openssl rand -hex 32                                                                   |
+| `BACKUP_PUSH_URL`                    | `prod.enc.env`    | part 11              | `https://kuma.schoolmanagerp.com/api/push/<token>`                                     |
+| `LOG_ARCHIVE_PUSH_URL`               | `prod.enc.env`    | part 11              | `https://kuma.schoolmanagerp.com/api/push/<token>`                                     |
+| `SENTRY_CRON_MONITOR_URL`            | `prod.enc.env`    | part 6               | Sentry cron monitor check-in URL (optional)                                            |
+| `BACKUP_SCHEDULE`                    | `prod.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `BACKUP_RETENTION_DAYS`              | `prod.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `BACKUP_HOURLY_KEEP`                 | `prod.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `BACKUP_DAILY_KEEP`                  | `prod.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `BACKUP_TRASH_DAYS`                  | `prod.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `BACKUP_FILES_MAX_DELETE`            | `prod.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `BACKUP_NET_WAIT_SECS`               | `prod.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `BACKUP_MEM`                         | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `BACKUP_CPUS`                        | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `JOBS_MEM`                           | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `JOBS_CPUS`                          | `prod.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `TURNSTILE_SITE_KEY`                 | `prod.enc.env`    | part 4               | prod/demo: widget site key; staging/demo example already holds the test pair           |
+| `TURNSTILE_SECRET_KEY`               | `prod.enc.env`    | part 4               | prod: widget secret; staging/demo example already holds the test pair                  |
+| `SENTRY_DSN`                         | `prod.enc.env`    | part 6               | `https://<key>@o0.ingest.sentry.io/0` (server project)                                 |
+| `SENTRY_DSN_WEB`                     | `prod.enc.env`    | part 6               | `https://<key>@o0.ingest.sentry.io/1` (browser project)                                |
+| `SENTRY_TRACES_SAMPLE_RATE`          | `prod.enc.env`    | part 6               | `0.1`                                                                                  |
+| `GOOGLE_OAUTH_CLIENT_ID`             | `prod.enc.env`    | part 6               | Google Cloud console (prod only; staging stays empty)                                  |
+| `GOOGLE_OAUTH_CLIENT_SECRET`         | `prod.enc.env`    | part 6               | same console (prod only)                                                               |
+| `FACEBOOK_OAUTH_CLIENT_ID`           | `prod.enc.env`    | part 6               | Meta developers console (prod only)                                                    |
+| `FACEBOOK_OAUTH_CLIENT_SECRET`       | `prod.enc.env`    | part 6               | same console (prod only)                                                               |
+| `SMS_PROVIDER`                       | `prod.enc.env`    | part 6               | registered SMS provider name, e.g. `onecodesoft` (prod only)                           |
+| `GREENWEB_API_KEY`                   | `prod.enc.env`    | part 6               | key if that provider is chosen (prod only)                                             |
+| `GREENWEB_API_URL`                   | `prod.enc.env`    | part 6               | optional gateway URL; empty uses Greenweb's own (prod only)                            |
+| `MIMSMS_API_KEY`                     | `prod.enc.env`    | part 6               | key if that provider is chosen (prod only)                                             |
+| `MIMSMS_SENDER_ID`                   | `prod.enc.env`    | part 6               | sender id if that provider is chosen (prod only)                                       |
+| `MIMSMS_API_URL`                     | `prod.enc.env`    | part 6               | optional gateway URL; empty uses MimSMS's own (prod only)                              |
+| `ONECODESOFT_API_KEY`                | `prod.enc.env`    | part 6               | key if that provider is chosen (prod only)                                             |
+| `ONECODESOFT_SENDER_ID`              | `prod.enc.env`    | part 6               | sender id if that provider is chosen (prod only)                                       |
+| `ONECODESOFT_API_URL`                | `prod.enc.env`    | part 6               | gateway HTTP API URL (prod only)                                                       |
+| `PLATFORM_SMS_PROVIDER`              | `prod.enc.env`    | part 6               | provider name your gateway uses (deprecated, read until the next release; prod only)   |
+| `PLATFORM_SMS_API_KEY`               | `prod.enc.env`    | part 6               | gateway API key (deprecated, read until the next release; prod only)                   |
+| `PLATFORM_SMS_SENDER_ID`             | `prod.enc.env`    | part 6               | sender id approved by the gateway (deprecated, read until the next release; prod only) |
+| `PLATFORM_SMS_API_URL`               | `prod.enc.env`    | part 6               | gateway HTTP API URL (deprecated, read until the next release; prod only)              |
+| `PLATFORM_ALERT_PHONES`              | `prod.enc.env`    | part 6               | `+8801700000000,+8801800000000`                                                        |
+| `OTP_SMS_ALLOWED_PREFIXES`           | `prod.enc.env`    | the deploy / default | leave empty (default `+880`)                                                           |
+| `SMOKE_SCHOOL_SLUG`                  | `prod.enc.env`    | part 11              | slug of the Smoke Test School, e.g. `smoke-test`                                       |
+| `SMOKE_ADMIN_EMAIL`                  | `prod.enc.env`    | part 11              | login you create in part 11                                                            |
+| `SMOKE_ADMIN_PASSWORD`               | `prod.enc.env`    | part 11              | `openssl rand -hex 16`; staging must equal `STAGING_PASSWORD`                          |
+| `SMOKE_TEACHER_EMAIL`                | `prod.enc.env`    | part 11              | login you create in part 11                                                            |
+| `SMOKE_TEACHER_PASSWORD`             | `prod.enc.env`    | part 11              | `openssl rand -hex 16`; staging must equal `STAGING_PASSWORD`                          |
+| `SMOKE_SUPER_ADMIN_EMAIL`            | `prod.enc.env`    | part 11              | the platform super admin login                                                         |
+| `SMOKE_SUPER_ADMIN_PASSWORD`         | `prod.enc.env`    | part 11              | its password; staging must equal `STAGING_PASSWORD`                                    |
+| `ENV_NAME`                           | `staging.enc.env` | part 7               | already filled in the example (`staging`)                                              |
+| `DEMO_MODE`                          | `staging.enc.env` | part 8               | leave the example value                                                                |
+| `APP_VERSION`                        | `staging.enc.env` | the deploy / default | leave empty; the deploy sets it                                                        |
+| `APP_MEM`                            | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                                 |
+| `PG_MEM`                             | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                                 |
+| `REDIS_MEM`                          | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                                 |
+| `S3_MEM`                             | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                                 |
+| `APP_CPUS`                           | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                                 |
+| `PG_CPUS`                            | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                                 |
+| `REDIS_CPUS`                         | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                                 |
+| `S3_CPUS`                            | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                                 |
+| `APP_BASE_URL`                       | `staging.enc.env` | part 8               | `https://app.schoolmanagerp.com` (no trailing slash)                                   |
+| `PUBLIC_APP_URL`                     | `staging.enc.env` | part 8               | same as `APP_BASE_URL`                                                                 |
+| `CORS_ORIGINS`                       | `staging.enc.env` | part 8               | same origin as `APP_BASE_URL`                                                          |
+| `SUPPORT_CONTACT_URL`                | `staging.enc.env` | part 8               | `https://wa.me/8801XXXXXXXXX`                                                          |
+| `PLATFORM_TENANT_ID`                 | `staging.enc.env` | part 11              | id of the platform school (uuid); fill after part 11, then redeploy                    |
+| `POSTGRES_USER`                      | `staging.enc.env` | part 8               | `biddaloy`                                                                             |
+| `POSTGRES_DB`                        | `staging.enc.env` | part 8               | prod `biddaloy`; staging must be `biddaloy_staging`; demo must be `biddaloy_demo`      |
+| `POSTGRES_PASSWORD`                  | `staging.enc.env` | part 8               | openssl rand -hex 32                                                                   |
+| `S3_BUCKET`                          | `staging.enc.env` | part 8               | prod `biddaloy`; staging must be `biddaloy-staging`; demo must be `biddaloy-demo`      |
+| `S3_REGION`                          | `staging.enc.env` | part 8               | `us-east-1`                                                                            |
+| `S3_ACCESS_KEY_ID`                   | `staging.enc.env` | part 8               | `openssl rand -hex 16`                                                                 |
+| `S3_SECRET_ACCESS_KEY`               | `staging.enc.env` | part 8               | openssl rand -hex 32                                                                   |
+| `DB_SSL_REJECT_UNAUTHORIZED`         | `staging.enc.env` | part 8               | leave empty                                                                            |
+| `JWT_SECRET`                         | `staging.enc.env` | part 8               | openssl rand -hex 32                                                                   |
+| `JWT_SECRET_PREVIOUS`                | `staging.enc.env` | the deploy / default | leave empty until you rotate                                                           |
+| `SETTINGS_ENCRYPTION_KEY`            | `staging.enc.env` | part 8               | `openssl rand -base64 32`                                                              |
+| `SETTINGS_ENCRYPTION_KEY_PREVIOUS`   | `staging.enc.env` | the deploy / default | leave empty until you rotate                                                           |
+| `HEALTH_TOKEN`                       | `staging.enc.env` | part 8               | openssl rand -hex 32                                                                   |
+| `STAGING_PASSWORD`                   | `staging.enc.env` | part 8               | at least 12 characters: `openssl rand -hex 16`                                         |
+| `BACKUP_AGE_PUBLIC_KEY`              | `staging.enc.env` | part 9               | `age1qz...` (public half of the backup key)                                            |
+| `BACKUP_AGE_PRIVATE_KEY`             | `staging.enc.env` | part 9               | `AGE-SECRET-KEY-1...` (staging only)                                                   |
+| `BACKUP_S3_ENDPOINT`                 | `staging.enc.env` | part 4               | `https://<account-id>.r2.cloudflarestorage.com`                                        |
+| `BACKUP_S3_BUCKET`                   | `staging.enc.env` | part 4               | `biddaloy-backups`                                                                     |
+| `BACKUP_S3_ACCESS_KEY_ID`            | `staging.enc.env` | part 4               | R2 token 1 (prod, read+write) or token 2 (staging, read-only)                          |
+| `BACKUP_S3_SECRET_ACCESS_KEY`        | `staging.enc.env` | part 4               | same token as the key id above                                                         |
+| `BACKUP_PUSH_URL`                    | `staging.enc.env` | part 11              | `https://kuma.schoolmanagerp.com/api/push/<token>`                                     |
+| `RESTORE_DRILL_PUSH_URL`             | `staging.enc.env` | part 11              | `https://kuma.schoolmanagerp.com/api/push/<token>`                                     |
+| `SENTRY_CRON_MONITOR_URL`            | `staging.enc.env` | part 6               | Sentry cron monitor check-in URL (optional)                                            |
+| `BACKUP_SCHEDULE`                    | `staging.enc.env` | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `BACKUP_RETENTION_DAYS`              | `staging.enc.env` | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `BACKUP_HOURLY_KEEP`                 | `staging.enc.env` | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `BACKUP_DAILY_KEEP`                  | `staging.enc.env` | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `BACKUP_TRASH_DAYS`                  | `staging.enc.env` | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `BACKUP_FILES_MAX_DELETE`            | `staging.enc.env` | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `BACKUP_NET_WAIT_SECS`               | `staging.enc.env` | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `BACKUP_MEM`                         | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                                 |
+| `BACKUP_CPUS`                        | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                                 |
+| `JOBS_MEM`                           | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                                 |
+| `JOBS_CPUS`                          | `staging.enc.env` | the deploy / default | leave the example value or empty (D23)                                                 |
+| `TURNSTILE_SITE_KEY`                 | `staging.enc.env` | part 4               | prod/demo: widget site key; staging/demo example already holds the test pair           |
+| `TURNSTILE_SECRET_KEY`               | `staging.enc.env` | part 4               | prod: widget secret; staging/demo example already holds the test pair                  |
+| `SENTRY_DSN`                         | `staging.enc.env` | part 6               | `https://<key>@o0.ingest.sentry.io/0` (server project)                                 |
+| `SENTRY_DSN_WEB`                     | `staging.enc.env` | part 6               | `https://<key>@o0.ingest.sentry.io/1` (browser project)                                |
+| `SENTRY_TRACES_SAMPLE_RATE`          | `staging.enc.env` | part 6               | `0.1`                                                                                  |
+| `GOOGLE_OAUTH_CLIENT_ID`             | `staging.enc.env` | part 6               | Google Cloud console (prod only; staging stays empty)                                  |
+| `GOOGLE_OAUTH_CLIENT_SECRET`         | `staging.enc.env` | part 6               | same console (prod only)                                                               |
+| `FACEBOOK_OAUTH_CLIENT_ID`           | `staging.enc.env` | part 6               | Meta developers console (prod only)                                                    |
+| `FACEBOOK_OAUTH_CLIENT_SECRET`       | `staging.enc.env` | part 6               | same console (prod only)                                                               |
+| `SMS_PROVIDER`                       | `staging.enc.env` | part 6               | registered SMS provider name, e.g. `onecodesoft` (prod only; staging stays empty)      |
+| `GREENWEB_API_KEY`                   | `staging.enc.env` | part 6               | key if that provider is chosen (prod only; staging stays empty)                        |
+| `GREENWEB_API_URL`                   | `staging.enc.env` | part 6               | optional gateway URL; empty uses Greenweb's own (prod only; staging stays empty)       |
+| `MIMSMS_API_KEY`                     | `staging.enc.env` | part 6               | key if that provider is chosen (prod only; staging stays empty)                        |
+| `MIMSMS_SENDER_ID`                   | `staging.enc.env` | part 6               | sender id if that provider is chosen (prod only; staging stays empty)                  |
+| `MIMSMS_API_URL`                     | `staging.enc.env` | part 6               | optional gateway URL; empty uses MimSMS's own (prod only; staging stays empty)         |
+| `ONECODESOFT_API_KEY`                | `staging.enc.env` | part 6               | key if that provider is chosen (prod only; staging stays empty)                        |
+| `ONECODESOFT_SENDER_ID`              | `staging.enc.env` | part 6               | sender id if that provider is chosen (prod only; staging stays empty)                  |
+| `ONECODESOFT_API_URL`                | `staging.enc.env` | part 6               | gateway HTTP API URL (prod only; staging stays empty)                                  |
+| `PLATFORM_SMS_PROVIDER`              | `staging.enc.env` | part 6               | provider name your gateway uses (deprecated, read until the next release; prod only)   |
+| `PLATFORM_SMS_API_KEY`               | `staging.enc.env` | part 6               | gateway API key (deprecated, read until the next release; prod only)                   |
+| `PLATFORM_SMS_SENDER_ID`             | `staging.enc.env` | part 6               | sender id approved by the gateway (deprecated, read until the next release; prod only) |
+| `PLATFORM_SMS_API_URL`               | `staging.enc.env` | part 6               | gateway HTTP API URL (deprecated, read until the next release; prod only)              |
+| `PLATFORM_ALERT_PHONES`              | `staging.enc.env` | part 6               | `+8801700000000,+8801800000000`                                                        |
+| `OTP_SMS_ALLOWED_PREFIXES`           | `staging.enc.env` | the deploy / default | leave empty (default `+880`)                                                           |
+| `SMOKE_SCHOOL_SLUG`                  | `staging.enc.env` | part 11              | slug of the Smoke Test School, e.g. `smoke-test`                                       |
+| `SMOKE_ADMIN_EMAIL`                  | `staging.enc.env` | part 11              | login you create in part 11                                                            |
+| `SMOKE_ADMIN_PASSWORD`               | `staging.enc.env` | part 11              | `openssl rand -hex 16`; staging must equal `STAGING_PASSWORD`                          |
+| `SMOKE_TEACHER_EMAIL`                | `staging.enc.env` | part 11              | login you create in part 11                                                            |
+| `SMOKE_TEACHER_PASSWORD`             | `staging.enc.env` | part 11              | `openssl rand -hex 16`; staging must equal `STAGING_PASSWORD`                          |
+| `SMOKE_SUPER_ADMIN_EMAIL`            | `staging.enc.env` | part 11              | the platform super admin login                                                         |
+| `SMOKE_SUPER_ADMIN_PASSWORD`         | `staging.enc.env` | part 11              | its password; staging must equal `STAGING_PASSWORD`                                    |
+| `STAGING_PASSWORD_HASH_B64`          | `staging.enc.env` | part 8               | base64 of the bcrypt cost-12 hash of `STAGING_PASSWORD` (see part 8, step 4)           |
+| `STAGING_REFRESH_DEADLINE`           | `staging.enc.env` | the deploy / default | leave empty (default 02:50)                                                            |
+| `ENV_NAME`                           | `demo.enc.env`    | part 7               | already filled in the example (`demo`)                                                 |
+| `DEMO_MODE`                          | `demo.enc.env`    | part 8               | leave the example value                                                                |
+| `APP_VERSION`                        | `demo.enc.env`    | the deploy / default | leave empty; the deploy sets it                                                        |
+| `APP_MEM`                            | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `PG_MEM`                             | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `REDIS_MEM`                          | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `S3_MEM`                             | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `APP_CPUS`                           | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `PG_CPUS`                            | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `REDIS_CPUS`                         | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `S3_CPUS`                            | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `APP_BASE_URL`                       | `demo.enc.env`    | part 8               | `https://app.schoolmanagerp.com` (no trailing slash)                                   |
+| `PUBLIC_APP_URL`                     | `demo.enc.env`    | part 8               | same as `APP_BASE_URL`                                                                 |
+| `CORS_ORIGINS`                       | `demo.enc.env`    | part 8               | same origin as `APP_BASE_URL`                                                          |
+| `SUPPORT_CONTACT_URL`                | `demo.enc.env`    | part 8               | `https://wa.me/8801XXXXXXXXX`                                                          |
+| `POSTGRES_USER`                      | `demo.enc.env`    | part 8               | `biddaloy`                                                                             |
+| `POSTGRES_DB`                        | `demo.enc.env`    | part 8               | prod `biddaloy`; staging must be `biddaloy_staging`; demo must be `biddaloy_demo`      |
+| `POSTGRES_PASSWORD`                  | `demo.enc.env`    | part 8               | openssl rand -hex 32                                                                   |
+| `S3_BUCKET`                          | `demo.enc.env`    | part 8               | prod `biddaloy`; staging must be `biddaloy-staging`; demo must be `biddaloy-demo`      |
+| `S3_REGION`                          | `demo.enc.env`    | part 8               | `us-east-1`                                                                            |
+| `S3_ACCESS_KEY_ID`                   | `demo.enc.env`    | part 8               | `openssl rand -hex 16`                                                                 |
+| `S3_SECRET_ACCESS_KEY`               | `demo.enc.env`    | part 8               | openssl rand -hex 32                                                                   |
+| `DB_SSL_REJECT_UNAUTHORIZED`         | `demo.enc.env`    | part 8               | leave empty                                                                            |
+| `JWT_SECRET`                         | `demo.enc.env`    | part 8               | openssl rand -hex 32                                                                   |
+| `JWT_SECRET_PREVIOUS`                | `demo.enc.env`    | the deploy / default | leave empty until you rotate                                                           |
+| `SETTINGS_ENCRYPTION_KEY`            | `demo.enc.env`    | part 8               | `openssl rand -base64 32`                                                              |
+| `SETTINGS_ENCRYPTION_KEY_PREVIOUS`   | `demo.enc.env`    | the deploy / default | leave empty until you rotate                                                           |
+| `HEALTH_TOKEN`                       | `demo.enc.env`    | part 8               | openssl rand -hex 32                                                                   |
+| `DEMO_PASSWORD`                      | `demo.enc.env`    | part 8               | `openssl rand -hex 16`                                                                 |
+| `DEMO_RESET_PUSH_URL`                | `demo.enc.env`    | part 11              | `https://kuma.schoolmanagerp.com/api/push/<token>`                                     |
+| `SENTRY_CRONS_URL`                   | `demo.enc.env`    | part 6               | Sentry crons check-in URL (optional)                                                   |
+| `DEMO_SWEEP_CMD`                     | `demo.enc.env`    | part 8               | set this or `DEMO_SKIP_SWEEP`; start with `DEMO_SKIP_SWEEP=true`                       |
+| `DEMO_SKIP_SWEEP`                    | `demo.enc.env`    | part 8               | `true`                                                                                 |
+| `DEMO_SWEEP_URL`                     | `demo.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `DEMO_SWEEP_TIMEOUT`                 | `demo.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `DEMO_SCALE`                         | `demo.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `DEMO_YEARS`                         | `demo.enc.env`    | the deploy / default | leave empty (default in `deploy/stack.yml`)                                            |
+| `DEMO_RESET_MEM`                     | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `DEMO_RESET_CPUS`                    | `demo.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `TURNSTILE_SITE_KEY`                 | `demo.enc.env`    | part 4               | prod/demo: widget site key; staging/demo example already holds the test pair           |
+| `TURNSTILE_SECRET_KEY`               | `demo.enc.env`    | part 4               | prod: widget secret; staging/demo example already holds the test pair                  |
+| `SENTRY_DSN`                         | `demo.enc.env`    | part 6               | `https://<key>@o0.ingest.sentry.io/0` (server project)                                 |
+| `SENTRY_DSN_WEB`                     | `demo.enc.env`    | part 6               | `https://<key>@o0.ingest.sentry.io/1` (browser project)                                |
+| `SENTRY_TRACES_SAMPLE_RATE`          | `demo.enc.env`    | part 6               | `0.1`                                                                                  |
+| `SMS_PROVIDER`                       | `demo.enc.env`    | part 6               | leave empty (config:check refuses a value on demo)                                     |
+| `GREENWEB_API_KEY`                   | `demo.enc.env`    | part 6               | leave empty (config:check refuses a value on demo)                                     |
+| `GREENWEB_API_URL`                   | `demo.enc.env`    | part 6               | leave empty (config:check refuses a value on demo)                                     |
+| `MIMSMS_API_KEY`                     | `demo.enc.env`    | part 6               | leave empty (config:check refuses a value on demo)                                     |
+| `MIMSMS_SENDER_ID`                   | `demo.enc.env`    | part 6               | leave empty (config:check refuses a value on demo)                                     |
+| `MIMSMS_API_URL`                     | `demo.enc.env`    | part 6               | leave empty (config:check refuses a value on demo)                                     |
+| `ONECODESOFT_API_KEY`                | `demo.enc.env`    | part 6               | leave empty (config:check refuses a value on demo)                                     |
+| `ONECODESOFT_SENDER_ID`              | `demo.enc.env`    | part 6               | leave empty (config:check refuses a value on demo)                                     |
+| `ONECODESOFT_API_URL`                | `demo.enc.env`    | part 6               | leave empty (config:check refuses a value on demo)                                     |
+| `EDGE_MODE`                          | `edge.enc.env`    | part 4               | `tunnel` (`direct` in part 14)                                                         |
+| `NGINX_MEM`                          | `edge.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `NGINX_CPUS`                         | `edge.enc.env`    | the deploy / default | leave the example value or empty (D23)                                                 |
+| `APP_DOMAIN`                         | `edge.enc.env`    | part 4               | `app.schoolmanagerp.com`                                                               |
+| `STAGING_DOMAIN`                     | `edge.enc.env`    | part 4               | `staging.schoolmanagerp.com`                                                           |
+| `DEMO_DOMAIN`                        | `edge.enc.env`    | part 4               | `demo.schoolmanagerp.com`                                                              |
+| `INBOX_DEMO_DOMAIN`                  | `edge.enc.env`    | part 4               | `inbox-demo.schoolmanagerp.com` (public Mailpit UI, no login)                          |
+| `INBOX_STAGING_DOMAIN`               | `edge.enc.env`    | part 4               | `inbox-staging.schoolmanagerp.com` (behind the Staging Access app)                     |
+| `LANDING_DOMAIN`                     | `edge.enc.env`    | part 4               | `schoolmanagerp.com`                                                                   |
+| `KUMA_DOMAIN`                        | `edge.enc.env`    | part 4               | `kuma.schoolmanagerp.com`                                                              |
+| `BESZEL_DOMAIN`                      | `edge.enc.env`    | part 4               | `beszel.schoolmanagerp.com`                                                            |
+| `LOGS_DOMAIN`                        | `edge.enc.env`    | part 4               | `logs.schoolmanagerp.com`                                                              |
+| `OPS_UPSTREAM_HOST`                  | `edge.enc.env`    | part 8               | `uptime-kuma` (any non-empty value; empty = ops is on another host)                    |
+| `LANDING_VERSION`                    | `edge.enc.env`    | the deploy / default | leave empty; the deploy sets it                                                        |
+| `CLOUDFLARE_TUNNEL_ID`               | `edge.enc.env`    | part 4               | uuid printed by `cloudflared tunnel create`                                            |
+| `CLOUDFLARE_TUNNEL_CREDENTIALS_JSON` | `edge.enc.env`    | part 4               | the credentials JSON, on one line                                                      |
+| `CF_ACCESS_TEAM`                     | `edge.enc.env`    | part 4               | `myteam` (from `myteam.cloudflareaccess.com`)                                          |
+| `CF_ACCESS_AUD_STAGING`              | `edge.enc.env`    | part 4               | 64-hex Application Audience tag of the staging Access app                              |
+| `CF_ACCESS_AUD_OPS`                  | `edge.enc.env`    | part 4               | 64-hex Application Audience tag of the ops Access app                                  |
+| `BASIC_AUTH_HTPASSWD`                | `edge.enc.env`    | part 14              | `htpasswd -nbB user pass`; leave empty in tunnel mode                                  |
+| `LETSENCRYPT_EMAIL`                  | `edge.enc.env`    | part 14              | `ops@schoolmanagerp.com`; leave empty in tunnel mode                                   |
+| `GHCR_PULL_USER`                     | `edge.enc.env`    | part 5               | your GitHub username                                                                   |
+| `GHCR_PULL_TOKEN`                    | `edge.enc.env`    | part 5               | classic PAT with only `read:packages`: `ghp_...`                                       |
+| `TELEGRAM_BOT_TOKEN`                 | `edge.enc.env`    | part 6               | `123456:ABC...` from BotFather                                                         |
+| `TELEGRAM_CHAT_ID`                   | `edge.enc.env`    | part 6               | `-1001234567890`                                                                       |
+| `LOG_ARCHIVE_PUSH_URL`               | `edge.enc.env`    | part 11              | `https://kuma.schoolmanagerp.com/api/push/<token>`                                     |
+| `LOG_ARCHIVE_S3_ENDPOINT`            | `edge.enc.env`    | part 4               | same as prod `BACKUP_S3_ENDPOINT`                                                      |
+| `LOG_ARCHIVE_S3_BUCKET`              | `edge.enc.env`    | part 4               | `biddaloy-backups`                                                                     |
+| `LOG_ARCHIVE_S3_ACCESS_KEY_ID`       | `edge.enc.env`    | part 4               | R2 token 1                                                                             |
+| `LOG_ARCHIVE_S3_SECRET_ACCESS_KEY`   | `edge.enc.env`    | part 4               | R2 token 1                                                                             |
+| `LOG_ARCHIVE_RCLONE_CRYPT_PASSWORD`  | `edge.enc.env`    | part 8               | same value as prod `BACKUP_RCLONE_CRYPT_PASSWORD`                                      |
+| `LOG_ARCHIVE_RCLONE_CRYPT_SALT`      | `edge.enc.env`    | part 8               | same value as prod `BACKUP_RCLONE_CRYPT_SALT`                                          |
+| `BESZEL_KEY`                         | `edge.enc.env`    | part 11              | public key from the Beszel hub "Add system"; same value in `edge` and `ops`            |
+| `BESZEL_KEY`                         | `ops.enc.env`     | part 11              | public key from the Beszel hub "Add system"; same value in `edge` and `ops`            |
+| `DOZZLE_USERS_YML`                   | `ops.enc.env`     | part 11              | the whole `users.yml` on one line, `\n` for newlines                                   |
+| `BESZEL_MEM`                         | `ops.enc.env`     | the deploy / default | leave the example value or empty (D23)                                                 |
+| `KUMA_MEM`                           | `ops.enc.env`     | the deploy / default | leave the example value or empty (D23)                                                 |
+| `DOZZLE_MEM`                         | `ops.enc.env`     | the deploy / default | leave the example value or empty (D23)                                                 |
 
 ## Part 9. The age key for backups
 

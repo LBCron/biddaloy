@@ -1,12 +1,17 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { pickPatchShape, redactSecretPaths } from './settings-audit-redact.util';
+
+vi.mock(
+  '../../communications/providers/messaging-providers',
+  () => import('./testing/messaging-stubs.fixture'),
+);
 
 describe('pickPatchShape', () => {
   it('picks only the keys the patch touches, at every depth', () => {
     const existing = {
       version: 1,
       communications: {
-        sms: { provider: 'greenweb' },
+        sms: { provider: 'alpha' },
         whatsapp: { phoneNumberId: 'old-id', accessToken: 'old-token' },
       },
     };
@@ -38,8 +43,7 @@ describe('redactSecretPaths', () => {
       version: 1,
       communications: {
         whatsapp: { phoneNumberId: '123', accessToken: 'super-secret' },
-        email: { host: 'smtp.example.com', password: 'hunter2' },
-        sms: { provider: 'greenweb', greenweb: { apiKey: 'key-1' } },
+        sms: { provider: 'alpha', alpha: { apiKey: 'key-1' } },
       },
     };
 
@@ -47,12 +51,19 @@ describe('redactSecretPaths', () => {
 
     expect(redacted.communications).toMatchObject({
       whatsapp: { phoneNumberId: '123', accessToken: '[REDACTED]' },
-      email: { host: 'smtp.example.com', password: '[REDACTED]' },
-      sms: { provider: 'greenweb', greenweb: { apiKey: '[REDACTED]' } },
+      sms: { provider: 'alpha', alpha: { apiKey: '[REDACTED]' } },
     });
     expect(JSON.stringify(redacted)).not.toContain('super-secret');
-    expect(JSON.stringify(redacted)).not.toContain('hunter2');
     expect(JSON.stringify(redacted)).not.toContain('key-1');
+  });
+
+  it('redacts a secret that exists only in a provider descriptor (D31)', () => {
+    const redacted = redactSecretPaths({
+      communications: { sms: { provider: 'beta', beta: { token: 'tok-secret' } } },
+    });
+
+    expect(JSON.stringify(redacted)).not.toContain('tok-secret');
+    expect((redacted.communications as any).sms.beta.token).toBe('[REDACTED]');
   });
 
   it('masks a secret explicitly cleared to null the same as a real value', () => {

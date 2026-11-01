@@ -16,6 +16,7 @@ import * as React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SchoolSettingsPage } from './SchoolSettingsPage';
+import { providersHandler } from './settings/provider-config-form.fixtures';
 import { SETTINGS_CATEGORY_IDS } from './settings/settings-categories';
 
 // The page reads `useSearch({ from: '/_staff/settings' })`, so mount it under a
@@ -116,6 +117,7 @@ describe('SchoolSettingsPage', () => {
   });
 
   it('?section=communication shows the SMS section and not the School ones', async () => {
+    server.use(providersHandler());
     renderWithProviders(<PageWithRouter url="/settings?section=communication" />, {
       locale: 'en',
       role: 'ADMIN',

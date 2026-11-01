@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { plainToInstance } from 'class-transformer';
-import { validate } from 'class-validator';
+import { validate, type ValidationError } from 'class-validator';
 import { TenantSettingsDto, TENANT_SETTINGS_SCHEMA_VERSION } from './tenant-settings.dto';
 import {
   DEFAULT_ATTENDANCE_SETTINGS,
@@ -9,6 +9,16 @@ import {
   DEFAULT_FEES_SETTINGS,
   DEFAULT_REGION_SETTINGS,
 } from '../settings/tenant-settings-defaults';
+
+vi.mock(
+  '../../communications/providers/messaging-providers',
+  () => import('../settings/testing/messaging-stubs.fixture'),
+);
+
+const commError = (errors: ValidationError[], medium: string) =>
+  errors.find((e) => e.property === 'communications')?.children?.find((e) => e.property === medium);
+const msg = (e?: ValidationError) => Object.values(e?.constraints ?? {}).join(' ');
+const ALPHA = { apiKey: 'k', senderId: 's' };
 
 // Matches the global pipe in server/src/validation-pipe.ts (buildValidationPipeOptions()),
 // which SchoolsController's @Body() dto: TenantSettingsDto actually runs
@@ -26,7 +36,7 @@ describe('TenantSettingsDto', () => {
       version: TENANT_SETTINGS_SCHEMA_VERSION,
       region: DEFAULT_REGION_SETTINGS,
       communications: {
-        whatsapp: { phoneNumberId: '123', accessToken: 'token' },
+        whatsapp: { solo: { phoneNumberId: '123', accessToken: 'token' } },
       },
     });
 
@@ -76,18 +86,17 @@ describe('TenantSettingsDto', () => {
     expect(errors.some((e) => e.property === 'branding')).toBe(true);
   });
 
-  it('rejects an unknown nested key', async () => {
+  it('rejects an unknown nested key with the fixed sentence', async () => {
     const dto = toDto({
       version: TENANT_SETTINGS_SCHEMA_VERSION,
-      communications: { whatsapp: { phoneNumberId: '123', accessToken: 'token', extra: 'nope' } },
+      communications: { whatsapp: { solo: { phoneNumberId: '1', extra: 'EVIL-123' } } },
     });
 
     const errors = await validate(dto, VALIDATION_OPTIONS);
 
-    const whatsappError = errors
-      .find((e) => e.property === 'communications')
-      ?.children?.find((e) => e.property === 'whatsapp');
-    expect(whatsappError?.children?.some((e) => e.property === 'extra')).toBe(true);
+    expect(msg(commError(errors, 'whatsapp'))).toBe(
+      'communications.whatsapp has a field this company does not use.',
+    );
   });
 
   it('rejects an incomplete nested section (region without currency)', async () => {
@@ -113,96 +122,82 @@ describe('TenantSettingsDto', () => {
       expect(errors.some((e) => e.property === 'communications')).toBe(true);
     });
 
-    it('rejects null for an optional scalar', async () => {
-      const dto = toDto({
+    // #3331: null clears a saved optional field (the merge removes it); a required one cannot be cleared.
+    it('accepts null for an optional field and rejects it for a required one', async () => {
+      const optional = toDto({
         version: TENANT_SETTINGS_SCHEMA_VERSION,
-        communications: {
-          sms: { provider: 'greenweb', greenweb: { apiKey: 'k', apiUrl: null } },
-        },
+        communications: { sms: { provider: 'alpha', alpha: { ...ALPHA, apiUrl: null } } },
       });
+      expect(await validate(optional, VALIDATION_OPTIONS)).toEqual([]);
 
-      const errors = await validate(dto, VALIDATION_OPTIONS);
-
-      const greenwebError = errors
-        .find((e) => e.property === 'communications')
-        ?.children?.find((e) => e.property === 'sms')
-        ?.children?.find((e) => e.property === 'greenweb');
-      expect(greenwebError?.children?.some((e) => e.property === 'apiUrl')).toBe(true);
+      const required = toDto({
+        version: TENANT_SETTINGS_SCHEMA_VERSION,
+        communications: { sms: { provider: 'alpha', alpha: { ...ALPHA, senderId: null } } },
+      });
+      const errors = await validate(required, VALIDATION_OPTIONS);
+      expect(msg(commError(errors, 'sms'))).toContain(
+        'senderId is required and cannot be cleared.',
+      );
     });
 
     it('still accepts an omitted optional field', async () => {
       const dto = toDto({
         version: TENANT_SETTINGS_SCHEMA_VERSION,
-        communications: { sms: { provider: 'greenweb', greenweb: { apiKey: 'k' } } },
+        communications: { sms: { provider: 'alpha', alpha: ALPHA } },
       });
 
-      const errors = await validate(dto, VALIDATION_OPTIONS);
-
-      expect(errors).toEqual([]);
+      expect(await validate(dto, VALIDATION_OPTIONS)).toEqual([]);
     });
   });
 
-  // A config naming one gateway while configuring another validates
-  // structurally but leaves the tenant unable to send — the resolver
-  // (#8.7.10) looks up `sms[provider]` and finds nothing. Caught here so
-  // it fails on the request that caused it, not inside a queued job.
+  // The selected company must be configured, or the resolver finds nothing at send time.
   describe('sms provider/config coherence', () => {
     it('rejects a provider whose config block is missing', async () => {
       const dto = toDto({
         version: TENANT_SETTINGS_SCHEMA_VERSION,
-        communications: { sms: { provider: 'mimsms' } },
+        communications: { sms: { provider: 'beta' } },
       });
 
       const errors = await validate(dto, VALIDATION_OPTIONS);
 
-      const smsError = errors
-        .find((e) => e.property === 'communications')
-        ?.children?.find((e) => e.property === 'sms');
-      expect(smsError?.children?.some((e) => e.property === 'provider')).toBe(true);
+      expect(msg(commError(errors, 'sms'))).toBe(
+        'communications.sms must include the settings of the chosen company.',
+      );
     });
 
-    it('rejects a config that names one gateway and configures the other', async () => {
+    it('rejects a config that names one company and configures the other', async () => {
+      const dto = toDto({
+        version: TENANT_SETTINGS_SCHEMA_VERSION,
+        communications: { sms: { provider: 'alpha', beta: { token: 't' } } },
+      });
+
+      const errors = await validate(dto, VALIDATION_OPTIONS);
+
+      expect(commError(errors, 'sms')).toBeDefined();
+    });
+
+    it('rejects an unknown provider without echoing it', async () => {
+      const dto = toDto({
+        version: TENANT_SETTINGS_SCHEMA_VERSION,
+        communications: { sms: { provider: 'EVIL-123' } },
+      });
+
+      const errors = await validate(dto, VALIDATION_OPTIONS);
+
+      expect(msg(commError(errors, 'sms'))).toBe(
+        'communications.sms names a company that is not available for this channel.',
+      );
+    });
+
+    it('accepts both companies configured - switching between them is legitimate', async () => {
       const dto = toDto({
         version: TENANT_SETTINGS_SCHEMA_VERSION,
         communications: {
-          sms: { provider: 'greenweb', mimsms: { apiKey: 'k', senderId: 'BIDDALOY' } },
+          sms: { provider: 'beta', alpha: ALPHA, beta: { token: 't2' } },
         },
       });
 
-      const errors = await validate(dto, VALIDATION_OPTIONS);
-
-      const smsError = errors
-        .find((e) => e.property === 'communications')
-        ?.children?.find((e) => e.property === 'sms');
-      expect(smsError?.children?.some((e) => e.property === 'provider')).toBe(true);
-    });
-
-    it('accepts the selected gateway being configured', async () => {
-      const dto = toDto({
-        version: TENANT_SETTINGS_SCHEMA_VERSION,
-        communications: { sms: { provider: 'greenweb', greenweb: { apiKey: 'k' } } },
-      });
-
-      const errors = await validate(dto, VALIDATION_OPTIONS);
-
-      expect(errors).toEqual([]);
-    });
-
-    it('accepts both gateways configured — switching between them is legitimate', async () => {
-      const dto = toDto({
-        version: TENANT_SETTINGS_SCHEMA_VERSION,
-        communications: {
-          sms: {
-            provider: 'mimsms',
-            greenweb: { apiKey: 'k' },
-            mimsms: { apiKey: 'k2', senderId: 'BIDDALOY' },
-          },
-        },
-      });
-
-      const errors = await validate(dto, VALIDATION_OPTIONS);
-
-      expect(errors).toEqual([]);
+      expect(await validate(dto, VALIDATION_OPTIONS)).toEqual([]);
     });
   });
 
@@ -256,73 +251,51 @@ describe('TenantSettingsDto', () => {
     });
   });
 
-  describe('secret fields — #8.7.9 PATCH contract (omit leaves unchanged, null clears)', () => {
+  describe('secret fields - #8.7.9 PATCH contract (omit leaves unchanged, null clears)', () => {
+    const wa = (solo: Record<string, unknown>) =>
+      toDto({ version: TENANT_SETTINGS_SCHEMA_VERSION, communications: { whatsapp: { solo } } });
+
     it('accepts a medium with its secret field omitted entirely', async () => {
-      const dto = toDto({
-        version: TENANT_SETTINGS_SCHEMA_VERSION,
-        communications: { whatsapp: { phoneNumberId: '123' } },
-      });
-
-      const errors = await validate(dto, VALIDATION_OPTIONS);
-
-      expect(errors).toEqual([]);
+      expect(await validate(wa({ phoneNumberId: '123' }), VALIDATION_OPTIONS)).toEqual([]);
     });
 
     it('accepts an explicit null on a secret field', async () => {
-      const dto = toDto({
-        version: TENANT_SETTINGS_SCHEMA_VERSION,
-        communications: { whatsapp: { phoneNumberId: '123', accessToken: null } },
-      });
-
-      const errors = await validate(dto, VALIDATION_OPTIONS);
-
-      expect(errors).toEqual([]);
+      const dto = wa({ phoneNumberId: '123', accessToken: null });
+      expect(await validate(dto, VALIDATION_OPTIONS)).toEqual([]);
     });
 
     it('still rejects a non-string, non-null value on a secret field', async () => {
-      const dto = toDto({
-        version: TENANT_SETTINGS_SCHEMA_VERSION,
-        communications: { whatsapp: { phoneNumberId: '123', accessToken: 42 } },
-      });
-
-      const errors = await validate(dto, VALIDATION_OPTIONS);
-
-      const whatsappError = errors
-        .find((e) => e.property === 'communications')
-        ?.children?.find((e) => e.property === 'whatsapp');
-      expect(whatsappError?.children?.some((e) => e.property === 'accessToken')).toBe(true);
+      const errors = await validate(
+        wa({ phoneNumberId: '1', accessToken: 42 }),
+        VALIDATION_OPTIONS,
+      );
+      expect(msg(commError(errors, 'whatsapp'))).toContain('accessToken must be text.');
     });
 
-    it('rejects an empty string on a secret field — not a fourth clearing idiom alongside omit/null', async () => {
-      // '' is what a controlled text input produces when a user selects a
-      // populated password field and deletes it — it must not silently
-      // pass @IsOptional()+@IsString() and bypass encryption downstream.
-      const dto = toDto({
-        version: TENANT_SETTINGS_SCHEMA_VERSION,
-        communications: { whatsapp: { phoneNumberId: '123', accessToken: '' } },
-      });
-
-      const errors = await validate(dto, VALIDATION_OPTIONS);
-
-      const whatsappError = errors
-        .find((e) => e.property === 'communications')
-        ?.children?.find((e) => e.property === 'whatsapp');
-      expect(whatsappError?.children?.some((e) => e.property === 'accessToken')).toBe(true);
+    it('rejects an empty string on a secret field with the D31 sentence', async () => {
+      // '' is what a controlled input produces when a user clears a populated password field.
+      const errors = await validate(
+        wa({ phoneNumberId: '1', accessToken: '' }),
+        VALIDATION_OPTIONS,
+      );
+      expect(msg(commError(errors, 'whatsapp'))).toContain(
+        'accessToken must not be empty: leave it out to keep the saved value, or send null to clear it.',
+      );
     });
 
-    it('still requires a non-secret field on a medium even when the secret is omitted', async () => {
-      // phoneNumberId is required regardless of accessToken's optionality.
+    it('still requires a non-secret field even when the secret is omitted', async () => {
+      const errors = await validate(wa({}), VALIDATION_OPTIONS);
+      expect(msg(commError(errors, 'whatsapp'))).toContain(
+        'missing the required field phoneNumberId',
+      );
+    });
+
+    it('accepts the old flat shape for a sole-provider medium', async () => {
       const dto = toDto({
         version: TENANT_SETTINGS_SCHEMA_VERSION,
-        communications: { whatsapp: {} },
+        communications: { whatsapp: { phoneNumberId: '1', accessToken: 'x' } },
       });
-
-      const errors = await validate(dto, VALIDATION_OPTIONS);
-
-      const whatsappError = errors
-        .find((e) => e.property === 'communications')
-        ?.children?.find((e) => e.property === 'whatsapp');
-      expect(whatsappError?.children?.some((e) => e.property === 'phoneNumberId')).toBe(true);
+      expect(await validate(dto, VALIDATION_OPTIONS)).toEqual([]);
     });
   });
 
@@ -588,62 +561,29 @@ describe('TenantSettingsDto', () => {
   // behaviour). Only #545 (this schema); #546/#547 wire up the metering
   // itself.
   describe('sms.metering', () => {
-    it('accepts an sms section with no metering key at all', async () => {
-      const dto = toDto({
+    const sms = (extra: Record<string, unknown>) =>
+      toDto({
         version: TENANT_SETTINGS_SCHEMA_VERSION,
-        communications: { sms: { provider: 'greenweb', greenweb: { apiKey: 'k' } } },
+        communications: { sms: { provider: 'alpha', alpha: ALPHA, ...extra } },
       });
 
-      const errors = await validate(dto, VALIDATION_OPTIONS);
-
-      expect(errors).toEqual([]);
+    it('accepts an sms section with no metering key at all', async () => {
+      expect(await validate(sms({}), VALIDATION_OPTIONS)).toEqual([]);
     });
 
     it('accepts metering: OFF and metering: PLATFORM', async () => {
-      for (const metering of ['OFF', 'PLATFORM'] as const) {
-        const dto = toDto({
-          version: TENANT_SETTINGS_SCHEMA_VERSION,
-          communications: {
-            sms: { provider: 'greenweb', greenweb: { apiKey: 'k' }, metering },
-          },
-        });
-
-        const errors = await validate(dto, VALIDATION_OPTIONS);
-
-        expect(errors).toEqual([]);
+      for (const metering of ['OFF', 'PLATFORM']) {
+        expect(await validate(sms({ metering }), VALIDATION_OPTIONS)).toEqual([]);
       }
     });
 
-    it('rejects a metering value outside OFF/PLATFORM', async () => {
-      const dto = toDto({
-        version: TENANT_SETTINGS_SCHEMA_VERSION,
-        communications: {
-          sms: { provider: 'greenweb', greenweb: { apiKey: 'k' }, metering: 'BOGUS' },
-        },
-      });
-
-      const errors = await validate(dto, VALIDATION_OPTIONS);
-
-      const smsError = errors
-        .find((e) => e.property === 'communications')
-        ?.children?.find((e) => e.property === 'sms');
-      expect(smsError?.children?.some((e) => e.property === 'metering')).toBe(true);
-    });
-
-    it('rejects null for metering (omit to leave unset, not null)', async () => {
-      const dto = toDto({
-        version: TENANT_SETTINGS_SCHEMA_VERSION,
-        communications: {
-          sms: { provider: 'greenweb', greenweb: { apiKey: 'k' }, metering: null },
-        },
-      });
-
-      const errors = await validate(dto, VALIDATION_OPTIONS);
-
-      const smsError = errors
-        .find((e) => e.property === 'communications')
-        ?.children?.find((e) => e.property === 'sms');
-      expect(smsError?.children?.some((e) => e.property === 'metering')).toBe(true);
+    it('rejects a metering value outside OFF/PLATFORM, and null', async () => {
+      for (const metering of ['BOGUS', null]) {
+        const errors = await validate(sms({ metering }), VALIDATION_OPTIONS);
+        expect(msg(commError(errors, 'sms'))).toBe(
+          'communications.sms metering must be OFF or PLATFORM.',
+        );
+      }
     });
   });
 

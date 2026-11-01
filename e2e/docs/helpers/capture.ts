@@ -104,6 +104,26 @@ export async function prepare(page: Page, opts: { pointer?: boolean } = {}): Pro
     if (document.head) add();
     else document.addEventListener('DOMContentLoaded', add);
   }, css);
+  // A dev-server client (`vite`) draws the TanStack Router and Query devtools in the corners; a
+  // school's own app never does, so the shots must not show them.
+  await page.addInitScript(() => {
+    const hide = () => {
+      for (const el of document.querySelectorAll<HTMLElement>('.tsqd-open-btn-container')) {
+        el.style.display = 'none';
+      }
+      for (const b of document.querySelectorAll<HTMLElement>('button')) {
+        if (b.textContent?.includes('TanStack Router')) {
+          (b.closest<HTMLElement>('div[class^="go"]') ?? b).style.display = 'none';
+        }
+      }
+      for (const el of document.querySelectorAll<HTMLElement>(
+        '[class*="TanStackRouterDevtools"]',
+      )) {
+        el.style.display = 'none';
+      }
+    };
+    setInterval(hide, 300);
+  });
 }
 
 export interface Callout {

@@ -412,8 +412,10 @@ alert re-opens and closes about every 2 minutes, so ALERT and RECOVERED texts re
 shows `"redis": "ok"`.
 
 The loop runs in the API process only (not in scripts, not under `NODE_ENV=test`), uses no BullMQ,
-and sends SMS straight to the provider with the platform's own key, not a school's credits. With no
-`PLATFORM_SMS_API_KEY` it logs `platform alert SMS not configured; would text N phone(s): ...`.
+and sends SMS straight to the provider with the platform's own key, not a school's credits. The
+provider is the one `SMS_PROVIDER` names, with that provider's own keys (e.g. `SMS_PROVIDER=onecodesoft`
+plus `ONECODESOFT_API_KEY` and `ONECODESOFT_API_URL`). When they are missing it logs
+`platform alert SMS not configured: <which keys are missing> ...` and texts no one.
 
 On staging and demo (`MESSAGE_SINK=mailpit`) these alerts go to the test inbox as SMS-tagged messages instead of the provider.
 
@@ -531,21 +533,20 @@ cat /opt/biddaloy/staging/last-drill
 
 ## 4. Env var reference
 
-| Variable                    | Required in prod?  | What it does                                                                       |
-| --------------------------- | ------------------ | ---------------------------------------------------------------------------------- |
-| `SENTRY_DSN`                | No (recommended)   | Server Sentry project. Unset = server Sentry is a no-op.                           |
-| `SENTRY_ENVIRONMENT`        | No                 | Defaults to `NODE_ENV`.                                                            |
-| `SENTRY_RELEASE`            | No                 | Tags events with a release/version string.                                         |
-| `SENTRY_DSN_WEB`            | No (recommended)   | Browser Sentry project, served to the SPA by `/runtime-config.js` at boot.         |
-| `SENTRY_TRACES_SAMPLE_RATE` | No                 | Fraction of requests traced, default `0.1`.                                        |
-| `HEALTH_TOKEN`              | No (recommended)   | Required to call `/health/ready` at all — unset means that route 404s.             |
-| `LOG_LEVEL`                 | No                 | Pino's log level; see `.env.example`.                                              |
-| `ATTENTION_SENTRY_CRON_URL` | No (recommended)   | Sentry Cron Monitor check-in URL for attention sweeps; unset = no check-ins.       |
-| `PLATFORM_SMS_PROVIDER`     | No (for alert SMS) | `greenweb` (default) or `mimsms`. Provider for platform alert texts (§3.6).        |
-| `PLATFORM_SMS_API_KEY`      | No (recommended)   | Unset = alert SMS is only logged, never sent.                                      |
-| `PLATFORM_SMS_SENDER_ID`    | With `mimsms`      | Sender id for MimSMS.                                                              |
-| `PLATFORM_SMS_API_URL`      | No                 | Overrides the provider's send URL.                                                 |
-| `PLATFORM_ALERT_PHONES`     | No                 | Comma-separated fallback phones, used only when no SUPER_ADMIN has a verified one. |
+| Variable                                                         | Required in prod?  | What it does                                                                                                                                        |
+| ---------------------------------------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SENTRY_DSN`                                                     | No (recommended)   | Server Sentry project. Unset = server Sentry is a no-op.                                                                                            |
+| `SENTRY_ENVIRONMENT`                                             | No                 | Defaults to `NODE_ENV`.                                                                                                                             |
+| `SENTRY_RELEASE`                                                 | No                 | Tags events with a release/version string.                                                                                                          |
+| `SENTRY_DSN_WEB`                                                 | No (recommended)   | Browser Sentry project, served to the SPA by `/runtime-config.js` at boot.                                                                          |
+| `SENTRY_TRACES_SAMPLE_RATE`                                      | No                 | Fraction of requests traced, default `0.1`.                                                                                                         |
+| `HEALTH_TOKEN`                                                   | No (recommended)   | Required to call `/health/ready` at all — unset means that route 404s.                                                                              |
+| `LOG_LEVEL`                                                      | No                 | Pino's log level; see `.env.example`.                                                                                                               |
+| `ATTENTION_SENTRY_CRON_URL`                                      | No (recommended)   | Sentry Cron Monitor check-in URL for attention sweeps; unset = no check-ins.                                                                        |
+| `SMS_PROVIDER`                                                   | No (for alert SMS) | Registered SMS provider name (`greenweb`, `mimsms`, `onecodesoft`). Empty = default.                                                                |
+| `<PREFIX>_<FIELD>`                                               | With its provider  | The provider's own keys, e.g. `ONECODESOFT_API_KEY` / `_SENDER_ID` / `_API_URL`, `MIMSMS_SENDER_ID`. Prod config check requires every required one. |
+| `PLATFORM_SMS_PROVIDER` / `_API_KEY` / `_SENDER_ID` / `_API_URL` | No (deprecated)    | Read for one more release, only when `SMS_PROVIDER` is unset. Boot logs the key names.                                                              |
+| `PLATFORM_ALERT_PHONES`                                          | No                 | Comma-separated fallback phones, used only when no SUPER_ADMIN has a verified one.                                                                  |
 
 Smoke-check variables (read by `scripts/smoke-post-deploy.mjs`, see §7). The
 deploy passes them by name from the project's secrets file into a throwaway

@@ -150,6 +150,33 @@ describe('InvoiceNotificationsListener.handlePaymentRecorded', () => {
     expect(queue.add).toHaveBeenCalledWith('send', { logId: 'log-1' });
   });
 
+  it('D6 nested WhatsApp settings still count as available', async () => {
+    const { listener, logRepo } = makeListener({
+      schoolsService: {
+        getResolvedSettings: vi.fn().mockResolvedValue({
+          region: { locale: 'en-US' },
+          communications: {
+            sms: { provider: 'greenweb' },
+            whatsapp: { provider: 'meta-cloud', 'meta-cloud': { phoneNumberId: '123' } },
+          },
+        }),
+      },
+      paymentRepo: { findOne: vi.fn().mockResolvedValue(payment) },
+      invoiceRepo: { findOne: vi.fn().mockResolvedValue(invoice) },
+      studentRepo: { find: vi.fn().mockResolvedValue([{ id: 's1', guardians: [guardian()] }]) },
+    });
+
+    await listener.handlePaymentRecorded({
+      payment_id: paymentId,
+      tenant_id: tenantId,
+      student_ids: ['s1'],
+    });
+
+    expect(logRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({ medium: CommunicationMedium.WHATSAPP }),
+    );
+  });
+
   it('metered SMS: reserves under batch:<id> while the job carries the bare id (#1317)', async () => {
     const smsCreditService = {
       isMetered: vi.fn().mockResolvedValue(true),

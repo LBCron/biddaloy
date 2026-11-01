@@ -149,6 +149,18 @@ describe('StudyPlansSection', () => {
     expect(screen.getByText(/No SMS company added\./)).toBeTruthy();
   });
 
+  // PR #3325 review round 2, finding 8: unknown (still loading, or failed) is not "not set up".
+  it('neither disables the SMS checkbox nor says "not set up" while SMS readiness is unknown', async () => {
+    mockCredits();
+    renderSection({ smsConfigured: null });
+
+    const box = await screen.findByLabelText(SMS_LABEL);
+    expect(box.hasAttribute('disabled') || box.getAttribute('aria-disabled') === 'true').toBe(
+      false,
+    );
+    expect(screen.queryByText(/No SMS company added\./)).toBeNull();
+  });
+
   it('shows the current balance when credits are metered', async () => {
     mockCredits({ metering: 'PLATFORM', available: 2150, reserved: 0, ledger: {} });
     renderSection({ studyPlans: STORED });

@@ -97,12 +97,13 @@ On the demo and staging sites nothing is really sent: the messages of a round la
 
 **Status of one message** (in the **Who received it** list)
 
-| Status                  | Meaning                                                    |
-| ----------------------- | ---------------------------------------------------------- |
-| **Queued**              | Still waiting to be sent                                   |
-| **Sent**                | The SMS or email service has taken the message             |
-| **Delivered**, **Read** | Not reported yet: the app does not record delivery reports |
-| **Failed**              | It did not go; the reason is in **Why it failed**          |
+| Status        | Meaning                                                                                      |
+| ------------- | -------------------------------------------------------------------------------------------- |
+| **Queued**    | Still waiting to be sent                                                                     |
+| **Sent**      | The SMS or email service has taken the message                                               |
+| **Delivered** | The company reported it reached the phone, after a [Check status](message-log.md#task-check) |
+| **Read**      | Not reported: the app does not record read reports                                           |
+| **Failed**    | It did not go; the reason is in **Why it failed**                                            |
 
 The **Delivered** number at the top means how many messages the service has taken; reaching the phone is not counted separately.
 
@@ -224,6 +225,7 @@ For the other roles, **Reminder History** is not in the left menu.
 
 - [**Fee reminders**](fee-reminders.md) — rounds are sent from here.
 - [**Send a message**](send-message.md) — a separate message to one guardian.
+- [**Message log**](message-log.md) — every message the school sent, one by one, with Check status.
 
 ---
 

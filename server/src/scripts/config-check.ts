@@ -14,6 +14,9 @@ import { resolveAppBaseUrl } from '../modules/account-access/app-base-url.util';
 import { resolvePublicAppUrl } from '../modules/invoices/public-app-url.util';
 import { requireDocsCredentials } from '../swagger';
 import { verifyPassword } from '../modules/auth/password-hash';
+import { CommunicationMedium } from '@biddaloy/shared';
+import { MESSAGING_PROVIDERS } from '../modules/communications/providers/messaging-providers';
+import { envName } from '../modules/communications/config/messaging-config.resolver';
 
 /**
  * `yarn config:check` — runs the boot-time config checks without starting
@@ -77,7 +80,17 @@ export function runProductionConfigCheck(env: Record<string, unknown>) {
 export const TURNSTILE_TEST_SECRET = '1x0000000000000000000000000000000AA';
 
 // Every variable that can reach a real SMS / WhatsApp / email / push provider (.env.example).
-const PROVIDER_VAR = /^(SMS_|MIMSMS_|GREENWEB_|WHATSAPP_|SMTP_|VAPID_|PLATFORM_SMS_)/;
+// Provider prefixes come from the registry (no hand list); the rest are the `<MEDIUM>_PROVIDER`
+// keys and non-registry leftovers. `MESSAGE_SINK` is required on staging/demo, so it is not here.
+const INSTANCES = MESSAGING_PROVIDERS.map((P) => new P());
+const REGISTRY_PREFIXES = INSTANCES.map((p) => p.envPrefix);
+const PROVIDER_VAR = new RegExp(
+  `^(${[...new Set([...REGISTRY_PREFIXES, ...Object.values(CommunicationMedium).map((m) => String(m)), 'MESSENGER', 'VAPID', 'PLATFORM_SMS'])].join('|')})_`,
+);
+// Prod rule only: the platform SMS provider is chosen among SMS providers; a prod with only email keys is fine.
+const SMS_INSTANCES = INSTANCES.filter((p) => p.descriptor.medium === CommunicationMedium.SMS);
+const SMS_PREFIXES = SMS_INSTANCES.map((p) => p.envPrefix);
+const SMS_PROVIDER_NAMES = SMS_INSTANCES.map((p) => p.descriptor.name);
 // Also refused on staging: real alert phones and social sign-in (real accounts) credentials.
 const EXTRA_REFUSED = /^(PLATFORM_ALERT_PHONES|GOOGLE_OAUTH_|FACEBOOK_OAUTH_)/;
 export const TURNSTILE_TEST_SITE_KEY = '1x00000000000000000000AA';
@@ -215,6 +228,24 @@ export async function runStackConfigCheck(
     if (val('MESSAGE_SINK') !== 'mailpit') errors.push(`MESSAGE_SINK must be mailpit on ${stack}`);
     if (!set('MESSAGE_SINK_PUBLIC_URL')) {
       errors.push(`MESSAGE_SINK_PUBLIC_URL must be set on ${stack}`);
+    }
+  }
+  // [97 D3] SMS_PROVIDER must name a registered SMS provider, and is needed once an SMS key is set.
+  if (stack === 'prod') {
+    const smsKey = Object.keys(env).some(
+      (k) => SMS_PREFIXES.some((p) => k.startsWith(`${p}_`)) && set(k),
+    );
+    if ((set('SMS_PROVIDER') || smsKey) && !SMS_PROVIDER_NAMES.includes(val('SMS_PROVIDER'))) {
+      errors.push('SMS_PROVIDER must name a registered SMS provider');
+    } else if (set('SMS_PROVIDER')) {
+      // Keys only, never values: every required field of the chosen provider must be set.
+      const chosen = SMS_INSTANCES.find((p) => p.descriptor.name === val('SMS_PROVIDER'));
+      const missing = (chosen?.descriptor.fields ?? [])
+        .filter((f) => f.required)
+        .map((f) => envName(chosen!.envPrefix, f.key))
+        // Blank or spaces only is missing too: a key of spaces passes no vendor.
+        .filter((k) => val(k).trim() === '');
+      if (missing.length > 0) errors.push(`SMS_PROVIDER needs ${missing.join(', ')} on prod`);
     }
   }
   if (stack === 'prod' && val('DEMO_MODE') === 'true') {

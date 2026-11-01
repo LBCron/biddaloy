@@ -8,7 +8,10 @@ import { AuditAction, AuthTokenPurpose, CommunicationStatus, UserRole } from '@b
 import { Guardian } from '../students/entities/guardian.entity';
 import { UserTenant } from '../auth/entities/user-tenant.entity';
 import { User } from '../users/entities/user.entity';
-import { CommunicationLog } from '../communications/entities/communication-log.entity';
+import {
+  ACCEPTED_STATUSES,
+  CommunicationLog,
+} from '../communications/entities/communication-log.entity';
 import { AuditLog } from '../audit/entities/audit-log.entity';
 import { AuditService } from '../audit/audit.service';
 import { AuthTokenService } from './auth-token.service';
@@ -324,8 +327,9 @@ export class GuardianProvisioningService {
       .groupBy('log.status')
       .getRawMany<{ status: CommunicationStatus; count: string }>();
 
-    const byStatus = new Map(rows.map((r) => [r.status, Number(r.count)]));
-    const sent = byStatus.get(CommunicationStatus.SENT) ?? 0;
+    const byStatus = new Map<string, number>(rows.map((r) => [r.status, Number(r.count)]));
+    // DELIVERED / READ (written later by Check status) were sent too, or the invite stays queued.
+    const sent = ACCEPTED_STATUSES.reduce((n, s) => n + (byStatus.get(s) ?? 0), 0);
     const failed = byStatus.get(CommunicationStatus.FAILED) ?? 0;
     const queued = Math.max(total - sent - failed - skipped, 0);
 

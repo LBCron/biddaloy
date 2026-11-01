@@ -7,6 +7,12 @@ import { SingleReminderService } from './single-reminder.service';
 import { CommunicationMedium, UserRole } from '@biddaloy/shared';
 import { FamilyAccessService } from '../students/family-access.service';
 import { TeacherScopeService } from '../classes/teacher-scope.service';
+import { DeliveryStatusService } from './delivery-status.service';
+import { STRICT_RATE_LIMIT } from '../../rate-limit';
+
+// @nestjs/throttler's metadata keys (not exported from the package root).
+const THROTTLER_LIMIT = 'THROTTLER:LIMIT';
+const THROTTLER_TTL = 'THROTTLER:TTL';
 
 /**
  * Unit tests for CommunicationsController.
@@ -25,6 +31,7 @@ describe('CommunicationsController', () => {
   let singleReminderService: Record<string, ReturnType<typeof vi.fn>>;
   let familyAccess: Record<string, ReturnType<typeof vi.fn>>;
   let teacherScope: Record<string, ReturnType<typeof vi.fn>>;
+  let deliveryStatus: Record<string, ReturnType<typeof vi.fn>>;
 
   const TENANT = { id: 'tenant-1', role: UserRole.ADMIN };
   const USER = { sub: 'user-1', memberships: [] } as any;
@@ -55,12 +62,14 @@ describe('CommunicationsController', () => {
       scopedStudentIds: vi.fn().mockResolvedValue(null),
       assertCanSeeGuardian: vi.fn().mockResolvedValue(undefined),
     };
+    deliveryStatus = { checkStatus: vi.fn() };
     controller = new CommunicationsController(
       service as unknown as CommunicationsService,
       bulkReminderService as unknown as BulkReminderService,
       singleReminderService as unknown as SingleReminderService,
       familyAccess as unknown as FamilyAccessService,
       teacherScope as unknown as TeacherScopeService,
+      deliveryStatus as unknown as DeliveryStatusService,
     );
   });
 
@@ -218,28 +227,55 @@ describe('CommunicationsController', () => {
     });
   });
 
+  describe('checkStatus', () => {
+    it('passes the log id, the caller tenant and role to DeliveryStatusService', async () => {
+      const expected = { id: 'log-1', status: 'DELIVERED' };
+      deliveryStatus.checkStatus.mockResolvedValue(expected);
+
+      const result = await controller.checkStatus('log-1', TENANT);
+
+      expect(deliveryStatus.checkStatus).toHaveBeenCalledWith('log-1', TENANT.id, TENANT.role);
+      expect(result).toBe(expected);
+    });
+
+    // CodeRabbit on #3347: the 60 s cooldown is per log, so the route itself is capped too.
+    // Metadata, not behaviour: app.module.ts skips throttling when NODE_ENV === 'test'.
+    it('carries STRICT_RATE_LIMIT, so many logs in a row cannot flood the vendor', () => {
+      const handler = CommunicationsController.prototype.checkStatus;
+      expect(Reflect.getMetadata(`${THROTTLER_LIMIT}default`, handler)).toBe(
+        STRICT_RATE_LIMIT.limit,
+      );
+      expect(Reflect.getMetadata(`${THROTTLER_TTL}default`, handler)).toBe(STRICT_RATE_LIMIT.ttl);
+    });
+  });
+
   describe('findLogs', () => {
-    it('should call bulkReminderService.findLogs with query and tenant id', async () => {
+    it('should call bulkReminderService.findLogs with query, tenant id and role', async () => {
       const query = { status: 'FAILED', medium: 'SMS' };
       const expected = { data: [], total: 0, page: 1, limit: 25, totalPages: 0 };
       bulkReminderService.findLogs.mockResolvedValue(expected);
 
       const result = await controller.findLogs(query as any, TENANT);
 
-      expect(bulkReminderService.findLogs).toHaveBeenCalledWith(query, TENANT.id);
+      expect(bulkReminderService.findLogs).toHaveBeenCalledWith(query, TENANT.id, TENANT.role);
       expect(result).toEqual(expected);
     });
   });
 
   describe('findReminderBatchLogs', () => {
-    it('should call bulkReminderService.findBatchLogs with id, query, and tenant id', async () => {
+    it('should call bulkReminderService.findBatchLogs with id, query, tenant id and role', async () => {
       const query = { page: 1, limit: 50 };
       const expected = { data: [], total: 0, page: 1, limit: 50, totalPages: 0 };
       bulkReminderService.findBatchLogs.mockResolvedValue(expected);
 
       const result = await controller.findReminderBatchLogs('batch-1', query as any, TENANT);
 
-      expect(bulkReminderService.findBatchLogs).toHaveBeenCalledWith('batch-1', query, TENANT.id);
+      expect(bulkReminderService.findBatchLogs).toHaveBeenCalledWith(
+        'batch-1',
+        query,
+        TENANT.id,
+        TENANT.role,
+      );
       expect(result).toEqual(expected);
     });
 

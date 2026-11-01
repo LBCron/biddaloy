@@ -146,7 +146,7 @@ describe('AccountAccessDeliveryService', () => {
 
   it('marks the log SENT on a successful provider call', async () => {
     const provider = {
-      send: vi.fn().mockResolvedValue({ success: true, providerMessageId: 'p1' }),
+      send: vi.fn().mockResolvedValue({ success: true, providerMessageId: 'p1', provider: 'smtp' }),
     };
     registry.resolve.mockReturnValue(provider);
 
@@ -161,6 +161,8 @@ describe('AccountAccessDeliveryService', () => {
 
     expect(result.status).toBe(CommunicationStatus.SENT);
     expect(logRepo.saved.status).toBe(CommunicationStatus.SENT);
+    // #3344: Check status needs the vendor name; nothing else secret rides along.
+    expect(logRepo.saved.metadata).toEqual({ kind: 'INVITATION', provider: 'smtp' });
   });
 
   it('marks the log FAILED when the provider reports failure, without persisting the raw provider error text', async () => {
@@ -171,6 +173,8 @@ describe('AccountAccessDeliveryService', () => {
       send: vi.fn().mockResolvedValue({
         success: false,
         error: 'boom: link was https://x/activate?token=SECRET',
+        provider: 'onecodesoft',
+        source: 'platform',
       }),
     };
     registry.resolve.mockReturnValue(provider);
@@ -186,6 +190,12 @@ describe('AccountAccessDeliveryService', () => {
 
     expect(result.status).toBe(CommunicationStatus.FAILED);
     expect(logRepo.saved.metadata.error).toBe('Delivery failed');
+    expect(logRepo.saved.metadata.provider).toBe('onecodesoft');
+    // The platform account is recorded, so Check status asks it and not the school's own (#3350).
+    expect(logRepo.saved.metadata.source).toBe('platform');
+    expect(JSON.stringify(logRepo.saved.metadata)).not.toContain('123456');
+    // The text the gateway echoed is what Rule 13 is about.
+    expect(JSON.stringify(logRepo.saved.metadata)).not.toContain('SECRET');
   });
 
   it('marks the log FAILED without persisting the raw error text when the provider throws', async () => {
