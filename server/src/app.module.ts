@@ -49,6 +49,8 @@ import { StaffHrModule } from './modules/staff-hr/staff-hr.module';
 import { SearchModule } from './modules/search/search.module';
 import { GradingModule } from './modules/grading/grading.module';
 import { ExamsModule } from './modules/exams/exams.module';
+import { FinalResultsModule } from './modules/final-results/final-results.module';
+import { ReportCardNotesModule } from './modules/report-card-notes/report-card-notes.module';
 import { PromotionsModule } from './modules/promotions/promotions.module';
 import { HomeworkModule } from './modules/homework/homework.module';
 import { StudyPlansModule } from './modules/study-plans/study-plans.module';
@@ -199,6 +201,11 @@ import { Mark } from './modules/exams/entities/mark.entity';
 import { MarkGrid } from './modules/exams/entities/mark-grid.entity';
 import { Result } from './modules/exams/entities/result.entity';
 import { ResultSubject } from './modules/exams/entities/result-subject.entity';
+import { FinalResult } from './modules/final-results/entities/final-result.entity';
+import { FinalResultWeight } from './modules/final-results/entities/final-result-weight.entity';
+import { FinalResultRow } from './modules/final-results/entities/final-result-row.entity';
+import { FinalResultSubject } from './modules/final-results/entities/final-result-subject.entity';
+import { ReportCardNote } from './modules/report-card-notes/entities/report-card-note.entity';
 import { StudentSubjectChoice } from './modules/students/entities/student-subject-choice.entity';
 import { StudentLifecycleEvent } from './modules/students/entities/student-lifecycle-event.entity';
 import { StudentNote } from './modules/students/entities/student-note.entity';
@@ -302,6 +309,11 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
             MarkGrid,
             Result,
             ResultSubject,
+            FinalResult,
+            FinalResultWeight,
+            FinalResultRow,
+            FinalResultSubject,
+            ReportCardNote,
             ExamSchedule,
             StudentSubjectChoice,
             StudentLifecycleEvent,
@@ -477,6 +489,8 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
     SearchModule,
     GradingModule,
     ExamsModule,
+    FinalResultsModule,
+    ReportCardNotesModule,
     HomeworkModule,
     StudyPlansModule,
     AdmissionModule,
