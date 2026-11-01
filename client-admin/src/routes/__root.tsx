@@ -68,8 +68,10 @@ const PUBLIC_PATHS = new Set([
  *
  * [32.3.9] `/v/` added the same way: `/v/<token>` is the page a printed ID
  * card's QR code opens, so a phone reading it has no session either.
+ *
+ * [53.6.01] `/n/` added the same way: `/n/<token>` is the public notice link.
  */
-const PUBLIC_PATH_PREFIXES = ['/i/', '/admission/', '/v/'];
+const PUBLIC_PATH_PREFIXES = ['/i/', '/admission/', '/v/', '/n/'];
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   // Protected-route guard, runs before every route in the tree including
