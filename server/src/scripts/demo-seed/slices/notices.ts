@@ -7,6 +7,7 @@ import { NoticesService } from '../../../modules/notices/notices.service';
 import { NoticeRecipientsService } from '../../../modules/notices/notice-recipients.service';
 import { NoticeLinksService } from '../../../modules/notices/links/notice-links.service';
 import { NoticeFilesService } from '../../../modules/notices/access/notice-files.service';
+import { NoticeSmsService } from '../../../modules/notices/sms/notice-sms.service';
 import { NoticeReaderService } from '../../../modules/notices/access/notice-reader.service';
 import { orgIds } from './org';
 import { staffByCardKey, teachersByTenant } from './staff';
@@ -31,7 +32,7 @@ const file = (name: string, mimetype: string, buffer: Buffer) =>
   ({ originalname: name, mimetype, buffer, size: buffer.length }) as Express.Multer.File;
 
 /**
- * [53.3.0x / #3374] The demo school's notice board: 8 notices over the term, written through the
+ * [53.3.0x / #3374] The demo school's notice board: 12 notices (8 plus 4 SMS requests, [53.5.05]) over the term, written through the
  * real services (create, recipients, files, publish, withdraw, acknowledge) so every rule runs.
  * Only the clock-dependent columns are set by SQL afterwards: the services stamp "now", the demo
  * wants dates derived from the anchor.
@@ -48,6 +49,7 @@ export const slice: DemoSlice = {
     const files = ctx.app.get(NoticeFilesService);
     const reader = ctx.app.get(NoticeReaderService);
     const links = ctx.app.get(NoticeLinksService);
+    const sms = ctx.app.get(NoticeSmsService);
 
     const { students, guardians, cards } = studentIds(ctx);
     const guardianById = new Map(guardians.map((g) => [g.id, g]));
@@ -226,6 +228,35 @@ export const slice: DemoSlice = {
       staffUsers.slice(0, 3).map(staff),
     );
 
+    // ---- [53.5.05] SMS approval requests, one per state, all through the real services -----------
+    // Each is published with the SMS request (the service raises the admin's task). Only guardian
+    // rows of the generic pool are used, so the guardian card keeps seeing 3 notices.
+    const smsNotice = async (title: string, days: number) => {
+      const id = await draft(
+        admin,
+        { title, body: 'এই নোটিশের এসএমএস পাঠানোর অনুমোদন চাওয়া হয়েছে।' },
+        some(pool, 6).map((s) => guardian(s)),
+      );
+      await notices.publish(T, admin, id, true);
+      made.push({ id, days, hour: 10 });
+      return id;
+    };
+    // PENDING: the demo admin sees the task in the attention bar.
+    await smsNotice('এসএমএস অনুমোদনের অপেক্ষায়', 2);
+    // APPROVED: the real approve writes the QUEUED logs; the sink outcome is set below.
+    const smsApproved = await smsNotice('এসএমএস অনুমোদিত নোটিশ', 6);
+    await sms.approve(T, smsApproved, org.adminUserId);
+    // DECLINED by the admin.
+    await sms.decline(T, await smsNotice('এসএমএস প্রত্যাখ্যাত নোটিশ', 8), org.adminUserId);
+    // Expired and closed: the notice expired while the request waited. Approve answers 409 and
+    // the service closes the dead request itself (declined by the system, no deciding user).
+    const smsExpired = await smsNotice('মেয়াদোত্তীর্ণ এসএমএস অনুরোধ', 25);
+    await ctx.ds.query(`UPDATE notices SET expires_on = $2::date WHERE id = $1`, [
+      smsExpired,
+      addDays(ctx.anchor, -5),
+    ]);
+    await sms.approve(T, smsExpired, org.adminUserId).catch(() => undefined);
+
     await notices.idle();
 
     // ---- dates from the anchor (the services stamped "now") ---------------------------------
@@ -237,6 +268,23 @@ export const slice: DemoSlice = {
         [m.id, at(addDays(ctx.anchor, -m.days), m.hour)],
       );
     }
+    // SMS decisions land 3 hours after publish; the approved logs get a fixed SENT/FAILED mix
+    // (dev sink, fake numbers only: nothing left the machine).
+    await ctx.ds.query(
+      `UPDATE notices SET sms_decided_at = published_at + interval '3 hours'
+        WHERE tenant_id = $1 AND sms_status IN ('APPROVED', 'DECLINED')`,
+      [T],
+    );
+    const logs: { id: string }[] = await ctx.ds.query(
+      `SELECT l.id FROM notice_recipients r JOIN communication_logs l ON l.id = r.communication_log_id
+        WHERE r.notice_id = $1 ORDER BY l.recipient_address, l.id`,
+      [smsApproved],
+    );
+    for (const [i, l] of logs.entries())
+      await ctx.ds.query(`UPDATE communication_logs SET status = $2 WHERE id = $1`, [
+        l.id,
+        i % 3 === 2 ? 'FAILED' : 'SENT',
+      ]);
     await ctx.ds.query(`UPDATE notices SET created_at = $2::timestamptz WHERE id = $1`, [
       next,
       at(addDays(ctx.anchor, -1), 15),

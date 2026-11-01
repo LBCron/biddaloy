@@ -251,6 +251,7 @@ GET /notices/:id | NoticesController | perm: NOTICE_POST
 GET /notices/:id/files/:fileId | NoticeFilesController | perm: NOTICE_READ
 GET /notices/:id/recipients | NoticesController | perm: NOTICE_POST
 GET /notices/:id/report | NoticesController | perm: NOTICE_POST
+GET /notices/:id/sms | NoticeSmsController | perm: NOTICE_SMS_APPROVE
 GET /notices/mine | NoticeReaderController | perm: NOTICE_READ
 GET /notices/mine/:id | NoticeReaderController | perm: NOTICE_READ
 GET /onboarding/status | OnboardingController | identity | roles: ADMIN,SUPER_ADMIN
@@ -425,6 +426,7 @@ PATCH /homework-assignments/:id | HomeworkController | perm: HOMEWORK_ASSIGN
 PATCH /homework-assignments/:id/submissions | HomeworkSubmissionController | perm: HOMEWORK_GRADE
 PATCH /homework-submissions/:id | HomeworkSubmissionController | perm: HOMEWORK_GRADE
 PATCH /notices/:id | NoticesController | perm: NOTICE_POST
+PATCH /notices/:id/sms/recipients | NoticeSmsController | perm: NOTICE_SMS_APPROVE
 PATCH /onboarding | OnboardingController | identity | roles: ADMIN,SUPER_ADMIN
 PATCH /print-jobs/:id/confirm | PrintJobActionsController | perm: DOCUMENT_PRINT
 PATCH /print-templates/:id | PrintTemplatesController | perm: PRINT_TEMPLATE_MANAGE
@@ -599,6 +601,8 @@ POST /notices/:id/public-link | NoticesController | perm: NOTICE_POST
 POST /notices/:id/publish | NoticesController | perm: NOTICE_POST
 POST /notices/:id/recipients | NoticesController | perm: NOTICE_POST
 POST /notices/:id/recipients/matching | NoticesController | perm: NOTICE_POST
+POST /notices/:id/sms/approve | NoticeSmsController | perm: NOTICE_SMS_APPROVE
+POST /notices/:id/sms/decline | NoticeSmsController | perm: NOTICE_SMS_APPROVE
 POST /notices/:id/sms/request | NoticesController | perm: NOTICE_POST
 POST /notices/:id/withdraw | NoticesController | perm: NOTICE_POST
 POST /notices/mine/:id/acknowledge | NoticeReaderController | perm: NOTICE_READ

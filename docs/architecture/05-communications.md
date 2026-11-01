@@ -737,3 +737,22 @@ flowchart LR
 - **Surprise:** the manifest's three `$noticeId` entries said "seeded" but `yarn seed` wrote no notice. Fixed: `seed.notices.ts` publishes one notice (title `E2E seeded notice`) for the demo parent, through the real services, and `e2e/responsive/routes.ts` finds it by title.
 - Guardian accounts in a journey come from the invite batch plus first sign-in with a code, as in `arrival-notice.spec.ts`. A passwordless account cannot be logged in by API.
 - Usability tasks ক, গ, ঙ were **not run with people** (see `docs/ux-research/epic-53-notices.md`).
+
+### Notice board: Wave 5 close learning (2026-11-02)
+
+A notice can ask the admin to approve an SMS. Approval is the only place a notice SMS is queued.
+
+```mermaid
+flowchart LR
+    P[Publish with SMS request] --> T[Admin task raised, notice sms_status PENDING]
+    T -->|decline| D[DECLINED, task closed]
+    T -->|approve, notice live| A[Credit reserved, links made, logs QUEUED, jobs queued]
+    T -->|approve, notice expired or withdrawn| X[409, then its own transaction closes the request as DECLINED by the system]
+```
+
+- **Surprise:** the expiry close must run in its **own** transaction, after the approve transaction rolled back. Inside the approve transaction it would roll back with the 409 and the dead request would stay PENDING forever. `closeIfNotLive` locks the row again, so a live or already-decided notice is a no-op.
+- **Surprise:** each approve attempt makes a fresh credit batch id (`randomUUID()`). A rolled-back attempt releases its reservation; a retry that reused the id would find the settled reservation and be refused.
+- **Surprise:** `NOTICE_SMS_APPROVE` was a UI-only permission until the routes landed. Once four routes carried it, `permission-matrix.e2e-spec.ts` failed `[10.4] lists every UI-only permission` until it left `UI_ONLY_PERMISSIONS`. A permission that gains a route leaves that list.
+- **Route snapshot:** `/notices/:id/sms*` (4 routes) answers `401 PASS PASS PASS 403 403 403 403 PASS 403 403 403`. Columns: ANON 401; PLATFORM_SA, TENANT_SA, ADMIN and EXECUTIVE pass; ACCOUNTANT, TEACHER, PARENT, STUDENT, OFFICE_STAFF, EXAM_CONTROLLER and COMMITTEE get 403.
+- **No outage-routes entry:** `redis-outage-routes.ts` lists only `/auth*` and `/account*` controllers (plus `UserController`). `/notices/:id/sms/approve` carries `@FailClosedWithoutRedis()` and is covered by its own e2e.
+- **Demo seed:** `slices/notices.ts` writes four SMS requests through the real services: PENDING, APPROVED (logs set to a SENT/FAILED mix), DECLINED, and expired-and-closed (approve answers 409, the service closes it). Phones are only `01700-NNNNNN`.
