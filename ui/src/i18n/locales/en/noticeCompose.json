@@ -95,6 +95,9 @@
     "loadError": "Could not load people",
     "pickClass": "Pick a class to see people.",
     "pickRole": "Pick a role to see people.",
+    "examsLoading": "Loading exams...",
+    "examsError": "Could not load exams. Try again.",
+    "examsPartial": "Only the latest 100 exams are listed.",
     "pickExam": "Pick an exam to see people.",
     "pickPercent": "Write a number from 1 to 100.",
     "pickGroup": "Pick a shift, version or group to see people."

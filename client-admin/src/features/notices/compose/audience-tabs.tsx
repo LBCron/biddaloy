@@ -115,7 +115,8 @@ export function pendingHint(tab: TabKey, f: AudienceFilterState) {
   if (tab === 'orgGroup' && !f.shift && !f.version && !f.group) return 'pickGroup';
   return null;
 }
-export const needsClass = (tab: TabKey, f: AudienceFilterState) => pendingHint(tab, f) !== null;
+export const isAudiencePending = (tab: TabKey, f: AudienceFilterState) =>
+  pendingHint(tab, f) !== null;
 
 export function personRow(p: AudiencePersonDto): AudienceRow {
   return {
@@ -251,6 +252,14 @@ export function useAudienceTabs(
     versions: raw?.versions ?? [],
     groups: raw?.groups ?? [],
   };
+  // A shift/version/group that left the school's list must not ride along in the query.
+  const stale = (['shift', 'version', 'group'] as const).filter(
+    (k) => f[k] && !vocab[`${k}s`].includes(f[k]),
+  );
+  React.useEffect(() => {
+    if (stale.length) set(Object.fromEntries(stale.map((k) => [k, null])));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stale.join()]);
   const filters: Record<TabKey, React.ReactNode> = {
     ...advancedFilters(f, set, vocab),
     guardians: <ClassFilters f={f} set={set} />,
