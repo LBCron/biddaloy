@@ -554,10 +554,22 @@ describe('ReportCompiler', () => {
       expect(compiled.masked).toEqual(['billed']);
     });
 
-    it('refuses a sort on a field the list does not show', () => {
+    it('orders a plain list by a field it does not show', () => {
+      const { sql, compiled } = sqlOf(
+        definition({ dimensions: [{ field: 'name' }], sort: [{ field: 'roll', dir: 'asc' }] }),
+      );
+      expect(sql).toMatch(/ORDER BY s\.roll_number ASC/);
+      expect(compiled.columns.map((c) => c.key)).toEqual(['name']);
+    });
+
+    it('refuses a grouped report sorted on a field it does not show', () => {
       expect(() =>
         sqlOf(
-          definition({ dimensions: [{ field: 'name' }], sort: [{ field: 'roll', dir: 'asc' }] }),
+          definition({
+            dimensions: [{ field: 'class' }],
+            measures: [{ field: 'students', fn: AggregateFn.COUNT }],
+            sort: [{ field: 'roll', dir: 'asc' }],
+          }),
         ),
       ).toThrowError(expect.objectContaining({ code: 'NOT_SORTABLE' }));
     });

@@ -262,10 +262,12 @@ export function validateDefinition(
     ...dimensions.map((d) => d.field.key),
     ...measures.map((m) => m.alias),
   ]);
+  const grouped = measures.length > 0;
   const sorts = dataset.sort.map((s, i) => {
     const target = sortTarget(s, area, selected, `dataset.sort[${i}]`);
-    // Only an output column can be sorted: the builder skips any other, and a grouped query has no such column.
-    if (target.field && !selected.has(target.key)) {
+    // A grouped query has no such column to order by. A plain list orders by the field's registry SQL
+    // (see sql-builder.ts), so a sort on a field the report does not show is valid there.
+    if (grouped && target.field && !selected.has(target.key)) {
       throw new ReportCompileError('NOT_SORTABLE', `dataset.sort[${i}]`);
     }
     return target;
