@@ -76,18 +76,24 @@ function handleMutationError(
     toast.error(i18n.t('errors.permissionDenied', { ns: COMMON_NAMESPACE }));
     return;
   }
-  // [2596] A 5xx or a lost reply: the write may have been saved. Say so, since we do not retry.
-  // A gateway 502/504 from nginx or Cloudflare has an HTML body, so it stays a raw AxiosError.
+  if (mutation.meta?.handlesUnknownOutcome === true) return;
+  if (isUnknownOutcomeError(error)) {
+    toast.error(i18n.t('outcomeUnknown', { ns: COMMON_NAMESPACE }));
+  }
+}
+
+/**
+ * [2596] A 5xx or a lost reply: the write may have been saved. Say so, since we do not retry.
+ * A gateway 502/504 from nginx or Cloudflare has an HTML body, so it stays a raw AxiosError.
+ */
+export function isUnknownOutcomeError(error: unknown): boolean {
   const status =
     error instanceof ApiError
       ? error.statusCode
       : axios.isAxiosError(error)
         ? (error.response?.status ?? 0)
         : 0;
-  if (mutation.meta?.handlesUnknownOutcome === true) return;
-  if (status >= 500 || isNoResponseNetworkError(error)) {
-    toast.error(i18n.t('outcomeUnknown', { ns: COMMON_NAMESPACE }));
-  }
+  return status >= 500 || isNoResponseNetworkError(error);
 }
 
 /**

@@ -1,43 +1,24 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { MessengerProvider } from './messenger.provider';
-import { ProviderNotConfiguredError } from '../../config/provider-not-configured.error';
+import { MetaPageProvider } from './meta-page.provider';
 
-describe('MessengerProvider', () => {
-  const tenantId = 'tenant-1';
-  let configResolver: Record<string, ReturnType<typeof vi.fn>>;
-  let provider: MessengerProvider;
+describe('MetaPageProvider', () => {
+  let provider: MetaPageProvider;
 
   beforeEach(() => {
-    configResolver = { resolveMessenger: vi.fn() };
-    provider = new MessengerProvider(configResolver as any);
+    provider = new MetaPageProvider();
   });
 
-  it('reports "not yet implemented" once the tenant is configured', async () => {
-    configResolver.resolveMessenger.mockResolvedValue({ pageId: 'page-1', accessToken: 'token-1' });
+  it('reports "not yet implemented", REJECTED and not retryable, without touching the network', async () => {
+    const result = await provider.send(
+      { to: 'psid-1', body: 'hi' },
+      { pageId: 'page-1', accessToken: 'token-1' },
+    );
 
-    const result = await provider.send({ to: 'psid-1', body: 'hi' }, tenantId);
-
-    // A mock that resolves for any argument wouldn't catch a regression
-    // that passed a fixed or another tenant's id through to the resolver.
-    expect(configResolver.resolveMessenger).toHaveBeenCalledWith(tenantId);
     expect(result.success).toBe(false);
     expect(result.error).toBe('Messenger sending is not yet implemented');
     expect(result.retryable).toBe(false);
+    expect(result.outcome).toBe('REJECTED');
   });
-
-  it('reports the tenant-configuration error when Messenger is not configured', async () => {
-    configResolver.resolveMessenger.mockRejectedValue(
-      new ProviderNotConfiguredError('Messenger', 'configure it in settings'),
-    );
-
-    const result = await provider.send({ to: 'psid-1', body: 'hi' }, tenantId);
-
-    expect(result.success).toBe(false);
-    expect(result.error).toMatch(/configure it in settings/);
-    // Not retryable — no queued retry fixes a missing tenant configuration.
-    expect(result.retryable).toBe(false);
-  });
-
   describe('testConnection', () => {
     const config = { pageId: '10001', accessToken: 'super-secret-token' };
     let fetchMock: ReturnType<typeof vi.fn>;

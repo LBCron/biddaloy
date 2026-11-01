@@ -25,84 +25,86 @@ export class MaskedSecretResponseDto {
   hint?: string;
 }
 
-export class MaskedGreenwebSmsResponseDto {
-  @ApiProperty({ type: MaskedSecretResponseDto })
-  apiKey: MaskedSecretResponseDto;
-
-  @ApiProperty({ required: false })
-  apiUrl?: string;
-}
-
-export class MaskedMimSmsResponseDto {
-  @ApiProperty({ type: MaskedSecretResponseDto })
-  apiKey: MaskedSecretResponseDto;
-
-  @ApiProperty()
-  senderId: string;
-
-  @ApiProperty({ required: false })
-  apiUrl?: string;
-}
-
-export class MaskedSmsSettingsResponseDto {
-  @ApiProperty()
-  provider: string;
-
-  @ApiProperty({ type: MaskedGreenwebSmsResponseDto, required: false })
-  greenweb?: MaskedGreenwebSmsResponseDto;
-
-  @ApiProperty({ type: MaskedMimSmsResponseDto, required: false })
-  mimsms?: MaskedMimSmsResponseDto;
-}
-
-export class MaskedWhatsAppSettingsResponseDto {
-  @ApiProperty()
-  phoneNumberId: string;
-
-  @ApiProperty({ required: false })
-  apiVersion?: string;
-
-  @ApiProperty({ type: MaskedSecretResponseDto })
-  accessToken: MaskedSecretResponseDto;
-}
-
-export class MaskedEmailSettingsResponseDto {
-  @ApiProperty()
-  host: string;
-
-  @ApiProperty()
-  port: number;
-
-  @ApiProperty()
-  user: string;
-
-  @ApiProperty()
-  from: string;
-
-  @ApiProperty({ type: MaskedSecretResponseDto })
-  password: MaskedSecretResponseDto;
-}
-
-export class MaskedMessengerSettingsResponseDto {
-  @ApiProperty()
-  pageId: string;
-
-  @ApiProperty({ type: MaskedSecretResponseDto })
-  accessToken: MaskedSecretResponseDto;
-}
-
 export class MaskedCommunicationsSettingsResponseDto {
-  @ApiProperty({ type: MaskedSmsSettingsResponseDto, required: false })
-  sms?: MaskedSmsSettingsResponseDto;
+  @ApiProperty({
+    required: false,
+    type: Object,
+    additionalProperties: true,
+    description: 'D6 shape; each schema secret is a MaskedSecretResponseDto',
+  })
+  sms?: Record<string, unknown>;
 
-  @ApiProperty({ type: MaskedWhatsAppSettingsResponseDto, required: false })
-  whatsapp?: MaskedWhatsAppSettingsResponseDto;
+  @ApiProperty({
+    required: false,
+    type: Object,
+    additionalProperties: true,
+    description: 'D6 shape; each schema secret is a MaskedSecretResponseDto',
+  })
+  whatsapp?: Record<string, unknown>;
 
-  @ApiProperty({ type: MaskedEmailSettingsResponseDto, required: false })
-  email?: MaskedEmailSettingsResponseDto;
+  @ApiProperty({
+    required: false,
+    type: Object,
+    additionalProperties: true,
+    description: 'D6 shape; each schema secret is a MaskedSecretResponseDto',
+  })
+  email?: Record<string, unknown>;
 
-  @ApiProperty({ type: MaskedMessengerSettingsResponseDto, required: false })
-  messenger?: MaskedMessengerSettingsResponseDto;
+  @ApiProperty({
+    required: false,
+    type: Object,
+    additionalProperties: true,
+    description: 'D6 shape; each schema secret is a MaskedSecretResponseDto',
+  })
+  messenger?: Record<string, unknown>;
+}
+
+class LocalizedLabelResponseDto {
+  @ApiProperty() en: string;
+  @ApiProperty() bn: string;
+}
+
+export class ProviderConfigFieldResponseDto {
+  @ApiProperty() key: string;
+  @ApiProperty({ type: LocalizedLabelResponseDto }) label: LocalizedLabelResponseDto;
+  @ApiProperty({ enum: ['text', 'url', 'secret'] }) kind: 'text' | 'url' | 'secret';
+  @ApiProperty() required: boolean;
+  @ApiProperty({ required: false }) advanced?: boolean;
+  @ApiProperty({ required: false }) destination?: boolean;
+  @ApiProperty({ required: false }) owned?: boolean;
+  @ApiProperty({ required: false }) sendOnly?: boolean;
+  @ApiProperty({ required: false, enum: ['port'] }) format?: 'port';
+}
+
+export class ProviderDescriptorResponseDto {
+  @ApiProperty() medium: string;
+  @ApiProperty() name: string;
+  @ApiProperty({ type: LocalizedLabelResponseDto }) label: LocalizedLabelResponseDto;
+  @ApiProperty({ type: [String] }) capabilities: string[];
+  @ApiProperty({ type: [ProviderConfigFieldResponseDto] }) fields: ProviderConfigFieldResponseDto[];
+  @ApiProperty() supportsTestMessage: boolean;
+}
+
+export class MessagingMediumProvidersResponseDto {
+  @ApiProperty({ type: [ProviderDescriptorResponseDto] })
+  providers: ProviderDescriptorResponseDto[];
+  @ApiProperty({
+    description:
+      "Presence only: the selected company's required fields are saved on this school. It ignores the platform-wide fallback (env keys), so false does not mean a send will fail.",
+  })
+  configured: boolean;
+  @ApiProperty({ type: String, nullable: true }) selected: string | null;
+}
+
+export class MessagingProvidersResponseDto {
+  @ApiProperty({ type: MessagingMediumProvidersResponseDto, required: false })
+  SMS?: MessagingMediumProvidersResponseDto;
+  @ApiProperty({ type: MessagingMediumProvidersResponseDto, required: false })
+  WHATSAPP?: MessagingMediumProvidersResponseDto;
+  @ApiProperty({ type: MessagingMediumProvidersResponseDto, required: false })
+  EMAIL?: MessagingMediumProvidersResponseDto;
+  @ApiProperty({ type: MessagingMediumProvidersResponseDto, required: false })
+  MESSENGER?: MessagingMediumProvidersResponseDto;
 }
 
 export class TenantSettingsResponseDto {

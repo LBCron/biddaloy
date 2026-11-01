@@ -1,7 +1,7 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Permission } from '@biddaloy/shared';
+import { CommunicationMedium, Permission } from '@biddaloy/shared';
 import { ContextGuard, RolesGuard } from '../../auth/guards/context.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
 import { RequirePermissions } from '../../auth/decorators/require-permissions.decorator';
@@ -13,7 +13,7 @@ import {
   SmsCreditsResponseDto,
   SmsReadinessResponseDto,
 } from './dto/sms-credits.dto';
-import { TenantProviderConfigResolver } from '../config/tenant-provider-config.resolver';
+import { MessagingConfigResolver } from '../config/messaging-config.resolver';
 import { ProviderNotConfiguredError } from '../config/provider-not-configured.error';
 
 /**
@@ -29,7 +29,7 @@ import { ProviderNotConfiguredError } from '../config/provider-not-configured.er
 export class CreditsController {
   constructor(
     private readonly smsCredits: SmsCreditService,
-    private readonly providerConfig: TenantProviderConfigResolver,
+    private readonly providerConfig: MessagingConfigResolver,
   ) {}
 
   /** [78 D37/D38] Can an SMS go out right now? Same resolver and credit check
@@ -48,7 +48,7 @@ export class CreditsController {
     @CurrentTenant() tenant: { id: string; role: string },
   ): Promise<SmsReadinessResponseDto> {
     try {
-      await this.providerConfig.resolveSms(tenant.id);
+      await this.providerConfig.resolve(CommunicationMedium.SMS, tenant.id);
     } catch (error) {
       if (error instanceof ProviderNotConfiguredError) return { sms: 'NO_GATEWAY' };
       throw error;

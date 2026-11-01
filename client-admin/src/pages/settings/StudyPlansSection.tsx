@@ -51,8 +51,8 @@ interface FormValues {
 interface StudyPlansSectionProps {
   schoolId: string;
   studyPlans: StudyPlansSettings | undefined;
-  /** Same test the server uses before sending (`communications.sms.provider` is set). */
-  smsConfigured?: boolean;
+  /** The server's "SMS is set up" (D32). `null` = not known yet (loading or failed): no warning. */
+  smsConfigured?: boolean | null;
 }
 
 export function StudyPlansSection({
@@ -229,7 +229,7 @@ export function StudyPlansSection({
                   <Checkbox
                     id="studyPlans-guardianDigestSms"
                     checked={field.value}
-                    disabled={!smsConfigured && !field.value}
+                    disabled={smsConfigured === false && !field.value}
                     aria-describedby="studyPlans-guardianSmsHint"
                     onCheckedChange={(checked) => field.onChange(checked === true)}
                   />
@@ -243,7 +243,7 @@ export function StudyPlansSection({
           <p id="studyPlans-guardianSmsHint" className="text-caption text-text-secondary">
             {t('studyPlans.guardianSmsHelp')}
             {balance !== undefined && <> {t('studyPlans.smsBalance', { count: balance })}</>}
-            {!smsConfigured && <> {t('evaluations.providerNotConfigured')}</>}
+            {smsConfigured === false && <> {t('evaluations.providerNotConfigured')}</>}
           </p>
         </div>
       </SettingsSection>

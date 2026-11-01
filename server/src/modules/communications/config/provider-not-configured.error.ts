@@ -1,11 +1,10 @@
 /**
- * Thrown by `TenantProviderConfigResolver` when neither a tenant setting
- * nor an env-var fallback resolves a medium's required fields. Each
- * provider (`WhatsAppCloudProvider`, `SmtpEmailProvider`,
- * `MessengerProvider`, `SmsProviderFactory`) catches this in its own
- * `send()` and converts it to `{ success: false, error: message }` —
- * `CommunicationProvider.send()`'s own contract is that a provider never
- * throws, so this error must never escape past the provider boundary.
+ * Thrown by `MessagingConfigResolver` when neither a tenant setting nor an
+ * env-var fallback resolves a provider's required fields (or the provider
+ * name is unknown). The registry's `send` turns it into a REJECTED,
+ * non-retryable `{ success: false, error: message }` result, and providers
+ * that raise it themselves do the same — `CommunicationProvider.send()`'s
+ * contract is that nothing throws past the provider boundary.
  */
 export class ProviderNotConfiguredError extends Error {
   constructor(medium: string, hint: string) {

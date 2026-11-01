@@ -107,12 +107,15 @@ describe('ReportChart', () => {
   });
 
   it('formats in Bangla digits and words', async () => {
-    renderWithProviders(
+    const view = renderWithProviders(
       <RegionConfigProvider value={REGION_BD_BN}>
         <ReportChart result={run()} layout={bar} />
       </RegionConfigProvider>,
       { locale: 'bn' },
     );
+    await act(async () => {
+      await view.localeReady;
+    });
     expect(
       await screen.findByRole('img', {
         name: 'সবচেয়ে বেশি: Six (৪০)। সবচেয়ে কম: Eight (২০)।',

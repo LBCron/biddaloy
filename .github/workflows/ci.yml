@@ -93,6 +93,8 @@ jobs:
               - 'scripts/flake-report.mjs'
               - 'scripts/flake-report.spec.mjs'
               - 'scripts/check-arch-docs.spec.mjs'
+              - 'scripts/coderabbit-review-queue.sh'
+              - 'scripts/coderabbit-review-queue.spec.mjs'
               - 'docs/architecture/**'
               - 'CLAUDE.md'
               - 'server/CLAUDE.md'
@@ -775,6 +777,10 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/betonboi_e2e
       REDIS_URL: redis://localhost:6379
       JWT_SECRET: ci-e2e-jwt-secret-do-not-use-in-production-1234567890
+      # Throwaway, same as the integration job: the SMS settings journey saves an API key, and a
+      # tenant settings secret cannot be written without it (HTTP 500 "Settings encryption is not
+      # configured"). scripts/test-env.sh sets the same key locally.
+      SETTINGS_ENCRYPTION_KEY: YmSqNpwxzusjAF12JSD+JNe+3LXrbNJiQza2yTnQyR0=
       # Every e2e spec approves as the one seeded admin, so the whole run shares
       # step-up's 5-per-15-min verification budget (step-up.service.ts). Raised
       # for this job only; the server default stays 5.
@@ -1003,6 +1009,10 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/betonboi_e2e
       REDIS_URL: redis://localhost:6379
       JWT_SECRET: ci-e2e-jwt-secret-do-not-use-in-production-1234567890
+      # Throwaway, same as the integration job: the SMS settings journey saves an API key, and a
+      # tenant settings secret cannot be written without it (HTTP 500 "Settings encryption is not
+      # configured"). scripts/test-env.sh sets the same key locally.
+      SETTINGS_ENCRYPTION_KEY: YmSqNpwxzusjAF12JSD+JNe+3LXrbNJiQza2yTnQyR0=
       # Every e2e spec approves as the one seeded admin, so the whole run shares
       # step-up's 5-per-15-min verification budget (step-up.service.ts). Raised
       # for this job only; the server default stays 5.
@@ -1217,6 +1227,8 @@ jobs:
             .lighthouseci-landing/
             playwright-report/
             test-results/
+          # .lighthouseci-landing/ is a dot-directory; upload-artifact skips those by default.
+          include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
 

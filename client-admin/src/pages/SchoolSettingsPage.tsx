@@ -17,6 +17,7 @@ import {
 import {
   useAccessToken,
   useHasPermission,
+  useMessagingProviders,
   useSchoolSettings,
   useSchools,
 } from '@biddaloy/ui/hooks';
@@ -34,7 +35,6 @@ import { ApplicationsSection } from './settings/ApplicationsSection';
 import { AttendanceSection } from './settings/AttendanceSection';
 import { BackupSection } from './settings/backup-section';
 import { CalendarSection } from './settings/CalendarSection';
-import { isSmsReady } from './settings/connection-test-status';
 import { DashboardSection } from './settings/DashboardSection';
 import { DocumentsSection } from './settings/DocumentsSection';
 import { EmailSection } from './settings/EmailSection';
@@ -112,6 +112,10 @@ export function SchoolSettingsPage({ backupJobId }: SchoolSettingsPageProps = {}
     : ownSchoolName;
 
   const settingsQuery = useSchoolSettings(schoolId ?? '');
+  // D32: "SMS is set up" is the server's word, not a rule rebuilt here. `null` while it loads or
+  // if it fails, so the sections show no "not set up" warning for a school that has SMS.
+  const providers = useMessagingProviders(schoolId ?? '').data;
+  const smsConfigured = providers ? (providers.SMS?.configured ?? false) : null;
   const canEditAcrCriteria = useHasPermission(Permission.ACR_WRITE);
   const canApplyPreset = useHasPermission(Permission.CURRICULUM_PRESET_APPLY);
   const canManagePrinting = useHasPermission(Permission.PRINT_TEMPLATE_MANAGE);
@@ -176,7 +180,7 @@ export function SchoolSettingsPage({ backupJobId }: SchoolSettingsPageProps = {}
                   key={loaded.schoolId}
                   schoolId={loaded.schoolId}
                   evaluations={loaded.data.evaluations}
-                  smsConfigured={isSmsReady(loaded.data.communications?.sms)}
+                  smsConfigured={smsConfigured}
                 />
                 <DashboardSection
                   key={loaded.schoolId}
@@ -187,19 +191,19 @@ export function SchoolSettingsPage({ backupJobId }: SchoolSettingsPageProps = {}
                   key={loaded.schoolId}
                   schoolId={loaded.schoolId}
                   studyPlans={loaded.data.studyPlans}
-                  smsConfigured={isSmsReady(loaded.data.communications?.sms)}
+                  smsConfigured={smsConfigured}
                 />
                 <HomeworkSection
                   key={loaded.schoolId}
                   schoolId={loaded.schoolId}
                   homework={loaded.data.homework}
-                  smsConfigured={isSmsReady(loaded.data.communications?.sms)}
+                  smsConfigured={smsConfigured}
                 />
                 <ApplicationsSection
                   key={loaded.schoolId}
                   schoolId={loaded.schoolId}
                   applications={loaded.data.applications}
-                  smsConfigured={isSmsReady(loaded.data.communications?.sms)}
+                  smsConfigured={smsConfigured}
                 />
               </>
             )}

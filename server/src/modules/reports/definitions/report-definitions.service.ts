@@ -65,23 +65,26 @@ export class ReportDefinitionsService {
     });
     if (clash) throw new ConflictException('A report with this key already exists.');
 
-    const saved = await this.definitions.save(
-      this.definitions.create({
-        tenant_id: viewer.tenantId,
-        key: dto.key,
-        name_en: dto.name_en,
-        name_bn: dto.name_bn,
-        folder: dto.folder ?? null,
-        status: ReportDefinitionStatus.DRAFT,
-        visible_roles: dto.visible_roles ?? [],
-        draft: dto.definition,
-        current_version_id: null,
-        system_template_key: null,
-        created_by: viewer.userId,
-      }),
-    );
-    await this.record(viewer, AuditAction.CREATE, saved, { key: saved.key });
-    return saved;
+    return this.definitions.manager.transaction(async (m) => {
+      const repo = m.getRepository(ReportDefinition);
+      const saved = await repo.save(
+        repo.create({
+          tenant_id: viewer.tenantId,
+          key: dto.key,
+          name_en: dto.name_en,
+          name_bn: dto.name_bn,
+          folder: dto.folder ?? null,
+          status: ReportDefinitionStatus.DRAFT,
+          visible_roles: dto.visible_roles ?? [],
+          draft: dto.definition,
+          current_version_id: null,
+          system_template_key: null,
+          created_by: viewer.userId,
+        }),
+      );
+      await this.record(viewer, AuditAction.CREATE, saved, { key: saved.key }, m);
+      return saved;
+    });
   }
 
   async updateDraft(
@@ -101,9 +104,11 @@ export class ReportDefinitionsService {
     if (dto.name_bn !== undefined) definition.name_bn = dto.name_bn;
     if (dto.folder !== undefined) definition.folder = dto.folder;
     if (dto.visible_roles !== undefined) definition.visible_roles = dto.visible_roles;
-    const saved = await this.definitions.save(definition);
-    await this.record(viewer, AuditAction.UPDATE, saved, { change: 'draft' });
-    return saved;
+    return this.definitions.manager.transaction(async (m) => {
+      const saved = await m.getRepository(ReportDefinition).save(definition);
+      await this.record(viewer, AuditAction.UPDATE, saved, { change: 'draft' }, m);
+      return saved;
+    });
   }
 
   /**
@@ -166,9 +171,11 @@ export class ReportDefinitionsService {
   async archive(viewer: DefinitionViewer, id: string): Promise<ReportDefinition> {
     const definition = await this.findLive(viewer.tenantId, id);
     definition.status = ReportDefinitionStatus.ARCHIVED;
-    const saved = await this.definitions.save(definition);
-    await this.record(viewer, AuditAction.UPDATE, saved, { change: 'archived' });
-    return saved;
+    return this.definitions.manager.transaction(async (m) => {
+      const saved = await m.getRepository(ReportDefinition).save(definition);
+      await this.record(viewer, AuditAction.UPDATE, saved, { change: 'archived' }, m);
+      return saved;
+    });
   }
 
   /**
@@ -188,23 +195,26 @@ export class ReportDefinitionsService {
     if (!json) throw new UnprocessableEntityException('There is nothing to copy yet.');
 
     const key = await this.freeKey(viewer.tenantId, `${source.key}-copy`);
-    const saved = await this.definitions.save(
-      this.definitions.create({
-        tenant_id: viewer.tenantId,
-        key,
-        name_en: `${source.name_en} (copy)`.slice(0, 160),
-        name_bn: `${source.name_bn} (কপি)`.slice(0, 160),
-        folder: source.folder,
-        status: ReportDefinitionStatus.DRAFT,
-        visible_roles: [...source.visible_roles],
-        draft: json,
-        current_version_id: null,
-        system_template_key: source.system_template_key,
-        created_by: viewer.userId,
-      }),
-    );
-    await this.record(viewer, AuditAction.CREATE, saved, { key, clonedFrom: source.key });
-    return saved;
+    return this.definitions.manager.transaction(async (m) => {
+      const repo = m.getRepository(ReportDefinition);
+      const saved = await repo.save(
+        repo.create({
+          tenant_id: viewer.tenantId,
+          key,
+          name_en: `${source.name_en} (copy)`.slice(0, 160),
+          name_bn: `${source.name_bn} (কপি)`.slice(0, 160),
+          folder: source.folder,
+          status: ReportDefinitionStatus.DRAFT,
+          visible_roles: [...source.visible_roles],
+          draft: json,
+          current_version_id: null,
+          system_template_key: source.system_template_key,
+          created_by: viewer.userId,
+        }),
+      );
+      await this.record(viewer, AuditAction.CREATE, saved, { key, clonedFrom: source.key }, m);
+      return saved;
+    });
   }
 
   /** What this role may run: published reports whose roles include theirs, grouped by folder. */

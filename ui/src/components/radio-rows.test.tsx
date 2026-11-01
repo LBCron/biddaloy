@@ -40,6 +40,11 @@ describe('RadioRows', () => {
     expect(screen.getByRole('radiogroup', { name: 'Templates' })).toBeTruthy();
   });
 
+  it('a label query for the legend finds one element, the radiogroup', () => {
+    setup();
+    expect(screen.getAllByLabelText('Templates')).toEqual([screen.getByRole('radiogroup')]);
+  });
+
   it('names each radio by its title only; the caption is the description, read once', () => {
     setup();
     const radio = screen.getByRole('radio', { name: 'Template A' });
@@ -99,6 +104,24 @@ describe('RadioRows', () => {
       expect(hint.closest('fieldset')).not.toBeNull();
       expect(screen.getByRole('group', { name: 'Templates' })).toBeTruthy();
       expect(screen.getByRole('radiogroup', { name: 'Templates' })).toBeTruthy();
+      expect(screen.getAllByLabelText('Templates')).toEqual([screen.getByRole('radiogroup')]);
+    });
+
+    it('renders no (?) with legendHidden: there is no visible label for it to sit beside', () => {
+      render(
+        <HelpProvider index={index} lang="en" baseUrl="https://g.test">
+          <RadioRows
+            value="a"
+            onValueChange={vi.fn()}
+            options={options}
+            legend="Templates"
+            legendHidden
+            helpId="x.field.t"
+          />
+        </HelpProvider>,
+      );
+      expect(screen.queryByRole('button')).toBeNull();
+      expect(screen.getByRole('group', { name: 'Templates' })).toBeTruthy();
     });
 
     it('renders no (?) when the hint does not resolve', () => {

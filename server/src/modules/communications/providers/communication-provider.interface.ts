@@ -35,6 +35,17 @@ export interface CommunicationSendResult {
    */
   segments?: number;
   /**
+   * [97.4.01] D23: the descriptor name of the provider that handled the send (set by
+   * `sendThroughProvider`), so the log records which company to ask for delivery status.
+   * Absent when no provider was reached (config error) or in sink mode.
+   */
+  provider?: string;
+  /**
+   * #3350: whose account sent it (`platform` = the platform's env keys), so Check status asks that
+   * same account. Set next to `provider`.
+   */
+  source?: 'override' | 'tenant' | 'platform';
+  /**
    * [15.6.6/#549] Epic #508 D6's three provider outcomes, set on every
    * result (success or failure) so `CommunicationsProcessor` can settle
    * SMS credit reservations without re-deriving it from `success`/`error`.
@@ -63,12 +74,12 @@ export interface CommunicationSendResult {
  * CommunicationsProcessor can dispatch by CommunicationMedium without
  * knowing which concrete gateway/API is behind it. A provider must never
  * throw — network/API failures (and, since #8.7.10, a
- * `ProviderNotConfiguredError` from `TenantProviderConfigResolver`) are
+ * `ProviderNotConfiguredError` from `MessagingConfigResolver`) are
  * caught internally and returned as `{ success: false, error }` so the
  * processor always gets a result to persist onto the CommunicationLog row.
  *
  * `tenantId` (#8.7.10) is what each provider resolves its own config
- * against — `TenantProviderConfigResolver`, not `ConfigService` directly
+ * against — `MessagingConfigResolver`, not `ConfigService` directly
  * — so two tenants using different accounts for the same medium never
  * share state. Callers always have it: `CommunicationsProcessor` loads
  * the `CommunicationLog` row before dispatching and reads `tenant_id`

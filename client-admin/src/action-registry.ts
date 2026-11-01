@@ -217,6 +217,14 @@ export const ACTIONS: readonly PaletteAction[] = [
     run: (ctx) => ctx.navigate({ to: '/communications/reminders' }),
   },
   {
+    id: 'communications.messageLog',
+    label: { en: 'Message log', bn: 'বার্তার তালিকা' },
+    permission: Permission.COMMUNICATION_BULK_SEND,
+    kind: 'navigate',
+    group: 'communications',
+    run: (ctx) => ctx.navigate({ to: '/communications/message-log' }),
+  },
+  {
     id: 'attendance.take',
     label: { en: 'Take attendance', bn: 'উপস্থিতি নিন' },
     permission: Permission.ATTENDANCE_READ,

@@ -5,6 +5,8 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { expectHelp, withHelp } from '../../../help/test-utils';
+
 import { ChangeRequestList } from './-change-request-list';
 
 afterEach(async () => {
@@ -106,5 +108,23 @@ describe('ChangeRequestList', () => {
     await localeReady;
 
     expect(screen.getByRole('heading', { name: 'No open requests' })).toBeTruthy();
+  });
+
+  it('draws a (?) beside the accept/reject dialog title', async () => {
+    const user = userEvent.setup();
+    const { localeReady } = renderWithProviders(
+      withHelp(
+        <ChangeRequestList
+          routineId="routine-1"
+          requests={[REQUEST]}
+          describeSlot={() => SLOT}
+          requesterLabel={() => 'Ms Nahar'}
+        />,
+      ),
+      { tenantId: 'tenant-1', locale: 'en' },
+    );
+    await localeReady;
+    await user.click(await screen.findByRole('button', { name: 'Accept' }));
+    await expectHelp('academics.routineReview.action.resolveRequest');
   });
 });

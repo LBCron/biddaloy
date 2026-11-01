@@ -245,6 +245,7 @@ export function MilestoneEditor({ programId, milestones, canManage }: MilestoneE
         onOpenChange={(o) => !o && !removeMilestone.isPending && setPendingRemoveId(null)}
         tone="danger"
         title={t('milestones.removeTitle')}
+        helpId="people.programs.action.removeMilestone"
         description={
           removeMilestone.isError
             ? t('milestones.errorMessage')

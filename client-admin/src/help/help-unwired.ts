@@ -7,8 +7,6 @@
  * The issue that wires an id deletes its line here.
  */
 export const PUBLIC = 'E11: public page, no shell';
-/** 44.3.x wave 3: the page has no slot for the (?) yet (no element to attach it to). */
-const PAGE_FIX = '#3017: page fix pending';
 export const HELP_UNWIRED: Record<string, string> = {
   'start.signIn': PUBLIC,
   'start.signIn.action.submit': PUBLIC,
@@ -16,16 +14,6 @@ export const HELP_UNWIRED: Record<string, string> = {
   'admin.createSchool': PUBLIC,
   'admin.createSchool.action.continue': PUBLIC,
   'admin.createSchool.action.verify': PUBLIC,
-
-  // 44.3.01-44.3.06
-  'people.evaluations.action.completeAcr': PAGE_FIX,
-  'people.evaluations.action.reopenAcr': PAGE_FIX,
-  'people.calendar.action.regenerateFeed': PAGE_FIX,
-  'people.programs.action.removeMilestone': PAGE_FIX,
-  'academics.routineBuilder.action.clearCell': PAGE_FIX,
-  'academics.routineReview.action.requestChange': PAGE_FIX,
-  'academics.routineReview.action.resolveRequest': PAGE_FIX,
-  'attendance.attendanceReports.action.sendReminder': PAGE_FIX,
 
   // 44.3.12: declared in the guide after the wave-3 pass ran
 };

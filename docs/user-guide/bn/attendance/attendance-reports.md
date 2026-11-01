@@ -18,7 +18,6 @@ labels:
 helpIds:
   [
     attendance.attendanceReports,
-    attendance.attendanceReports.action.sendReminder,
     attendance.attendanceReports.field.threshold,
     attendance.attendanceReports.section.summary#task-main,
     attendance.attendanceReports.section.flags#task-low,

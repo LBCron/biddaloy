@@ -16,7 +16,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiAcceptedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { Repository } from 'typeorm';
 import {
@@ -119,7 +119,11 @@ export class ReportRunsController {
     summary:
       'Export a saved report or a list. Up to 5,000 rows come back as a file; more are queued and answer 202 with the run id.',
   })
-  @ApiOkResponse({ type: QueuedExportDto, description: '202 when queued; otherwise the file.' })
+  @ApiOkResponse({
+    description: 'The file (up to 5,000 rows).',
+    content: { 'application/octet-stream': { schema: { type: 'string', format: 'binary' } } },
+  })
+  @ApiAcceptedResponse({ type: QueuedExportDto, description: 'Queued; poll the run status.' })
   async exportRun(
     @Body() dto: ExportRunDto,
     @CurrentTenant() tenant: Tenant,

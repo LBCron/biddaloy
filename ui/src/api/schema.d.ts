@@ -53,486 +53,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/audit-logs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List this tenant's audit trail, newest first — filterable by action, entity type, and date range. */
-        get: operations["AuditController_findAll_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/audit-logs/export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["AuditController_exportAuditLogs_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/audit-logs/entity/{entityType}/{entityId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List one entity's audit trail (e.g. a single student's activity tab), newest first. */
-        get: operations["AuditController_findByEntity_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/dashboard/widgets/recent-activity": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Dashboard widget: recent-activity */
-        get: operations["AuditDashboardController_getRecentActivity_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Log in with email or phone + password, returning a bearer token and the caller's tenant memberships. */
-        post: operations["AuthController_login_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Rotate the refresh token cookie and issue a fresh access token reflecting the caller's current memberships. */
-        post: operations["AuthController_refresh_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Revoke the presented refresh token. Does not require a live access token. */
-        post: operations["AuthController_logout_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/logout-all": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Revoke every refresh token for the caller and end the current session immediately. */
-        post: operations["AuthController_logoutAll_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/sessions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List the caller's active sessions (refresh-token families). */
-        get: operations["AuthController_listSessions_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/sessions/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Revoke one of the caller's sessions (refresh-token families). */
-        delete: operations["AuthController_revokeSession_v1"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/change-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Change the caller's own password.
-         * @description Revokes every refresh token for the caller and issues a fresh one, so the calling device stays signed in while no other device can renew its session. Access tokens already issued to other devices are NOT revoked — those sessions keep working until their token expires (up to ~15 minutes), then cannot refresh.
-         */
-        post: operations["AuthController_changePassword_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/step-up/otp/request": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Sends a step-up OTP to an approver by identifier. Always 202 — never reveals whether the identifier resolves to an eligible approver. */
-        post: operations["StepUpController_requestOtp_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/step-up": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Verifies an approver by OTP or password and issues a 300s approval token scoped to one gated action. */
-        post: operations["StepUpController_verify_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/me/push/public-key": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Whether push is enabled for this deployment, and the VAPID public key to subscribe with. */
-        get: operations["PushSubscriptionsController_getPublicKey_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/me/push/subscriptions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Lists the caller's own push subscriptions. Never returns endpoint/keys. */
-        get: operations["PushSubscriptionsController_list_v1"];
-        put?: never;
-        /** Registers (or re-owns) the caller's browser PushSubscription. Upserts by endpoint. */
-        post: operations["PushSubscriptionsController_subscribe_v1"];
-        /** Deletes all of the caller's own push subscriptions (opt out of push entirely). */
-        delete: operations["PushSubscriptionsController_removeAll_v1"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/me/push/subscriptions/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Deletes one of the caller's own push subscriptions. 404 if it isn't theirs. */
-        delete: operations["PushSubscriptionsController_remove_v1"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/activate/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Checks an invite token and, if live, returns who it belongs to — never email/phone. */
-        post: operations["AccountAccessController_verify_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/activate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Consumes an invite token, sets a password, and signs the caller in. */
-        post: operations["AccountAccessController_activate_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/activate/resend": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Self-service resend of an invite link, by identifier. Always 202 — enumeration-safe. */
-        post: operations["AccountAccessController_resend_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/forgot-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Requests a password reset OTP (phone) or link (email) by identifier. Always 202 — enumeration-safe. */
-        post: operations["AccountAccessController_forgotPassword_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/reset-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Sets a new password via an OTP ({ phone, otp }) or a reset link ({ token }), and signs the caller in. */
-        post: operations["AccountAccessController_resetPassword_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/otp/request": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Requests a passwordless-login code by phone or email. Always 202 — enumeration-safe. */
-        post: operations["AccountAccessController_otpRequest_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/otp/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Verifies a passwordless-login code and signs the caller in. Also says whether a first password is needed. */
-        post: operations["AccountAccessController_otpVerify_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/verify-email": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** [12.7] Confirms an emailed contact-change link — clicked from the inbox, possibly logged out. */
-        post: operations["AccountAccessController_verifyEmail_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/account/first-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Sets the first password on an account that has none; 409 if one is already set. */
-        post: operations["FirstPasswordController_set_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/account/school-invites": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Lists the caller's pending requests to join a school. */
-        get: operations["SchoolInvitesController_list_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/account/school-invites/{id}/accept": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Accepts a request: the caller becomes a member of that school. */
-        post: operations["SchoolInvitesController_accept_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/account/school-invites/{id}/decline": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Declines a request; no membership is created. */
-        post: operations["SchoolInvitesController_decline_v1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/communications/sms-credits/readiness": {
         parameters: {
             query?: never;
@@ -687,6 +207,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/communications/logs/filter-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Message log — the Company and Sent-by filter choices. */
+        get: operations["CommunicationsController_findLogFilterOptions_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/communications/logs/{id}/check-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask the company that sent this SMS/message whether it was delivered (once a minute). */
+        post: operations["CommunicationsController_checkStatus_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/communications/send": {
         parameters: {
             query?: never;
@@ -780,7 +334,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Test a communications provider's credentials (SMS/WhatsApp/Email/Messenger) using the provider's cheapest verification call — never sends a real message. Pass `config` to test unsaved values before saving them; omitted fields fall back to what's already stored for this school. */
+        /** Test a communications provider's credentials (SMS/WhatsApp/Email/Messenger) using the provider's cheapest verification call. Sends no message unless `sendTo` is given (SMS/EMAIL only, needs an `Idempotency-Key` header): then one logged test message goes to that address. Pass `config` to test unsaved values before saving them; omitted fields fall back to what's already stored for this school. */
         post: operations["ProviderConnectionTestController_testConnection_v1"];
         delete?: never;
         options?: never;
@@ -1197,6 +751,73 @@ export interface paths {
         };
         /** Dashboard widget: students-added-today */
         get: operations["StudentsDashboardController_getStudentsAddedToday_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List this tenant's audit trail, newest first — filterable by action, entity type, and date range. */
+        get: operations["AuditController_findAll_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit-logs/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AuditController_exportAuditLogs_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit-logs/entity/{entityType}/{entityId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List one entity's audit trail (e.g. a single student's activity tab), newest first. */
+        get: operations["AuditController_findByEntity_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboard/widgets/recent-activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dashboard widget: recent-activity */
+        get: operations["AuditDashboardController_getRecentActivity_v1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2277,6 +1898,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/push/public-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether push is enabled for this deployment, and the VAPID public key to subscribe with. */
+        get: operations["PushSubscriptionsController_getPublicKey_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/push/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the caller's own push subscriptions. Never returns endpoint/keys. */
+        get: operations["PushSubscriptionsController_list_v1"];
+        put?: never;
+        /** Registers (or re-owns) the caller's browser PushSubscription. Upserts by endpoint. */
+        post: operations["PushSubscriptionsController_subscribe_v1"];
+        /** Deletes all of the caller's own push subscriptions (opt out of push entirely). */
+        delete: operations["PushSubscriptionsController_removeAll_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/push/subscriptions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Deletes one of the caller's own push subscriptions. 404 if it isn't theirs. */
+        delete: operations["PushSubscriptionsController_remove_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/schools": {
         parameters: {
             query?: never;
@@ -2362,6 +2036,23 @@ export interface paths {
         head?: never;
         /** Update a school's tenant settings. A secret field omitted from the body is left unchanged; sending it as null clears it. Unknown keys are rejected. */
         patch: operations["SchoolsController_updateSettings_v1"];
+        trace?: never;
+    };
+    "/api/v1/schools/{id}/settings/messaging/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Per messaging channel: the available companies and their fields, the selected company and whether it is configured. Never returns a setting value. */
+        get: operations["SchoolsController_getMessagingProviders_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/schools/me/profile": {
@@ -2481,6 +2172,366 @@ export interface paths {
         put?: never;
         /** Grant (positive units) or adjust (negative units) a school's SMS credit balance. Audited (School/UPDATE). Idempotent on `idempotency_key` — a repeat is a no-op, still 200 with the current balance. */
         post: operations["SchoolSmsCreditsController_grantOrAdjust_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/activate/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Checks an invite token and, if live, returns who it belongs to — never email/phone. */
+        post: operations["AccountAccessController_verify_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Consumes an invite token, sets a password, and signs the caller in. */
+        post: operations["AccountAccessController_activate_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/activate/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Self-service resend of an invite link, by identifier. Always 202 — enumeration-safe. */
+        post: operations["AccountAccessController_resend_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Requests a password reset OTP (phone) or link (email) by identifier. Always 202 — enumeration-safe. */
+        post: operations["AccountAccessController_forgotPassword_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sets a new password via an OTP ({ phone, otp }) or a reset link ({ token }), and signs the caller in. */
+        post: operations["AccountAccessController_resetPassword_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/otp/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Requests a passwordless-login code by phone or email. Always 202 — enumeration-safe. */
+        post: operations["AccountAccessController_otpRequest_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/otp/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verifies a passwordless-login code and signs the caller in. Also says whether a first password is needed. */
+        post: operations["AccountAccessController_otpVerify_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** [12.7] Confirms an emailed contact-change link — clicked from the inbox, possibly logged out. */
+        post: operations["AccountAccessController_verifyEmail_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/first-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sets the first password on an account that has none; 409 if one is already set. */
+        post: operations["FirstPasswordController_set_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/school-invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the caller's pending requests to join a school. */
+        get: operations["SchoolInvitesController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/school-invites/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accepts a request: the caller becomes a member of that school. */
+        post: operations["SchoolInvitesController_accept_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/school-invites/{id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Declines a request; no membership is created. */
+        post: operations["SchoolInvitesController_decline_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Log in with email or phone + password, returning a bearer token and the caller's tenant memberships. */
+        post: operations["AuthController_login_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rotate the refresh token cookie and issue a fresh access token reflecting the caller's current memberships. */
+        post: operations["AuthController_refresh_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke the presented refresh token. Does not require a live access token. */
+        post: operations["AuthController_logout_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke every refresh token for the caller and end the current session immediately. */
+        post: operations["AuthController_logoutAll_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the caller's active sessions (refresh-token families). */
+        get: operations["AuthController_listSessions_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke one of the caller's sessions (refresh-token families). */
+        delete: operations["AuthController_revokeSession_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change the caller's own password.
+         * @description Revokes every refresh token for the caller and issues a fresh one, so the calling device stays signed in while no other device can renew its session. Access tokens already issued to other devices are NOT revoked — those sessions keep working until their token expires (up to ~15 minutes), then cannot refresh.
+         */
+        post: operations["AuthController_changePassword_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/step-up/otp/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sends a step-up OTP to an approver by identifier. Always 202 — never reveals whether the identifier resolves to an eligible approver. */
+        post: operations["StepUpController_requestOtp_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/step-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verifies an approver by OTP or password and issues a 300s approval token scoped to one gated action. */
+        post: operations["StepUpController_verify_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -9708,236 +9759,6 @@ export interface components {
         PlatformAlertsDto: {
             alerts: components["schemas"]["PlatformAlertItemDto"][];
         };
-        AuditLogResponseDto: {
-            id: string;
-            tenant_id: string | null;
-            /** @enum {string} */
-            action: "CREATE" | "UPDATE" | "DELETE" | "LOGIN" | "LOGIN_FAILED" | "LOGOUT" | "TOKEN_REUSE_DETECTED" | "PAYMENT_RECEIVED" | "INVOICE_GENERATED" | "BULK_UPLOAD" | "REMINDER_SENT" | "REMINDER_PREVIEWED" | "FEE_STRUCTURE_CHANGE" | "SETTINGS_CHANGE" | "SETTINGS_TEST" | "INVITATION_SENT" | "INVITATION_REVOKED" | "ACCOUNT_ACTIVATED" | "PASSWORD_RESET_REQUESTED" | "PASSWORD_RESET" | "CONTACT_VERIFIED" | "SESSION_REVOKED" | "SUSPEND" | "REACTIVATE" | "BACKUP_DELETED" | "REPORT_EXPORT";
-            entity_type: string;
-            entity_id: string | null;
-            performed_by_user_id: string | null;
-            performed_by_name: string | null;
-            /** @description Display name of the record (student name, invoice number…), when it can be resolved; null otherwise. */
-            entity_label: string | null;
-            old_values: {
-                [key: string]: unknown;
-            } | null;
-            new_values: {
-                [key: string]: unknown;
-            } | null;
-            ip_address: string | null;
-            user_agent: string | null;
-            /** Format: date-time */
-            created_at: string;
-        };
-        AuditLogListResponseDto: {
-            data: components["schemas"]["AuditLogResponseDto"][];
-            total: number;
-            page: number;
-            limit: number;
-            totalPages: number;
-        };
-        RecentActivityItemDto: {
-            id: string;
-            /** @enum {string} */
-            action: "CREATE" | "UPDATE" | "DELETE" | "LOGIN" | "LOGIN_FAILED" | "LOGOUT" | "TOKEN_REUSE_DETECTED" | "PAYMENT_RECEIVED" | "INVOICE_GENERATED" | "BULK_UPLOAD" | "REMINDER_SENT" | "REMINDER_PREVIEWED" | "FEE_STRUCTURE_CHANGE" | "SETTINGS_CHANGE" | "SETTINGS_TEST" | "INVITATION_SENT" | "INVITATION_REVOKED" | "ACCOUNT_ACTIVATED" | "PASSWORD_RESET_REQUESTED" | "PASSWORD_RESET" | "CONTACT_VERIFIED" | "SESSION_REVOKED" | "SUSPEND" | "REACTIVATE" | "BACKUP_DELETED" | "REPORT_EXPORT";
-            /** @example Student */
-            entity_type: string;
-            /** @description Display name of the record, when it can be resolved; null otherwise. */
-            entity_label: string | null;
-            /** @description Acting user’s full name; null for system actions or a removed user. */
-            performed_by_name: string | null;
-            /**
-             * @description ISO 8601, UTC
-             * @example 2026-10-07T04:12:00.000Z
-             */
-            created_at: string;
-            /** @description Fields whose value changed (UPDATE rows only); null for every other action. */
-            changed_field_count: number | null;
-        };
-        RecentActivityDto: {
-            items: components["schemas"]["RecentActivityItemDto"][];
-        };
-        LoginDto: {
-            /** Format: email */
-            email?: string;
-            phone?: string;
-            password: string;
-        };
-        MembershipResponseDto: {
-            /**
-             * Format: uuid
-             * @description The school this membership is in.
-             */
-            tenantId: string;
-            /**
-             * @description The role held in that school.
-             * @enum {string}
-             */
-            role: "SUPER_ADMIN" | "ADMIN" | "ACCOUNTANT" | "TEACHER" | "PARENT" | "STUDENT" | "EXECUTIVE" | "OFFICE_STAFF" | "EXAM_CONTROLLER" | "COMMITTEE";
-            /** @description The school's display name. Absent on tokens issued before this field existed, so consumers must fall back to a placeholder rather than assume it is present. */
-            name?: string;
-        };
-        LoginResponseDto: {
-            /** @description Short-lived bearer token for the Authorization header. */
-            access_token: string;
-            /** @description Every school/role pair the caller holds, for the tenant picker. */
-            memberships: components["schemas"]["MembershipResponseDto"][];
-        };
-        SessionDto: {
-            /** @description The refresh-token family id. Used as the id in DELETE /auth/sessions/:id. */
-            id: string;
-            /** @description When this family was first created (i.e. when the device signed in), ISO 8601. */
-            started_at: string;
-            /** @description When this family last refreshed, ISO 8601. */
-            last_used_at: string;
-            /** @description The User-Agent header captured at issue/rotation time, or null. */
-            user_agent: string | null;
-            /** @description The IP address captured at issue/rotation time, or null. */
-            ip_address: string | null;
-            /** @description Whether this is the family behind the caller's own refresh cookie. */
-            current: boolean;
-        };
-        SessionListDto: {
-            data: components["schemas"]["SessionDto"][];
-        };
-        ChangePasswordDto: {
-            /** @description The caller's current password, re-entered to prove possession. */
-            current_password: string;
-            /** @description The new password to store. */
-            new_password: string;
-        };
-        StepUpOtpRequestDto: {
-            /** @description The approver's email or phone. */
-            identifier: string;
-            /** @enum {string} */
-            scope: "fees.duplicate_override" | "fees.edit_paid" | "fees.discount" | "payments.reverse" | "payments.backdate" | "discount_rules.manage" | "grading_scale.manage" | "results.reopen" | "promotion.override";
-        };
-        StepUpVerifyDto: {
-            /** @description The approver's email or phone. */
-            identifier: string;
-            /** @enum {string} */
-            method: "OTP" | "PASSWORD";
-            /** @description 6-digit OTP — required when method is OTP. */
-            otp?: string;
-            /** @description The approver's password — required when method is PASSWORD. */
-            password?: string;
-            /** @enum {string} */
-            scope: "fees.duplicate_override" | "fees.edit_paid" | "fees.discount" | "payments.reverse" | "payments.backdate" | "discount_rules.manage" | "grading_scale.manage" | "results.reopen" | "promotion.override";
-        };
-        PushPublicKeyResponseDto: {
-            enabled: boolean;
-            public_key: string | null;
-        };
-        PushSubscriptionKeysDto: {
-            p256dh: string;
-            auth: string;
-        };
-        CreatePushSubscriptionDto: {
-            endpoint: string;
-            keys: components["schemas"]["PushSubscriptionKeysDto"];
-            expirationTime?: number | null;
-        };
-        PushSubscriptionResponseDto: {
-            id: string;
-            user_agent: string | null;
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            last_used_at: string | null;
-        };
-        ActivateVerifyDto: {
-            /** @description The raw invite token from the ?token= query param. */
-            token: string;
-        };
-        ActivateDto: {
-            /** @description The raw invite token from the ?token= query param. */
-            token: string;
-            /** @description The password to set. */
-            password: string;
-        };
-        ActivateResendDto: {
-            /** @description The email or phone number on the account. */
-            identifier: string;
-        };
-        ForgotPasswordDto: {
-            /** @description The email or phone number on the account. */
-            identifier: string;
-        };
-        ResetPasswordDto: {
-            /** @description The password to set. */
-            new_password: string;
-            /** @description The phone number the OTP was sent to. */
-            phone?: string;
-            /** @description The 6-digit OTP sent by SMS. */
-            otp?: string;
-            /** @description The reset token from the emailed link. */
-            token?: string;
-        };
-        OtpRequestDto: {
-            /** @description The phone number or email on the account. Either `identifier` or `phone`. */
-            identifier?: string;
-            /** @description Alias of `identifier` for older clients. */
-            phone?: string;
-        };
-        OtpVerifyDto: {
-            /** @description The phone number or email the code was sent to. Either `identifier` or `phone`. */
-            identifier?: string;
-            /** @description Alias of `identifier` for older clients. */
-            phone?: string;
-            /** @description The 6-digit code sent by SMS or email. */
-            otp: string;
-        };
-        OtpLoginResponseDto: {
-            /** @description Short-lived bearer token for the Authorization header. */
-            access_token: string;
-            /** @description Every school/role pair the caller holds, for the tenant picker. */
-            memberships: components["schemas"]["MembershipResponseDto"][];
-            /** @description True when the account has no password yet. */
-            needs_password: boolean;
-            /** @description True when a first password must be set: no password yet, staff rules apply, and no social sign-in is linked. */
-            password_required: boolean;
-        };
-        VerifyEmailDto: {
-            /** @description The raw email-verify token from the ?token= query param. */
-            token: string;
-            /**
-             * @description [75.1] Only for a school's contact-change proposal: opening the link shows it, 'approve' applies it, 'decline' cancels it.
-             * @enum {string}
-             */
-            action?: "approve" | "decline";
-            /** @description [75.1, D23] With action 'approve': the 6-digit code sent to the proposed NEW email. */
-            email_code?: string;
-            /** @description [75.1, D23] With action 'approve': the 6-digit code sent to the proposed NEW phone. */
-            phone_code?: string;
-        };
-        VerifyEmailResponseDto: {
-            /**
-             * @description 'valid' means the contact was changed; 'proposal' is a school's pending request to show for approval; 'confirm' means the approval was accepted and a 6-digit code went to each NEW contact, to send back with action 'approve' (D23); 'declined' means the person cancelled it; anything else means nothing changed.
-             * @enum {string}
-             */
-            status: "valid" | "expired" | "consumed" | "revoked" | "unknown" | "proposal" | "confirm" | "declined";
-            /** @description Only with status 'proposal': { from_school, new_email?, new_phone? }, the full proposed values (D25: only the person, through a link sent to their own contact, sees this), null = removed. */
-            proposal?: {
-                [key: string]: unknown;
-            };
-        };
-        FirstPasswordDto: {
-            /** @description The first password to set. */
-            password: string;
-        };
-        /** @enum {string} */
-        UserRole: "SUPER_ADMIN" | "ADMIN" | "ACCOUNTANT" | "TEACHER" | "PARENT" | "STUDENT" | "EXECUTIVE" | "OFFICE_STAFF" | "EXAM_CONTROLLER" | "COMMITTEE";
-        SchoolInviteDto: {
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            school_id: string;
-            school_name: string;
-            role: components["schemas"]["UserRole"];
-            /** Format: date-time */
-            expires_at: string;
-        };
         SmsReadinessResponseDto: {
             /** @enum {string} */
             sms: "READY" | "NO_GATEWAY" | "NO_CREDIT";
@@ -9963,7 +9784,7 @@ export interface components {
         };
         SmsCreditsResponseDto: {
             /** @enum {string} */
-            metering: "OFF" | "PLATFORM";
+            metering: "PLATFORM" | "OFF";
             available: number;
             reserved: number;
             ledger: components["schemas"]["SmsCreditLedgerListResponseDto"];
@@ -10040,7 +9861,7 @@ export interface components {
             sms_recipients: number;
             sms_units: number;
             /** @enum {string} */
-            metering: "OFF" | "PLATFORM";
+            metering: "PLATFORM" | "OFF";
             available?: number;
             reserved?: number;
             shortfall?: number;
@@ -10102,11 +9923,23 @@ export interface components {
             recipient_name: string;
             /** @enum {string} */
             status: "QUEUED" | "SENT" | "DELIVERED" | "FAILED" | "READ";
+            /** @enum {string} */
+            trigger: "MANUAL" | "AUTOMATED" | "BULK_REMINDER" | "SINGLE_REMINDER" | "ACCOUNT_ACCESS" | "RESULT_SMS" | "ARRIVAL_NOTICE";
             student_id: string | null;
             guardian_id: string | null;
             provider_message_id: string | null;
+            provider: string | null;
             /** Format: date-time */
             created_at: string;
+            message_body: string | null;
+            body_withheld: boolean;
+            subject: string | null;
+            segments: number | null;
+            batch_id: string | null;
+            is_test: boolean;
+            sent_by_user_id: string | null;
+            sent_by_name: string | null;
+            can_check_status: boolean;
         };
         ReminderBatchLogListResponseDto: {
             data: components["schemas"]["ReminderBatchLogDto"][];
@@ -10114,6 +9947,24 @@ export interface components {
             page: number;
             limit: number;
             totalPages: number;
+        };
+        MessageLogCompanyLabelDto: {
+            en: string;
+            bn: string;
+        };
+        MessageLogCompanyDto: {
+            /** @enum {string} */
+            medium: "SMS" | "WHATSAPP" | "EMAIL" | "PHONE_CALL" | "MESSENGER";
+            name: string;
+            label: components["schemas"]["MessageLogCompanyLabelDto"];
+        };
+        MessageLogSenderDto: {
+            id: string;
+            full_name: string;
+        };
+        MessageLogFilterOptionsDto: {
+            companies: components["schemas"]["MessageLogCompanyDto"][];
+            senders: components["schemas"]["MessageLogSenderDto"][];
         };
         SendGuardianMessageDto: {
             /** @enum {string} */
@@ -10155,10 +10006,23 @@ export interface components {
             config?: {
                 [key: string]: unknown;
             };
+            sendTo?: string;
+        };
+        /** @enum {string} */
+        CommunicationStatus: "QUEUED" | "SENT" | "DELIVERED" | "FAILED" | "READ";
+        TestMessageOutcomeDto: {
+            /**
+             * Format: uuid
+             * @description The CommunicationLog row (`metadata.test`).
+             */
+            logId: string;
+            status: components["schemas"]["CommunicationStatus"];
         };
         ConnectionTestResultDto: {
             success: boolean;
             message: string;
+            /** @description Present only when `sendTo` was given and the connection test passed. */
+            testMessage?: components["schemas"]["TestMessageOutcomeDto"];
         };
         SmsBalanceWidgetDto: {
             /** @enum {string} */
@@ -10687,6 +10551,56 @@ export interface components {
              * @example 2026-10-07
              */
             as_of: string;
+        };
+        AuditLogResponseDto: {
+            id: string;
+            tenant_id: string | null;
+            /** @enum {string} */
+            action: "CREATE" | "UPDATE" | "DELETE" | "LOGIN" | "LOGIN_FAILED" | "LOGOUT" | "TOKEN_REUSE_DETECTED" | "PAYMENT_RECEIVED" | "INVOICE_GENERATED" | "BULK_UPLOAD" | "REMINDER_SENT" | "REMINDER_PREVIEWED" | "FEE_STRUCTURE_CHANGE" | "SETTINGS_CHANGE" | "SETTINGS_TEST" | "INVITATION_SENT" | "INVITATION_REVOKED" | "ACCOUNT_ACTIVATED" | "PASSWORD_RESET_REQUESTED" | "PASSWORD_RESET" | "CONTACT_VERIFIED" | "SESSION_REVOKED" | "SUSPEND" | "REACTIVATE" | "BACKUP_DELETED" | "REPORT_EXPORT";
+            entity_type: string;
+            entity_id: string | null;
+            performed_by_user_id: string | null;
+            performed_by_name: string | null;
+            /** @description Display name of the record (student name, invoice number…), when it can be resolved; null otherwise. */
+            entity_label: string | null;
+            old_values: {
+                [key: string]: unknown;
+            } | null;
+            new_values: {
+                [key: string]: unknown;
+            } | null;
+            ip_address: string | null;
+            user_agent: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        AuditLogListResponseDto: {
+            data: components["schemas"]["AuditLogResponseDto"][];
+            total: number;
+            page: number;
+            limit: number;
+            totalPages: number;
+        };
+        RecentActivityItemDto: {
+            id: string;
+            /** @enum {string} */
+            action: "CREATE" | "UPDATE" | "DELETE" | "LOGIN" | "LOGIN_FAILED" | "LOGOUT" | "TOKEN_REUSE_DETECTED" | "PAYMENT_RECEIVED" | "INVOICE_GENERATED" | "BULK_UPLOAD" | "REMINDER_SENT" | "REMINDER_PREVIEWED" | "FEE_STRUCTURE_CHANGE" | "SETTINGS_CHANGE" | "SETTINGS_TEST" | "INVITATION_SENT" | "INVITATION_REVOKED" | "ACCOUNT_ACTIVATED" | "PASSWORD_RESET_REQUESTED" | "PASSWORD_RESET" | "CONTACT_VERIFIED" | "SESSION_REVOKED" | "SUSPEND" | "REACTIVATE" | "BACKUP_DELETED" | "REPORT_EXPORT";
+            /** @example Student */
+            entity_type: string;
+            /** @description Display name of the record, when it can be resolved; null otherwise. */
+            entity_label: string | null;
+            /** @description Acting user’s full name; null for system actions or a removed user. */
+            performed_by_name: string | null;
+            /**
+             * @description ISO 8601, UTC
+             * @example 2026-10-07T04:12:00.000Z
+             */
+            created_at: string;
+            /** @description Fields whose value changed (UPDATE rows only); null for every other action. */
+            changed_field_count: number | null;
+        };
+        RecentActivityDto: {
+            items: components["schemas"]["RecentActivityItemDto"][];
         };
         Enrollment: {
             id: string;
@@ -11931,6 +11845,27 @@ export interface components {
             totals: components["schemas"]["PublicReceiptTotalsDto"];
             payment: components["schemas"]["PublicReceiptPaymentDto"];
         };
+        PushPublicKeyResponseDto: {
+            enabled: boolean;
+            public_key: string | null;
+        };
+        PushSubscriptionKeysDto: {
+            p256dh: string;
+            auth: string;
+        };
+        CreatePushSubscriptionDto: {
+            endpoint: string;
+            keys: components["schemas"]["PushSubscriptionKeysDto"];
+            expirationTime?: number | null;
+        };
+        PushSubscriptionResponseDto: {
+            id: string;
+            user_agent: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            last_used_at: string | null;
+        };
         SchoolListItemDto: {
             id: string;
             name: string;
@@ -12002,45 +11937,23 @@ export interface components {
             timezone: string;
             calendar?: components["schemas"]["RegionCalendarDto"];
         };
-        MaskedSecretResponseDto: {
-            configured: boolean;
-            hint?: string;
-        };
-        MaskedGreenwebSmsResponseDto: {
-            apiKey: components["schemas"]["MaskedSecretResponseDto"];
-            apiUrl?: string;
-        };
-        MaskedMimSmsResponseDto: {
-            apiKey: components["schemas"]["MaskedSecretResponseDto"];
-            senderId: string;
-            apiUrl?: string;
-        };
-        MaskedSmsSettingsResponseDto: {
-            provider: string;
-            greenweb?: components["schemas"]["MaskedGreenwebSmsResponseDto"];
-            mimsms?: components["schemas"]["MaskedMimSmsResponseDto"];
-        };
-        MaskedWhatsAppSettingsResponseDto: {
-            phoneNumberId: string;
-            apiVersion?: string;
-            accessToken: components["schemas"]["MaskedSecretResponseDto"];
-        };
-        MaskedEmailSettingsResponseDto: {
-            host: string;
-            port: number;
-            user: string;
-            from: string;
-            password: components["schemas"]["MaskedSecretResponseDto"];
-        };
-        MaskedMessengerSettingsResponseDto: {
-            pageId: string;
-            accessToken: components["schemas"]["MaskedSecretResponseDto"];
-        };
         MaskedCommunicationsSettingsResponseDto: {
-            sms?: components["schemas"]["MaskedSmsSettingsResponseDto"];
-            whatsapp?: components["schemas"]["MaskedWhatsAppSettingsResponseDto"];
-            email?: components["schemas"]["MaskedEmailSettingsResponseDto"];
-            messenger?: components["schemas"]["MaskedMessengerSettingsResponseDto"];
+            /** @description D6 shape; each schema secret is a MaskedSecretResponseDto */
+            sms?: {
+                [key: string]: unknown;
+            };
+            /** @description D6 shape; each schema secret is a MaskedSecretResponseDto */
+            whatsapp?: {
+                [key: string]: unknown;
+            };
+            /** @description D6 shape; each schema secret is a MaskedSecretResponseDto */
+            email?: {
+                [key: string]: unknown;
+            };
+            /** @description D6 shape; each schema secret is a MaskedSecretResponseDto */
+            messenger?: {
+                [key: string]: unknown;
+            };
         };
         DocumentsSettingsDto: {
             withholdAdmitCardForDues?: boolean;
@@ -12053,50 +11966,66 @@ export interface components {
             communications?: components["schemas"]["MaskedCommunicationsSettingsResponseDto"];
             documents?: components["schemas"]["DocumentsSettingsDto"];
         };
+        LocalizedLabelResponseDto: {
+            en: string;
+            bn: string;
+        };
+        ProviderConfigFieldResponseDto: {
+            key: string;
+            label: components["schemas"]["LocalizedLabelResponseDto"];
+            /** @enum {string} */
+            kind: "text" | "url" | "secret";
+            required: boolean;
+            advanced?: boolean;
+            destination?: boolean;
+            owned?: boolean;
+            sendOnly?: boolean;
+            /** @enum {string} */
+            format?: "port";
+        };
+        ProviderDescriptorResponseDto: {
+            medium: string;
+            name: string;
+            label: components["schemas"]["LocalizedLabelResponseDto"];
+            capabilities: string[];
+            fields: components["schemas"]["ProviderConfigFieldResponseDto"][];
+            supportsTestMessage: boolean;
+        };
+        MessagingMediumProvidersResponseDto: {
+            providers: components["schemas"]["ProviderDescriptorResponseDto"][];
+            /** @description Presence only: the selected company's required fields are saved on this school. It ignores the platform-wide fallback (env keys), so false does not mean a send will fail. */
+            configured: boolean;
+            selected: string | null;
+        };
+        MessagingProvidersResponseDto: {
+            SMS?: components["schemas"]["MessagingMediumProvidersResponseDto"];
+            WHATSAPP?: components["schemas"]["MessagingMediumProvidersResponseDto"];
+            EMAIL?: components["schemas"]["MessagingMediumProvidersResponseDto"];
+            MESSENGER?: components["schemas"]["MessagingMediumProvidersResponseDto"];
+        };
         OrganisationRenameDto: {
             /** @enum {string} */
             list: "shifts" | "versions" | "groups";
             from: string;
             to: string;
         };
-        GreenwebSmsDto: {
-            apiKey?: string | null;
-            apiUrl?: string;
-        };
-        MimSmsDto: {
-            apiKey?: string | null;
-            senderId: string;
-            apiUrl?: string;
-        };
-        SmsSettingsDto: {
-            /** @enum {string} */
-            provider: "greenweb" | "mimsms";
-            greenweb?: components["schemas"]["GreenwebSmsDto"];
-            mimsms?: components["schemas"]["MimSmsDto"];
-            /** @enum {string} */
-            metering?: "OFF" | "PLATFORM";
-        };
-        WhatsAppSettingsDto: {
-            phoneNumberId: string;
-            apiVersion?: string;
-            accessToken?: string | null;
-        };
-        EmailSettingsDto: {
-            host: string;
-            port: number;
-            user: string;
-            from: string;
-            password?: string | null;
-        };
-        MessengerSettingsDto: {
-            pageId: string;
-            accessToken?: string | null;
-        };
         CommunicationsSettingsDto: {
-            sms?: components["schemas"]["SmsSettingsDto"];
-            whatsapp?: components["schemas"]["WhatsAppSettingsDto"];
-            email?: components["schemas"]["EmailSettingsDto"];
-            messenger?: components["schemas"]["MessengerSettingsDto"];
+            /** @description D6: { provider, <company>: {…}, metering? }; fields from GET …/settings/messaging/providers */
+            sms?: {
+                [key: string]: unknown;
+            };
+            /** @description D6: { provider, <company>: {…}, metering? }; fields from GET …/settings/messaging/providers */
+            whatsapp?: {
+                [key: string]: unknown;
+            };
+            /** @description D6: { provider, <company>: {…}, metering? }; fields from GET …/settings/messaging/providers */
+            email?: {
+                [key: string]: unknown;
+            };
+            /** @description D6: { provider, <company>: {…}, metering? }; fields from GET …/settings/messaging/providers */
+            messenger?: {
+                [key: string]: unknown;
+            };
         };
         AutoAbsentNotificationDto: {
             enabled: boolean;
@@ -12304,6 +12233,165 @@ export interface components {
             units: number;
             reason: string;
             idempotency_key: string;
+        };
+        ActivateVerifyDto: {
+            /** @description The raw invite token from the ?token= query param. */
+            token: string;
+        };
+        ActivateDto: {
+            /** @description The raw invite token from the ?token= query param. */
+            token: string;
+            /** @description The password to set. */
+            password: string;
+        };
+        MembershipResponseDto: {
+            /**
+             * Format: uuid
+             * @description The school this membership is in.
+             */
+            tenantId: string;
+            /**
+             * @description The role held in that school.
+             * @enum {string}
+             */
+            role: "SUPER_ADMIN" | "ADMIN" | "ACCOUNTANT" | "TEACHER" | "PARENT" | "STUDENT" | "EXECUTIVE" | "OFFICE_STAFF" | "EXAM_CONTROLLER" | "COMMITTEE";
+            /** @description The school's display name. Absent on tokens issued before this field existed, so consumers must fall back to a placeholder rather than assume it is present. */
+            name?: string;
+        };
+        LoginResponseDto: {
+            /** @description Short-lived bearer token for the Authorization header. */
+            access_token: string;
+            /** @description Every school/role pair the caller holds, for the tenant picker. */
+            memberships: components["schemas"]["MembershipResponseDto"][];
+        };
+        ActivateResendDto: {
+            /** @description The email or phone number on the account. */
+            identifier: string;
+        };
+        ForgotPasswordDto: {
+            /** @description The email or phone number on the account. */
+            identifier: string;
+        };
+        ResetPasswordDto: {
+            /** @description The password to set. */
+            new_password: string;
+            /** @description The phone number the OTP was sent to. */
+            phone?: string;
+            /** @description The 6-digit OTP sent by SMS. */
+            otp?: string;
+            /** @description The reset token from the emailed link. */
+            token?: string;
+        };
+        OtpRequestDto: {
+            /** @description The phone number or email on the account. Either `identifier` or `phone`. */
+            identifier?: string;
+            /** @description Alias of `identifier` for older clients. */
+            phone?: string;
+        };
+        OtpVerifyDto: {
+            /** @description The phone number or email the code was sent to. Either `identifier` or `phone`. */
+            identifier?: string;
+            /** @description Alias of `identifier` for older clients. */
+            phone?: string;
+            /** @description The 6-digit code sent by SMS or email. */
+            otp: string;
+        };
+        OtpLoginResponseDto: {
+            /** @description Short-lived bearer token for the Authorization header. */
+            access_token: string;
+            /** @description Every school/role pair the caller holds, for the tenant picker. */
+            memberships: components["schemas"]["MembershipResponseDto"][];
+            /** @description True when the account has no password yet. */
+            needs_password: boolean;
+            /** @description True when a first password must be set: no password yet, staff rules apply, and no social sign-in is linked. */
+            password_required: boolean;
+        };
+        VerifyEmailDto: {
+            /** @description The raw email-verify token from the ?token= query param. */
+            token: string;
+            /**
+             * @description [75.1] Only for a school's contact-change proposal: opening the link shows it, 'approve' applies it, 'decline' cancels it.
+             * @enum {string}
+             */
+            action?: "approve" | "decline";
+            /** @description [75.1, D23] With action 'approve': the 6-digit code sent to the proposed NEW email. */
+            email_code?: string;
+            /** @description [75.1, D23] With action 'approve': the 6-digit code sent to the proposed NEW phone. */
+            phone_code?: string;
+        };
+        VerifyEmailResponseDto: {
+            /**
+             * @description 'valid' means the contact was changed; 'proposal' is a school's pending request to show for approval; 'confirm' means the approval was accepted and a 6-digit code went to each NEW contact, to send back with action 'approve' (D23); 'declined' means the person cancelled it; anything else means nothing changed.
+             * @enum {string}
+             */
+            status: "valid" | "expired" | "consumed" | "revoked" | "unknown" | "proposal" | "confirm" | "declined";
+            /** @description Only with status 'proposal': { from_school, new_email?, new_phone? }, the full proposed values (D25: only the person, through a link sent to their own contact, sees this), null = removed. */
+            proposal?: {
+                [key: string]: unknown;
+            };
+        };
+        FirstPasswordDto: {
+            /** @description The first password to set. */
+            password: string;
+        };
+        /** @enum {string} */
+        UserRole: "SUPER_ADMIN" | "ADMIN" | "ACCOUNTANT" | "TEACHER" | "PARENT" | "STUDENT" | "EXECUTIVE" | "OFFICE_STAFF" | "EXAM_CONTROLLER" | "COMMITTEE";
+        SchoolInviteDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            school_id: string;
+            school_name: string;
+            role: components["schemas"]["UserRole"];
+            /** Format: date-time */
+            expires_at: string;
+        };
+        LoginDto: {
+            /** Format: email */
+            email?: string;
+            phone?: string;
+            password: string;
+        };
+        SessionDto: {
+            /** @description The refresh-token family id. Used as the id in DELETE /auth/sessions/:id. */
+            id: string;
+            /** @description When this family was first created (i.e. when the device signed in), ISO 8601. */
+            started_at: string;
+            /** @description When this family last refreshed, ISO 8601. */
+            last_used_at: string;
+            /** @description The User-Agent header captured at issue/rotation time, or null. */
+            user_agent: string | null;
+            /** @description The IP address captured at issue/rotation time, or null. */
+            ip_address: string | null;
+            /** @description Whether this is the family behind the caller's own refresh cookie. */
+            current: boolean;
+        };
+        SessionListDto: {
+            data: components["schemas"]["SessionDto"][];
+        };
+        ChangePasswordDto: {
+            /** @description The caller's current password, re-entered to prove possession. */
+            current_password: string;
+            /** @description The new password to store. */
+            new_password: string;
+        };
+        StepUpOtpRequestDto: {
+            /** @description The approver's email or phone. */
+            identifier: string;
+            /** @enum {string} */
+            scope: "fees.duplicate_override" | "fees.edit_paid" | "fees.discount" | "payments.reverse" | "payments.backdate" | "discount_rules.manage" | "grading_scale.manage" | "results.reopen" | "promotion.override";
+        };
+        StepUpVerifyDto: {
+            /** @description The approver's email or phone. */
+            identifier: string;
+            /** @enum {string} */
+            method: "OTP" | "PASSWORD";
+            /** @description 6-digit OTP — required when method is OTP. */
+            otp?: string;
+            /** @description The approver's password — required when method is PASSWORD. */
+            password?: string;
+            /** @enum {string} */
+            scope: "fees.duplicate_override" | "fees.edit_paid" | "fees.discount" | "payments.reverse" | "payments.backdate" | "discount_rules.manage" | "grading_scale.manage" | "results.reopen" | "promotion.override";
         };
         CreateAcademicYearDto: {
             name: string;
@@ -17630,825 +17718,6 @@ export interface operations {
             };
         };
     };
-    AuditController_findAll_v1: {
-        parameters: {
-            query?: {
-                action?: "CREATE" | "UPDATE" | "DELETE" | "LOGIN" | "LOGIN_FAILED" | "LOGOUT" | "TOKEN_REUSE_DETECTED" | "PAYMENT_RECEIVED" | "INVOICE_GENERATED" | "BULK_UPLOAD" | "REMINDER_SENT" | "REMINDER_PREVIEWED" | "FEE_STRUCTURE_CHANGE" | "SETTINGS_CHANGE" | "SETTINGS_TEST" | "INVITATION_SENT" | "INVITATION_REVOKED" | "ACCOUNT_ACTIVATED" | "PASSWORD_RESET_REQUESTED" | "PASSWORD_RESET" | "CONTACT_VERIFIED" | "SESSION_REVOKED" | "SUSPEND" | "REACTIVATE" | "BACKUP_DELETED" | "REPORT_EXPORT";
-                entity_type?: string;
-                performed_by_user_id?: string;
-                entity_id?: string;
-                from_date?: string;
-                to_date?: string;
-                page?: number;
-                limit?: number;
-            };
-            header: {
-                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
-                "X-Tenant-ID": string;
-                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
-                "X-Role"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditLogListResponseDto"];
-                };
-            };
-            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AuditController_exportAuditLogs_v1: {
-        parameters: {
-            query?: {
-                format?: "CSV" | "XLSX";
-                action?: "CREATE" | "UPDATE" | "DELETE" | "LOGIN" | "LOGIN_FAILED" | "LOGOUT" | "TOKEN_REUSE_DETECTED" | "PAYMENT_RECEIVED" | "INVOICE_GENERATED" | "BULK_UPLOAD" | "REMINDER_SENT" | "REMINDER_PREVIEWED" | "FEE_STRUCTURE_CHANGE" | "SETTINGS_CHANGE" | "SETTINGS_TEST" | "INVITATION_SENT" | "INVITATION_REVOKED" | "ACCOUNT_ACTIVATED" | "PASSWORD_RESET_REQUESTED" | "PASSWORD_RESET" | "CONTACT_VERIFIED" | "SESSION_REVOKED" | "SUSPEND" | "REACTIVATE" | "BACKUP_DELETED" | "REPORT_EXPORT";
-                entity_type?: string;
-                performed_by_user_id?: string;
-                entity_id?: string;
-                from_date?: string;
-                to_date?: string;
-                page?: number;
-                limit?: number;
-            };
-            header: {
-                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
-                "X-Tenant-ID": string;
-                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
-                "X-Role"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AuditController_findByEntity_v1: {
-        parameters: {
-            query?: {
-                action?: "CREATE" | "UPDATE" | "DELETE" | "LOGIN" | "LOGIN_FAILED" | "LOGOUT" | "TOKEN_REUSE_DETECTED" | "PAYMENT_RECEIVED" | "INVOICE_GENERATED" | "BULK_UPLOAD" | "REMINDER_SENT" | "REMINDER_PREVIEWED" | "FEE_STRUCTURE_CHANGE" | "SETTINGS_CHANGE" | "SETTINGS_TEST" | "INVITATION_SENT" | "INVITATION_REVOKED" | "ACCOUNT_ACTIVATED" | "PASSWORD_RESET_REQUESTED" | "PASSWORD_RESET" | "CONTACT_VERIFIED" | "SESSION_REVOKED" | "SUSPEND" | "REACTIVATE" | "BACKUP_DELETED" | "REPORT_EXPORT";
-                entity_type?: string;
-                performed_by_user_id?: string;
-                entity_id?: string;
-                from_date?: string;
-                to_date?: string;
-                page?: number;
-                limit?: number;
-            };
-            header: {
-                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
-                "X-Tenant-ID": string;
-                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
-                "X-Role"?: string;
-            };
-            path: {
-                entityType: string;
-                entityId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditLogListResponseDto"];
-                };
-            };
-            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AuditDashboardController_getRecentActivity_v1: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
-                "X-Tenant-ID": string;
-                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
-                "X-Role"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecentActivityDto"];
-                };
-            };
-            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Missing permission, or role not offered this widget (DASHBOARD_WIDGET_ROLE) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AuthController_login_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LoginResponseDto"];
-                };
-            };
-            /** @description Invalid credentials — identical response for an unknown identifier, a wrong password, and a locked-out account (see the README's "Login brute-force protection" section). */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AuthController_refresh_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LoginResponseDto"];
-                };
-            };
-            /** @description Missing, expired, invalid, or already-used refresh token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AuthController_logout_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AuthController_logoutAll_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AuthController_listSessions_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SessionListDto"];
-                };
-            };
-        };
-    };
-    AuthController_revokeSession_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No such family for the caller's account. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AuthController_changePassword_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChangePasswordDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LoginResponseDto"];
-                };
-            };
-            /** @description Missing or invalid access token, or the account is not active. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The supplied current_password is incorrect. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    StepUpController_requestOtp_v1: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
-                "X-Tenant-ID": string;
-                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
-                "X-Role"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StepUpOtpRequestDto"];
-            };
-        };
-        responses: {
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    StepUpController_verify_v1: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
-                "X-Tenant-ID": string;
-                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
-                "X-Role"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StepUpVerifyDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PushSubscriptionsController_getPublicKey_v1: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
-                "X-Tenant-ID": string;
-                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
-                "X-Role"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PushPublicKeyResponseDto"];
-                };
-            };
-            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PushSubscriptionsController_list_v1: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
-                "X-Tenant-ID": string;
-                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
-                "X-Role"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PushSubscriptionResponseDto"][];
-                };
-            };
-            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PushSubscriptionsController_subscribe_v1: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
-                "X-Tenant-ID": string;
-                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
-                "X-Role"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePushSubscriptionDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PushSubscriptionResponseDto"];
-                };
-            };
-            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PushSubscriptionsController_removeAll_v1: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
-                "X-Tenant-ID": string;
-                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
-                "X-Role"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PushSubscriptionsController_remove_v1: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
-                "X-Tenant-ID": string;
-                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
-                "X-Role"?: string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AccountAccessController_verify_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ActivateVerifyDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-        };
-    };
-    AccountAccessController_activate_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ActivateDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LoginResponseDto"];
-                };
-            };
-        };
-    };
-    AccountAccessController_resend_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ActivateResendDto"];
-            };
-        };
-        responses: {
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AccountAccessController_forgotPassword_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ForgotPasswordDto"];
-            };
-        };
-        responses: {
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-        };
-    };
-    AccountAccessController_resetPassword_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResetPasswordDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LoginResponseDto"];
-                };
-            };
-        };
-    };
-    AccountAccessController_otpRequest_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OtpRequestDto"];
-            };
-        };
-        responses: {
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-        };
-    };
-    AccountAccessController_otpVerify_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OtpVerifyDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OtpLoginResponseDto"];
-                };
-            };
-        };
-    };
-    AccountAccessController_verifyEmail_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VerifyEmailDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VerifyEmailResponseDto"];
-                };
-            };
-        };
-    };
-    FirstPasswordController_set_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FirstPasswordDto"];
-            };
-        };
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    SchoolInvitesController_list_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SchoolInviteDto"][];
-                };
-            };
-        };
-    };
-    SchoolInvitesController_accept_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    SchoolInvitesController_decline_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     CreditsController_getSmsReadiness_v1: {
         parameters: {
             query?: never;
@@ -18776,6 +18045,12 @@ export interface operations {
     CommunicationsController_findLogs_v1: {
         parameters: {
             query?: {
+                search?: string;
+                trigger?: "MANUAL" | "AUTOMATED" | "BULK_REMINDER" | "SINGLE_REMINDER" | "ACCOUNT_ACCESS" | "RESULT_SMS" | "ARRIVAL_NOTICE";
+                student_id?: string;
+                guardian_id?: string;
+                sent_by?: string;
+                provider?: string;
                 status?: "QUEUED" | "SENT" | "DELIVERED" | "FAILED" | "READ";
                 medium?: "SMS" | "WHATSAPP" | "EMAIL" | "PHONE_CALL" | "MESSENGER";
                 from_date?: string;
@@ -18800,6 +18075,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReminderBatchLogListResponseDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CommunicationsController_findLogFilterOptions_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageLogFilterOptionsDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CommunicationsController_checkStatus_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderBatchLogDto"];
                 };
             };
             /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
@@ -20298,6 +19637,166 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudentsAddedTodayDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing permission, or role not offered this widget (DASHBOARD_WIDGET_ROLE) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuditController_findAll_v1: {
+        parameters: {
+            query?: {
+                action?: "CREATE" | "UPDATE" | "DELETE" | "LOGIN" | "LOGIN_FAILED" | "LOGOUT" | "TOKEN_REUSE_DETECTED" | "PAYMENT_RECEIVED" | "INVOICE_GENERATED" | "BULK_UPLOAD" | "REMINDER_SENT" | "REMINDER_PREVIEWED" | "FEE_STRUCTURE_CHANGE" | "SETTINGS_CHANGE" | "SETTINGS_TEST" | "INVITATION_SENT" | "INVITATION_REVOKED" | "ACCOUNT_ACTIVATED" | "PASSWORD_RESET_REQUESTED" | "PASSWORD_RESET" | "CONTACT_VERIFIED" | "SESSION_REVOKED" | "SUSPEND" | "REACTIVATE" | "BACKUP_DELETED" | "REPORT_EXPORT";
+                entity_type?: string;
+                performed_by_user_id?: string;
+                entity_id?: string;
+                from_date?: string;
+                to_date?: string;
+                page?: number;
+                limit?: number;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogListResponseDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuditController_exportAuditLogs_v1: {
+        parameters: {
+            query?: {
+                format?: "CSV" | "XLSX";
+                action?: "CREATE" | "UPDATE" | "DELETE" | "LOGIN" | "LOGIN_FAILED" | "LOGOUT" | "TOKEN_REUSE_DETECTED" | "PAYMENT_RECEIVED" | "INVOICE_GENERATED" | "BULK_UPLOAD" | "REMINDER_SENT" | "REMINDER_PREVIEWED" | "FEE_STRUCTURE_CHANGE" | "SETTINGS_CHANGE" | "SETTINGS_TEST" | "INVITATION_SENT" | "INVITATION_REVOKED" | "ACCOUNT_ACTIVATED" | "PASSWORD_RESET_REQUESTED" | "PASSWORD_RESET" | "CONTACT_VERIFIED" | "SESSION_REVOKED" | "SUSPEND" | "REACTIVATE" | "BACKUP_DELETED" | "REPORT_EXPORT";
+                entity_type?: string;
+                performed_by_user_id?: string;
+                entity_id?: string;
+                from_date?: string;
+                to_date?: string;
+                page?: number;
+                limit?: number;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuditController_findByEntity_v1: {
+        parameters: {
+            query?: {
+                action?: "CREATE" | "UPDATE" | "DELETE" | "LOGIN" | "LOGIN_FAILED" | "LOGOUT" | "TOKEN_REUSE_DETECTED" | "PAYMENT_RECEIVED" | "INVOICE_GENERATED" | "BULK_UPLOAD" | "REMINDER_SENT" | "REMINDER_PREVIEWED" | "FEE_STRUCTURE_CHANGE" | "SETTINGS_CHANGE" | "SETTINGS_TEST" | "INVITATION_SENT" | "INVITATION_REVOKED" | "ACCOUNT_ACTIVATED" | "PASSWORD_RESET_REQUESTED" | "PASSWORD_RESET" | "CONTACT_VERIFIED" | "SESSION_REVOKED" | "SUSPEND" | "REACTIVATE" | "BACKUP_DELETED" | "REPORT_EXPORT";
+                entity_type?: string;
+                performed_by_user_id?: string;
+                entity_id?: string;
+                from_date?: string;
+                to_date?: string;
+                page?: number;
+                limit?: number;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                entityType: string;
+                entityId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogListResponseDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuditDashboardController_getRecentActivity_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecentActivityDto"];
                 };
             };
             /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
@@ -23123,6 +22622,163 @@ export interface operations {
             };
         };
     };
+    PushSubscriptionsController_getPublicKey_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushPublicKeyResponseDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PushSubscriptionsController_list_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushSubscriptionResponseDto"][];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PushSubscriptionsController_subscribe_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePushSubscriptionDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushSubscriptionResponseDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PushSubscriptionsController_removeAll_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PushSubscriptionsController_remove_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     SchoolsController_findAll_v1: {
         parameters: {
             query?: {
@@ -23370,6 +23026,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TenantSettingsResponseDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An ADMIN attempted to manage a school other than their own; only a SUPER_ADMIN can manage any school. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SchoolsController_getMessagingProviders_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagingProvidersResponseDto"];
                 };
             };
             /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
@@ -23753,6 +23449,508 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AccountAccessController_verify_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivateVerifyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+        };
+    };
+    AccountAccessController_activate_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivateDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponseDto"];
+                };
+            };
+        };
+    };
+    AccountAccessController_resend_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivateResendDto"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AccountAccessController_forgotPassword_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordDto"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+        };
+    };
+    AccountAccessController_resetPassword_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponseDto"];
+                };
+            };
+        };
+    };
+    AccountAccessController_otpRequest_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OtpRequestDto"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+        };
+    };
+    AccountAccessController_otpVerify_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OtpVerifyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OtpLoginResponseDto"];
+                };
+            };
+        };
+    };
+    AccountAccessController_verifyEmail_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifyEmailResponseDto"];
+                };
+            };
+        };
+    };
+    FirstPasswordController_set_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FirstPasswordDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SchoolInvitesController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolInviteDto"][];
+                };
+            };
+        };
+    };
+    SchoolInvitesController_accept_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SchoolInvitesController_decline_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_login_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponseDto"];
+                };
+            };
+            /** @description Invalid credentials — identical response for an unknown identifier, a wrong password, and a locked-out account (see the README's "Login brute-force protection" section). */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_refresh_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponseDto"];
+                };
+            };
+            /** @description Missing, expired, invalid, or already-used refresh token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_logout_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_logoutAll_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_listSessions_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionListDto"];
+                };
+            };
+        };
+    };
+    AuthController_revokeSession_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No such family for the caller's account. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_changePassword_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponseDto"];
+                };
+            };
+            /** @description Missing or invalid access token, or the account is not active. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The supplied current_password is incorrect. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StepUpController_requestOtp_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StepUpOtpRequestDto"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StepUpController_verify_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StepUpVerifyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
             };
             /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
             401: {
@@ -25801,7 +25999,7 @@ export interface operations {
                 search?: string;
                 status?: "ACTIVE" | "INACTIVE" | "SUSPENDED";
                 membership?: "current" | "former";
-                invitation_status?: "EXPIRED" | "PENDING" | "NONE" | "REVOKED" | "ACTIVATED";
+                invitation_status?: "PENDING" | "EXPIRED" | "NONE" | "REVOKED" | "ACTIVATED";
                 designation_id?: string;
                 joined_from?: string;
                 joined_to?: string;
@@ -30857,8 +31055,17 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 202 when queued; otherwise the file. */
+            /** @description The file (up to 5,000 rows). */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            /** @description Queued; poll the run status. */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };

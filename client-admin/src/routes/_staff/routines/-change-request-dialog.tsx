@@ -13,6 +13,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  HelpHint,
   Label,
   Textarea,
   toast,
@@ -65,7 +66,10 @@ export function ChangeRequestDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="sm">
         <DialogHeader>
-          <DialogTitle>{t('changeRequestDialog.title')}</DialogTitle>
+          <div className="flex items-center gap-1">
+            <DialogTitle>{t('changeRequestDialog.title')}</DialogTitle>
+            <HelpHint helpId="academics.routineReview.action.requestChange" />
+          </div>
           <DialogDescription>
             {slotLabel
               ? t('changeRequestDialog.slotDescription', { slot: slotLabel })

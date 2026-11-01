@@ -28,6 +28,8 @@ export function useStudentCommunicationLogs(studentId: string) {
         );
         return res.data;
       },
+      // An empty id would hit `GET /communications/student/` (the message log's unused branch).
+      enabled: Boolean(studentId),
       retry: shouldRetryQuery,
     }),
   );
@@ -48,6 +50,7 @@ export function useGuardianCommunicationLogs(guardianId: string) {
         );
         return res.data;
       },
+      enabled: Boolean(guardianId),
       retry: shouldRetryQuery,
     }),
   );

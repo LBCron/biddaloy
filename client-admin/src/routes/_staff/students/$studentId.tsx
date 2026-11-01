@@ -21,6 +21,7 @@ import {
   HandCoinsIcon,
   IdCardIcon,
   LogOutIcon,
+  MessageSquareTextIcon,
   PencilIcon,
   RotateCcwIcon,
   SendIcon,
@@ -214,6 +215,7 @@ function StudentDetailPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
 
   const canUpdate = useHasPermission(Permission.STUDENT_UPDATE);
+  const canSeeMessages = useHasPermission(Permission.COMMUNICATION_BULK_SEND);
   const canManageLifecycle = useHasPermission(Permission.STUDENT_LIFECYCLE_MANAGE);
   const canReadRecords = useHasPermission(Permission.STUDENT_RECORDS_READ);
   const canReadNotes = useHasPermission(Permission.STUDENT_NOTES_READ);
@@ -421,6 +423,17 @@ function StudentDetailPage() {
                 allowed: canDelete,
                 priority: 'destructive',
                 onClick: () => setDeleteDialogOpen(true),
+              },
+              // Last on purpose: the 3rd secondary goes into More, keeping Edit and the
+              // leave/readmit action inline (PageHeaderActions groups by priority).
+              {
+                id: 'messages',
+                label: t('detail.actions.messages'),
+                icon: <MessageSquareTextIcon />,
+                allowed: canSeeMessages,
+                priority: 'secondary',
+                to: '/communications/message-log',
+                search: { student: studentId },
               },
             ]}
             activeTab={activeTab}

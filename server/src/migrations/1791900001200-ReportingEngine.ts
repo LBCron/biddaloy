@@ -98,7 +98,7 @@ export class ReportingEngine1791900001200 implements MigrationInterface {
       `ALTER TABLE "report_schedules" ADD CONSTRAINT "FK_61ed2007e84f2a0312ce69cd7c8" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `CREATE OR REPLACE FUNCTION "public"."block_report_definition_versions_update"() RETURNS TRIGGER AS $$ BEGIN RAISE EXCEPTION 'report_definition_versions is immutable: updates are not permitted'; END; $$ LANGUAGE plpgsql`,
+      `CREATE OR REPLACE FUNCTION "public"."block_report_definition_versions_update"() RETURNS TRIGGER AS $$ BEGIN IF OLD.published_by IS NOT NULL AND NEW.published_by IS NULL AND (to_jsonb(NEW) - 'published_by') = (to_jsonb(OLD) - 'published_by') THEN RETURN NEW; END IF; RAISE EXCEPTION 'report_definition_versions is immutable: updates are not permitted'; END; $$ LANGUAGE plpgsql`,
     );
     await queryRunner.query(
       `CREATE TRIGGER "trg_report_definition_versions_immutable" BEFORE UPDATE ON "report_definition_versions" FOR EACH ROW EXECUTE FUNCTION "public"."block_report_definition_versions_update"()`,

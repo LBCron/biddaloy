@@ -2,6 +2,7 @@ import type { EntityManager } from 'typeorm';
 import { School } from '../../../schools/entities/school.entity';
 import { TenantSettingsDto } from '../../../schools/dto/tenant-settings.dto';
 import { getSecretPaths } from '../../../schools/settings/secret-paths.util';
+import { alignMediumShapes } from '../../../schools/settings/tenant-settings-merge.util';
 import { fromCell } from '../../codec/cell-format';
 import type {
   ColumnSpec,
@@ -157,6 +158,44 @@ export function deepMergePresent(
   return base;
 }
 
+/**
+ * `communications.sms.metering` says who pays for the school's SMS, and only the platform sets it
+ * (#3346). A school ADMIN holds BACKUP_MANAGE, so an imported value must never reach the stored
+ * settings: the destination keeps its own, whatever the file says. A non-object `communications`
+ * or `communications.sms` (e.g. `null`) is dropped too: the merge would replace the stored object
+ * with it, wiping the stored metering and every saved credential under it.
+ */
+function withoutPlatformOnlyPaths(settings: Record<string, unknown>): Record<string, unknown> {
+  if (!('communications' in settings)) return settings;
+  const { communications, ...rest } = settings;
+  if (!isPlainObject(communications)) return rest;
+  if (!('sms' in communications)) return settings;
+  const { sms, ...otherMedia } = communications;
+  if (!isPlainObject(sms)) return { ...rest, communications: otherMedia };
+  const { metering: _dropped, ...smsKept } = sms;
+  return { ...rest, communications: { ...otherMedia, sms: smsKept } };
+}
+
+/**
+ * What an import does to the stored settings: secrets stripped, then a present-keys merge. A
+ * messaging medium stored flat (pre-D6) but imported nested (or the reverse) is lifted to one shape
+ * first, or the merge would keep both and strand the stored secret (the send then fails).
+ */
+export function mergeImportedSettings(
+  existing: Record<string, unknown> | null,
+  imported: Record<string, unknown> | null,
+): Record<string, unknown> | null {
+  const incoming = imported ? withoutPlatformOnlyPaths(stripSecretPaths(imported)) : null;
+  if (!existing || !incoming || !isPlainObject(incoming.communications)) {
+    return deepMergePresent(existing, incoming);
+  }
+  const aligned = alignMediumShapes(existing.communications, incoming.communications);
+  return deepMergePresent(
+    { ...existing, communications: aligned.current },
+    { ...incoming, communications: aligned.patch as Record<string, unknown> },
+  );
+}
+
 export const schoolTab: TabSpec<School, SchoolRow> = {
   name: 'school',
   entity: School,
@@ -293,10 +332,9 @@ export const schoolTab: TabSpec<School, SchoolRow> = {
       if (row[key] !== existing[key]) changed.push(key);
     }
 
-    // Mirror upsert's stripSecretPaths so the diff preview never reports a
-    // 'settings' change that upsert would actually discard.
-    const importedSettings = row.settings ? stripSecretPaths(row.settings) : null;
-    const merged = deepMergePresent(existing.settings, importedSettings);
+    // The same merge upsert does, so the preview never reports a 'settings'
+    // change that upsert would actually discard.
+    const merged = mergeImportedSettings(existing.settings, row.settings);
     if (JSON.stringify(merged) !== JSON.stringify(existing.settings)) changed.push('settings');
 
     return changed;
@@ -328,10 +366,9 @@ export const schoolTab: TabSpec<School, SchoolRow> = {
     school.registration_id = row.registration_id;
     school.country_code = row.country_code;
     // A hand-edited workbook can carry a secret path (e.g.
-    // communications.sms.mimsms.apiKey) the exporter never wrote — strip it
-    // before merging so an import can never overwrite a stored credential.
-    const importedSettings = row.settings ? stripSecretPaths(row.settings) : null;
-    school.settings = deepMergePresent(school.settings, importedSettings);
+    // communications.sms.mimsms.apiKey) the exporter never wrote — the merge
+    // strips it so an import can never overwrite a stored credential.
+    school.settings = mergeImportedSettings(school.settings, row.settings);
 
     return m.save(School, school);
   },

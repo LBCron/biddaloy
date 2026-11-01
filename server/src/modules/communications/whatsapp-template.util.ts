@@ -5,7 +5,7 @@ import { ReminderTemplateVars, templateVarValue } from './reminder-template.util
  * Meta rejects freeform WhatsApp text outside its 24-hour session window,
  * which a proactive fee reminder is always outside of. So a WhatsApp
  * reminder is dispatched as a **pre-approved template**, not as the
- * rendered message body — see WhatsAppCloudProvider.
+ * rendered message body — see MetaCloudProvider.
  *
  * This is the single place that decides "does this recipient get a
  * template, and with what positional parameters." Both the send path

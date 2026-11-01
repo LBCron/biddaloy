@@ -110,7 +110,10 @@ describe('FeeNotificationsListener.handleFeesGenerated — FINE splitting', () =
     is_primary_contact: true,
   } as any);
 
-  function makeListener(bills: unknown[], opts: { metered?: boolean } = {}) {
+  function makeListener(
+    bills: unknown[],
+    opts: { metered?: boolean; communications?: Record<string, unknown> } = {},
+  ) {
     const logRepo = {
       find: vi.fn().mockResolvedValue([]),
       create: vi.fn((v: unknown) => v),
@@ -128,7 +131,7 @@ describe('FeeNotificationsListener.handleFeesGenerated — FINE splitting', () =
     const schoolsService = {
       getResolvedSettings: vi.fn().mockResolvedValue({
         region: { locale: 'en-US' },
-        communications: { sms: { provider: 'twilio' }, whatsapp: undefined },
+        communications: opts.communications ?? { sms: { provider: 'twilio' }, whatsapp: undefined },
       }),
     };
     const smsCreditService = {
@@ -194,6 +197,32 @@ describe('FeeNotificationsListener.handleFeesGenerated — FINE splitting', () =
     ]);
     await listener.handleFeesGenerated({ tenantId, feeGenerationId });
     expect(queue.add).toHaveBeenCalledTimes(1);
+  });
+
+  // whatsappConfigured() reads both shapes: pre-D6 flat keys and the D6 per-company block.
+  async function savedMediumFor(whatsapp: Record<string, unknown>) {
+    const { listener, logRepo } = makeListener([billRow({})], {
+      communications: { sms: { provider: 'greenweb' }, whatsapp },
+    });
+    await listener.handleFeesGenerated({ tenantId, feeGenerationId });
+    return logRepo.save;
+  }
+
+  it('sends on WhatsApp when the school set it up in the flat (pre-D6) shape', async () => {
+    const save = await savedMediumFor({ phoneNumberId: '123' });
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({ medium: CommunicationMedium.WHATSAPP }),
+    );
+  });
+
+  it('sends on WhatsApp when the school set it up in the nested (D6) shape', async () => {
+    const save = await savedMediumFor({
+      provider: 'meta-cloud',
+      'meta-cloud': { phoneNumberId: '123' },
+    });
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({ medium: CommunicationMedium.WHATSAPP }),
+    );
   });
 
   it('falls back to logging SKIPPED_NO_SMS (no queue.add) when SMS is disabled and WhatsApp unavailable', async () => {

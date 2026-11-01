@@ -1,7 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { randomBytes } from 'crypto';
 import { EncryptionService } from './encryption.service';
 import { maskSecretFields } from './settings-mask.util';
+
+vi.mock(
+  '../../communications/providers/messaging-providers',
+  () => import('./testing/messaging-stubs.fixture'),
+);
 
 function service(): EncryptionService {
   return new EncryptionService(randomBytes(32));
@@ -45,9 +50,18 @@ describe('maskSecretFields', () => {
     expect(whatsapp.accessToken).toEqual({ configured: false });
   });
 
+  it('masks a cleared nested schema secret as { configured: false }', () => {
+    const masked = maskSecretFields(
+      { communications: { sms: { provider: 'beta', beta: { token: null } } } },
+      service(),
+    );
+
+    expect((masked.communications as any).sms.beta.token).toEqual({ configured: false });
+  });
+
   it('leaves a never-configured medium absent rather than synthesizing a placeholder', () => {
     const encryption = service();
-    const settings = { version: 1, communications: { sms: { provider: 'greenweb' } } };
+    const settings = { version: 1, communications: { sms: { provider: 'alpha' } } };
 
     const masked = maskSecretFields(settings, encryption);
     const communications = masked.communications as Record<string, unknown>;
@@ -61,17 +75,10 @@ describe('maskSecretFields', () => {
       version: 1,
       communications: {
         whatsapp: { phoneNumberId: '1', accessToken: encryption.encrypt('wa-secret-1234') },
-        messenger: { pageId: 'p1', accessToken: encryption.encrypt('msg-secret-5678') },
-        email: {
-          host: 'smtp.example.com',
-          port: 587,
-          user: 'a',
-          from: 'a@x.com',
-          password: encryption.encrypt('email-secret-9999'),
-        },
         sms: {
-          provider: 'mimsms',
-          mimsms: { apiKey: encryption.encrypt('sms-secret-0000'), senderId: 'S' },
+          provider: 'alpha',
+          alpha: { apiKey: encryption.encrypt('sms-secret-0000'), senderId: 'S' },
+          beta: { token: encryption.encrypt('beta-secret-5678') },
         },
       },
     };
@@ -80,12 +87,10 @@ describe('maskSecretFields', () => {
     const communications = masked.communications as any;
 
     expect(communications.whatsapp.accessToken).toEqual({ configured: true, hint: '••••1234' });
-    expect(communications.messenger.accessToken).toEqual({ configured: true, hint: '••••5678' });
-    expect(communications.email.password).toEqual({ configured: true, hint: '••••9999' });
-    expect(communications.sms.mimsms.apiKey).toEqual({ configured: true, hint: '••••0000' });
+    expect(communications.sms.beta.token).toEqual({ configured: true, hint: '••••5678' });
+    expect(communications.sms.alpha.apiKey).toEqual({ configured: true, hint: '••••0000' });
     // Non-secret fields pass through untouched.
-    expect(communications.email.host).toBe('smtp.example.com');
-    expect(communications.sms.mimsms.senderId).toBe('S');
+    expect(communications.sms.alpha.senderId).toBe('S');
   });
 
   it('suppresses the hint for a secret too short to hide anything behind it', () => {

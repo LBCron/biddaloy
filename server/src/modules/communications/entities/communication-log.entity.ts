@@ -135,3 +135,14 @@ export class CommunicationLog {
   @UpdateDateColumn({ type: 'timestamptz' })
   updated_at: Date;
 }
+
+/** The vendor took the message: SENT, or DELIVERED / READ written later by Check status (D23). */
+export const ACCEPTED_STATUSES: readonly string[] = [
+  CommunicationStatus.SENT,
+  CommunicationStatus.DELIVERED,
+  CommunicationStatus.READ,
+];
+
+/** Nothing more will be sent for this log: a replayed job must not send it again. */
+export const isTerminalStatus = (status: string) =>
+  ACCEPTED_STATUSES.includes(status) || status === CommunicationStatus.FAILED;

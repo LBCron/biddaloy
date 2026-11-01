@@ -70,16 +70,20 @@ const PATTERNS: RegExp[] = [
   /\bSentry\.init\(/,
 ];
 
-/** Per file (relative to server/src): host and who controls the URL. Audited 2026-10-13. */
+/**
+ * Per file (relative to server/src): host and who controls the URL. Audited 2026-10-13.
+ * Reviewed seam (#3324): `outbound-destination-guard.ts` lets http://127.0.0.1 through only when
+ * NODE_ENV=test AND OUTBOUND_TEST_ALLOW_LOOPBACK=true (boot refuses the flag in production).
+ * It is the guard itself, so it makes no call and needs no entry here; the last test below pins
+ * that no other file reads the flag.
+ */
 const REVIEWED_OUTBOUND: Record<string, string> = {
   'scripts/load/run-dashboard-load.ts':
     'manual operator tool: LOAD_BASE_URL is operator config and the script refuses any host that is not localhost / 127.0.0.1 / ::1',
-  'modules/communications/providers/whatsapp/whatsapp-cloud.provider.ts':
+  'modules/communications/providers/whatsapp/meta-cloud.provider.ts':
     'graph.facebook.com constant host; tenant path ids are checked by isValidGraphApiId',
-  'modules/communications/providers/messenger/messenger.provider.ts':
+  'modules/communications/providers/messenger/meta-page.provider.ts':
     'graph.facebook.com constant host; tenant pageId is checked by isValidGraphApiId',
-  'modules/communications/providers/sms/mim-sms.gateway.ts':
-    'BALANCE_URL constant (the tenant apiUrl send path uses the pinned helper; see comment in file)',
   'modules/auth/social/providers/google.provider.ts': 'TOKEN_URL constant (Google OAuth)',
   'modules/auth/social/providers/facebook.provider.ts': 'GRAPH constant (graph.facebook.com)',
   'modules/registration/turnstile.service.ts': 'challenges.cloudflare.com constant',
@@ -89,7 +93,7 @@ const REVIEWED_OUTBOUND: Record<string, string> = {
     'SENTRY_CRON_URL env, operator config (may be a private self-hosted Sentry)',
   'modules/push/push.service.ts':
     'web-push to the subscription endpoint; CreatePushSubscriptionDto allowlists known push-service hosts over https',
-  'modules/communications/providers/email/smtp-email.provider.ts':
+  'modules/communications/providers/email/smtp.provider.ts':
     'SMTP host is checked by assertSafeSmtpDestination before the transport is created',
   'modules/communications/providers/sink/mailpit-sink.provider.ts':
     'fixed compose alias mailpit:1025 or operator env MESSAGE_SINK_SMTP_URL; never tenant-influenced; only reached when MESSAGE_SINK=mailpit, which boot refuses on prod (D5, D22)',
@@ -175,5 +179,16 @@ describe('outbound HTTP guard', () => {
     expect(matches('// used with fetch() and an axios client\nconst a = 1;')).toBe(false);
     expect(matches('/* fetch(x) */ const a = 1;')).toBe(false);
     expect(matches("const u = 'https://a.b'; await fetch(u)")).toBe(true);
+  });
+
+  it('only the guard and the boot check read OUTBOUND_TEST_ALLOW_LOOPBACK (#3324)', () => {
+    const readers = collectFiles(SRC_DIR)
+      .filter((f) => readFileSync(f, 'utf8').includes('OUTBOUND_TEST_ALLOW_LOOPBACK'))
+      .map((f) => relative(SRC_DIR, f))
+      .sort();
+    expect(readers).toEqual([
+      'config/env.validation.ts',
+      'modules/communications/providers/shared/outbound-destination-guard.ts',
+    ]);
   });
 });

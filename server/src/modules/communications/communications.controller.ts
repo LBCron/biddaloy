@@ -39,7 +39,10 @@ import {
   QueryReminderBatchesDto,
   QueryReminderBatchLogsDto,
   QueryCommunicationLogsDto,
+  ReminderBatchLogDto,
+  MessageLogFilterOptionsDto,
 } from './dto/reminders.dto';
+import { DeliveryStatusService } from './delivery-status.service';
 import { SendSingleReminderDto } from './dto/single-reminder.dto';
 import { JwtPayload, Permission, RoleScope, roleScope } from '@biddaloy/shared';
 import { FamilyAccessService } from '../students/family-access.service';
@@ -57,6 +60,7 @@ export class CommunicationsController {
     @Inject(SingleReminderService) private readonly singleReminderService: SingleReminderService,
     @Inject(FamilyAccessService) private readonly familyAccess: FamilyAccessService,
     @Inject(TeacherScopeService) private readonly teacherScope: TeacherScopeService,
+    @Inject(DeliveryStatusService) private readonly deliveryStatus: DeliveryStatusService,
   ) {}
 
   // Distinct segment count from reminder/bulk(/:id) above and reminder/single/:studentId
@@ -172,7 +176,7 @@ export class CommunicationsController {
     @Query() query: QueryReminderBatchLogsDto,
     @CurrentTenant() tenant: { id: string; role: string },
   ) {
-    return this.bulkReminderService.findBatchLogs(id, query, tenant.id);
+    return this.bulkReminderService.findBatchLogs(id, query, tenant.id, tenant.role);
   }
 
   @Get('reminder/bulk/:id')
@@ -199,7 +203,36 @@ export class CommunicationsController {
     @Query() query: QueryCommunicationLogsDto,
     @CurrentTenant() tenant: { id: string; role: string },
   ) {
-    return this.bulkReminderService.findLogs(query, tenant.id);
+    return this.bulkReminderService.findLogs(query, tenant.id, tenant.role);
+  }
+
+  // [97.4.02] D22: the Company and Sent-by filter choices, on the log's own permission, so
+  // Accountant and Office staff (no SETTINGS_MANAGE / USER_READ) get them too.
+  @Get('logs/filter-options')
+  @RequirePermissions(Permission.COMMUNICATION_BULK_SEND)
+  @ApiOperation({ summary: 'Message log — the Company and Sent-by filter choices.' })
+  @ApiOkResponse({ type: MessageLogFilterOptionsDto })
+  findLogFilterOptions(@CurrentTenant() tenant: { id: string; role: string }) {
+    return this.bulkReminderService.findLogFilterOptions(tenant.id);
+  }
+
+  // [97.4.01] D23/D35: the message log page's permission only. The Idempotency-Key replays a
+  // double click instead of asking the vendor twice (Rule 25). The cooldown is per log, so the
+  // route also carries STRICT_RATE_LIMIT: many logs in a row cannot flood the vendor.
+  @Post('logs/:id/check-status')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(IdempotencyInterceptor)
+  @Throttle({ default: STRICT_RATE_LIMIT })
+  @RequirePermissions(Permission.COMMUNICATION_BULK_SEND)
+  @ApiOperation({
+    summary: 'Ask the company that sent this SMS/message whether it was delivered (once a minute).',
+  })
+  @ApiOkResponse({ type: ReminderBatchLogDto })
+  checkStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentTenant() tenant: { id: string; role: string },
+  ) {
+    return this.deliveryStatus.checkStatus(id, tenant.id, tenant.role);
   }
 
   @Post('send')

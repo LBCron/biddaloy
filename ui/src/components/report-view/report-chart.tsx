@@ -134,7 +134,14 @@ export function ReportChart({ result, layout, caption, defaultView }: ReportChar
         valueLabels[c.key] = hidden(r, c) ? DASH : formatCell(r[c.key], c.type, config, words);
       }
       const total = Object.values(values).reduce((acc, n) => acc + n, 0);
-      return { x: xs[i]!, values, valueLabels, totalLabel: formatScore(total, config) };
+      // A hidden (suppressed) part makes the sum a lie, so the total hides too.
+      const anyHidden = drawn.some((c) => hidden(r, c));
+      return {
+        x: xs[i]!,
+        values,
+        valueLabels,
+        totalLabel: anyHidden ? DASH : formatScore(total, config),
+      };
     });
     drawing = (
       <ColumnChart

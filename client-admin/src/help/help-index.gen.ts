@@ -1353,16 +1353,6 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'task-main',
     knownIssues: 0,
   },
-  'academics.routineBuilder.action.clearCell': {
-    title: { bn: 'শ্রেণির সাপ্তাহিক রুটিন সাজানো', en: "Arranging a class's weekly routine" },
-    summary: {
-      bn: 'প্রতিটি শাখার সাপ্তাহিক রুটিনের ছকে বিষয় ও শিক্ষক বসান, নিয়মের সংঘাত দেখুন, খালি ঘর একসাথে পূরণ করুন আর শিক্ষকের কর্মভার মিলিয়ে নিন।',
-      en: "Place subjects and teachers in each section's weekly routine table, see rule clashes, fill empty cells in one go, and check teacher workload.",
-    },
-    path: 'academics/routine-builder',
-    anchor: 'task-main',
-    knownIssues: 0,
-  },
   'academics.routineBuilder.field.teachers': {
     title: { bn: 'শ্রেণির সাপ্তাহিক রুটিন সাজানো', en: "Arranging a class's weekly routine" },
     summary: { bn: '', en: '' },
@@ -1770,16 +1760,6 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'attendance/attendance-reports',
     anchor: '',
-    knownIssues: 0,
-  },
-  'attendance.attendanceReports.action.sendReminder': {
-    title: { bn: 'উপস্থিতি প্রতিবেদন', en: 'Attendance reports' },
-    summary: {
-      bn: 'একটি শাখার মাসের হাজিরার হিসাব দেখুন, কার উপস্থিতি কম তা খুঁজে বের করুন, আর দরকার হলে রিমাইন্ডার পাঠান।',
-      en: "See a section's monthly attendance figures, find who is falling behind, and send a reminder if needed.",
-    },
-    path: 'attendance/attendance-reports',
-    anchor: 'task-main',
     knownIssues: 0,
   },
   'attendance.attendanceReports.field.threshold': {
@@ -3036,7 +3016,7 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'reports/hub',
     anchor: '',
-    knownIssues: 3,
+    knownIssues: 2,
   },
   'reports.collectionsReport': {
     title: { bn: 'ফি আদায়ের প্রতিবেদন', en: 'Fee collection report' },
@@ -3122,7 +3102,7 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'reports/student-count',
     anchor: '',
-    knownIssues: 2,
+    knownIssues: 1,
   },
   'reports.printables': {
     title: { bn: 'প্রিন্ট ও ডকুমেন্ট', en: 'Print & documents' },
@@ -3399,6 +3379,16 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'more',
     knownIssues: 0,
     field: { ns: 'communications', key: 'status' },
+  },
+  'communications.messageLog': {
+    title: { bn: 'বার্তার তালিকা', en: 'Message log' },
+    summary: {
+      bn: 'স্কুল থেকে পাঠানো প্রতিটি বার্তা (অ্যাপের বিজ্ঞপ্তি নয়) এক জায়গায়: নাম বা ফোন দিয়ে খুঁজুন, অবস্থা দেখুন, কেন ব্যর্থ হলো জানুন, আর কোম্পানির কাছে পৌঁছানোর খবর যাচাই করুন।',
+      en: 'Every message the school sent (not app notifications), in one place. Find one by name or phone, see its status and why it failed, and ask the company whether it was delivered.',
+    },
+    path: 'communications/message-log',
+    anchor: '',
+    knownIssues: 0,
   },
   'administration.printTemplates': {
     title: {
@@ -4896,7 +4886,7 @@ export const HELP_ROUTES = {
   '/communications/reminders': 'communications.feeReminders',
   '/communications/batches': 'communications.reminderHistory',
   '/communications/batches/$batchId': 'communications.reminderHistory',
-  '/communications/message-log': 'communications.reminderHistory',
+  '/communications/message-log': 'communications.messageLog',
   '/print-templates': 'administration.printTemplates',
   '/print-templates/$templateId/edit': 'administration.printTemplates',
   '/print/document': 'administration.printTemplates',

@@ -184,7 +184,7 @@ describe('GuardianSmsFallbackService in MESSAGE_SINK=mailpit [58.1.02]', () => {
         manager: { transaction: async (cb: any) => cb({ save: txSave, query: vi.fn() }) },
       } as any,
       { findOne: async () => null } as any,
-      new CommunicationProviderRegistryService({} as any, {} as any, {} as any, {} as any),
+      new CommunicationProviderRegistryService({} as any),
       { isActive: async () => true } as any,
       { settlePart: vi.fn(), isMetered: async () => false } as any,
       { sendToUser: async () => ({ accepted: 0, transient: 0, pruned: 0 }) } as any,

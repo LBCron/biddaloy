@@ -83,6 +83,7 @@
   - [Send an alert](communications/send-alert.md)
   - [Fee reminders](communications/fee-reminders.md)
   - [Reminder history](communications/reminder-history.md)
+  - [Message log](communications/message-log.md)
 - [Reports](reports/collections-report.md)
   - [All reports](reports/hub.md)
   - [Fee collection report](reports/collections-report.md)

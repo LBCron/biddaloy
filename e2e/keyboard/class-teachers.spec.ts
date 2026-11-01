@@ -139,11 +139,12 @@ test('keyboard-only: assign an assistant class teacher, the class teacher stays'
   const dialog = await openAssignDialogByKeyboard(page, classId, className, classTeacherName);
   await pickTeacherByKeyboard(page, dialog, assistantName);
   // Tab into the radio group (focus lands on the checked CLASS_TEACHER
-  // radio), ArrowDown moves focus to the ASSISTANT radio and Space selects it.
+  // radio, after the legend's (?) button, which tabUntilFocused skips),
+  // ArrowDown moves focus to the ASSISTANT radio and Space selects it.
   const assistantRadio = dialog.getByRole('radio', {
     name: t('classes.assignmentType.ASSISTANT_CLASS_TEACHER'),
   });
-  await page.keyboard.press('Tab');
+  await tabUntilFocused(page, t('classes.assignmentType.CLASS_TEACHER'), 6, { tag: 'BUTTON' });
   await page.keyboard.press('ArrowDown');
   await expect(assistantRadio).toBeFocused();
   await page.keyboard.press('Space');

@@ -5,6 +5,8 @@ import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp, withHelp } from '../help/test-utils';
+
 import { CalendarFeedCard } from './calendar-feed-card';
 
 const FEED_URL = 'webcal://app.biddaloy.test/api/v1/calendar/feed/tok_abc123';
@@ -40,6 +42,17 @@ describe('CalendarFeedCard', () => {
     await user.click(screen.getByRole('button', { name: 'Show' }));
     expect(input).toHaveProperty('type', 'text');
     expect(input.value).toBe(FEED_URL);
+  });
+
+  it('draws a (?) beside Regenerate', async () => {
+    server.use(http.get('/api/v1/calendar/feed', () => HttpResponse.json({ url: FEED_URL })));
+    renderWithProviders(withHelp(<CalendarFeedCard />), {
+      locale: 'en',
+      role: 'TEACHER',
+      tenantId: 'tenant-1',
+    });
+    await screen.findByLabelText('Your personal subscribe link');
+    await expectHelp('people.calendar.action.regenerateFeed');
   });
 
   it('copies the link to the clipboard', async () => {

@@ -203,19 +203,17 @@ test.describe('arrival notice: guardian asks -> teacher answers -> register -> m
         await expect
           .poll(
             async () => {
-              const logs = await get<
-                { medium: string; recipient_address: string; message_body: string }[]
-              >(request, admin, `/communications/student/${student.id}`);
-              // Nothing else messages this new child, so its one PUSH log is the notice.
-              // The text names the child and the teacher who took the register. The wording
-              // itself is in the server unit tests (ARRIVAL_TEMPLATES): it follows the school's
-              // language, so only the two names are asserted here.
+              const logs = await get<{ medium: string; recipient_address: string }[]>(
+                request,
+                admin,
+                `/communications/student/${student.id}`,
+              );
+              // Nothing else messages this new child, so a PUSH log to a push: address is the
+              // notice. The history route never returns the body (it is not in the response DTO),
+              // so the wording and the two names are asserted in the server unit tests
+              // (ARRIVAL_TEMPLATES), not here.
               return logs.some(
-                (l) =>
-                  l.medium === 'PUSH' &&
-                  l.recipient_address.startsWith('push:') &&
-                  l.message_body.includes(childName) &&
-                  l.message_body.includes(teacherName),
+                (l) => l.medium === 'PUSH' && l.recipient_address.startsWith('push:'),
               );
             },
             { timeout: 15_000, intervals: [500, 1000] },

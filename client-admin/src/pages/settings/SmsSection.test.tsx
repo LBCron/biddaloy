@@ -1,99 +1,53 @@
 import '@biddaloy/ui/test';
 
 import { cleanupTestState, renderWithProviders, server } from '@biddaloy/ui/test';
-import { screen, waitFor } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { providersHandler } from './provider-config-form.fixtures';
 import { SmsSection } from './SmsSection';
 
 const SCHOOL_ID = 'school-1';
+const OPTS = { locale: 'en', role: 'ADMIN', tenantId: SCHOOL_ID } as const;
 
 describe('SmsSection', () => {
+  beforeEach(() => {
+    server.use(providersHandler({ SMS: true }));
+  });
   afterEach(async () => {
     await cleanupTestState();
   });
 
-  it('sends only the selected gateway in the saved payload', async () => {
-    const patchBody = vi.fn();
-    server.use(
-      http.patch('/api/v1/schools/:id/settings', async ({ request }) => {
-        patchBody(await request.json());
-        return HttpResponse.json({ version: 1, region: {}, communications: {} });
-      }),
-    );
-
+  it("keeps today's labels and lists OneCodeSoft as a third company", async () => {
     const { user } = renderWithProviders(
       <SmsSection
         schoolId={SCHOOL_ID}
         sms={{ provider: 'greenweb', greenweb: { apiKey: { configured: true, hint: '••••key1' } } }}
       />,
-      { locale: 'en', role: 'ADMIN', tenantId: SCHOOL_ID },
+      OPTS,
     );
 
-    await user.click(await screen.findByRole('button', { name: 'Save' }));
-
-    await waitFor(() => expect(patchBody).toHaveBeenCalled());
-    const sms = patchBody.mock.calls[0]![0].communications.sms;
-    expect(sms.provider).toBe('greenweb');
-    expect(sms.greenweb).toBeDefined();
-    expect(sms.mimsms).toBeUndefined();
-  });
-
-  it('preserves a typed GreenWeb key when switching to MIMSMS and back', async () => {
-    const patchBody = vi.fn();
-    server.use(
-      http.patch('/api/v1/schools/:id/settings', async ({ request }) => {
-        patchBody(await request.json());
-        return HttpResponse.json({ version: 1, region: {}, communications: {} });
-      }),
-    );
-
-    const { user } = renderWithProviders(
-      <SmsSection
-        schoolId={SCHOOL_ID}
-        sms={{ provider: 'greenweb', greenweb: { apiKey: { configured: true, hint: '••••key1' } } }}
-      />,
-      { locale: 'en', role: 'ADMIN', tenantId: SCHOOL_ID },
-    );
-
-    await user.click(await screen.findByRole('button', { name: 'Change' }));
-    await user.type(await screen.findByLabelText('API key'), 'gw-typed-key');
+    expect(await screen.findByLabelText('SMS company')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'SMS' })).toBeTruthy();
+    expect(screen.getByText('All SMS from this school go through this company.')).toBeTruthy();
+    expect(screen.getByLabelText('SMS company')).toBeTruthy();
+    expect(screen.getByText('API key')).toBeTruthy();
+    expect(screen.getByLabelText('API address (optional)')).toBeTruthy();
 
     await user.click(screen.getByLabelText('SMS company'));
-    await user.click(await screen.findByRole('option', { name: 'MimSMS' }));
-    await user.click(screen.getByLabelText('SMS company'));
-    await user.click(await screen.findByRole('option', { name: 'Greenweb' }));
-
-    await user.click(screen.getByRole('button', { name: 'Save' }));
-
-    await waitFor(() => expect(patchBody).toHaveBeenCalled());
-    const sms = patchBody.mock.calls[0]![0].communications.sms;
-    expect(sms.provider).toBe('greenweb');
-    expect(sms.greenweb.apiKey).toBe('gw-typed-key');
+    const options = (await screen.findAllByRole('option')).map((o) => o.textContent);
+    expect(options).toEqual(['Greenweb', 'MimSMS', 'OneCodeSoft']);
+    await user.click(screen.getByRole('option', { name: 'MimSMS' }));
+    expect(await screen.findByLabelText(/^Sender name \(Sender ID\)/)).toBeTruthy();
   });
 
-  it('shows the set-up badge from the saved settings, and the API address only under Advanced', async () => {
-    const { container } = renderWithProviders(
-      <SmsSection
-        schoolId={SCHOOL_ID}
-        sms={{ provider: 'greenweb', greenweb: { apiKey: { configured: true, hint: '••••key1' } } }}
-      />,
-      { locale: 'en', role: 'ADMIN', tenantId: SCHOOL_ID },
-    );
-
+  it('shows "Set up" from the server, and "Not set up" when it says not configured', async () => {
+    renderWithProviders(<SmsSection schoolId={SCHOOL_ID} sms={undefined} />, OPTS);
     expect(await screen.findByText('Set up')).toBeTruthy();
-    const details = container.querySelector('details')!;
-    expect(details.open).toBe(false);
-    expect(details.contains(screen.getByLabelText('API address (optional)'))).toBe(true);
-  });
+    await cleanupTestState();
 
-  it('shows "Not set up" when no key is saved', async () => {
-    renderWithProviders(<SmsSection schoolId={SCHOOL_ID} sms={undefined} />, {
-      locale: 'en',
-      role: 'ADMIN',
-      tenantId: SCHOOL_ID,
-    });
+    server.use(providersHandler({ SMS: false }));
+    renderWithProviders(<SmsSection schoolId={SCHOOL_ID} sms={undefined} />, OPTS);
     expect(await screen.findByText('Not set up')).toBeTruthy();
   });
 });
