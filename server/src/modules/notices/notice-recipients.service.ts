@@ -139,12 +139,19 @@ export class NoticeRecipientsService {
     return added;
   }
 
-  private async total(tx: EntityManager, tenantId: string, noticeId: string): Promise<number> {
-    const [{ n }] = await tx.query(
-      `SELECT count(*)::int AS n FROM notice_recipients WHERE tenant_id = $1 AND notice_id = $2`,
+  /** `rows` = recipient rows; `people` = distinct people (a guardian with 2 children is 1; the cap counts people). */
+  private async total(
+    tx: EntityManager,
+    tenantId: string,
+    noticeId: string,
+  ): Promise<{ rows: number; people: number }> {
+    const [counts] = await tx.query(
+      `SELECT count(*)::int AS rows,
+              count(DISTINCT COALESCE(r.guardian_id, r.student_id, r.user_id))::int AS people
+         FROM notice_recipients r WHERE r.tenant_id = $1 AND r.notice_id = $2`,
       [tenantId, noticeId],
     );
-    return n;
+    return counts;
   }
 
   /** Runs `fill` on a locked DRAFT, then refuses (and rolls back) if the list grew past the cap. */
@@ -158,9 +165,9 @@ export class NoticeRecipientsService {
       const notice = await loadOwnedNotice(tx, tenantId, actor, id, true);
       if (notice.status !== NoticeStatus.DRAFT) throw new ConflictException(MSG.notDraft);
       const added = await fill(tx, notice);
-      const total = await this.total(tx, tenantId, id);
-      if (total > NOTICE_LIMITS.recipientsMax) throw new BadRequestException(MSG.cap);
-      return { added, total };
+      const { rows, people } = await this.total(tx, tenantId, id);
+      if (people > NOTICE_LIMITS.recipientsMax) throw new BadRequestException(MSG.cap);
+      return { added, total: rows };
     });
   }
 
@@ -177,7 +184,8 @@ export class NoticeRecipientsService {
     const notice = await loadOwnedNotice(this.ds.manager, tenantId, actor, id);
     if (notice.status !== NoticeStatus.DRAFT) throw new ConflictException(MSG.notDraft);
     const people = await this.audience.matchAll(tenantId, actor, filter);
-    if (people.length > NOTICE_LIMITS.recipientsMax) throw new BadRequestException(MSG.cap);
+    const distinct = new Set(people.map((p) => p.guardianId ?? p.studentId ?? p.userId));
+    if (distinct.size > NOTICE_LIMITS.recipientsMax) throw new BadRequestException(MSG.cap);
     const scope = await this.sectionScope(tenantId, actor);
     return this.changeDraft(tenantId, actor, id, async (tx) => {
       let added = 0;

@@ -282,10 +282,10 @@ describe('Notices API E2E', () => {
     await call('delete', `/notices/${n.id}`).expect(204);
   });
 
-  it('select-all with an unbuilt tab is 400; recipient removal takes a body of ids', async () => {
+  it('select-all with an invalid tab combo is 400; recipient removal takes a body of ids', async () => {
     const n = await mk();
     await call('post', `/notices/${n.id}/recipients/matching`, {
-      body: { target: 'STUDENTS', tab: 'FEE_DUE' },
+      body: { target: 'STAFF', tab: 'FEE_DUE' },
     }).expect(400);
     const added = await call('post', `/notices/${n.id}/recipients`, {
       body: { items: [{ kind: 'STAFF', userId: SEED_ADMIN_USER_ID }] },
