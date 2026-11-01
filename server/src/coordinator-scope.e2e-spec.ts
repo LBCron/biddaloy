@@ -14,8 +14,16 @@ import {
   TeacherScopeFixture,
 } from '@test/helpers/teacher-scope.fixture';
 import {
-  COORDINATOR_READ_ROUTES,
-  COORDINATOR_UNCHANGED_ROUTES,
+  DAY_REGISTER,
+  GUARDIAN_DETAIL,
+  MARK_DAY_REGISTER,
+  SECTION_ATTENDANCE_SUMMARY,
+  STUDENT_ALERTS,
+  STUDENT_ATTENDANCE_DAYS,
+  STUDENT_DETAIL,
+  STUDENT_NOTES,
+  STUDENT_PAYMENTS,
+  type ScopeRoute,
 } from '@test/helpers/coordinator-scope-routes';
 
 /**
@@ -90,7 +98,7 @@ describe('Coordinator scope (83.0.2 / 83.3.1)', () => {
     await fx.seed();
   });
 
-  const send = (route: (typeof COORDINATOR_READ_ROUTES)[number], ids: ReturnType<typeof idsB>) => {
+  const send = (route: ScopeRoute, ids: ReturnType<typeof idsB>) => {
     const r = call(route.method, route.path(ids));
     return route.method === 'get'
       ? r
@@ -98,11 +106,34 @@ describe('Coordinator scope (83.0.2 / 83.3.1)', () => {
   };
 
   describe('baseline: a TEACHER with no coordinator rows (as on main)', () => {
-    for (const route of [...COORDINATOR_READ_ROUTES, ...COORDINATOR_UNCHANGED_ROUTES]) {
-      it(`${route.name} for section B is 404 (${route.gate})`, async () => {
-        await send(route, idsB()).expect(404);
-      });
-    }
+    // Without a coordinator row, section B is outside the teacher's scope: 404, never 403.
+    it('student detail for section B is 404', async () => {
+      await send(STUDENT_DETAIL, idsB()).expect(404);
+    });
+    it('guardian detail for section B is 404', async () => {
+      await send(GUARDIAN_DETAIL, idsB()).expect(404);
+    });
+    it('day register for section B is 404', async () => {
+      await send(DAY_REGISTER, idsB()).expect(404);
+    });
+    it('section attendance summary for section B is 404', async () => {
+      await send(SECTION_ATTENDANCE_SUMMARY, idsB()).expect(404);
+    });
+    it('student alerts for section B is 404', async () => {
+      await send(STUDENT_ALERTS, idsB()).expect(404);
+    });
+    it('student notes for section B is 404', async () => {
+      await send(STUDENT_NOTES, idsB()).expect(404);
+    });
+    it('payments of a student for section B is 404', async () => {
+      await send(STUDENT_PAYMENTS, idsB()).expect(404);
+    });
+    it('attendance days of a student for section B is 404', async () => {
+      await send(STUDENT_ATTENDANCE_DAYS, idsB()).expect(404);
+    });
+    it('marking the day register for section B is 404', async () => {
+      await send(MARK_DAY_REGISTER, idsB()).expect(404);
+    });
 
     it('GET /students lists section A only; search does not find B', async () => {
       const res = await call('get', '/students?limit=100').expect(200);
@@ -115,19 +146,45 @@ describe('Coordinator scope (83.0.2 / 83.3.1)', () => {
   });
 
   describe('with a class-coordinator row on B’s class', () => {
-    for (const route of COORDINATOR_READ_ROUTES) {
-      it(`${route.name} for section B is 200 (${route.gate})`, async () => {
-        await coordinateB();
-        await send(route, idsB()).expect(200);
-      });
-    }
+    // A class coordinator reads section B through every widened gate (D4).
+    it('student detail for section B is 200', async () => {
+      await coordinateB();
+      await send(STUDENT_DETAIL, idsB()).expect(200);
+    });
+    it('guardian detail for section B is 200', async () => {
+      await coordinateB();
+      await send(GUARDIAN_DETAIL, idsB()).expect(200);
+    });
+    it('day register for section B is 200', async () => {
+      await coordinateB();
+      await send(DAY_REGISTER, idsB()).expect(200);
+    });
+    it('section attendance summary for section B is 200', async () => {
+      await coordinateB();
+      await send(SECTION_ATTENDANCE_SUMMARY, idsB()).expect(200);
+    });
+    it('student alerts for section B is 200', async () => {
+      await coordinateB();
+      await send(STUDENT_ALERTS, idsB()).expect(200);
+    });
 
-    for (const route of COORDINATOR_UNCHANGED_ROUTES) {
-      it(`${route.name} for section B is still 404 (${route.gate})`, async () => {
-        await coordinateB();
-        await send(route, idsB()).expect(404);
-      });
-    }
+    // Writes and the fee reads never widen, even with the coordinator row in place (D4, D5).
+    it('student notes for section B is still 404', async () => {
+      await coordinateB();
+      await send(STUDENT_NOTES, idsB()).expect(404);
+    });
+    it('payments of a student for section B is still 404', async () => {
+      await coordinateB();
+      await send(STUDENT_PAYMENTS, idsB()).expect(404);
+    });
+    it('attendance days of a student for section B is still 404', async () => {
+      await coordinateB();
+      await send(STUDENT_ATTENDANCE_DAYS, idsB()).expect(404);
+    });
+    it('marking the day register for section B is still 404', async () => {
+      await coordinateB();
+      await send(MARK_DAY_REGISTER, idsB()).expect(404);
+    });
 
     it('GET /students now lists A and B; search finds B', async () => {
       await coordinateB();
@@ -142,7 +199,7 @@ describe('Coordinator scope (83.0.2 / 83.3.1)', () => {
 
     it('section A still answers 200 (the teaching scope never shrinks)', async () => {
       await coordinateB();
-      await call('get', COORDINATOR_READ_ROUTES[0].path(idsA())).expect(200);
+      await call('get', STUDENT_DETAIL.path(idsA())).expect(200);
     });
   });
 

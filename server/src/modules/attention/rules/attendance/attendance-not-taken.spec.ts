@@ -253,6 +253,18 @@ describe('AttendanceNotTakenRule', () => {
       expect(g.recipients.map((r) => r.userId)).toEqual(['u-T2']);
     });
 
+    it('a late period with no resolved teacher still reaches the class coordinator', async () => {
+      const unresolved = build({
+        coordinators,
+        perPeriod: true,
+        sessions: [{ section_id: 'S1', period_no: null, state: 'FINALIZED' }],
+        slots: [build().slot('p2', { teacher_ids: [] })],
+      });
+      const [f] = await unresolved.rule.evaluate(ctx({ localTime: '09:20' }));
+      expect(f.escalationLevel).toBe(1);
+      expect(f.recipients.map((r) => r.userId)).toEqual(['u-COORD']);
+    });
+
     it('level 2 (CRITICAL): coordinator and heads both', async () => {
       const { rule } = build({ coordinators });
       const [finding] = await rule.evaluate(ctx({ localTime: '10:05' }));
