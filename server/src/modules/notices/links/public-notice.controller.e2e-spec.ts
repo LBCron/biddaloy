@@ -25,8 +25,8 @@ describe('Public Notice links E2E', () => {
     over: Record<string, unknown> = {},
   ): Promise<{ id: string; tenant_id: string }> {
     const [r] = await ds.query(
-      `INSERT INTO notices (tenant_id, author_user_id, title, body, status, published_at)
-       VALUES ($1,$2,'Exam notice','Body text','PUBLISHED',NOW()) RETURNING id, tenant_id`,
+      `INSERT INTO notices (tenant_id, author_user_id, title, body, status, published_at, is_public)
+       VALUES ($1,$2,'Exam notice','Body text','PUBLISHED',NOW(),true) RETURNING id, tenant_id`,
       [SEED_TENANT_ID, SEED_ADMIN_USER_ID],
     );
     if (over.status)

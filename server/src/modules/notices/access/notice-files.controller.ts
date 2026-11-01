@@ -89,6 +89,12 @@ export class NoticeFilesController {
       fileId,
     );
     res.setHeader('Content-Type', file.mime_type);
+    // same as the public route: uploaded content never runs script
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+    );
     res.setHeader(
       'Content-Disposition',
       buildContentDisposition(file.original_name).replace(/^attachment/, 'inline'),

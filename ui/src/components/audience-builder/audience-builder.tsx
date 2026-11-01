@@ -41,9 +41,10 @@ export interface AudienceBuilderProps<TRow extends RowData> {
   onRetry: () => void;
   rowKey: (row: TRow) => string;
   columns: DataTableColumn<TRow>[];
-  onAddSelected: (rows: TRow[]) => void;
+  /** Return the request's promise to keep the selection when the add fails. */
+  onAddSelected: (rows: TRow[]) => void | Promise<unknown>;
   /** The parent calls the server's "add matching" (D16); nothing is enumerated here. */
-  onAddAll: () => void;
+  onAddAll: () => void | Promise<unknown>;
   chosen: { rows: readonly TRow[]; total: number; page: number; pageSize?: number };
   onChosenPage: (page: number) => void;
   onRemove: (rows: TRow[]) => void;
@@ -105,11 +106,21 @@ export function AudienceBuilder<TRow extends RowData>({
       return next;
     });
 
-  const afterAdd = () => {
-    setSelected(new Map());
-    focusRef.current?.focus();
-  };
+  // clear on success only: a failed add keeps the user's picks (the parent shows the error)
+  const add = (work: () => void | Promise<unknown>) =>
+    Promise.resolve()
+      .then(work)
+      .then(
+        () => {
+          setSelected(new Map());
+          focusRef.current?.focus();
+        },
+        () => undefined,
+      );
   const full = max !== undefined && chosen.total >= max;
+  // the server refuses past the cap (400); say so here instead
+  const overSelected = max !== undefined && chosen.total + selected.size > max;
+  const overAll = max !== undefined && matches.total > max;
 
   const chosenList = (
     <ChosenList<TRow>
@@ -131,11 +142,8 @@ export function AudienceBuilder<TRow extends RowData>({
       <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
-          disabled={selected.size === 0 || full}
-          onClick={() => {
-            onAddSelected([...selected.values()]);
-            afterAdd();
-          }}
+          disabled={selected.size === 0 || full || overSelected}
+          onClick={() => void add(() => onAddSelected([...selected.values()]))}
         >
           {t('audienceBuilder.addSelected', { defaultValue: 'Add to chosen list' })}
           {selected.size > 0 && ` (${selected.size})`}
@@ -143,13 +151,13 @@ export function AudienceBuilder<TRow extends RowData>({
         <Button
           type="button"
           variant="outline"
-          disabled={matches.total === 0 || matches.loading || full}
-          onClick={() => {
-            onAddAll();
-            afterAdd();
-          }}
+          disabled={matches.total === 0 || matches.loading || !!matches.error || full || overAll}
+          onClick={() => void add(onAddAll)}
         >
-          {t('audienceBuilder.addAll', { defaultValue: 'Select all' })}
+          {t('audienceBuilder.addAll', {
+            defaultValue: 'Add all matching ({{count}})',
+            count: matches.total,
+          })}
         </Button>
         {max !== undefined && (
           <span className="text-text-secondary">

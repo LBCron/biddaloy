@@ -1,4 +1,4 @@
-import { act, screen, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type * as React from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -62,11 +62,59 @@ describe('AudienceBuilder', () => {
     expect(p.onAddSelected).toHaveBeenCalledWith([A, B]);
   });
 
-  it('select all calls onAddAll', async () => {
+  it('add all matching calls onAddAll and names the count', async () => {
     const p = props();
     await setup(<AudienceBuilder {...p} />);
-    await userEvent.click(screen.getByRole('button', { name: 'Select all' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add all matching (2)' }));
     expect(p.onAddAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('add all is off while the matches failed to load', async () => {
+    await setup(
+      <AudienceBuilder
+        {...props({
+          matches: { rows: [], total: 3, page: 1, pageSize: 25, error: 'Could not load' },
+        })}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /Add all matching/ })).toHaveProperty(
+      'disabled',
+      true,
+    );
+  });
+
+  it('past the cap both add buttons are off (the server would answer 400)', async () => {
+    // 1 chosen + 2 picked > max 2; 3 matches > max 2
+    const p = props({ max: 2, matches: { rows: [A, B], total: 3, page: 1, pageSize: 25 } });
+    await setup(<AudienceBuilder {...p} />);
+    const boxes = within(screen.getByRole('table', { name: 'Matching people' })).getAllByRole(
+      'checkbox',
+    );
+    await userEvent.click(boxes[1]!);
+    await userEvent.click(boxes[2]!);
+    expect(screen.getByRole('button', { name: /Add to chosen list/ })).toHaveProperty(
+      'disabled',
+      true,
+    );
+    expect(screen.getByRole('button', { name: /Add all matching/ })).toHaveProperty(
+      'disabled',
+      true,
+    );
+  });
+
+  it('a failed add keeps the selection', async () => {
+    const p = props({ onAddSelected: vi.fn().mockRejectedValue(new Error('400')) });
+    await setup(<AudienceBuilder {...p} />);
+    const boxes = within(screen.getByRole('table', { name: 'Matching people' })).getAllByRole(
+      'checkbox',
+    );
+    await userEvent.click(boxes[1]!);
+    await userEvent.click(screen.getByRole('button', { name: /Add to chosen list/ }));
+    await waitFor(() => expect(p.onAddSelected).toHaveBeenCalled());
+    expect(screen.getByRole('button', { name: 'Add to chosen list (1)' })).toHaveProperty(
+      'disabled',
+      false,
+    );
   });
 
   it('remove calls onRemove with that row', async () => {
@@ -123,9 +171,11 @@ describe('AudienceBuilder', () => {
     );
     await userEvent.click(boxes[1]!);
     await userEvent.click(screen.getByRole('button', { name: /Add to chosen list/ }));
-    expect(screen.getByRole('button', { name: 'Add to chosen list' })).toHaveProperty(
-      'disabled',
-      true,
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Add to chosen list' })).toHaveProperty(
+        'disabled',
+        true,
+      ),
     );
   });
 

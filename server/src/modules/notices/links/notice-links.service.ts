@@ -10,7 +10,6 @@ import { NoticeRecipient } from '../entities/notice-recipient.entity';
 import { School } from '../../schools/entities/school.entity';
 import { SchoolsService } from '../../schools/schools.service';
 import { StorageService } from '../../storage/storage.service';
-import { localToday } from '../../../common/time';
 import { PublicNoticeDto } from './public-notice.dto';
 
 /** 32 random bytes, base64url. Only the sha256 is stored. Copy of invoice-share.service.ts. */
@@ -108,6 +107,8 @@ export class NoticeLinksService {
 
     let notice = await this.notices.findOne({ where: { public_token_hash: hash } });
     let recipientId: string | null = null;
+    // public hash still set while the flag is off (a failed clean-up): the link is dead
+    if (notice && !notice.is_public) return null;
     if (!notice) {
       const recipient = await this.recipients.findOne({ where: { link_token_hash: hash } });
       if (!recipient) return null;
@@ -122,8 +123,7 @@ export class NoticeLinksService {
     if (!school || school.status !== 'ACTIVE') return null;
 
     if (notice.expires_on) {
-      const settings = await this.schoolsService.getResolvedSettings(notice.tenant_id);
-      if (notice.expires_on < localToday(settings.region?.timezone ?? 'UTC')) return null;
+      if (notice.expires_on < (await this.schoolsService.todayFor(notice.tenant_id))) return null;
     }
     return { notice, schoolName: school.name, recipientId };
   }

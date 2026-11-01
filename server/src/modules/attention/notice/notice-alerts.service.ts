@@ -100,7 +100,7 @@ export class NoticeAlertsService {
     const users = await run(
       tx,
       `SELECT DISTINCT ut.user_id FROM user_tenants ut
-         JOIN users u ON u.id = ut.user_id AND u.status = 'ACTIVE'
+         JOIN users u ON u.id = ut.user_id AND u.status = 'ACTIVE' AND u.deleted_at IS NULL
         WHERE ut.tenant_id = $1 AND ut.deleted_at IS NULL AND ut.role::text = ANY($2::text[])`,
       [notice.tenantId, roles],
     );

@@ -24,7 +24,8 @@ describe('NoticeLinksService (integration)', () => {
   beforeAll(async () => {
     const module = await createTestModule(ALL_ENTITIES, [
       NoticeLinksService,
-      { provide: SchoolsService, useValue: { getResolvedSettings: async () => ({}) } },
+      // the school's "today" is pinned to the same day dayOffset counts from
+      { provide: SchoolsService, useValue: { todayFor: async () => dayOffset(0) } },
       {
         provide: StorageService,
         useValue: {
@@ -64,6 +65,7 @@ describe('NoticeLinksService (integration)', () => {
       body: 'B',
       status: 'PUBLISHED',
       published_at: new Date(),
+      is_public: true,
       ...over,
     };
     const cols = Object.keys(row);
@@ -136,6 +138,17 @@ describe('NoticeLinksService (integration)', () => {
     const token = await svc.createPublicLink(n);
     await svc.turnOffPublicLink(n);
     expect(await svc.resolve(token)).toBeNull();
+  });
+
+  it('a public hash left behind while is_public is off resolves null (m3)', async () => {
+    const n = await notice();
+    const token = await svc.createPublicLink(n);
+    // e.g. the edit committed is_public = false but the hash clean-up failed
+    await ds.query(`UPDATE notices SET is_public = false WHERE id = $1`, [n.id]);
+    expect(await svc.resolve(token)).toBeNull();
+    // a personal link does not depend on the public flag
+    const [p] = await svc.createPersonalLinks(n.id, [await recipient(n.id)]);
+    expect(await svc.resolve(p.token)).not.toBeNull();
   });
 
   it('killAll kills the public and every personal link of that notice only', async () => {
