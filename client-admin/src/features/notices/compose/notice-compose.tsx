@@ -32,6 +32,7 @@ import {
   INITIAL_FILTERS,
   audienceQuery,
   needsClass,
+  pendingHint,
   personRow,
   recipientRow,
   tabKeys,
@@ -455,7 +456,7 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
         ) : (
           <div className="flex flex-col gap-3">
             <p className="text-text-secondary">{t('audience.intro')}</p>
-            {waitingForClass && <p role="status">{t('audience.pickClass')}</p>}
+            {waitingForClass && <p role="status">{t(`audience.${pendingHint(tab, filters)}`)}</p>}
             <AudienceBuilder<AudienceRow>
               tabs={tabs}
               activeTab={tab}

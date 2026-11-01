@@ -437,6 +437,9 @@ describe('NoticeCompose', () => {
       'All teachers and staff',
       'Students',
       'By name',
+      'Failed an exam',
+      'Fee due',
+      'Low attendance',
     ]);
   });
 
