@@ -935,7 +935,6 @@ describe('new role grants [#1358]', () => {
       Permission.DASHBOARD_VIEW,
       Permission.REPORTS_VIEW, // [8.15.53] D14: counts only, small cells hidden
       Permission.COMMITTEE_REPORT_READ, // [8.10.7] D44
-      Permission.REPORTS_VIEW, // [8.15.53] D14
       Permission.ACR_READ,
       Permission.ACADEMIC_STRUCTURE_READ,
       Permission.CALENDAR_READ,
