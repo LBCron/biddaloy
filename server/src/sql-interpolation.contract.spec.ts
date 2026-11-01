@@ -141,6 +141,8 @@ const REVIEWED_INTERPOLATIONS: Record<string, string[]> = {
   // teacher subject terms: i is the forEach index naming :c<i>/:s<i>; values are bound
   'modules/homework/homework.service.ts': ['i', 'i'],
   // ternary between two constant column lists
+  // PERSON is a module constant SQL fragment (COALESCE of recipient id columns); ids bound as $1/$2
+  'modules/notices/notices.service.ts': Array(8).fill('PERSON'),
   'modules/print/exam-documents/exam-documents.service.ts': [
     "bySection ? 'cs.section_name NULLS LAST, r.section_id, r.section_position, r.position' : 'r.position'",
     "bySection ? 'r.section_position' : 'r.position'",

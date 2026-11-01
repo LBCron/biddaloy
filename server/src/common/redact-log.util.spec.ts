@@ -119,6 +119,13 @@ describe('redactPii', () => {
     expect(redactPii('https://x.test:8080/i/tok')).toBe('https://x.test:8080/i/[REDACTED]');
   });
 
+  it('redacts the notice link token in the API path and the SPA page', () => {
+    expect(redactPii('GET /api/v1/public/notices/abc123 200')).toBe(
+      'GET /api/v1/public/notices/[REDACTED] 200',
+    );
+    expect(redactPii('/n/abc123')).toBe('/n/[REDACTED]');
+  });
+
   it('redacts a password-only URL (empty username)', () => {
     expect(redactPii('redis://:s3cret@redis:6379')).toBe('redis://:[REDACTED]@redis:6379');
   });
