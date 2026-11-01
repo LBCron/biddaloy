@@ -7,8 +7,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * (their recipients cascade) and clears the two plain alert-id columns on
  * `notices`, so the old, narrower constraints can be restored on any data.
  */
-export class NoticeAlertChecks1791900001300 implements MigrationInterface {
-  name = 'NoticeAlertChecks1791900001300';
+export class NoticeAlertChecks1791900002200 implements MigrationInterface {
+  name = 'NoticeAlertChecks1791900002200';
 
   private static readonly CATEGORIES =
     "'SETUP','SYSTEM','STRUCTURE','ATTENDANCE','PERIOD','HOMEWORK','CLASS','STUDY_PLAN','FEES','EXAMS','OFFICE','FAMILY','COMMON','PLATFORM','BILLING','MANUAL'";
@@ -28,7 +28,7 @@ export class NoticeAlertChecks1791900001300 implements MigrationInterface {
     await this.setChecks(
       q,
       "'RULE','MANUAL','NOTICE'",
-      `${NoticeAlertChecks1791900001300.CATEGORIES},'NOTICE'`,
+      `${NoticeAlertChecks1791900002200.CATEGORIES},'NOTICE'`,
     );
   }
 
@@ -37,6 +37,6 @@ export class NoticeAlertChecks1791900001300 implements MigrationInterface {
       `UPDATE "notices" SET "alert_id" = NULL, "sms_task_alert_id" = NULL WHERE "alert_id" IS NOT NULL OR "sms_task_alert_id" IS NOT NULL`,
     );
     await q.query(`DELETE FROM "alerts" WHERE "source" = 'NOTICE' OR "category" = 'NOTICE'`);
-    await this.setChecks(q, "'RULE','MANUAL'", NoticeAlertChecks1791900001300.CATEGORIES);
+    await this.setChecks(q, "'RULE','MANUAL'", NoticeAlertChecks1791900002200.CATEGORIES);
   }
 }

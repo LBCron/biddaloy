@@ -155,7 +155,7 @@ Communications
   Send an alert [67.0] — one-off bar alert to a chosen audience      A E
   Fee reminders [have] · Reminder history [have]                    A Ac (+ office)
   Message log [have] (97.0) — every message sent, Check status      A Ac (+ office)
-  নোটিশ / Notices [53.0] — list, new, detail (কে পড়েছে)             A E OS T
+  নোটিশ / Notices [53.0] — list, new, detail (কে পড়েছে)             A E T (+ office)
   Automatic notices [partial: absent ✓ · fine ✓ (38.0) · result/marks 19.0 · homework 22.0 · receipt 3.0]
 
 Reports [8.15] — hub = catalogue (coded + defined) · Student lists · Student count · Exports · Designer (ADMIN); LINKS to screens that live with their data; no copies

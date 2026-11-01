@@ -710,7 +710,7 @@ erDiagram
 
 Example: a published notice "Eid holiday" with 2 staff and 1 guardian has 3 `notice_recipients` rows. When a teacher opens it, her row gets `seen_at`.
 
-Every table has `tenant_id`. Only SHA-256 hashes of public and link tokens are stored. Source: `server/src/migrations/1791900001200-Notices.ts`.
+Every table has `tenant_id`. Only SHA-256 hashes of public and link tokens are stored. Source: `server/src/migrations/1791900002100-Notices.ts`.
 
 ### Notice board: Wave 1 learning (2026-11-01)
 
