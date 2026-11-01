@@ -63,7 +63,8 @@
     "COMMON": "General",
     "PLATFORM": "Platform",
     "BILLING": "Billing",
-    "MANUAL": "Sent by the school"
+    "MANUAL": "Sent by the school",
+    "NOTICE": "Notices"
   },
   "state": {
     "OPEN": "Open",
@@ -623,7 +624,8 @@
       "COMMON": "Holidays and surveys",
       "PLATFORM": "Platform health",
       "BILLING": "Subscription",
-      "MANUAL": "Alerts sent by the school"
+      "MANUAL": "Alerts sent by the school",
+      "NOTICE": "Important notices from the school"
     },
     "quietNote": "Quiet hours: {{start}} – {{end}}. Only urgent alerts make a sound then; the rest arrive together afterwards. Your school sets this.",
     "save": "Save",

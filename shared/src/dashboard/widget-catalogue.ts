@@ -49,7 +49,6 @@ export const DashboardWidgetKey = {
   SETUP_CHECKLIST: 'setup-checklist',
   SYLLABUS_VS_PLAN: 'syllabus-vs-plan',
   MY_LESSONS_TO_MARK: 'my-lessons-to-mark',
-  LATEST_NOTICES: 'latest-notices',
 } as const;
 export type DashboardWidgetKey = (typeof DashboardWidgetKey)[keyof typeof DashboardWidgetKey];
 
@@ -74,11 +73,6 @@ const P = Permission;
 const R = UserRole;
 
 export const WIDGET_CATALOGUE: Record<DashboardWidgetKey, WidgetCatalogueEntry> = {
-  'latest-notices': {
-    permissions: [P.NOTICE_READ],
-    roles: [R.ADMIN, R.EXECUTIVE, R.TEACHER, R.ACCOUNTANT, R.OFFICE_STAFF, R.EXAM_CONTROLLER],
-    sizes: ['M'],
-  },
   'attendance-today': {
     permissions: [P.ATTENDANCE_READ],
     roles: [R.ADMIN, R.EXECUTIVE, R.OFFICE_STAFF],
@@ -306,7 +300,6 @@ export const ROLE_DEFAULT_LAYOUTS: Record<UserRole, DashboardWidgetKey[]> = {
     'sms-balance',
     'failed-messages',
     'setup-checklist',
-    'latest-notices',
   ],
   [R.EXECUTIVE]: [
     'attendance-today',
@@ -317,7 +310,6 @@ export const ROLE_DEFAULT_LAYOUTS: Record<UserRole, DashboardWidgetKey[]> = {
     'mark-entry-progress',
     'syllabus-progress',
     'upcoming',
-    'latest-notices',
   ],
   [R.TEACHER]: [
     'my-routine-today',
@@ -327,7 +319,6 @@ export const ROLE_DEFAULT_LAYOUTS: Record<UserRole, DashboardWidgetKey[]> = {
     'my-leave-balance',
     'class-teacher-streaks',
     'my-syllabus-progress',
-    'latest-notices',
   ],
   [R.ACCOUNTANT]: [
     'collection-today',
@@ -338,7 +329,6 @@ export const ROLE_DEFAULT_LAYOUTS: Record<UserRole, DashboardWidgetKey[]> = {
     'dues-ageing',
     'recent-payments',
     'dues-by-class',
-    'latest-notices',
   ],
   [R.COMMITTEE]: [
     'committee-enrollment',
@@ -354,7 +344,6 @@ export const ROLE_DEFAULT_LAYOUTS: Record<UserRole, DashboardWidgetKey[]> = {
     'staff-today',
     'print-queue',
     'upcoming',
-    'latest-notices',
   ],
   [R.EXAM_CONTROLLER]: [
     'mark-entry-progress',
@@ -362,7 +351,6 @@ export const ROLE_DEFAULT_LAYOUTS: Record<UserRole, DashboardWidgetKey[]> = {
     'seat-plan-status',
     'print-queue',
     'upcoming',
-    'latest-notices',
   ],
   [R.SUPER_ADMIN]: [],
   [R.PARENT]: [],

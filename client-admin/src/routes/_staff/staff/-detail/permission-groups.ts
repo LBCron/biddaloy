@@ -80,6 +80,10 @@ export const PERMISSION_GROUPS: readonly { id: string; permissions: readonly Per
       Permission.COMMUNICATION_LOG_READ,
       Permission.COMMUNICATION_CREDIT_READ,
       Permission.ALERT_SEND,
+      Permission.NOTICE_POST,
+      Permission.NOTICE_MANAGE,
+      Permission.NOTICE_READ,
+      Permission.NOTICE_SMS_APPROVE,
     ],
   },
   {
