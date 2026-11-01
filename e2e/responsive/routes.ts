@@ -454,6 +454,22 @@ export async function resolvePath(
     });
     return route.path.replace('$id', schedule.id);
   }
+  if (route.path.includes('$noticeId')) {
+    // [53.4] The e2e seed publishes one notice for the seeded parent (seed.notices.ts).
+    const isPortal = route.path.startsWith('/portal/');
+    const list = await get<{
+      data?: { id: string; title: string }[];
+      items?: { id: string; title: string }[];
+    }>(
+      request,
+      isPortal ? await parentApiSession(request) : await sharedAdminSession(request),
+      `/notices${isPortal ? '/mine' : ''}?limit=100${isPortal ? '' : '&q=E2E%20seeded'}`,
+    );
+    const rows = list.items ?? list.data ?? [];
+    const id = rows.find((n) => n.title === 'E2E seeded notice')?.id;
+    if (!id) throw new Error('no notice seeded (server/src/scripts/seed.notices.ts)');
+    return route.path.replace('$noticeId', id);
+  }
   if (route.path.includes('$applicationId')) {
     // [52.4.1] Staff: any application the admin can see. Portal: the seeded
     // parent's own (`view=mine`). Seeded by 52.2.7 / 52.3.6.

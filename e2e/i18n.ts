@@ -141,6 +141,9 @@ import enSyllabus from '../ui/src/i18n/locales/en/syllabus.json';
 import enStudyPlans from '../ui/src/i18n/locales/en/studyPlans.json';
 import enTeacherAssignments from '../ui/src/i18n/locales/en/teacherAssignments.json';
 import enCoordination from '../ui/src/i18n/locales/en/coordination.json';
+import bnNotices from '../ui/src/i18n/locales/bn/notices.json';
+import bnNoticeCompose from '../ui/src/i18n/locales/bn/noticeCompose.json';
+import bnPortalNotices from '../ui/src/i18n/locales/bn/portalNotices.json';
 import bnRegister from '../ui/src/i18n/locales/bn/register.json';
 import bnOnboardingSetup from '../ui/src/i18n/locales/bn/onboardingSetup.json';
 import bnOnboardingPeople from '../ui/src/i18n/locales/bn/onboardingPeople.json';
@@ -148,6 +151,9 @@ import bnSetupChecklist from '../ui/src/i18n/locales/bn/setupChecklist.json';
 import bnSignInMethods from '../ui/src/i18n/locales/bn/signInMethods.json';
 import bnStaffImport from '../ui/src/i18n/locales/bn/staffImport.json';
 import bnTrial from '../ui/src/i18n/locales/bn/trial.json';
+import enNotices from '../ui/src/i18n/locales/en/notices.json';
+import enNoticeCompose from '../ui/src/i18n/locales/en/noticeCompose.json';
+import enPortalNotices from '../ui/src/i18n/locales/en/portalNotices.json';
 import enRegister from '../ui/src/i18n/locales/en/register.json';
 import enOnboardingSetup from '../ui/src/i18n/locales/en/onboardingSetup.json';
 import enOnboardingPeople from '../ui/src/i18n/locales/en/onboardingPeople.json';
@@ -160,6 +166,9 @@ const catalogs = {
   bn: {
     academicYears: bnAcademicYears,
     register: bnRegister,
+    notices: bnNotices,
+    noticeCompose: bnNoticeCompose,
+    portalNotices: bnPortalNotices,
     onboardingSetup: bnOnboardingSetup,
     onboardingPeople: bnOnboardingPeople,
     setupChecklist: bnSetupChecklist,
@@ -236,6 +245,9 @@ const catalogs = {
   en: {
     academicYears: enAcademicYears,
     register: enRegister,
+    notices: enNotices,
+    noticeCompose: enNoticeCompose,
+    portalNotices: enPortalNotices,
     onboardingSetup: enOnboardingSetup,
     onboardingPeople: enOnboardingPeople,
     setupChecklist: enSetupChecklist,
