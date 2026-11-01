@@ -28,7 +28,7 @@ export const Important: Story = {
       ...base,
       ruleKey: NOTICE_IMPORTANT,
       title: 'পরীক্ষার রুটিন প্রকাশিত',
-      actionUrl: '/communications/notices/n-1',
+      actionUrl: '/communications/notices/11111111-1111-4111-8111-111111111111',
     }),
   },
 };
@@ -43,7 +43,7 @@ export const SmsApproval: Story = {
       ...base,
       ruleKey: NOTICE_SMS_APPROVAL,
       title: 'পরীক্ষার রুটিন প্রকাশিত',
-      actionUrl: '/communications/notices/n-1?sms=1',
+      actionUrl: '/communications/notices/11111111-1111-4111-8111-111111111111?sms=1',
     }),
   },
 };

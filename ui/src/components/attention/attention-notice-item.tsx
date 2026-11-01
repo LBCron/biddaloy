@@ -21,14 +21,18 @@ export function isNoticeAlert(item: Pick<AlertItem, 'source' | 'ruleKey'>): bool
   );
 }
 
-/** The notice id is the last path segment of the alert's action URL (`/…/notices/:id`). */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The notice id is the last path segment of the action URL (`/…/notices/:id`); only a UUID counts. */
 export function noticeIdOf(item: Pick<AlertItem, 'actionUrl'>): string | undefined {
-  return item.actionUrl?.split('?')[0]?.split('/').filter(Boolean).pop();
+  const id = item.actionUrl?.split('?')[0]?.split('/').filter(Boolean).pop();
+  return id && UUID.test(id) ? id : undefined;
 }
 
 export interface AttentionNoticeItemProps {
   item: AlertItem;
-  onAcknowledge: (noticeId: string) => void;
+  /** Without it, the acknowledge button is not shown. */
+  onAcknowledge?: (noticeId: string) => void;
   busy?: boolean;
 }
 
@@ -54,7 +58,7 @@ export function AttentionNoticeItem({
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-1">
       <RowActions actions={link} />
-      {important && noticeId && (
+      {important && noticeId && onAcknowledge && (
         <Button
           type="button"
           size="sm"
