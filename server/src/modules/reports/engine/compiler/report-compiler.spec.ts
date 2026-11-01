@@ -525,7 +525,7 @@ describe('ReportCompiler', () => {
           }),
           {},
           500,
-          makeCompiler(new HideSensitive()),
+          makeCompiler(new HideSensitive(noTeacherScope)),
         ),
       ).toThrowError(expect.objectContaining({ code: 'NOT_FILTERABLE' }));
     });
@@ -549,7 +549,7 @@ describe('ReportCompiler', () => {
         ),
         {},
         500,
-        makeCompiler(new HideFinancial()),
+        makeCompiler(new HideFinancial(noTeacherScope)),
       );
       expect(compiled.masked).toEqual(['billed']);
     });
