@@ -68,7 +68,7 @@ test.describe('reports hub and runner', () => {
       await expect(
         page.getByRole('heading', { level: 1, name: t('reports.hub.title') }),
       ).toBeVisible();
-      await page.getByLabel(t('reports.hub.searchLabel')).fill(name);
+      await page.getByRole('searchbox', { name: t('reports.hub.searchLabel') }).fill(name);
       await page.getByRole('link', { name, exact: true }).click();
 
       await expect(page).toHaveURL(new RegExp(`/reports/${report.id}`));
