@@ -23,8 +23,14 @@ export interface UnregisteredAction {
   readonly note: string;
 }
 
-/** Work owed to an open epic. Empty: nothing is deferred. */
-export const UNREGISTERED_ACTIONS: readonly UnregisteredAction[] = [];
+/** Work owed to an open epic. */
+export const UNREGISTERED_ACTIONS: readonly UnregisteredAction[] = [
+  {
+    file: 'client-admin/src/features/notices/manage/notice-list.tsx',
+    owningEpic: '53.0',
+    note: 'copy (কপি), withdraw (প্রত্যাহার) and public-link-off (পাবলিক লিংক বন্ধ) need palette notice-context plumbing; follow-up',
+  },
+];
 
 export interface PaletteAllowListEntry {
   readonly file: string;

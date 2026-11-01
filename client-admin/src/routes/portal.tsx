@@ -162,6 +162,12 @@ export const PORTAL_NAV_ITEMS: readonly PortalNavItemDef[] = [
     permission: Permission.HOMEWORK_READ,
   },
   {
+    to: '/portal/notices',
+    labelKey: 'items.portalNotices',
+    // [53.4.01] PARENT and STUDENT both hold NOTICE_READ (shared/src/enums/permissions.ts).
+    permission: Permission.NOTICE_READ,
+  },
+  {
     to: '/portal/surveys',
     labelKey: 'items.portalSurveys',
     // No `permission`: `SurveyRespondController` is `@Roles(PARENT, STUDENT)`,

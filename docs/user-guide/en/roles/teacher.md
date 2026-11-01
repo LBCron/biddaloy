@@ -79,6 +79,10 @@ All your features, in the order of the left menu. The list is built automaticall
 
 - [Fines](../finance/fines.md) — Add a student's fine by hand, make the month's fines at month end from absence or lateness rules, set the fine rules, and waive a fine in full or in part when needed.
 
+**Communications**
+
+- Notices (coming soon)
+
 <!-- /guide:generated -->
 
 ---

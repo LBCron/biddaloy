@@ -33,6 +33,7 @@ export const PORTAL_PAGES = [
   ['/portal/exam-schedule', 'portalExamSchedule'],
   ['/portal/syllabus', 'portalSyllabus'],
   ['/portal/homework', 'portalHomework'],
+  ['/portal/notices', 'portalNotices'],
   ['/portal/surveys', 'portalSurveys'],
   ['/portal/applications', 'portalApplications'],
   ['/portal/account', 'portalAccount'],

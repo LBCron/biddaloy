@@ -37,6 +37,7 @@ import {
   InboxIcon,
   LayersIcon,
   LayoutDashboardIcon,
+  MegaphoneIcon,
   MessageSquareTextIcon,
   MilestoneIcon,
   NetworkIcon,
@@ -121,6 +122,7 @@ export const STAFF_NAV_ICONS: Record<StaffNavItemId, LucideIcon> = {
   'reports.collectionsReport': ChartColumnIcon,
   'reports.printables': PrinterIcon,
   'reports.applications': ClipboardListIcon,
+  'communications.notices': MegaphoneIcon,
   'communications.sendMessage': SendIcon,
   'communications.sendAlert': SirenIcon,
   // Icons must all differ (nav-icons.test), so the report gets its own, not the sender's siren.
@@ -155,6 +157,7 @@ export const PORTAL_NAV_ICONS: Record<string, LucideIcon> = {
   '/portal/exam-schedule': FileClockIcon,
   '/portal/syllabus': BookOpenIcon,
   '/portal/homework': NotebookPenIcon,
+  '/portal/notices': MegaphoneIcon,
   '/portal/surveys': ClipboardPenLineIcon,
   '/portal/applications': InboxIcon,
   '/portal/account': UserRoundIcon,
