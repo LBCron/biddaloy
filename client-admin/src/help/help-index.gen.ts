@@ -3422,8 +3422,8 @@ export const HELP_INDEX: HelpIndex = {
   'communications.messageLog': {
     title: { bn: 'বার্তার তালিকা', en: 'Message log' },
     summary: {
-      bn: 'স্কুল থেকে পাঠানো প্রতিটি বার্তা এক জায়গায়: নাম বা ফোন দিয়ে খুঁজুন, অবস্থা দেখুন, কেন ব্যর্থ হলো জানুন, আর কোম্পানির কাছে পৌঁছানোর খবর যাচাই করুন।',
-      en: 'Every message the school sent, in one place. Find one by name or phone, see its status and why it failed, and ask the company whether it was delivered.',
+      bn: 'স্কুল থেকে পাঠানো প্রতিটি বার্তা (অ্যাপের বিজ্ঞপ্তি নয়) এক জায়গায়: নাম বা ফোন দিয়ে খুঁজুন, অবস্থা দেখুন, কেন ব্যর্থ হলো জানুন, আর কোম্পানির কাছে পৌঁছানোর খবর যাচাই করুন।',
+      en: 'Every message the school sent (not app notifications), in one place. Find one by name or phone, see its status and why it failed, and ask the company whether it was delivered.',
     },
     path: 'communications/message-log',
     anchor: '',

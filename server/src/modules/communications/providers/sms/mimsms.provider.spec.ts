@@ -29,9 +29,7 @@ vi.mock('../shared/outbound-destination-guard', () => {
 // send's connection-pinning mechanics (undici Client/lookup wiring,
 // redirect: 'error', client cleanup) are their own unit under test in
 // pinned-http.spec.ts — stub it out here so these tests only assert on
-// gateway-level behavior. testConnection hits a hardcoded, non-tenant-
-// controlled balance URL and stays on plain fetch (nothing to pin), so it
-// still exercises the stubbed global fetch below.
+// gateway-level behavior.
 // Cases that mock only the body (`fetchPinnedJson`) answer as HTTP 200; the status cases
 // (#3320) mock `fetchPinnedJsonWithStatus` directly.
 vi.mock('../shared/pinned-http', () => {
@@ -291,59 +289,73 @@ describe('MimsmsProvider', () => {
   });
 
   describe('testConnection', () => {
+    const cfg = { gateway: 'mimsms', apiKey: 'super-secret-key', senderId: 'sender-1' };
+    const answer = (status: number, body: unknown) =>
+      vi.mocked(fetchPinnedJsonWithStatus).mockResolvedValueOnce({ status, body });
+
     it('checks the account balance instead of sending an SMS', async () => {
-      fetchMock.mockResolvedValue({ json: async () => ({ status: 'success', balance: 100 }) });
+      answer(200, { status: 'success', balance: 100 });
 
-      const result = await gateway.testConnection({
-        gateway: 'mimsms',
-        apiKey: 'super-secret-key',
-        senderId: 'sender-1',
-      });
+      const result = await gateway.testConnection(cfg);
 
-      const [url] = fetchMock.mock.calls[0];
+      const [, url, options] = vi.mocked(fetchPinnedJsonWithStatus).mock.calls.at(-1)!;
       expect(url).toBe('https://api.mimsms.com/api/User/Balance?api_key=super-secret-key');
+      expect(options?.method).toBe('GET');
       expect(result).toEqual({
         success: true,
         message: 'Connected — MimSMS account credentials verified.',
       });
     });
 
-    it('reports an actionable message on failure, never the raw payload', async () => {
-      fetchMock.mockResolvedValue({
-        json: async () => ({ status: 'error', message: 'Invalid API key: super-secret-key' }),
-      });
+    it('reports an actionable message on a rejected key, never the raw payload', async () => {
+      answer(200, { status: 'error', message: 'Invalid API key: super-secret-key' });
 
-      const result = await gateway.testConnection({
-        gateway: 'mimsms',
-        apiKey: 'super-secret-key',
-        senderId: 'sender-1',
-      });
+      const result = await gateway.testConnection(cfg);
 
-      expect(result.success).toBe(false);
-      expect(result.message).toBe('Authentication rejected — check the API key.');
-      expect(result.message).not.toContain('super-secret-key');
+      expect(result).toEqual({
+        success: false,
+        message: 'Authentication rejected — check the API key.',
+      });
     });
 
-    it('returns success: false instead of throwing on a network error', async () => {
-      fetchMock.mockRejectedValue(new Error('network down'));
+    it.each([401, 403])('maps HTTP %i to an authentication rejection', async (status) => {
+      answer(status, { status: 'error' });
 
-      const result = await gateway.testConnection({
-        gateway: 'mimsms',
-        apiKey: 'key-1',
-        senderId: 'sender-1',
-      });
+      const result = await gateway.testConnection(cfg);
 
-      expect(result.success).toBe(false);
+      expect(result.message).toBe('Authentication rejected — check the API key.');
+    });
+
+    it('treats a 5xx with a JSON error body as unreachable, not a bad key', async () => {
+      answer(500, { status: 'error', message: 'Invalid API key: super-secret-key' });
+
+      const result = await gateway.testConnection(cfg);
+
+      expect(result).toEqual({ success: false, message: 'Could not reach the MimSMS API.' });
+    });
+
+    it('treats a 5xx with an HTML body as unreachable', async () => {
+      answer(502, '<html>Bad gateway</html>');
+
+      const result = await gateway.testConnection(cfg);
+
       expect(result.message).toBe('Could not reach the MimSMS API.');
     });
 
-    it('rejects redirects instead of following them', async () => {
-      fetchMock.mockResolvedValue({ json: async () => ({ status: 'success', balance: 100 }) });
+    it('treats a 429 (rate limited, no JSON body) as unreachable, not a bad key', async () => {
+      answer(429, undefined);
 
-      await gateway.testConnection({ gateway: 'mimsms', apiKey: 'key-1', senderId: 'sender-1' });
+      const result = await gateway.testConnection(cfg);
 
-      const [, options] = fetchMock.mock.calls[0];
-      expect(options.redirect).toBe('error');
+      expect(result).toEqual({ success: false, message: 'Could not reach the MimSMS API.' });
+    });
+
+    it('returns success: false instead of throwing on a network error or timeout', async () => {
+      vi.mocked(fetchPinnedJsonWithStatus).mockRejectedValueOnce(new Error('network down'));
+
+      const result = await gateway.testConnection(cfg);
+
+      expect(result).toEqual({ success: false, message: 'Could not reach the MimSMS API.' });
     });
   });
 });

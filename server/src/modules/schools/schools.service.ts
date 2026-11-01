@@ -5,6 +5,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, MoreThan, MoreThanOrEqual, QueryFailedError, Repository } from 'typeorm';
@@ -309,6 +310,7 @@ export class SchoolsService {
     dto: TenantSettingsDto,
     userId: string,
     context: RequestContext = { ip: null, userAgent: null },
+    isPlatformAdmin = false,
   ): Promise<Record<string, unknown>> {
     // [33.3.1] `organisationRenames` rides alongside the PATCH as a write
     // instruction, not a stored setting — pulled out of the plain patch
@@ -330,6 +332,21 @@ export class SchoolsService {
         .getOne();
       if (!school) {
         throw new NotFoundException('School not found');
+      }
+
+      // #3346: `sms.metering` (who pays for SMS) is the platform's to set. A school caller may
+      // resend the stored value (dropped, so the merge never writes it) but not change it.
+      const sentSms = (plainPatch.communications as { sms?: Record<string, unknown> } | undefined)
+        ?.sms;
+      if (sentSms && Object.hasOwn(sentSms, 'metering') && !isPlatformAdmin) {
+        const stored = (
+          school.settings as { communications?: { sms?: { metering?: string } } } | null
+        )?.communications?.sms?.metering;
+        if ((stored ?? 'OFF') !== sentSms.metering) {
+          throw new ForbiddenException('Only the platform can change the SMS account setting.');
+        }
+        delete sentSms.metering;
+        delete (encryptedPatch.communications as { sms?: Record<string, unknown> }).sms?.metering;
       }
 
       const oldSnapshot = pickPatchShape(

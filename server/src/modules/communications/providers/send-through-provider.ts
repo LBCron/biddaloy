@@ -68,3 +68,18 @@ export async function sendThroughProvider<TConfig>(
     };
   }
 }
+
+/**
+ * What a log row records about who sent it, so Check status asks the right account (#3344, #3350):
+ * the vendor's name and, for a send on the platform's own keys, `source: 'platform'`. Names only,
+ * never a key or message text (Rule 13). One place, so every writer stays in step.
+ */
+export function sendOriginMetadata(result: Pick<CommunicationSendResult, 'provider' | 'source'>): {
+  provider?: string;
+  source?: CommunicationSendResult['source'];
+} {
+  return {
+    ...(result.provider ? { provider: result.provider } : {}),
+    ...(result.source ? { source: result.source } : {}),
+  };
+}

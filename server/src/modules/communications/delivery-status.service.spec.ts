@@ -21,6 +21,7 @@ describe('DeliveryStatusService', () => {
   let reread: Record<string, ReturnType<typeof vi.fn>>;
   let registry: { resolveFor: ReturnType<typeof vi.fn> };
   let provider: { descriptor: any; getStatus?: ReturnType<typeof vi.fn> };
+  let credits: { refundForLog: ReturnType<typeof vi.fn> };
   let service: DeliveryStatusService;
 
   const sentLog = (overrides: Record<string, unknown> = {}) => ({
@@ -53,7 +54,7 @@ describe('DeliveryStatusService', () => {
     repo = {
       findOne: vi.fn(async () => sentLog()),
       // UPDATE ... : TypeORM's postgres driver answers [rows, affectedCount].
-      query: vi.fn(async () => [[], 1]),
+      query: vi.fn(async (sql: string) => (sql.includes('WITH upd') ? [{ n: 1 }] : [[], 1])),
     };
     // The re-read after the write: the row with the sender's name only (logsWithSender).
     reread = {
@@ -63,7 +64,14 @@ describe('DeliveryStatusService', () => {
       getOneOrFail: vi.fn(async () => sentLog({ status: CommunicationStatus.DELIVERED })),
     };
     repo.createQueryBuilder = vi.fn(() => reread);
-    service = new DeliveryStatusService(repo as any, registry as any);
+    // The flip runs in a transaction; the unit spec's manager just forwards to the same query mock.
+    repo.manager = {
+      transaction: vi.fn(async (fn: (m: unknown) => unknown) =>
+        fn({ query: (...args: unknown[]) => repo.query(...args) }),
+      ),
+    } as any;
+    credits = { refundForLog: vi.fn(async () => undefined) };
+    service = new DeliveryStatusService(repo as any, registry as any, credits as any);
   });
 
   afterEach(() => {
@@ -98,7 +106,9 @@ describe('DeliveryStatusService', () => {
       code: '000',
       checkedAt: NOW.toISOString(),
     });
-    expect(params.slice(1)).toEqual([CommunicationStatus.DELIVERED, 'log-1', TENANT]);
+    // The last param is "did this flip to FAILED": false, so the batch counters stay.
+    // Then: "did this flip to FAILED" and "does it refund", both false for DELIVERED.
+    expect(params.slice(1)).toEqual([CommunicationStatus.DELIVERED, 'log-1', TENANT, false, false]);
     expect(result).toMatchObject({ id: 'log-1', status: CommunicationStatus.DELIVERED });
     // Re-read in this tenant, with the sender's name only; the answer masks the share link.
     expect(reread.where).toHaveBeenCalledWith('log.id = :id AND log.tenant_id = :tenantId', {
@@ -146,6 +156,75 @@ describe('DeliveryStatusService', () => {
     await service.checkStatus('log-1', TENANT, 'ADMIN');
 
     expect(repo.query.mock.calls[1][1][1]).toBe(CommunicationStatus.FAILED);
+  });
+
+  // #3357: the refund is a per-vendor setting on the descriptor, off unless a vendor sets it.
+  describe('refund of a failed message (#3357)', () => {
+    const platformDebited = {
+      provider: 'stub-sms',
+      source: 'platform',
+      credit: 'DEBITED',
+      segments: 2,
+    };
+    const failed = () => provider.getStatus!.mockResolvedValue({ status: 'FAILED', code: '1001' });
+    const checkWith = async (metadata: Record<string, unknown>, flag?: boolean) => {
+      provider.descriptor.refundsFailedSms = flag;
+      // The account that answers is the one the row was sent on (the service refuses a mismatch).
+      registry.resolveFor.mockResolvedValue({
+        provider,
+        config: { apiKey: 'k' },
+        source: metadata.source === 'platform' ? 'platform' : 'tenant',
+      });
+      repo.findOne = vi.fn(async () => sentLog({ metadata }));
+      await service.checkStatus('log-1', TENANT, 'ADMIN');
+    };
+
+    it('gives the segments back when the vendor does not bill failed SMS', async () => {
+      failed();
+      await checkWith(platformDebited, true);
+      expect(credits.refundForLog).toHaveBeenCalledWith(expect.anything(), TENANT, 'log-1', 2);
+      // The row records it, in the same statement as the flip.
+      expect(repo.query.mock.calls[1][1][5]).toBe(true);
+    });
+
+    it.each([
+      ['the vendor setting is off', platformDebited, undefined],
+      ['the vendor setting is false', platformDebited, false],
+      ['the school paid its own company', { ...platformDebited, source: 'tenant' }, true],
+      [
+        'no source was recorded (an older row)',
+        { provider: 'stub-sms', credit: 'DEBITED', segments: 2 },
+        true,
+      ],
+      ['the credit was never spent', { ...platformDebited, credit: 'RELEASED' }, true],
+      ['the segment count is unknown', { ...platformDebited, segments: undefined }, true],
+    ])('gives nothing back when %s', async (_why, metadata, flag) => {
+      failed();
+      await checkWith(metadata as Record<string, unknown>, flag);
+      expect(credits.refundForLog).not.toHaveBeenCalled();
+      expect(repo.query.mock.calls[1][1][5]).toBe(false);
+    });
+
+    it('gives nothing back for a message the vendor delivered', async () => {
+      await checkWith(platformDebited, true); // getStatus answers DELIVERED by default
+      expect(credits.refundForLog).not.toHaveBeenCalled();
+    });
+
+    it('gives nothing back when the row was no longer SENT (a lost race)', async () => {
+      failed();
+      repo.query.mockResolvedValueOnce([[], 1]).mockResolvedValueOnce([{ n: 0 }]);
+      provider.descriptor.refundsFailedSms = true;
+      registry.resolveFor.mockResolvedValue({
+        provider,
+        config: { apiKey: 'k' },
+        source: 'platform',
+      });
+      repo.findOne = vi.fn(async () => sentLog({ metadata: platformDebited }));
+      await expect(service.checkStatus('log-1', TENANT, 'ADMIN')).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(credits.refundForLog).not.toHaveBeenCalled();
+    });
   });
 
   it('PENDING: status stays SENT but checkedAt is written (starts the one-minute wait)', async () => {
@@ -290,7 +369,7 @@ describe('DeliveryStatusService', () => {
     });
 
     it('when the row changed while the vendor answered', async () => {
-      repo.query.mockResolvedValueOnce([[], 1]).mockResolvedValueOnce([[], 0]);
+      repo.query.mockResolvedValueOnce([[], 1]).mockResolvedValueOnce([{ n: 0 }]);
       const err = await service.checkStatus('log-1', TENANT, 'ADMIN').catch((e: unknown) => e);
       expect(err).toBeInstanceOf(ConflictException);
       expect((err as ConflictException).message).toBe(CANNOT_CHECK_STATUS);

@@ -14,7 +14,12 @@ import { AdminNoticeService } from './admin-notice.service';
 describe('AdminNoticeService (integration)', () => {
   let ds: DataSource;
   let svc: AdminNoticeService;
-  const send = vi.fn().mockResolvedValue({ success: true, providerMessageId: 'pm-1' });
+  const send = vi.fn().mockResolvedValue({
+    success: true,
+    providerMessageId: 'pm-1',
+    provider: 'smtp',
+    source: 'platform',
+  });
   const registry = { resolve: () => ({ send }) };
 
   beforeAll(async () => {
@@ -80,10 +85,17 @@ describe('AdminNoticeService (integration)', () => {
     expect(params.allowPlatformSms).toBe(true);
     expect(params.body).toContain('স্বাগতম'); // bn template
     const logs = await ds.query(
-      `SELECT recipient_address, status, tenant_id FROM communication_logs WHERE tenant_id = $1`,
+      `SELECT recipient_address, status, tenant_id, metadata FROM communication_logs WHERE tenant_id = $1`,
       [a],
     );
-    expect(logs).toEqual([{ recipient_address: admin, status: 'SENT', tenant_id: a }]);
+    expect(logs).toEqual([
+      {
+        recipient_address: admin,
+        status: 'SENT',
+        tenant_id: a,
+        metadata: { kind: 'welcome', provider: 'smtp', source: 'platform' },
+      },
+    ]);
   });
 
   it('renders bn for bn-BD and for no stored region (the bn-BD default), en for en-BD (#3041)', async () => {

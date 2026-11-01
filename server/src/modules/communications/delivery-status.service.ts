@@ -14,6 +14,7 @@ import { ProviderNotConfiguredError } from './config/provider-not-configured.err
 import { isMessageSink } from './providers/sink/message-sink';
 import { ReminderBatchLogDto } from './dto/reminders.dto';
 import { logsWithSender, toBatchLogDto } from './reminders.service';
+import { SmsCreditService } from './credits/sms-credit.service';
 
 /** D23: one check per log per minute. */
 const COOLDOWN_MS = 60_000;
@@ -45,6 +46,7 @@ export class DeliveryStatusService {
   constructor(
     @InjectRepository(CommunicationLog) private readonly repo: Repository<CommunicationLog>,
     private readonly registry: CommunicationProviderRegistryService,
+    private readonly smsCredits: SmsCreditService,
   ) {}
 
   async checkStatus(id: string, tenantId: string, role: string): Promise<ReminderBatchLogDto> {
@@ -54,6 +56,8 @@ export class DeliveryStatusService {
     const meta = (log.metadata ?? {}) as {
       provider?: unknown;
       source?: unknown;
+      credit?: unknown;
+      segments?: unknown;
       delivery?: { checkedAt?: string };
     };
     const name = typeof meta.provider === 'string' ? meta.provider : null;
@@ -143,15 +147,68 @@ export class DeliveryStatusService {
         : result.status === 'FAILED'
           ? CommunicationStatus.FAILED
           : CommunicationStatus.SENT;
-    // jsonb merge in one statement, so a concurrent metadata write (credit settle) is not lost.
-    const [, affected] = (await this.repo.query(
-      `UPDATE communication_logs
-          SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('delivery', $1::jsonb),
-              status = $2,
-              updated_at = now()
-        WHERE id = $3 AND tenant_id = $4 AND status = 'SENT'`,
-      [JSON.stringify(delivery), next, id, tenantId],
-    )) as [unknown, number];
+    // A vendor that does not bill failed SMS gives the school's credit back (#3357), but only for a
+    // message sent on the platform's account whose credit was really spent (`credit: 'DEBITED'`),
+    // and only once: the flip below is guarded by `status = 'SENT'`, and the refund shares its
+    // transaction and carries a per-message key.
+    const refundUnits =
+      next === CommunicationStatus.FAILED &&
+      provider.descriptor.refundsFailedSms === true &&
+      meta.source === 'platform' &&
+      meta.credit === 'DEBITED' &&
+      typeof meta.segments === 'number'
+        ? meta.segments
+        : 0;
+    // One transaction: the row flip, the batch counters and the refund move together, so a
+    // reminder batch's counts never disagree with its own log list (#3345) and a refund never
+    // exists without the flip that earned it. jsonb merge, so a concurrent metadata write (credit
+    // settle) is not lost. Counters change only when this statement flipped the row SENT -> FAILED.
+    const affected = await this.repo.manager.transaction(async (m) => {
+      const rows = (await m.query(
+        `WITH upd AS (
+         UPDATE communication_logs
+            SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('delivery', $1::jsonb)
+                  || CASE WHEN $6::boolean THEN jsonb_build_object('credit', 'REFUNDED') ELSE '{}'::jsonb END,
+                status = $2,
+                updated_at = now()
+          WHERE id = $3 AND tenant_id = $4 AND status = 'SENT'
+        RETURNING reminder_batch_id
+       ), bump AS (
+         UPDATE reminder_batches b
+            SET successful_count = b.successful_count - 1,
+                failed_count = b.failed_count + 1,
+                -- Same rule as recordBatchOutcome: a batch with every recipient settled is
+                -- COMPLETED / PARTIALLY_FAILED / FAILED by its counters.
+                status = CASE
+                  WHEN b.successful_count - 1 + b.failed_count + 1 >= b.total_recipients THEN
+                    CASE WHEN b.successful_count - 1 = 0
+                      THEN 'FAILED'::"public"."reminder_batches_status_enum"
+                      ELSE 'PARTIALLY_FAILED'::"public"."reminder_batches_status_enum"
+                    END
+                  ELSE b.status
+                END,
+                updated_at = now()
+           FROM upd
+          -- successful_count > 0: both counters move together or not at all (no silent drift).
+          WHERE b.id = upd.reminder_batch_id AND b.tenant_id = $4 AND $5::boolean
+            AND b.successful_count > 0
+       )
+       SELECT count(*)::int AS n FROM upd`,
+        [
+          JSON.stringify(delivery),
+          next,
+          id,
+          tenantId,
+          next === CommunicationStatus.FAILED,
+          refundUnits > 0,
+        ],
+      )) as { n: number }[];
+      const flipped = rows[0]?.n ?? 0;
+      if (flipped === 1 && refundUnits > 0) {
+        await this.smsCredits.refundForLog(m, tenantId, id, refundUnits);
+      }
+      return flipped;
+    });
     if (affected !== 1) throw cannot();
 
     return toBatchLogDto(

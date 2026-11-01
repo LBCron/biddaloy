@@ -86,7 +86,9 @@ On the demo and staging sites nothing is really sent: the messages land in the *
 
 4. If the message belongs to a round of reminders, press **Open the round**. The round's page opens ([Reminder history](reminder-history.md)).
 
-<!-- image pending: message-log-01.png, the list with the detail window open (guide:shoot, #3311) -->
+![The Message log: filters on top, then one message per row with its Status (Delivered or Sent)](img/message-log-01.png)
+
+![The Message details window for a Delivered SMS: Recipient, Status, Company, SMS parts and the message text](img/message-log-02.png)
 
 ---
 
@@ -158,16 +160,16 @@ On a phone each message is a card: the recipient and the **Sent** time at the to
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                                                                           | What to do                                                                         | Who can help |
-| -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------ |
-| **No messages found.**                                                                 | The school has not sent a message yet.                                             | —            |
-| **No messages match these filters**                                                    | Clear a filter or widen the dates.                                                 | —            |
-| **Could not load the message log.**                                                    | Reload the page.                                                                   | Admin        |
-| **The delivery status of this message cannot be checked now.**                         | Press again after a minute. If it still says this, this message cannot be checked. | —            |
-| **Could not check the status. Try again in a minute.**                                 | The company did not answer. Press again after a minute.                            | Admin        |
-| No **Check status**                                                                    | The message is not **Sent**, or its company does not report delivery.              | —            |
-| **Message**: **Not shown: only staff who can see exam results can read this message.** | An exam result. Ask an Admin or Office staff to read it.                           | Admin        |
-| **Why it failed**: **Sending by … is not set up for this school. …**                   | An Admin turns it on in **Settings › Communication**, then send again.             | Admin        |
+| What you see                                                                           | What to do                                                                                                         | Who can help |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------ |
+| **No messages found.**                                                                 | The school has not sent a message yet.                                                                             | —            |
+| **No messages match these filters**                                                    | Clear a filter or widen the dates.                                                                                 | —            |
+| **Could not load the message log.**                                                    | Reload the page.                                                                                                   | Admin        |
+| **The delivery status of this message cannot be checked now.**                         | Press again after a minute. If it still says this, this message cannot be checked.                                 | —            |
+| **Could not check the status. Try again in a minute.**                                 | The company did not answer. Press again after a minute.                                                            | Admin        |
+| No **Check status**                                                                    | The message is not **Sent**, its company does not report delivery, or it was sent before the company was recorded. | —            |
+| **Message**: **Not shown: only staff who can see exam results can read this message.** | An exam result. Ask an Admin or Office staff to read it.                                                           | Admin        |
+| **Why it failed**: **Sending by … is not set up for this school. …**                   | An Admin turns it on in **Settings › Communication**, then send again.                                             | Admin        |
 
 More help with this: [What to do when something goes wrong](../help/troubleshooting.md#sms).
 

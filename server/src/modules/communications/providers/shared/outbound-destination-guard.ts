@@ -168,6 +168,17 @@ export interface SafeSmtpDestination {
   servername?: string;
 }
 
+/**
+ * Test-only seam (#3324): lets the e2e server reach its local vendor stub over plain http.
+ * Fails closed: both conditions must hold, read on every call, never cached. Boot refuses the
+ * flag in production (`assertProductionConfig`). See 08-security.md Rule 7.
+ */
+function testLoopbackAllowed(): boolean {
+  return (
+    process.env.NODE_ENV === 'test' && process.env.OUTBOUND_TEST_ALLOW_LOOPBACK === 'true'
+  );
+}
+
 /** For SMS gateway `apiUrl` values — used with `fetch()`. */
 export async function assertSafeHttpDestination(rawUrl: string): Promise<SafeHttpDestination> {
   let url: URL;
@@ -175,6 +186,10 @@ export async function assertSafeHttpDestination(rawUrl: string): Promise<SafeHtt
     url = new URL(rawUrl);
   } catch {
     throw new DestinationBlockedError(`"${rawUrl}" is not a valid URL.`);
+  }
+  // Only the literal 127.0.0.1 over http: - not `localhost`, not other private ranges, not https.
+  if (testLoopbackAllowed() && url.protocol === 'http:' && url.hostname === '127.0.0.1') {
+    return { url, addresses: [{ address: '127.0.0.1', family: 4 }] };
   }
   if (url.protocol !== 'https:') {
     throw new DestinationBlockedError(`"${rawUrl}" must use https:.`);

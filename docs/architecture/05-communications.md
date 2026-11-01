@@ -6,40 +6,41 @@ from [04-fees-payments-invoices.md](04-fees-payments-invoices.md#5-flag-overdue-
 
 ## Provider adapter pattern
 
+One abstract class, one explicit list, one resolver. A school's settings pick the company; no code branches on a company name outside the provider folders (a grep guard spec fails the build if one does).
+
 ```mermaid
 flowchart LR
-    CTRL["communications.controller.ts\n(send / reminder/single / reminder/bulk)"]
-    REG["CommunicationProviderRegistry\n(picks provider by medium + tenant settings)"]
-    IFACE["CommunicationProvider\n(interface: .send())"]
-    SMS["SMS\nGreenweb / Mim SMS / OneCodeSoft gateway"]
-    WA["WhatsApp\nWhatsApp Cloud API"]
-    MSG["Messenger\nprovider"]
-    EMAIL["Email\nSMTP"]
-    LOG["CommunicationLog\n(one row per message,\nevery medium)"]
-    BATCH["ReminderBatch\n(bulk campaign tracking)"]
+    CTRL["communications.controller.ts<br/>send / reminder / test message"]
+    REG["CommunicationProviderRegistry<br/>medium to provider"]
+    LIST["messaging-providers.ts<br/>explicit list, one line each"]
+    BASE["MessagingProvider<br/>abstract class: send, testConnection,<br/>optional balance and delivery status, descriptor"]
+    RES["MessagingConfigResolver<br/>settings + platform env to one config"]
+    SET["School.settings<br/>communications.sms / email / whatsapp / messenger"]
+    ENV["Platform env<br/>SMS_PROVIDER, ONECODESOFT_API_KEY ..."]
+    API["GET /schools/:id/settings/messaging/providers<br/>descriptors, drives the settings form"]
+    ALERT["Platform alerts<br/>direct path: platform keys only"]
+    LOG["communication_logs<br/>metadata.provider and source on every row a provider handled"]
 
-    CTRL --> REG
-    REG --> IFACE
-    IFACE --> SMS
-    IFACE --> WA
-    IFACE --> MSG
-    IFACE --> EMAIL
-    SMS --> LOG
-    WA --> LOG
-    MSG --> LOG
-    EMAIL --> LOG
-    CTRL -.->|"bulk send"| BATCH
-    BATCH --> LOG
+    CTRL --> REG --> LIST --> BASE
+    CTRL --> RES
+    SET --> RES
+    ENV --> RES
+    RES -->|"provider + config"| BASE
+    LIST --> API
+    BASE -->|"sendThroughProvider"| LOG
+    ALERT -->|"registered provider, no school settings"| BASE
 ```
 
-Every channel implements the same `CommunicationProvider` interface
-(`modules/communications/providers/communication-provider.interface.ts`), so
-the controller/service layer never branches on medium — it asks the
-registry for "whatever handles WHATSAPP for this tenant" and calls
-`.send()`. Per-tenant provider configuration (which SMS gateway, which SMTP
-account, credentials) lives in `School.settings` / the tenant-settings
-module, so different schools can use different providers without any code
-change.
+Example: a school stores `communications.sms = { provider: 'onecodesoft', onecodesoft: { apiKey, apiUrl, senderId } }`. The resolver reads that block, `OnecodesoftProvider.send()` runs, and the log row carries `metadata.provider = 'onecodesoft'`.
+
+- **Adding a company** is one class that `extends MessagingProvider` plus one line in `providers/messaging-providers.ts`. Its `descriptor` lists the settings fields (`kind: text | url | secret`, `required`, `owned`), and the settings form, the validator and the secret-masking all read that one list.
+- **Who owns a field (D11).** `required`, `owned: true` and destination fields (`url`, or `destination: true`) belong to whoever owns the medium. Once a school owns it, those never come from the platform env. A school that owns nothing sends on the platform account, limited by its SMS credit.
+- **Platform env convention (D11).** `<COMPANY>_<FIELD>`, e.g. `ONECODESOFT_API_KEY`; `SMS_PROVIDER` names the platform's company.
+- **Old settings still read (D6).** The flat pre-Epic-97 keys (`communications.sms.apiKey`) and the old `PLATFORM_SMS_*` env keys are still read for one release, with a boot warning that names keys only. Removing them is tracked as a follow-up.
+- **Check status (D23).** `POST /communications/logs/:id/check-status` asks the company about one SENT row (once a minute per row, idempotent). It needs `metadata.provider`; a row sent on the platform account (`metadata.source: 'platform'`) is resolved from the platform env, never from the school's saved blocks. The worker and the test send write both keys, and account access and the admin notices do it through `sendOriginMetadata` (`send-through-provider.ts`); a row with no provider (a config error, a sink-mode row, or one sent before this was recorded) offers no Check status.
+- **Credit back for a failed message (per vendor, #3357).** Whether a company charges for an SMS it reports FAILED is a property of that company, so it lives in its descriptor: `refundsFailedSms: true`. When Check status turns a SENT row into FAILED and the company has that flag, the message went out on the platform's account (`metadata.source: 'platform'`) and its credit was really spent (`metadata.credit: 'DEBITED'`), the segments go back to `available` in the same transaction as the flip, as one GRANT keyed `log:<id>:refund`; the row then reads `credit: 'REFUNDED'`. Absent or false means no refund. No company sets it yet: set it only once the company has confirmed it does not bill failed messages.
+- **Platform alerts** take the direct path: they resolve the company from the platform env and call the registered provider, so an alert still goes out when no school has any config. Example: with `SMS_PROVIDER=onecodesoft`, `ONECODESOFT_API_KEY` and `ONECODESOFT_API_URL` set and every school's `communications.sms` block empty, a platform alert still goes out through `OnecodesoftProvider`.
+- **Outbound HTTP** from a provider is the provider's own job ([Security Rule 7](08-security.md)): before any call it runs `assertSafeHttpDestination` on the URL and sends through `pinned-http.ts`. The descriptor's `kind: 'url'` only says who owns the field (D11); nothing reads it to guard the URL, so a new company must make both calls itself (see `onecodesoft.provider.ts`).
 
 ## Where this deviated from the original plan
 
