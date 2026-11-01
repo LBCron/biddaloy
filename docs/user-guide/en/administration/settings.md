@@ -311,13 +311,30 @@ To take off everything saved for a part, press **Remove saved details**, then **
 
 **SMS** — "All SMS from this school go through this company."
 
-| Field                       | What to enter                                                                                                                   |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **SMS company**             | **Greenweb**, **MimSMS** or **OneCodeSoft**.                                                                                    |
-| **API key**                 | Copy it from the company's account page.                                                                                        |
-| **Sender name (Sender ID)** | Required for MimSMS; optional for OneCodeSoft. Use the name the company approved.                                               |
-| **API address (optional)**  | In the **Advanced settings** part. If empty, the company's own address is used.                                                 |
-| **API address**             | Only for OneCodeSoft, and then it is required. Copy the base address from OneCodeSoft Dashboard › API; it must end with `/api`. |
+First choose the **SMS company**: **Greenweb**, **MimSMS** or **OneCodeSoft**. The fields below it change with the company.
+
+**Greenweb**
+
+| Field                      | What to enter                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------- |
+| **API key**                | Required. Copy it from your Greenweb account page.                              |
+| **API address (optional)** | In the **Advanced settings** part. If empty, the company's own address is used. |
+
+**MimSMS**
+
+| Field                       | What to enter                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------- |
+| **API key**                 | Required. Copy it from your MimSMS account page.                                |
+| **Sender name (Sender ID)** | Required. Use the name MimSMS approved.                                         |
+| **API address (optional)**  | In the **Advanced settings** part. If empty, the company's own address is used. |
+
+**OneCodeSoft**
+
+| Field                       | What to enter                                                                              |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| **API key**                 | Required. Copy it from your OneCodeSoft account page.                                      |
+| **Sender name (Sender ID)** | Optional. Use the name OneCodeSoft approved.                                               |
+| **API address**             | Required. Copy the base address from OneCodeSoft Dashboard › API; it must end with `/api`. |
 
 Under **Test connection**, the SMS and Email parts also have **Send a test message**. Enter a phone number (or, for Email, an address) and press the button; a real message is sent with the details in the fields now. When it goes, the part says **Sent.** with the link **See it in Message log**. If the company refuses the message, the part says **Couldn't send the test message. Check the details and try again.**, and the link opens the failed messages. A school can send 20 test messages in any 24 hours; after that it says so, and you can try again once the oldest of them is 24 hours old. You can type the number in Bangla digits too.
 
