@@ -288,6 +288,7 @@ async function messages(ctx: DemoSeedContext, tenant: OrgTenant, adminId: string
     });
     debits.push({ id, at: when });
   }
+  companySamples(ctx, tenant, adminId, years[0].start, guardian, names, logs, debits);
   let rows = await insertChunked(ctx.ds.getRepository(CommunicationLog), logs as never);
 
   // SMS credit: top-ups cover the history and leave CREDIT_FLOOR; the ledger sums to the balance.
@@ -325,6 +326,84 @@ async function messages(ctx: DemoSeedContext, tenant: OrgTenant, adminId: string
     [tenant.id, CREDIT_FLOOR],
   );
   return rows + 1;
+}
+
+type SeedGuardian = { id: string; name: string; phone: string | null; email: string | null };
+
+/**
+ * #3310 acceptance: every Message log Company and Status choice has a row. The history above
+ * only uses the school's current companies, so these few rows add the rest, each shaped like
+ * its real writer leaves it:
+ * - Greenweb and MiMSMS: SENT SMS from the first weeks, before the school moved to OneCodeSoft;
+ * - WhatsApp (`meta-cloud`): a manual SENT send from the admin;
+ * - Messenger (`meta-page`): FAILED, as every real send is (the provider is a stub, and
+ *   reminders never pick Messenger, `DISPATCHABLE_MEDIA`);
+ * - an invoice email still QUEUED: no company yet (the worker stamps it at send time), no id.
+ * READ is left out: no production path writes it. No `ctx.rng` draw (stableId, dates from the
+ * year start and the anchor), so later random values stay the same.
+ */
+function companySamples(
+  ctx: DemoSeedContext,
+  tenant: OrgTenant,
+  adminId: string,
+  yearStart: string,
+  guardian: Map<string, SeedGuardian>,
+  names: ReadonlyMap<unknown, unknown>,
+  logs: Record<string, unknown>[],
+  debits: { id: string; at: Date }[],
+): void {
+  const row = (
+    key: string,
+    [studentId, g]: [string, SeedGuardian],
+    medium: CommunicationMedium,
+    status: CommunicationStatus,
+    when: Date,
+    metadata: Record<string, unknown>,
+  ) => {
+    const id = stableId(`${tenant.slug}:${key}`);
+    const email = medium === CommunicationMedium.EMAIL;
+    const kind: Kind = email ? 'INVOICE' : 'FEE';
+    logs.push({
+      id,
+      tenant_id: tenant.id,
+      medium,
+      recipient_address: email ? g.email : g.phone,
+      recipient_name: g.name,
+      message_body: body(kind, names.get(studentId) as string, dhakaDate(when)),
+      subject: email ? 'ফি ইনভয়েস' : null,
+      status,
+      trigger: CommunicationTrigger.MANUAL,
+      student_id: studentId,
+      guardian_id: g.id,
+      sent_by_user_id: adminId,
+      reminder_batch_id: null,
+      provider_message_id: status === CommunicationStatus.SENT ? id : null,
+      metadata: { kind, ...metadata },
+      reference_key: null,
+      created_at: when,
+      updated_at: when,
+    });
+    if (medium === CommunicationMedium.SMS && status === CommunicationStatus.SENT) {
+      debits.push({ id, at: when });
+    }
+  };
+  const phoned = [...guardian].find(([, g]) => g.phone);
+  const mailed = [...guardian].find(([, g]) => g.email);
+  const { SMS, WHATSAPP, MESSENGER, EMAIL } = CommunicationMedium;
+  const { SENT, FAILED, QUEUED } = CommunicationStatus;
+  if (phoned) {
+    row('greenweb', phoned, SMS, SENT, at(addDays(yearStart, 3), 10), { provider: 'greenweb' });
+    row('mimsms', phoned, SMS, SENT, at(addDays(yearStart, 4), 10), { provider: 'mimsms' });
+    row('whatsapp', phoned, WHATSAPP, SENT, at(addDays(ctx.anchor, -3), 12), {
+      provider: 'meta-cloud',
+    });
+    // Older than any recent-failures window, so no dashboard or alert count moves.
+    row('messenger', phoned, MESSENGER, FAILED, at(addDays(ctx.anchor, -40), 12), {
+      provider: 'meta-page',
+      error: 'Messenger sending is not yet implemented',
+    });
+  }
+  if (mailed) row('queued-email', mailed, EMAIL, QUEUED, at(addDays(ctx.anchor, -1), 15), {});
 }
 
 /** What Check status writes for a DELIVERED answer (D23), a few minutes after the send. */

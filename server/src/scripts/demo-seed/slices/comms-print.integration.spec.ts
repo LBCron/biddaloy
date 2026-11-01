@@ -34,7 +34,10 @@ import { PrintJobsService } from '../../../modules/print/jobs/print-jobs.service
 import { SchoolSettingsReader } from '../../../modules/schools/settings/school-settings-reader.service';
 
 import { problemWith } from '../../../modules/schools/settings/messaging-settings.validator';
-import { buildMessagingProvidersResponse } from '../../../modules/schools/settings/messaging-descriptors';
+import {
+  buildMessagingProvidersResponse,
+  messagingDescriptors,
+} from '../../../modules/schools/settings/messaging-descriptors';
 import type { CommunicationMedium } from '@biddaloy/shared';
 import { canCheckStatus } from '../../../modules/communications/reminders.service';
 import type { CommunicationLog } from '../../../modules/communications/entities/communication-log.entity';
@@ -139,7 +142,7 @@ describe('comms-print slice (integration, 2 years, scale 0.05)', () => {
     );
     facts.sentSms = await q(
       `SELECT status, medium, provider_message_id, metadata FROM communication_logs
-        WHERE medium = 'SMS' AND status = 'SENT' LIMIT 1`,
+        WHERE medium = 'SMS' AND status = 'SENT' AND metadata->>'provider' = 'onecodesoft' LIMIT 1`,
     );
     facts.batches = await q(
       `SELECT b.total_recipients,
@@ -199,14 +202,35 @@ describe('comms-print slice (integration, 2 years, scale 0.05)', () => {
       delivery: number;
       error: number;
     }[];
-    const companyOf: Record<string, string | null> = {
-      SMS: 'onecodesoft',
-      EMAIL: 'smtp',
-      PUSH: null,
+    // A QUEUED row has no company yet: the worker stamps it at send time.
+    const companiesOf: Record<string, (string | null)[]> = {
+      SMS: ['onecodesoft', 'greenweb', 'mimsms'],
+      WHATSAPP: ['meta-cloud'],
+      MESSENGER: ['meta-page'],
+      EMAIL: ['smtp'],
+      PUSH: [null],
     };
-    for (const r of rows) expect(r.provider, `${r.medium} ${r.status}`).toBe(companyOf[r.medium]);
+    for (const r of rows) {
+      const allowed = r.status === 'QUEUED' ? [null] : companiesOf[r.medium];
+      expect(allowed, `${r.medium} ${r.status} ${r.provider}`).toContain(r.provider);
+    }
     const sum = (f: (r: (typeof rows)[number]) => boolean, k: keyof (typeof rows)[number] = 'n') =>
       rows.filter(f).reduce((a, r) => a + (r[k] as number), 0);
+    // #3310 acceptance: every Company choice and every written Status has a row (READ has no writer).
+    for (const { name } of messagingDescriptors()) {
+      expect(
+        sum((r) => r.provider === name),
+        name,
+      ).toBeGreaterThan(0);
+    }
+    for (const st of ['QUEUED', 'SENT', 'DELIVERED', 'FAILED']) {
+      expect(
+        sum((r) => r.status === st),
+        st,
+      ).toBeGreaterThan(0);
+    }
+    // The queued row is an email: an SMS would need a credit RESERVE the seed does not write.
+    expect(sum((r) => r.status === 'QUEUED' && r.medium !== 'EMAIL')).toBe(0);
     // Statuses: SMS shows SENT, DELIVERED and FAILED; an email never reads DELIVERED (no report).
     for (const st of ['SENT', 'DELIVERED', 'FAILED']) {
       expect(

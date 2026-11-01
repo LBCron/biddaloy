@@ -650,6 +650,18 @@ flowchart LR
 ```
 
 - **Demo rows look like real sends.** `comms-print.ts` writes `metadata.provider` per medium (`onecodesoft` for SMS, `smtp` for email, none for push), `metadata.delivery` on every DELIVERED row, `metadata.error` on every FAILED row, one Settings test message (`metadata.test`, `MANUAL`, sent by the admin) per branch, and the admin as sender of every reminder-round row. Example: a demo DELIVERED SMS stores `{ provider: 'onecodesoft', kind: 'FEE', delivery: { status: 'DELIVERED', checkedAt: '…' } }`.
+- **Every Company and Status choice has a row.** Per branch, `companySamples` adds five rows with no `ctx.rng` draw:
+
+  | Company      | Medium    | Status | Why it looks like this                                                 |
+  | ------------ | --------- | ------ | ---------------------------------------------------------------------- |
+  | `greenweb`   | SMS       | SENT   | First weeks of the oldest year, before the school moved to OneCodeSoft |
+  | `mimsms`     | SMS       | SENT   | Same                                                                   |
+  | `meta-cloud` | WhatsApp  | SENT   | A manual send by the admin, 3 days before the anchor                   |
+  | `meta-page`  | Messenger | FAILED | Every real Messenger send fails: the provider is a stub                |
+  | (none)       | Email     | QUEUED | Not sent yet, so no company and no company id (the worker stamps both) |
+
+  The two SMS rows spend a credit, so the ledger still sums to the balance. READ gets no row: nothing in production writes it.
+
 - **Surprise:** every seeded history row used to say `mailpit-sink`, and the guide screenshots show that word in the **Company** column. Fix: the seed names the company the demo school chose. The Message log screenshots (`message-log-01/02`, bn + en) still show the old tag and must be re-shot from a fresh `seed:demo`. Rule candidate: a seeded value a user can read on screen uses the real vocabulary, never an internal tag.
 - **Surprise:** the hosted demo can never show **Check status**: it runs on the test inbox, and `canCheckStatus` and the route both refuse under `MESSAGE_SINK` (Rule 6 of the demo seed: nothing leaves the demo). The seeded SENT SMS rows still carry everything the button needs, and the slice spec proves it by toggling `MESSAGE_SINK`. Rule candidate: an issue that asks the demo to "show" a vendor action first checks what the sink allows.
 - **Surprise:** the seed's random stream is shared by every later value (fake API keys, calendar tokens, print jobs), and a settings screenshot shows a key's last four characters. Fix: the new company ids reuse the old single `rng.string.uuid()` draw, an email's DELIVERED is remapped after its draw, and the test row takes `stableId` and an anchor-derived time. Rule candidate: a demo-seed edit keeps the number and kind of `ctx.rng` draws, or re-shoots every screenshot that shows a random value.
