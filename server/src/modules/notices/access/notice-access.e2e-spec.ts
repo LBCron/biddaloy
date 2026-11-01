@@ -239,6 +239,29 @@ describe('Notice access E2E', () => {
         [EXE, 'evil-name-xyz.pdf', 'application/pdf'],
       ]).expect(400);
       expect(JSON.stringify(res.body)).not.toContain('evil-name-xyz');
+      // Rule 6: a refused upload stores nothing, in storage or in the table
+      expect(stored.size).toBe(0);
+      const rows = await ds.query(`SELECT 1 FROM notice_attachments WHERE notice_id = $1`, [
+        draftId,
+      ]);
+      expect(rows).toHaveLength(0);
+    });
+
+    it('the same Idempotency-Key twice stores the file once and replays the first answer', async () => {
+      const key = `na-files-${randomUUID()}`;
+      const send = () =>
+        upload(draftId, 'author', [[PDF, 'once.pdf', 'application/pdf']]).set(
+          'Idempotency-Key',
+          key,
+        );
+      const first = await send().expect(201);
+      const again = await send().expect(201);
+      expect(again.body).toEqual(first.body);
+      const rows = await ds.query(`SELECT 1 FROM notice_attachments WHERE notice_id = $1`, [
+        draftId,
+      ]);
+      expect(rows).toHaveLength(1);
+      expect(stored.size).toBe(1);
     });
 
     it('HEIC gets the JPG sentence and no file name', async () => {

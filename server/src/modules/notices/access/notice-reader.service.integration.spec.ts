@@ -230,6 +230,9 @@ describe('NoticeReaderService (integration)', () => {
     );
     // published while the guardian had no login: the row has no user_id
     await guardianRow(n, kid1, late, null);
+    // a draft addressed to the same guardian is never claimed (R2-m1: no write-lock on drafts)
+    const draft = await mkNotice({ status: 'DRAFT', title: `late-draft-${sfx}` });
+    await guardianRow(draft, kid1, late, null);
     expect((await service.list(T, u.g2, { q: `late-${sfx}` })).total).toBe(0);
 
     // the school invites the guardian later
@@ -239,5 +242,6 @@ describe('NoticeReaderService (integration)', () => {
     expect((await service.open(T, u.g2, n)).id).toBe(n);
     await service.acknowledge(T, u.g2, n);
     expect((await recipient(n, u.g2)).acknowledged_at).not.toBeNull();
+    expect(await recipient(draft, u.g2)).toBeUndefined();
   });
 });

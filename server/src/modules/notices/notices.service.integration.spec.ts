@@ -550,6 +550,24 @@ describe('NoticesService (integration)', () => {
     expect((await noticeRow(n.id)).public_token_hash).not.toBeNull();
   });
 
+  it('a failed link clean-up after turn-off: the old link stays dead and turn-on mints a new one (Rule 16)', async () => {
+    const n = await draft({ isPublic: true });
+    await recipients.add(T, admin, n.id, [staffRef(u.staff2)]);
+    await svc.publish(T, admin, n.id, false);
+    const { token: old } = await svc.newPublicLink(T, admin, n.id);
+    const spy = vi.spyOn(links, 'turnOffPublicLink').mockRejectedValueOnce(new Error('db blip'));
+    // the clean-up failure is logged, not a 500; the flag is already off
+    await expect(svc.turnOffPublicLink(T, admin, n.id)).resolves.toBeUndefined();
+    spy.mockRestore();
+    expect((await noticeRow(n.id)).public_token_hash).not.toBeNull(); // left behind
+    expect(await links.resolve(old)).toBeNull(); // still dead: is_public is false
+    const on = await svc.update(T, admin, n.id, { isPublic: true });
+    expect(on.publicLinkToken).toBeTruthy();
+    expect(on.publicLinkToken).not.toBe(old);
+    expect(await links.resolve(old)).toBeNull(); // the old token never comes back
+    expect(await links.resolve(on.publicLinkToken!)).not.toBeNull();
+  });
+
   describe('teacher scope (Rule 2, D2)', () => {
     // SEED_SECTION_1 is the teacher's; SEED_SECTION_2 is not.
     let teacherUser: string;

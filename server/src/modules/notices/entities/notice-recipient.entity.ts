@@ -35,6 +35,7 @@ import { CommunicationLog } from '../../communications/entities/communication-lo
   unique: true,
   where: `"kind" = 'GUARDIAN'`,
 })
+@Index('IDX_notice_recipients_tenant_notice', ['tenant_id', 'notice_id'])
 @Index('IDX_notice_recipients_tenant_user', ['tenant_id', 'user_id'])
 @Index('IDX_notice_recipients_tenant_student', ['tenant_id', 'student_id'])
 @Index('IDX_notice_recipients_tenant_guardian', ['tenant_id', 'guardian_id'])

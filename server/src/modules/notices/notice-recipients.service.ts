@@ -70,6 +70,8 @@ export async function loadOwnedNotice(
 /**
  * A student or guardian who got a login after publish has rows with user_id NULL. Every reader path
  * (list, open, acknowledge, file) calls this first, so that person's current login owns their rows.
+ * PUBLISHED notices only: readers never see drafts, publish copies user_id itself, and a draft
+ * being published reads as DRAFT here, so the claim never locks rows against publish.
  * ponytail: write-on-read, claim only. A login unlinked later keeps its rows until the new login
  * reads; refresh where accounts get linked if that ever matters.
  */
@@ -81,13 +83,17 @@ export async function claimRecipientRows(
   await q.query(
     `UPDATE notice_recipients r SET user_id = s.user_id FROM students s
       WHERE r.kind = 'STUDENT' AND r.tenant_id = $1 AND s.tenant_id = $1 AND s.id = r.student_id
-        AND s.user_id = $2::uuid AND r.user_id IS DISTINCT FROM $2::uuid`,
+        AND s.user_id = $2::uuid AND r.user_id IS DISTINCT FROM $2::uuid
+        AND EXISTS (SELECT 1 FROM notices n WHERE n.id = r.notice_id AND n.tenant_id = $1
+                     AND n.status = 'PUBLISHED')`,
     [tenantId, userId],
   );
   await q.query(
     `UPDATE notice_recipients r SET user_id = g.user_id FROM guardians g
       WHERE r.kind = 'GUARDIAN' AND r.tenant_id = $1 AND g.tenant_id = $1 AND g.id = r.guardian_id
-        AND g.user_id = $2::uuid AND r.user_id IS DISTINCT FROM $2::uuid`,
+        AND g.user_id = $2::uuid AND r.user_id IS DISTINCT FROM $2::uuid
+        AND EXISTS (SELECT 1 FROM notices n WHERE n.id = r.notice_id AND n.tenant_id = $1
+                     AND n.status = 'PUBLISHED')`,
     [tenantId, userId],
   );
 }
