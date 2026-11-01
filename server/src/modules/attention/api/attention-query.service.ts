@@ -32,9 +32,19 @@ const BY_SEVERITY = `${SEVERITY_RANK} DESC, a.raised_at ASC`;
 const ITEM_FROM = `FROM alert_recipients r
   JOIN alerts a ON a.id = r.alert_id AND a.tenant_id = r.tenant_id
   LEFT JOIN users u ON u.id = a.resolved_by_user_id`;
+// [53 D16] One important-notice alert, one URL per reader: staff (any STAFF row of theirs) open
+// the staff page, students and guardians the portal page. Same rule as the push (pushAll).
+// ponytail: /portal/notices/:id arrives with #3381; until then the portal link 404s in the client.
 const ITEM_COLS = `r.id AS recipient_id, r.alert_id, r.state, r.snoozed_until,
   COALESCE(r.resolved_at, a.resolved_at) AS resolved_at, u.full_name AS resolved_by_name,
-  a.rule_key, a.source, a.severity, a.category, a.params, a.action_url, a.raised_at,
+  a.rule_key, a.source, a.severity, a.category, a.params,
+  CASE WHEN a.source = 'NOTICE' AND a.rule_key = 'notice.important' THEN
+    CASE WHEN EXISTS (SELECT 1 FROM notice_recipients nr
+                       WHERE nr.tenant_id = a.tenant_id AND nr.notice_id = a.subject_id
+                         AND nr.user_id = r.user_id AND nr.kind = 'STAFF')
+      THEN '/communications/notices/' || a.subject_id
+      ELSE '/portal/notices/' || a.subject_id END
+  ELSE a.action_url END AS action_url, a.raised_at,
   a.expires_at, a.manual_title, a.manual_body, a.status AS alert_status`;
 const iso = (d: Date | string) => new Date(d).toISOString();
 
