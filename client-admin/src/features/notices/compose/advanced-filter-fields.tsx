@@ -58,7 +58,10 @@ function TargetField({ f, set }: { f: AudienceFilterState; set: Set }) {
 
 function ExamFailedFields({ f, set }: { f: AudienceFilterState; set: Set }) {
   const { t } = useTranslation('noticeCompose');
+  // The list API has no status filter, so the page is filtered here; `partial` tells the admin
+  // when older exams did not fit in the page.
   const exams = useExams({ limit: 100 });
+  const partial = (exams.data?.total ?? 0) > (exams.data?.data.length ?? 0);
   // Published exams only, newest first.
   const options = (exams.data?.data ?? [])
     .filter((e) => e.status === 'PUBLISHED')
@@ -74,6 +77,21 @@ function ExamFailedFields({ f, set }: { f: AudienceFilterState; set: Set }) {
           value={f.examId}
           onValueChange={(examId) => set({ examId })}
         />
+        {exams.isPending && (
+          <span role="status" className="text-caption text-text-secondary">
+            {t('audience.examsLoading')}
+          </span>
+        )}
+        {exams.isError && (
+          <span role="alert" className="text-danger text-caption">
+            {t('audience.examsError')}
+          </span>
+        )}
+        {partial && (
+          <span role="status" className="text-caption text-text-secondary">
+            {t('audience.examsPartial')}
+          </span>
+        )}
       </FilterField>
     </>
   );
