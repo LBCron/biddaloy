@@ -187,7 +187,7 @@ writer just merges the new recipients into the same alert.
 
 | Rule                   | Who joins                                                                                     | When                                      |
 | ---------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| `attendance.not_taken` | class coordinators of the section's class                                                     | level 1 (WARNING) and up; heads stay at 2 |
+| `attendance.not_taken` | class coordinators of the section's class (day and period registers)                          | level 1 (WARNING) and up; heads stay at 2 |
 | `exams.marks_overdue`  | class coordinators of the exam's class, and the subject coordinator of an open grid's subject | always (same as the roles)                |
 
 How recipients beyond roles are added: the rule loads them itself with

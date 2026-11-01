@@ -320,8 +320,16 @@ export class AttendanceNotTakenRule implements AttentionRuleShape {
           continue;
         const ids = p.substitute_teacher_id ? [p.substitute_teacher_id] : p.teacher_ids;
         const users = ids.map((id) => userOfTeacher.get(id)).filter((u): u is string => !!u);
-        if (!users.length) continue;
         const late = toMinutes(ctx.localTime) - toMinutes(p.starts_at) >= grace;
+        // [83.2.4] D7 for period registers too: a late period (level 1) reaches the class
+        // coordinators, even when no period teacher resolves.
+        if (late) {
+          for (const c of coordinators) {
+            if (coordinates(c, sec.class_id, null) && !users.includes(c.userId))
+              users.push(c.userId);
+          }
+        }
+        if (!users.length) continue;
         drafts.push({
           dedupeKey: `section:${sec.id}:${ctx.localDate}:p${p.period_no}`,
           subject: { type: 'section', id: sec.id },

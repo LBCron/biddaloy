@@ -111,6 +111,21 @@ describe('coordinatorRecipients (integration)', () => {
     expect(coordinates(mathsRow, a.class7, a.subject)).toBe(false);
   });
 
+  it('skips a user whose TEACHER membership is gone, even with another live role', async () => {
+    const a = await mkTenant();
+    const former = await mkTeacher(a.id);
+    await coordinate(a.id, former.teacherId, a.class6);
+    await ds.query(
+      `UPDATE user_tenants SET deleted_at = NOW() WHERE user_id = $1 AND tenant_id = $2 AND role = 'TEACHER'`,
+      [former.userId, a.id],
+    );
+    await ds.query(
+      `INSERT INTO user_tenants (user_id, tenant_id, role) VALUES ($1, $2, 'ACCOUNTANT')`,
+      [former.userId, a.id],
+    );
+    expect(await coordinatorRecipients(ds, a.id, [a.class6])).toEqual([]);
+  });
+
   it('skips an inactive user and a class of a past academic year', async () => {
     const a = await mkTenant();
     const suspended = await mkTeacher(a.id, 'SUSPENDED');
