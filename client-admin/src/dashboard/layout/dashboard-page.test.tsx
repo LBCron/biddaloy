@@ -70,6 +70,9 @@ function mockApi(
         staleMinutes: 0,
       }),
     ),
+    http.get('/api/v1/notices/mine', () =>
+      HttpResponse.json({ data: [], total: 0, page: 1, limit: 3 }),
+    ),
     http.get('/api/v1/calendar/events', () =>
       HttpResponse.json({ data: [], total: 0, page: 1, limit: 6, totalPages: 1 }),
     ),
@@ -164,7 +167,7 @@ describe('DashboardPage', () => {
       expect(screen.queryAllByRole('heading', { name: 'Upcoming' })).toHaveLength(0);
     });
 
-    it('ADMIN, partly done: grid, checklist is the last widget', async () => {
+    it('ADMIN, partly done: grid, checklist is the last widget before the notices card', async () => {
       mockApi({ onboarding: 'some' });
       render();
       await waitFor(() => expect(card().length).toBeGreaterThan(0));
@@ -172,7 +175,8 @@ describe('DashboardPage', () => {
         0,
       );
       const all = screen.getAllByRole('heading', { level: 2 });
-      expect(all[all.length - 1]!.textContent).toBe('Finish setting up your school');
+      expect(all[all.length - 2]!.textContent).toBe('Finish setting up your school');
+      expect(all[all.length - 1]!.textContent).toBe('Latest notices');
     });
 
     it('ADMIN, finished: no checklist', async () => {
