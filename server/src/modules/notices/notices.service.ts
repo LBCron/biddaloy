@@ -82,8 +82,9 @@ export class NoticesService {
     limit: number,
     offset: number,
   ): Promise<{ items: NoticeDto[]; total: number }> {
+    // A raw `date` column comes back as a JS Date; the DTO wants the school-local 'YYYY-MM-DD'.
+    // (Keep comments out of the call: the Rule 4 guard reads `.query(` + backtick only.)
     const rows = await this.ds.query(
-      // a raw `date` column comes back as a JS Date; the DTO wants the school-local 'YYYY-MM-DD'
       `SELECT n.*, to_char(n.expires_on, 'YYYY-MM-DD') AS expires_on_text, a.full_name AS author_name,
               (SELECT count(DISTINCT ${PERSON}) FROM notice_recipients r
                 WHERE r.notice_id = n.id AND r.tenant_id = n.tenant_id)::int AS people,
