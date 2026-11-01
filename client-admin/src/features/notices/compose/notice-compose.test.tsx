@@ -1,6 +1,6 @@
 import { cleanupTestState, renderWithRouter, server } from '@biddaloy/ui/test';
 import { createRootRoute } from '@tanstack/react-router';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -96,6 +96,212 @@ async function toReview(
 }
 
 afterEach(() => cleanupTestState());
+
+const CLASS_ID = '22222222-2222-4222-8222-222222222222';
+const STUDENT = '33333333-3333-4333-8333-333333333333';
+const FATHER = '44444444-4444-4444-8444-444444444441';
+const MOTHER = '44444444-4444-4444-8444-444444444442';
+/** A father and a mother of one child, neither with a login: one row each, same student id. */
+const parentRow = (guardianId: string, name: string) => ({
+  kind: 'GUARDIAN',
+  userId: null,
+  studentId: STUDENT,
+  guardianId,
+  name,
+  detail: 'Class 6',
+  hasLogin: false,
+  hasPhone: true,
+});
+
+/** People requests as the server would answer: CLASS with no class is a 400 (NEED_PICK). */
+function mockPeople(seen: URL[]) {
+  server.use(
+    http.get('/api/v1/classes', () =>
+      HttpResponse.json({
+        data: [{ id: CLASS_ID, name: 'Class 6' }],
+        total: 1,
+        page: 1,
+        limit: 100,
+        totalPages: 1,
+      }),
+    ),
+    http.get('/api/v1/classes/:id/sections', () => HttpResponse.json([])),
+    http.get('/api/v1/audience/people', ({ request }) => {
+      const url = new URL(request.url);
+      seen.push(url);
+      if (url.searchParams.get('tab') === 'CLASS' && !url.searchParams.get('classIds'))
+        return HttpResponse.json({ message: 'Pick a class' }, { status: 400 });
+      return HttpResponse.json(
+        page([parentRow(FATHER, 'Father A'), parentRow(MOTHER, 'Mother A')]),
+      );
+    }),
+  );
+}
+
+async function toAudience(user: ReturnType<typeof userEvent.setup>) {
+  await screen.findByDisplayValue('Winter break');
+  await user.click(screen.getByRole('button', { name: 'Next step' }));
+  await screen.findAllByRole('tab');
+}
+
+describe('NoticeCompose audience (#3430)', () => {
+  it('guardians wait for a class (no 400), then send classIds without brackets; parents of one child are two rows', async () => {
+    mock();
+    const seen: URL[] = [];
+    mockPeople(seen);
+    let added: unknown;
+    server.use(
+      http.post('/api/v1/notices/:id/recipients', async ({ request }) => {
+        added = await request.json();
+        return HttpResponse.json({ added: 1, total: 2 }, { status: 201 });
+      }),
+    );
+    const user = userEvent.setup();
+    const { localeReady } = mount({ noticeId: ID });
+    await localeReady;
+    await toAudience(user);
+
+    // Finding 1: no request and no error before a class is picked, only the hint.
+    expect(await screen.findByText('Pick a class to see people.')).toBeTruthy();
+    expect(screen.queryByText('Could not load people')).toBeNull();
+    expect(seen).toEqual([]);
+
+    await user.click(screen.getByRole('combobox', { name: 'Class' }));
+    await user.click(await screen.findByRole('option', { name: 'Class 6' }));
+    expect((await screen.findAllByText('Father A')).length).toBeGreaterThan(0);
+    // Finding 0: `classIds=<id>`, never axios's `classIds[]=<id>` (a 400 on the server).
+    const last = seen[seen.length - 1]!;
+    expect(last.searchParams.get('classIds')).toBe(CLASS_ID);
+    expect(last.search).not.toContain('%5B%5D');
+    expect(last.search).not.toContain('[]');
+    expect(screen.queryByText('Pick a class to see people.')).toBeNull();
+
+    // Finding 2: ticking the father adds only the father, not the mother who shares his child.
+    const table = screen.getByRole('table', { name: 'Matching people' });
+    const boxes = within(table).getAllByRole('checkbox');
+    await user.click(boxes[boxes.length - 2]!);
+    await user.click(screen.getByRole('button', { name: 'Add to chosen list (1)' }));
+    await waitFor(() =>
+      expect(added).toEqual({
+        items: [{ kind: 'GUARDIAN', userId: null, studentId: STUDENT, guardianId: FATHER }],
+      }),
+    );
+  });
+});
+
+describe('NoticeCompose writes (#3430)', () => {
+  it('public notice: a failed link after publish never publishes again; Try again asks only for a new link', async () => {
+    mock();
+    let publishes = 0;
+    let links = 0;
+    server.use(
+      http.get('/api/v1/notices/:id', () => HttpResponse.json(notice({ isPublic: true }))),
+      http.post('/api/v1/notices/:id/publish', () => {
+        publishes += 1;
+        return HttpResponse.json(notice({ status: 'PUBLISHED', isPublic: true }));
+      }),
+      http.post('/api/v1/notices/:id/public-link', () => {
+        links += 1;
+        return links === 1
+          ? HttpResponse.json({}, { status: 500 })
+          : HttpResponse.json({ token: 'tok456' }, { status: 201 });
+      }),
+    );
+    const onPublished = vi.fn();
+    const user = userEvent.setup();
+    const { localeReady } = mount({ noticeId: ID, onPublished });
+    await localeReady;
+    await toReview(user);
+    await user.click(screen.getByRole('button', { name: 'Publish' }));
+    await user.click(await screen.findByRole('button', { name: 'Yes, publish' }));
+
+    expect(
+      await screen.findByText('The notice is published, but the public link could not be made.'),
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Yes, publish' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    const field = await screen.findByRole('textbox', { name: 'Public link' });
+    expect((field as HTMLInputElement).value).toContain('/n/tok456');
+    expect(publishes).toBe(1);
+    expect(links).toBe(2);
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+    expect(onPublished).toHaveBeenCalledWith(ID);
+    expect(publishes).toBe(1);
+  });
+
+  it('a failed link can be left: Done goes on to the detail page', async () => {
+    mock();
+    server.use(
+      http.get('/api/v1/notices/:id', () => HttpResponse.json(notice({ isPublic: true }))),
+      http.post('/api/v1/notices/:id/publish', () =>
+        HttpResponse.json(notice({ status: 'PUBLISHED', isPublic: true })),
+      ),
+      http.post('/api/v1/notices/:id/public-link', () => HttpResponse.json({}, { status: 500 })),
+    );
+    const onPublished = vi.fn();
+    const user = userEvent.setup();
+    const { localeReady } = mount({ noticeId: ID, onPublished });
+    await localeReady;
+    await toReview(user);
+    await user.click(screen.getByRole('button', { name: 'Publish' }));
+    await user.click(await screen.findByRole('button', { name: 'Yes, publish' }));
+    await screen.findByText('The notice is published, but the public link could not be made.');
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+    expect(onPublished).toHaveBeenCalledWith(ID);
+  });
+
+  it('edit mode shows the saved files and counts them against the 3-file limit', async () => {
+    mock();
+    const file = (id: string, name: string) => ({
+      id,
+      original_name: name,
+      mime_type: 'application/pdf',
+      size_bytes: 10,
+    });
+    server.use(
+      http.get('/api/v1/notices/:id', () =>
+        HttpResponse.json(notice({ files: [file('f1', 'one.pdf'), file('f2', 'two.pdf')] })),
+      ),
+    );
+    const user = userEvent.setup();
+    const { localeReady } = mount({ noticeId: ID });
+    await localeReady;
+    expect(await screen.findByText('one.pdf')).toBeTruthy();
+    expect(screen.getByText('two.pdf')).toBeTruthy();
+    await user.upload(fileInput(), [png('a.png'), png('b.png')]);
+    expect(await screen.findByText('At most 3 files')).toBeTruthy();
+  });
+
+  it('the first save carries an Idempotency-Key; a resend keeps it, a changed draft gets a new one', async () => {
+    mock();
+    const keys: (string | null)[] = [];
+    let fail = true;
+    server.use(
+      http.post('/api/v1/notices', ({ request }) => {
+        keys.push(request.headers.get('Idempotency-Key'));
+        if (fail) return HttpResponse.json({}, { status: 500 });
+        return HttpResponse.json(notice(), { status: 201 });
+      }),
+    );
+    const user = userEvent.setup();
+    const { localeReady } = mount();
+    await localeReady;
+    await user.type(await screen.findByLabelText('Title'), 'Fees');
+    await user.type(screen.getByLabelText('Notice text'), 'Pay by Friday.');
+    await user.click(screen.getByRole('button', { name: 'Keep as draft' }));
+    await screen.findByText('Could not save. Try again.');
+    await user.click(screen.getByRole('button', { name: 'Keep as draft' }));
+    await waitFor(() => expect(keys).toHaveLength(2));
+    expect(keys[0]).toBeTruthy();
+    expect(keys[1]).toBe(keys[0]);
+    fail = false;
+    await user.type(screen.getByLabelText('Title'), '!');
+    await user.click(screen.getByRole('button', { name: 'Keep as draft' }));
+    await screen.findByText('Draft saved');
+    expect(keys[2]).toBeTruthy();
+    expect(keys[2]).not.toBe(keys[0]);
+  });
+});
 
 describe('NoticeCompose', () => {
   it('shows validation messages next to their field', async () => {

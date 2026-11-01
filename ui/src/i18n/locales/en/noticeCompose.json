@@ -14,7 +14,10 @@
   "publicLink": {
     "title": "Public link",
     "hint": "Copy it now. It is shown only once; a new one replaces it.",
-    "done": "Done"
+    "done": "Done",
+    "creating": "Making the public link…",
+    "failed": "The notice is published, but the public link could not be made.",
+    "retry": "Try again"
   },
   "saved": "Draft saved",
   "fields": {
@@ -76,7 +79,8 @@
       "EXAM_CONTROLLER": "Exam controller",
       "COMMITTEE": "Committee"
     },
-    "loadError": "Could not load people"
+    "loadError": "Could not load people",
+    "pickClass": "Pick a class to see people."
   },
   "review": {
     "heading": "Check before publishing",

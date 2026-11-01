@@ -15,8 +15,16 @@ import {
 import { AudienceTab, AudienceTarget, NoticeRecipientKind, UserRole } from '@biddaloy/shared';
 
 /** `?x=a` arrives as a string, `?x=a&x=b` as an array. */
+/** Query arrays arrive as `classIds=a,b` (the client joins them, as `student_ids` does) or as
+ * repeated keys (`classIds=a&classIds=b`). A body sends a real array. */
 const toArray = ({ value }: { value: unknown }) =>
-  value === undefined || value === '' ? undefined : Array.isArray(value) ? value : [value];
+  value === undefined || value === ''
+    ? undefined
+    : Array.isArray(value)
+      ? value
+      : typeof value === 'string'
+        ? value.split(',').filter(Boolean)
+        : [value];
 
 export class AudienceQueryDto {
   @ApiProperty({ enum: AudienceTarget, enumName: 'AudienceTarget' })

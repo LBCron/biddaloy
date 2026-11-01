@@ -63,10 +63,15 @@ export function tabKeys(isTeacher: boolean): TabKey[] {
 const reachOf = (hasLogin: boolean, hasPhone: boolean): AudienceRow['reach'] =>
   hasLogin ? 'app' : hasPhone ? 'sms' : 'none';
 
+/** Guardians and students list nobody until a class is picked: the server needs one (400). */
+export const needsClass = (tab: TabKey, f: AudienceFilterState) =>
+  (tab === 'guardians' || tab === 'students') && !f.classId;
+
 export function personRow(p: AudiencePersonDto): AudienceRow {
-  const id = p.userId ?? p.studentId ?? p.guardianId ?? p.name;
   return {
-    key: `${p.kind}:${id}`,
+    // Every id: guardians come one row per (guardian, child), so a mother and a father of one
+    // child (no login) share the student id, and one guardian of two children shares a user id.
+    key: `${p.kind}:${p.guardianId ?? ''}:${p.studentId ?? ''}:${p.userId ?? ''}`,
     name: p.name,
     detail: p.detail,
     reach: reachOf(p.hasLogin, p.hasPhone),

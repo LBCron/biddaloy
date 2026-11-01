@@ -845,8 +845,8 @@
       },
       "latest-notices": {
         "means": "The latest three current notices addressed to you, pinned ones first.",
-        "source": "It comes from the notice board: notices posted for your role.",
-        "action": "Open a notice to read it. All notices opens the full list."
+        "source": "It comes from the notice board: notices the school sent to you.",
+        "action": "This card is for reading; it has no link yet."
       }
     }
   }
