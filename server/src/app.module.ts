@@ -501,8 +501,8 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
     AcrModule,
     IncidentsModule,
     AttentionModule,
+    NoticeAccessModule, // before NoticesModule: GET /notices/mine must register before GET /notices/:id
     NoticesModule,
-    NoticeAccessModule,
     SurveysModule,
     PerformanceModule,
     RegistrationModule,
