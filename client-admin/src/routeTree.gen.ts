@@ -29,6 +29,7 @@ import { Route as StaffSecurityRouteImport } from './routes/_staff/security'
 import { Route as StaffSettingsRouteImport } from './routes/_staff/settings'
 import { Route as StaffWelcomeRouteImport } from './routes/_staff/welcome'
 import { Route as ITokenRouteImport } from './routes/i/$token'
+import { Route as NTokenRouteImport } from './routes/n.$token'
 import { Route as PortalIndexRouteImport } from './routes/portal/index'
 import { Route as PortalAccountRouteImport } from './routes/portal/account'
 import { Route as PortalAttendanceRouteImport } from './routes/portal/attendance'
@@ -262,6 +263,11 @@ const StaffWelcomeRoute = StaffWelcomeRouteImport.update({
 const ITokenRoute = ITokenRouteImport.update({
   id: '/i/$token',
   path: '/i/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NTokenRoute = NTokenRouteImport.update({
+  id: '/n/$token',
+  path: '/n/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PortalIndexRoute = PortalIndexRouteImport.update({
@@ -1013,6 +1019,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof StaffSettingsRoute
   '/welcome': typeof StaffWelcomeRoute
   '/i/$token': typeof ITokenRoute
+  '/n/$token': typeof NTokenRoute
   '/portal/account': typeof PortalAccountRoute
   '/portal/attendance': typeof PortalAttendanceRoute
   '/portal/calendar': typeof PortalCalendarRoute
@@ -1167,6 +1174,7 @@ export interface FileRoutesByTo {
   '/settings': typeof StaffSettingsRoute
   '/welcome': typeof StaffWelcomeRoute
   '/i/$token': typeof ITokenRoute
+  '/n/$token': typeof NTokenRoute
   '/portal/account': typeof PortalAccountRoute
   '/portal/attendance': typeof PortalAttendanceRoute
   '/portal/calendar': typeof PortalCalendarRoute
@@ -1326,6 +1334,7 @@ export interface FileRoutesById {
   '/_staff/settings': typeof StaffSettingsRoute
   '/_staff/welcome': typeof StaffWelcomeRoute
   '/i/$token': typeof ITokenRoute
+  '/n/$token': typeof NTokenRoute
   '/portal/account': typeof PortalAccountRoute
   '/portal/attendance': typeof PortalAttendanceRoute
   '/portal/calendar': typeof PortalCalendarRoute
@@ -1484,6 +1493,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/welcome'
     | '/i/$token'
+    | '/n/$token'
     | '/portal/account'
     | '/portal/attendance'
     | '/portal/calendar'
@@ -1638,6 +1648,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/welcome'
     | '/i/$token'
+    | '/n/$token'
     | '/portal/account'
     | '/portal/attendance'
     | '/portal/calendar'
@@ -1796,6 +1807,7 @@ export interface FileRouteTypes {
     | '/_staff/settings'
     | '/_staff/welcome'
     | '/i/$token'
+    | '/n/$token'
     | '/portal/account'
     | '/portal/attendance'
     | '/portal/calendar'
@@ -1947,6 +1959,7 @@ export interface RootRouteChildren {
   SelectSchoolRoute: typeof SelectSchoolRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   ITokenRoute: typeof ITokenRoute
+  NTokenRoute: typeof NTokenRoute
   VTokenRoute: typeof VTokenRoute
   AdmissionSlugStatusRoute: typeof AdmissionSlugStatusRoute
   AuthSocialDoneRoute: typeof AuthSocialDoneRoute
@@ -2093,6 +2106,13 @@ declare module '@tanstack/react-router' {
       path: '/i/$token'
       fullPath: '/i/$token'
       preLoaderRoute: typeof ITokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/n/$token': {
+      id: '/n/$token'
+      path: '/n/$token'
+      fullPath: '/n/$token'
+      preLoaderRoute: typeof NTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/portal/': {
@@ -3388,6 +3408,7 @@ const rootRouteChildren: RootRouteChildren = {
   SelectSchoolRoute: SelectSchoolRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   ITokenRoute: ITokenRoute,
+  NTokenRoute: NTokenRoute,
   VTokenRoute: VTokenRoute,
   AdmissionSlugStatusRoute: AdmissionSlugStatusRoute,
   AuthSocialDoneRoute: AuthSocialDoneRoute,
