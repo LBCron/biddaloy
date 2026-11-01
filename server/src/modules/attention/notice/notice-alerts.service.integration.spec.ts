@@ -134,6 +134,37 @@ describe('NoticeAlertsService (integration)', () => {
     expect(a.action_url).toBe(`/portal/notices/${id}`);
   });
 
+  it('a mixed audience: staff reader gets the staff URL, a portal reader the portal URL (D16)', async () => {
+    const id = await mkNotice();
+    // the teacher is on the Chosen list as STAFF; u.other stands in for a guardian login
+    await ds.query(
+      `INSERT INTO notice_recipients (tenant_id, notice_id, kind, user_id) VALUES ($1, $2, 'STAFF', $3)`,
+      [SEED_TENANT_ID, id, u.teacher],
+    );
+    const alertId = await inTx((em) =>
+      service.raiseImportant(em, input(id), [
+        { userId: u.teacher },
+        { userId: u.other, portal: true },
+      ]),
+    );
+    const q = new AttentionQueryService(
+      ds,
+      { get: () => undefined } as any,
+      ...([{}, {}, {}, {}, {}, {}] as [any, any, any, any, any, any]),
+    );
+    // read through the real list query: the URL is chosen per reader, not stored once
+    const urlFor = async (userId: string, role: UserRole) => {
+      const page = await q.items(SEED_TENANT_ID, userId, role, {
+        page: 1,
+        pageSize: 50,
+        locale: 'en',
+      } as any);
+      return page.items.find((i) => i.alertId === alertId)?.actionUrl;
+    };
+    expect(await urlFor(u.teacher, UserRole.TEACHER)).toBe(`/communications/notices/${id}`);
+    expect(await urlFor(u.other, UserRole.PARENT)).toBe(`/portal/notices/${id}`);
+  });
+
   it('expires_at is the end of the expiry day in the school timezone', async () => {
     const id = await mkNotice();
     const alertId = await inTx((em) =>
