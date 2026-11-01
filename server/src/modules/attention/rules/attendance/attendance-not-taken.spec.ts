@@ -239,6 +239,20 @@ describe('AttendanceNotTakenRule', () => {
       expect(finding.dedupeKey).toBe('section:S1:2026-10-10');
     });
 
+    it('a late period register (level 1) reaches the class coordinator; an on-time one does not', async () => {
+      const late = build({
+        coordinators,
+        perPeriod: true,
+        sessions: [{ section_id: 'S1', period_no: null, state: 'FINALIZED' }],
+        slots: [build().slot('p2')],
+      });
+      const [f] = await late.rule.evaluate(ctx({ localTime: '09:20' }));
+      expect(f.escalationLevel).toBe(1);
+      expect(f.recipients.map((r) => r.userId)).toEqual(['u-T2', 'u-COORD']);
+      const [g] = await late.rule.evaluate(ctx({ localTime: '09:05' }));
+      expect(g.recipients.map((r) => r.userId)).toEqual(['u-T2']);
+    });
+
     it('level 2 (CRITICAL): coordinator and heads both', async () => {
       const { rule } = build({ coordinators });
       const [finding] = await rule.evaluate(ctx({ localTime: '10:05' }));

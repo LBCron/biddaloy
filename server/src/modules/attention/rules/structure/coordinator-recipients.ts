@@ -11,7 +11,8 @@ export interface CoordinatorRecipient {
 
 /**
  * [83.2.4] Coordinators of `classIds` (Epic 83 D6), one row per (user, class, subject):
- * active users with a live membership of the tenant, a live teacher row, and a
+ * active users with a live TEACHER membership of the tenant (they are sent as TEACHER), a live
+ * teacher row, and a
  * `coordinator_assignments` row on a live class of the **current** academic year — the same
  * slice `TeacherScopeService` lets them read (D3/D14). A subject row whose subject is
  * soft-deleted is skipped, as in the scope SQL.
@@ -40,7 +41,8 @@ export async function coordinatorRecipients(
         WHERE ca.tenant_id = $1 AND ca.class_id = ANY($2::uuid[])
           AND (ca.subject_id IS NULL OR s.id IS NOT NULL)
           AND EXISTS (SELECT 1 FROM user_tenants ut
-                       WHERE ut.user_id = t.user_id AND ut.tenant_id = $1 AND ut.deleted_at IS NULL)
+                       WHERE ut.user_id = t.user_id AND ut.tenant_id = $1
+                         AND ut.role = 'TEACHER' AND ut.deleted_at IS NULL)
         ORDER BY t.user_id, ca.class_id, ca.subject_id`,
       [tenantId, classIds],
     );
