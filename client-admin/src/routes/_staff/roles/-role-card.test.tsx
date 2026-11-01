@@ -29,8 +29,8 @@ describe('RoleCard', () => {
       ),
     ).toBeTruthy();
     expect(screen.getByText('Whole school')).toBeTruthy();
-    expect(ROLE_PERMISSIONS[UserRole.COMMITTEE]).toHaveLength(5);
-    expect(screen.getByText('5 permissions')).toBeTruthy();
+    expect(ROLE_PERMISSIONS[UserRole.COMMITTEE]).toHaveLength(6);
+    expect(screen.getByText('6 permissions')).toBeTruthy();
   });
 
   it("lists all of COMMITTEE's permissions in collapsible groups", async () => {
@@ -40,7 +40,7 @@ describe('RoleCard', () => {
     const groups = document.querySelectorAll('details');
     expect(groups.length).toBeGreaterThan(0);
     const items = document.querySelectorAll('details li');
-    expect(items).toHaveLength(5);
+    expect(items).toHaveLength(6);
     for (const group of groups) expect(group.open).toBe(false);
   });
 
