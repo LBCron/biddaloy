@@ -81,6 +81,13 @@ describe('final-result-rules', () => {
       expect([...s.values()]).toEqual([50, 50]);
     });
 
+    it('adds shares exactly in hundredths: 33.33 + 33.33 + 33.34 is 100, 3 x 33.33 is not', () => {
+      const ok = settings({ weights: [w('a', 33.33), w('b', 33.33), w('c', 33.34)] });
+      expect(effectiveShares(ok, MATH, ['a', 'b', 'c']).get('c')).toBeCloseTo(33.34, 10);
+      const short = settings({ weights: [w('a', 33.33), w('b', 33.33), w('c', 33.33)] });
+      expect(() => effectiveShares(short, MATH, ['a', 'b', 'c'])).toThrow(SharesNotHundred);
+    });
+
     it('throws SharesNotHundred when the configured rows do not sum to 100', () => {
       const run = () =>
         effectiveShares(settings({ weights: [w('a', 40), w('b', 50)] }), MATH, ['a', 'b']);
@@ -182,9 +189,54 @@ describe('final-result-rules', () => {
       ).toBe(false);
     });
 
-    it('treats a zero-mark paper as 0%, not NaN', () => {
+    it('drops an all-EXEMPT paper (full 0) and renormalises, like D22', () => {
+      // Exempt is not absent: counting it as 0 would halve this student's 80.
       const c = combineSubject([mark('a', 0, { full_marks: 0 }), mark('b', 80)], settings());
+      expect(c.obtained).toBe(80);
+    });
+
+    it('grades a subject exempt in every exam as nothing to grade', () => {
+      const c = combineSubject(
+        [mark('a', 0, { full_marks: 0 }), mark('b', 0, { full_marks: 0 })],
+        settings(),
+      );
+      // full_marks 0 -> gradeSubjectTotal gives '-', never a fail.
+      expect(c).toMatchObject({ obtained: 0, full_marks: 0, percent: 0, is_absent: false });
+    });
+
+    it('still counts absent as 0 when the absent paper carries full 0 (D2)', () => {
+      const c = combineSubject([mark('a', null, { full_marks: 0 }), mark('b', 80)], settings());
       expect(c.obtained).toBe(40);
+    });
+
+    it('treats best_of_count 0 as best 1, never a divide by zero', () => {
+      const c = combineSubject(
+        [mark('a', 90), mark('b', 60)],
+        settings({ mode: FinalResultMode.BEST_OF, best_of_count: 0 }),
+      );
+      expect(c.obtained).toBe(90);
+    });
+
+    it('grades from the rounded mark, not the unrounded percent', () => {
+      // 79.1% of a 50-mark subject = 39.55.
+      const one = [mark('a', 39.55, { full_marks: 50 })];
+      const whole = combineSubject(one, settings({ rounding: FinalResultRounding.WHOLE }));
+      // The card prints 40 / 50, so the grade must come from 80%, not 79.1%.
+      expect(whole.obtained).toBe(40);
+      expect(whole.percent).toBe(80);
+      const two = combineSubject(one, settings());
+      expect(two.obtained).toBe(39.55);
+      expect(two.percent).toBeCloseTo(79.1, 10);
+    });
+
+    it('takes shares as the numeric column strings', () => {
+      // TypeORM returns numeric(5,2) as a string; '30.00' + '70.00' must not concatenate.
+      const weights = [
+        { exam_id: 'a', subject_id: null, share_percent: '30.00' },
+        { exam_id: 'b', subject_id: null, share_percent: '70.00' },
+      ];
+      const c = combineSubject([mark('a', 60), mark('b', 90)], settings({ weights }));
+      expect(c.obtained).toBe(81);
     });
 
     it('propagates SharesNotHundred', () => {

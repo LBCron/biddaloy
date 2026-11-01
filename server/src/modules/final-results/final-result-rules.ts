@@ -1,4 +1,5 @@
 import { FinalResultMode, FinalResultRounding } from '@biddaloy/shared';
+import { toPaisa } from '../../common/constants/money';
 import { roundHalfUp2, type SubjectTotal } from '../exams/result-rules';
 
 /**
@@ -22,7 +23,8 @@ export interface FinalWeight {
   exam_id: string;
   /** null = the share applies to the whole exam; set = override for that subject only */
   subject_id: string | null;
-  share_percent: number;
+  /** 0-100, 2 decimals. A string when it comes straight off the `numeric(5,2)` column. */
+  share_percent: number | string;
 }
 
 export interface FinalSettings {
@@ -36,8 +38,10 @@ export interface FinalSettings {
 export interface ExamSubjectMark {
   exam_id: string;
   subject_id: string;
-  /** null = absent */
+  /** null = absent: counts as 0 for its share (D2), whatever `full_marks` says. */
   obtained: number | null;
+  /** 0 with `obtained` set = every component EXEMPT: the exam did not have the
+   * subject for this student, so it drops out like D22. */
   full_marks: number;
   is_fail: boolean;
 }
@@ -47,7 +51,8 @@ export interface CombinedSubject {
   full_marks: number;
   /** True when the fail-if-any-exam-fails switch is on and any exam failed this subject. */
   is_fail_from_exam: boolean;
-  /** 0-100, unrounded. */
+  /** 0-100, from the rounded `obtained` (as `computeSubjectTotal` does), so the grade
+   * matches the mark the card prints. */
   percent: number;
   is_absent: boolean;
 }
@@ -62,8 +67,6 @@ export class SharesNotHundred extends Error {
     this.name = 'SharesNotHundred';
   }
 }
-
-const SUM_TOLERANCE = 0.005;
 
 /**
  * Share (summing to 100) of each exam that contains the subject.
@@ -88,17 +91,19 @@ export function effectiveShares(
     return shares;
   }
 
-  const configured = rows.reduce((sum, r) => sum + r.share_percent, 0);
-  if (Math.abs(configured - 100) > SUM_TOLERANCE) throw new SharesNotHundred(subjectId, configured);
+  // Shares are numeric(5,2): add them in whole hundredths, exactly, never with a
+  // float tolerance (Rule 26's toPaisa). Number() also takes the column's string.
+  const configured = rows.reduce((sum, r) => sum + toPaisa(r.share_percent), 0);
+  if (configured !== 10_000) throw new SharesNotHundred(subjectId, configured / 100);
 
   const kept = rows.filter((r) => examIdsWithSubject.includes(r.exam_id));
-  const keptSum = kept.reduce((sum, r) => sum + r.share_percent, 0);
+  const keptSum = kept.reduce((sum, r) => sum + toPaisa(r.share_percent), 0);
   if (keptSum === 0) {
     // The subject sits in no weighted exam: fall back to equal rather than divide by zero.
     for (const id of examIdsWithSubject) shares.set(id, 100 / examIdsWithSubject.length);
     return shares;
   }
-  for (const r of kept) shares.set(r.exam_id, (r.share_percent / keptSum) * 100);
+  for (const r of kept) shares.set(r.exam_id, (toPaisa(r.share_percent) / keptSum) * 100);
   return shares;
 }
 
@@ -108,24 +113,36 @@ const percentOf = (m: ExamSubjectMark): number =>
 
 /** One subject's marks across exams -> one combined subject. `marks` is for a single subject. */
 export function combineSubject(marks: ExamSubjectMark[], settings: FinalSettings): CombinedSubject {
-  const percents = marks.map(percentOf);
+  const is_fail_from_exam = settings.fail_if_any_exam_fails && marks.some((m) => m.is_fail);
+  // An all-EXEMPT paper (full 0, not absent) leaves the subject, as `computeSubjectTotal`
+  // drops EXEMPT: the other exams renormalise (D22). Absent stays and counts 0 (D2).
+  const counted = marks.filter((m) => m.obtained === null || m.full_marks > 0);
+  if (counted.length === 0) {
+    // Nothing to grade: full_marks 0 is graded '-' by `gradeSubjectTotal`.
+    return { obtained: 0, full_marks: 0, percent: 0, is_absent: false, is_fail_from_exam };
+  }
+  const percents = counted.map(percentOf);
 
   let percent: number;
   if (settings.mode === FinalResultMode.BEST_OF) {
     // Best N by percentage, equal mean (D23). N missing or too big = use all.
-    const n = Math.min(settings.best_of_count ?? marks.length, marks.length);
+    // At least 1 (the DB CHECK says so too), so the mean never divides by zero.
+    const n = Math.max(1, Math.min(settings.best_of_count ?? counted.length, counted.length));
     const best = [...percents].sort((a, b) => b - a).slice(0, n);
     percent = best.reduce((s, p) => s + p, 0) / best.length;
   } else {
     const shares = effectiveShares(
       settings,
-      marks[0].subject_id,
-      marks.map((m) => m.exam_id),
+      counted[0].subject_id,
+      counted.map((m) => m.exam_id),
     );
-    percent = marks.reduce((s, m, i) => s + ((shares.get(m.exam_id) ?? 0) / 100) * percents[i], 0);
+    percent = counted.reduce(
+      (s, m, i) => s + ((shares.get(m.exam_id) ?? 0) / 100) * percents[i],
+      0,
+    );
   }
 
-  const full_marks = Math.max(...marks.map((m) => m.full_marks));
+  const full_marks = Math.max(...counted.map((m) => m.full_marks));
   const scaled = Math.min((percent / 100) * full_marks, full_marks);
   const obtained =
     settings.rounding === FinalResultRounding.WHOLE
@@ -135,9 +152,10 @@ export function combineSubject(marks: ExamSubjectMark[], settings: FinalSettings
   return {
     obtained,
     full_marks,
-    percent,
-    is_absent: marks.every((m) => m.obtained === null),
-    is_fail_from_exam: settings.fail_if_any_exam_fails && marks.some((m) => m.is_fail),
+    // From the rounded mark: 39.55 of 50 rounds to 40, so it grades as 80%, not 79.1%.
+    percent: full_marks > 0 ? (obtained / full_marks) * 100 : 0,
+    is_absent: counted.every((m) => m.obtained === null),
+    is_fail_from_exam,
   };
 }
 
