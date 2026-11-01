@@ -221,6 +221,22 @@ flowchart LR
 - **Why.** A forwarded link used to work forever (D9). Links that existed before the change got 30 days from the deploy (D22).
 - **Example.** `POST /api/v1/invoices/:id/share/regenerate` → new link 200, old link 404.
 - **Test.** `public-invoice.e2e-spec.ts`, `test/invoice-share-expiry-migration.integration.spec.ts`.
+- **Exception: notice links (Epic 53, D12).** A notice's public link and each recipient's personal link do **not** expire after 30 days. They live as long as the notice. Why this is safe:
+  - the content is published on purpose, for anyone with the link;
+  - the page carries no PII: no author, no recipient names or phones;
+  - withdraw and the notice's own `expires_on` kill every link at once; "turn off the public link" kills the public link only;
+  - only the sha256 of a token is stored, and `GET` never writes (a scanner cannot fake a read). The page's `POST /opened` sets `link_opened_at` and `seen_at` once, for a personal token only.
+- **Example (notices).** `POST /api/v1/notices/:id/withdraw` → `GET /api/v1/public/notices/<token>` is `404 "Notice link not found or no longer active"`, the same body as for a token that never existed.
+- **Test (notices).** `notice-links.service.integration.spec.ts`, `public-notice.controller.e2e-spec.ts`. The invoice tests above stay as they are.
+
+```mermaid
+flowchart LR
+  A["GET /public/notices/:token"] --> B{"sha256(token) matches a notice or a recipient?"}
+  B -- no --> X[404, one sentence]
+  B -- yes --> C{"PUBLISHED, not withdrawn, school ACTIVE, expires_on not past?"}
+  C -- no --> X
+  C -- yes --> D[200: title, body, files. No author, no recipients]
+```
 
 ### Rule 17: A shared person's new contact waits for their approval
 
@@ -264,6 +280,7 @@ flowchart LR
 - **Why.** A public form is the cheapest target for automated abuse (75.16, #2324).
 - **Example.** `POST /api/v1/public/admission/:slug/applicants` without `captcha_token` → `400`.
 - **Test.** `public-admission.controller.e2e-spec.ts`, `registration.controller.e2e-spec.ts`.
+- **Known exception (notices, D22).** `POST /api/v1/public/notices/:token/opened` has no Turnstile: it is a page beacon with no form. It needs a 256-bit token, creates no row, sets `link_opened_at` and `seen_at` once (`WHERE ... IS NULL`), writes nothing for a public token, and is throttled. Test: `notice-links.service.integration.spec.ts`.
 
 ### Rule 23: Errors never echo what was sent
 
