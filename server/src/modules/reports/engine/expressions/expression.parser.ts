@@ -203,7 +203,7 @@ export function parseExpression(source: string): Expr {
     for (;;) {
       const tok = peek();
       const key = tok.t === 'op' || tok.t === 'word' ? (tok as { value: string }).value : '';
-      const infix = INFIX[key];
+      const infix = Object.hasOwn(INFIX, key) ? INFIX[key] : undefined;
       if (!infix || infix.bp <= minBp) break;
       next();
       // Left-associative: the right side must bind tighter than this operator.

@@ -37,7 +37,6 @@ lastVerified: 2026-10-31
 knownIssues:
   - { id: viewers-cannot-change-choices, checked: 2026-10-31, issue: null }
   - { id: teacher-student-count-card, checked: 2026-10-31, issue: null }
-  - { id: keep-as-report-roles, checked: 2026-10-31, issue: null }
 -->
 
 # All reports
@@ -287,7 +286,6 @@ Verified on version 0.1.0 on 2026-10-31. This section is removed once the fixes 
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------- |
 | Only the admin can change a report's answers. If a question has no answer, **Answer the questions above first, then show the report.** appears for others, though they have no question fields at all | Everyone except the admin, when opening a ready report | A report only views; nothing changes | Ask the admin to change the choices and show the result, or to keep another report for other choices |
 | A teacher sees the [**Student count (BANBEIS)**](student-count.md) card in **All reports**, but when it opens no count loads ([details](student-count.md#known-issues))                               | Teachers, every time                                   | A report only views; nothing changes | Nothing to do. An admin or an academic coordinator can see the count                                 |
-| The **Who can see it** list in **Keep this as a report** includes Office staff and Exam controller, but these roles do not get permission to see reports, so ticking them changes nothing             | The admin, when keeping a report                       | Yes, the report is kept correctly    | No need to tick them                                                                                 |
 
 ---
 

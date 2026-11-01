@@ -23,7 +23,6 @@ owner: tareq89
 lastVerified: 2026-10-31
 knownIssues:
   - { id: teacher-count-does-not-load, checked: 2026-10-31, issue: null }
-  - { id: no-year-change-missing, checked: 2026-10-31, issue: null }
 -->
 
 # Student count (BANBEIS)
@@ -182,7 +181,6 @@ Verified on version 0.1.0 on 2026-10-31. This section is removed once the fixes 
 | Issue                                                                                                                                                                                             | Who and when                               | Data saved?                          | What to do for now                                                                              |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------ | ----------------------------------------------------------------------------------------------- |
 | **Student count (BANBEIS)** is in a teacher's menu and in [All reports](hub.md), but opening it shows **Could not load the student count.**, because a teacher does not get the school-wide count | Teachers, every time                       | A report only views; nothing changes | Ask an admin or an academic coordinator to read the count                                       |
-| When the school has no current academic year, **No academic year chosen yet** tells you to press "Change", but **Change** does not show then                                                      | Everyone, when no academic year is current | A report only views; nothing changes | Make one year current on the [Academic years](../academics/academic-years.md) page, then reload |
 
 ---
 

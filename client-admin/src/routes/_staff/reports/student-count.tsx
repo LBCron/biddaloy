@@ -232,12 +232,14 @@ function StudentCountPage() {
 
           <PrintHeader yearName={yearName} />
 
-          {yearName !== null && (
+          {(yearName !== null || yearOptions.length > 0) && (
             <p className="flex flex-wrap items-center gap-1 print:hidden">
-              <span className="font-medium">{t('studentCount.year', { year: yearName })}</span>
-              {yearOptions.length > 1 && (
+              {yearName !== null && (
+                <span className="font-medium">{t('studentCount.year', { year: yearName })}</span>
+              )}
+              {(yearName === null ? yearOptions.length > 0 : yearOptions.length > 1) && (
                 <>
-                  <span aria-hidden="true">·</span>
+                  {yearName !== null && <span aria-hidden="true">·</span>}
                   <Menu>
                     <MenuTrigger asChild>
                       <Button

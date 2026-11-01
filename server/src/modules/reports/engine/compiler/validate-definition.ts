@@ -1,4 +1,5 @@
 import {
+  AggregateFn,
   FilterOp,
   REPORT_DEFINITION_SCHEMA_VERSION,
   ReportFieldType,
@@ -193,6 +194,14 @@ export function validateDefinition(
     const calculated = registered
       ? undefined
       : area.fields.find((f) => f.key === m.field && f.calculated);
+    if (calculated) {
+      const numeric = NUMERIC.has(calculated.type);
+      const unusable =
+        ((m.fn === AggregateFn.SUM || m.fn === AggregateFn.AVG) && !numeric) ||
+        ((m.fn === AggregateFn.MIN || m.fn === AggregateFn.MAX) &&
+          calculated.type === ReportFieldType.BOOLEAN);
+      if (unusable) throw new ReportCompileError('BAD_OP', `dataset.measures[${i}]`);
+    }
     const measure: MeasureDef | undefined =
       registered ??
       (calculated
@@ -204,7 +213,10 @@ export function validateDefinition(
             sql: calculated.sql,
             entity: calculated.entity,
             entities: calculated.entities,
-            type: calculated.type,
+            type:
+              m.fn === AggregateFn.COUNT || m.fn === AggregateFn.COUNT_DISTINCT
+                ? ReportFieldType.NUMBER
+                : calculated.type,
             sensitivity: calculated.sensitivity,
           }
         : undefined);

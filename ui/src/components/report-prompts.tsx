@@ -446,6 +446,7 @@ export function ReportPrompts({
                 set(parameter, { from: date ? toIsoDate(date) : '', to: range.to })
               }
               clearable={false}
+              max={safeDate(range.to)}
               placeholder={t('prompts.from')}
               className="w-full"
             />

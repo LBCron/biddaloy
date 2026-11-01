@@ -23,7 +23,6 @@ owner: tareq89
 lastVerified: 2026-10-31
 knownIssues:
   - { id: teacher-count-does-not-load, checked: 2026-10-31, issue: null }
-  - { id: no-year-change-missing, checked: 2026-10-31, issue: null }
 -->
 
 # ছাত্রসংখ্যা (BANBEIS)

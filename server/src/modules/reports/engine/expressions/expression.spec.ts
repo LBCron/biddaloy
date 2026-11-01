@@ -107,6 +107,8 @@ describe('calculated fields: parsing', () => {
     '#',
     '1 ; 2',
     '[a] ]',
+    '1 constructor 2',
+    '1 __proto__ 2',
   ])('rejects %j as a syntax error', (source) => {
     expect(() => parseExpression(source)).toThrow(expect.objectContaining({ code: 'EXPR_SYNTAX' }));
   });
@@ -184,6 +186,8 @@ describe('calculated fields: compiling', () => {
     it('unknown names and wrong argument counts', () => {
       fails('[nothing]', 'EXPR_UNKNOWN_FIELD');
       fails('lower([name])', 'EXPR_UNKNOWN_FUNCTION');
+      fails('constructor(1, 2)', 'EXPR_UNKNOWN_FUNCTION');
+      fails('__proto__(1, 2)', 'EXPR_UNKNOWN_FUNCTION');
       fails('if(true, 1)', 'EXPR_ARITY');
       fails('pct(1)', 'EXPR_ARITY');
     });

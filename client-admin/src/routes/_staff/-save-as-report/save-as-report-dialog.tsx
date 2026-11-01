@@ -27,7 +27,7 @@
  * Everything the list cannot carry over is shown first, in plain words, never dropped silently
  * (`list-to-definition.ts`).
  */
-import { UserRole } from '@biddaloy/shared';
+import { Permission, roleHasPermission, UserRole } from '@biddaloy/shared';
 import { ApiError, apiClient } from '@biddaloy/ui/api';
 import {
   Button,
@@ -60,15 +60,17 @@ import {
 } from './list-to-definition';
 
 /** The roles a report can be shown to (`REPORT_VISIBLE_ROLES` on the server). */
-const VISIBLE_ROLES = [
-  UserRole.ADMIN,
-  UserRole.ACCOUNTANT,
-  UserRole.EXECUTIVE,
-  UserRole.TEACHER,
-  UserRole.COMMITTEE,
-  UserRole.OFFICE_STAFF,
-  UserRole.EXAM_CONTROLLER,
-] as const;
+const VISIBLE_ROLES = (
+  [
+    UserRole.ADMIN,
+    UserRole.ACCOUNTANT,
+    UserRole.EXECUTIVE,
+    UserRole.TEACHER,
+    UserRole.COMMITTEE,
+    UserRole.OFFICE_STAFF,
+    UserRole.EXAM_CONTROLLER,
+  ] as const
+).filter((role) => roleHasPermission(role, Permission.REPORTS_VIEW));
 
 export interface SaveAsReportDialogProps {
   open: boolean;

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsOptional } from 'class-validator';
+import { IsDateString, IsOptional, Matches } from 'class-validator';
 
 export class StatementQueryDto {
   @ApiPropertyOptional({
@@ -8,6 +8,7 @@ export class StatementQueryDto {
   })
   @IsOptional()
   @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
   from?: string;
 
   @ApiPropertyOptional({
@@ -16,6 +17,7 @@ export class StatementQueryDto {
   })
   @IsOptional()
   @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
   to?: string;
 }
 

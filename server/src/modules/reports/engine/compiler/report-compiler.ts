@@ -8,6 +8,7 @@ import type { ValueType } from '../expressions/expression.functions';
 import { ReportRegistry } from '../registry/registry';
 import type { FieldDef, SubjectAreaDef } from '../registry/registry.types';
 import {
+  COMMITTEE_EXTRA_FIELDS,
   type ReportRunContext,
   RoleScopePolicy,
   type ScopeClause,
@@ -72,7 +73,11 @@ export function withCalculated(
   const added: FieldDef[] = [];
   calculated.forEach((calc, i) => {
     const path = `calculated[${i}]`;
-    if (!/^[a-z][a-z0-9_]*$/.test(calc.key) || taken.has(calc.key)) {
+    if (
+      !/^[a-z][a-z0-9_]*$/.test(calc.key) ||
+      taken.has(calc.key) ||
+      COMMITTEE_EXTRA_FIELDS.has(calc.key)
+    ) {
       throw new ReportCompileError('BAD_CALCULATION', path);
     }
     try {

@@ -118,7 +118,7 @@ export function compileExpression(
   }
 
   function call(e: Extract<Expr, { kind: 'call' }>): Typed {
-    const fn = FUNCTIONS[e.name];
+    const fn = Object.hasOwn(FUNCTIONS, e.name) ? FUNCTIONS[e.name] : undefined;
     if (!fn) throw new ExpressionError('EXPR_UNKNOWN_FUNCTION', e.pos);
     if (e.args.length < fn.min || e.args.length > fn.max)
       throw new ExpressionError('EXPR_ARITY', e.pos);

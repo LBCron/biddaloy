@@ -27,7 +27,7 @@ export class ReportAccessDeniedError extends ForbiddenException {
 }
 
 /** The only fields a COMMITTEE member may see besides PUBLIC ones (D14: counts, never people). */
-const COMMITTEE_EXTRA_FIELDS = new Set(['religion']);
+export const COMMITTEE_EXTRA_FIELDS: ReadonlySet<string> = new Set(['religion']);
 
 /**
  * [8.15.19] Decides what the person RUNNING a report may see (D5), whatever the author could.
