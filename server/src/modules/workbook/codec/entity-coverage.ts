@@ -13,9 +13,6 @@ import { AttendanceDeviceEvent } from '../../attendance/entities/attendance-devi
 import { Alert } from '../../attention/entities/alert.entity';
 import { PlatformAlert } from '../../health/platform-alerts/platform-alert.entity';
 import { AlertRecipient } from '../../attention/entities/alert-recipient.entity';
-import { Notice } from '../../notices/entities/notice.entity';
-import { NoticeAttachment } from '../../notices/entities/notice-attachment.entity';
-import { NoticeRecipient } from '../../notices/entities/notice-recipient.entity';
 import { AuditLog } from '../../audit/entities/audit-log.entity';
 import { UserTenant } from '../../auth/entities/user-tenant.entity';
 import { UserIdentity } from '../../auth/entities/user-identity.entity';
@@ -62,10 +59,6 @@ export const ENTITY_COVERAGE_EXEMPT: ReadonlyMap<EntityTarget<unknown>, string> 
   EntityTarget<unknown>,
   string
 >([
-  // ponytail: pending exemptions; remove each entry when the notices workbook tab ships (53.6.02).
-  [Notice, 'Workbook tab lands in 53.6.02 (Epic 53 #1727).'],
-  [NoticeAttachment, 'Workbook tab lands in 53.6.02 (Epic 53 #1727).'],
-  [NoticeRecipient, 'Workbook tab lands in 53.6.02 (Epic 53 #1727).'],
   // --- Platform-scoped / regenerable technical state ---
   [
     Alert,
