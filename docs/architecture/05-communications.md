@@ -517,3 +517,52 @@ Dated learning (2026-10-28):
 - **Surprise:** a two-level host like `inbox.demo.<domain>` is outside Cloudflare's free Universal certificate, which covers one level only. Cost: the planned names would have failed TLS. Fix: single-level `inbox-demo.` and `inbox-staging.`. Rule candidate: new public hostnames are one label under the apex.
 - **Surprise:** a shared nginx `map` lived in `ops.conf.template`, which the edge deletes when ops is off; the new inbox block then stopped nginx booting. Fix: the inbox template owns its own map. Rule candidate: a template never uses a variable defined in an optional template.
 - **Surprise:** vitest does not type-check, so a stray `, null` argument passed 23 tests and failed `yarn lint`. Rule candidate: run `tsc` on the touched package before committing.
+
+## Notice board (Epic 53)
+
+A notice is a message pinned on the school board. People read it in the app. It is different from a manual alert (a one-off bar for a chosen audience, no read list) and from SMS (a paid text sent per person). A notice keeps a read list: `notice_recipients.seen_at` tells who has read it. SMS is optional and waits for admin approval.
+
+```mermaid
+erDiagram
+  schools ||--o{ notices : "tenant_id (CASCADE)"
+  notices ||--o{ notice_attachments : "notice_id (RESTRICT)"
+  notices ||--o{ notice_recipients : "notice_id (RESTRICT)"
+  users ||--o{ notices : "author_user_id (RESTRICT)"
+  users ||--o{ notice_recipients : "user_id, STAFF"
+  students ||--o{ notice_recipients : "student_id"
+  guardians ||--o{ notice_recipients : "guardian_id"
+  communication_logs ||--o{ notice_recipients : "communication_log_id (SET NULL)"
+  notices {
+    uuid id
+    varchar title
+    text body
+    varchar status "DRAFT PUBLISHED WITHDRAWN"
+    boolean important
+    boolean pinned
+    boolean is_public
+    date expires_on
+    varchar sms_status "NONE PENDING APPROVED DECLINED"
+    int recipient_count
+  }
+  notice_attachments {
+    uuid id
+    varchar storage_key
+    varchar mime_type "pdf png jpeg webp"
+    int size_bytes "max 5 MB"
+  }
+  notice_recipients {
+    uuid id
+    varchar kind "STAFF STUDENT GUARDIAN"
+    timestamptz seen_at
+    timestamptz acknowledged_at
+    boolean sms_wanted
+  }
+```
+
+Example: a published notice "Eid holiday" with 2 staff and 1 guardian has 3 `notice_recipients` rows. When a teacher opens it, her row gets `seen_at`.
+
+Every table has `tenant_id`. Only SHA-256 hashes of public and link tokens are stored. Source: `server/src/migrations/1791900001200-Notices.ts`.
+
+### Notice board: Wave 1 learning (2026-11-01)
+
+See the dated bullets in [27-qa-audit-lessons.md](27-qa-audit-lessons.md) (Docker hang, stale lock), [22-demo-seed.md](22-demo-seed.md) (coverage guard) and [36-domain-invariants.md](36-domain-invariants.md) (reset order, delete guard).

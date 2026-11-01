@@ -288,3 +288,8 @@ Wave 0 (#2979): five security fixes found while writing the user guide.
 - 2026-10-28 — #3022 was decided under the recommended mode: a same-day in-place slot edit is refused while substitutions or open change requests reference the slot; past-dated substitutions cannot be deleted.
 - 2026-10-28 — #3043: switching four routes from `z.looseObject` to `z.object` broke the types of two unrelated routes that had relied on the index signature (`login.tsx`, `trial-details-landing.tsx`).
 - 2026-10-28 — #3082: the flake was cold vite-node transforms counted inside the first `findBy*`; the timeout is 15 s now. Warming route imports once per worker would be the real fix.
+
+Dated learning (2026-11-01, Epic 53 Wave 1):
+
+- **Surprise:** the Docker daemon hung for about 1.5 hours; `docker ps` never returned and DB tests were blocked. Cost: time lost guessing at test failures. Fix: diagnose first, for example check the backend process start time, before concluding anything. Rule candidate: a hung `docker ps` is an environment fault, not a test result.
+- **Surprise:** a stale worktree `index.lock` blocked a commit. Fix: confirm no version-control process is running, then remove the lock file. Rule candidate: never delete `index.lock` before that check.
