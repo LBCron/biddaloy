@@ -172,7 +172,8 @@ export function TeachingAssignmentsTab({ teacherId }: TeachingAssignmentsTabProp
 
 /**
  * [83.3.3] D30: the classes this teacher coordinates, with assign and remove. Rendered for
- * CLASS_MANAGE only (`GET /coordinators` needs it).
+ * CLASS_MANAGE only (`GET /coordinators` needs it). `check:i18n` resolves a file's namespace from
+ * its first `useTranslation`, so this second component names its `ns` on every `t()` call.
  */
 function TeacherCoordinationBlock({ teacherId }: { teacherId: string }) {
   const { t } = useTranslation('teacherAssignments');
@@ -182,18 +183,20 @@ function TeacherCoordinationBlock({ teacherId }: { teacherId: string }) {
   return (
     <section className="mt-6 overflow-hidden rounded-lg border border-border-subtle bg-surface shadow-e1">
       <div className="flex flex-wrap items-center justify-between gap-2 p-4 md:px-5">
-        <h2 className="text-h2">{t('coordinators.blockTitle')}</h2>
+        <h2 className="text-h2">{t('coordinators.blockTitle', { ns: 'teacherAssignments' })}</h2>
         <Button type="button" variant="outline" onClick={() => setAssignOpen(true)}>
           <UserPlusIcon aria-hidden="true" />
-          {t('coordinators.assign')}
+          {t('coordinators.assign', { ns: 'teacherAssignments' })}
         </Button>
       </div>
       {!query.isError && query.isSuccess && query.data.length === 0 ? (
-        <p className="px-4 pb-4 text-text-secondary md:px-5">{t('coordinators.blockEmpty')}</p>
+        <p className="px-4 pb-4 text-text-secondary md:px-5">
+          {t('coordinators.blockEmpty', { ns: 'teacherAssignments' })}
+        </p>
       ) : (
         <CoordinatorsTable
           tableId={`teacher-coordination-${teacherId}`}
-          caption={t('coordinators.blockTitle')}
+          caption={t('coordinators.blockTitle', { ns: 'teacherAssignments' })}
           rows={query.data}
           loading={query.isLoading}
           fetching={query.isFetching}
@@ -202,8 +205,8 @@ function TeacherCoordinationBlock({ teacherId }: { teacherId: string }) {
           hideTeacher
           onRemove={setRemoving}
           emptyState={{
-            title: t('coordinators.blockEmpty'),
-            explanation: t('coordinators.emptyMessage'),
+            title: t('coordinators.blockEmpty', { ns: 'teacherAssignments' }),
+            explanation: t('coordinators.emptyMessage', { ns: 'teacherAssignments' }),
           }}
         />
       )}
