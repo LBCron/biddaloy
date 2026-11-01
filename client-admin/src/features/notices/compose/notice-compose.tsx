@@ -31,7 +31,7 @@ import * as React from 'react';
 import {
   INITIAL_FILTERS,
   audienceQuery,
-  needsClass,
+  isAudiencePending,
   pendingHint,
   personRow,
   recipientRow,
@@ -134,11 +134,11 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
   const saveNotice = useSaveNotice();
   const upload = useUploadNoticeFiles();
   const removeFile = useRemoveNoticeFile();
-  // Guardians and students wait for a class: without one the server answers 400.
-  const waitingForClass = needsClass(tab, filters);
+  // The audience waits for what the server needs (a class, an exam...): without it the server answers 400.
+  const audiencePending = isAudiencePending(tab, filters);
   const people = useAudiencePeople(
     audienceQuery(tab, filters, matchPage, RECIPIENTS_PAGE),
-    step === 'audience' && id !== undefined && !waitingForClass,
+    step === 'audience' && id !== undefined && !audiencePending,
   );
   const recipients = useRecipients(id, chosenPage);
   const allRecipients = useAllRecipients(id, step === 'review');
@@ -456,7 +456,7 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
         ) : (
           <div className="flex flex-col gap-3">
             <p className="text-text-secondary">{t('audience.intro')}</p>
-            {waitingForClass && <p role="status">{t(`audience.${pendingHint(tab, filters)}`)}</p>}
+            {audiencePending && <p role="status">{t(`audience.${pendingHint(tab, filters)}`)}</p>}
             <AudienceBuilder<AudienceRow>
               tabs={tabs}
               activeTab={tab}
@@ -469,8 +469,8 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
                 setMatchPage(1);
               }}
               matches={{
-                rows: waitingForClass ? [] : (people.data?.items ?? []).map(personRow),
-                total: waitingForClass ? 0 : (people.data?.total ?? 0),
+                rows: audiencePending ? [] : (people.data?.items ?? []).map(personRow),
+                total: audiencePending ? 0 : (people.data?.total ?? 0),
                 page: matchPage,
                 pageSize: RECIPIENTS_PAGE,
                 loading: people.isFetching,
