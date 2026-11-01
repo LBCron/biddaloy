@@ -79,7 +79,7 @@ unset. None are required to boot the app.
 | SMTP (any provider)          | operator-supplied host | Email, via `nodemailer`              | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`              |
 | Sentry                       | `*.ingest.sentry.io`   | Frontend error tracking + Web Vitals | `SENTRY_DSN_WEB`, served at runtime (see [`07-deployment.md`](07-deployment.md)) |
 
-`SMS_PROVIDER` selects `greenweb` or `mimsms`. All calls go through `undici`
+`SMS_PROVIDER` selects `greenweb`, `mimsms` or `onecodesoft`; each reads its own `<PREFIX>_<FIELD>` keys (e.g. `ONECODESOFT_API_KEY`). The old `PLATFORM_SMS_*` keys are deprecated. All calls go through `undici`
 directly — no vendor SDK is installed for any of these. See
 [`05-communications.md`](05-communications.md) for how the communications
 module dispatches to them.

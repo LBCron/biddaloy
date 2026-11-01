@@ -176,55 +176,60 @@ export interface AuthSettings {
   otpLoginEnabled: boolean;
 }
 
-export type SmsGatewayName = 'greenweb' | 'mimsms';
-
-export interface GreenwebSmsSettings {
-  apiKey: string | null; // → secret; null = explicitly cleared, see TenantSettingsDto
-  apiUrl?: string;
-}
-
-export interface MimSmsSettings {
-  apiKey: string | null; // → secret; null = explicitly cleared, see TenantSettingsDto
-  senderId: string;
-  apiUrl?: string;
-}
+/** D20: validity is a runtime check against the server registry / fetched schema. */
+export type MessagingProviderName = string;
+/** @deprecated use MessagingProviderName. */
+export type SmsGatewayName = MessagingProviderName;
 
 /** `sms.metering` — [15.6/#508 D5] OFF (default) is today's unmetered
  * behaviour; PLATFORM meters sends against `sms_credit_ledger`/
  * `sms_credit_balance` (#545/#546). Absent ⇒ OFF. */
 export type SmsMeteringMode = 'OFF' | 'PLATFORM';
 
-export interface SmsSettings {
-  provider: SmsGatewayName;
-  greenweb?: GreenwebSmsSettings;
-  mimsms?: MimSmsSettings;
+/** One provider's saved config. Secret fields are `null` when explicitly cleared. */
+export type ProviderConfigValues = Record<string, string | null | undefined>;
+
+/**
+ * D6: `communications.<medium> = { provider, <providerName>: {...}, metering? }`.
+ * Missing `provider` defaults to the medium's sole vendor. The deprecated flat
+ * keys (`accessToken`, `host`, …) are still read as-is until W2.01 removes them.
+ */
+export interface MediumSettings {
+  provider?: MessagingProviderName;
   metering?: SmsMeteringMode;
-}
-
-export interface WhatsAppSettings {
-  phoneNumberId: string;
+  /** @deprecated flat pre-D6 keys; read-only compat. */
+  phoneNumberId?: string;
+  /** @deprecated */
   apiVersion?: string;
-  accessToken: string | null; // → secret; null = explicitly cleared, see TenantSettingsDto
+  /** @deprecated */
+  accessToken?: string | null;
+  /** @deprecated */
+  host?: string;
+  /** @deprecated */
+  port?: number;
+  /** @deprecated */
+  user?: string;
+  /** @deprecated */
+  from?: string;
+  /** @deprecated */
+  password?: string | null;
+  /** @deprecated */
+  pageId?: string;
+  /** Per-provider blocks, keyed by provider name. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- index signature must admit the typed keys above; callers narrow to ProviderConfigValues (W2 removes the flat keys)
+  [providerName: string]: any;
 }
 
-export interface EmailSettings {
-  host: string;
-  port: number;
-  user: string;
-  from: string;
-  password: string | null; // → secret; null = explicitly cleared, see TenantSettingsDto
-}
-
-export interface MessengerSettings {
-  pageId: string;
-  accessToken: string | null; // → secret; null = explicitly cleared, see TenantSettingsDto
-}
+export type SmsSettings = MediumSettings;
+export type WhatsAppSettings = MediumSettings;
+export type EmailSettings = MediumSettings;
+export type MessengerSettings = MediumSettings;
 
 export interface CommunicationsSettings {
-  sms?: SmsSettings;
-  whatsapp?: WhatsAppSettings;
-  email?: EmailSettings;
-  messenger?: MessengerSettings;
+  sms?: MediumSettings;
+  whatsapp?: MediumSettings;
+  email?: MediumSettings;
+  messenger?: MediumSettings;
 }
 
 export type BackupScheduleMode = 'OFF' | 'WEEKLY' | 'DAILY';

@@ -604,6 +604,114 @@ describe('reconcileStrandedSmsCredit (integration)', () => {
     expect(rep.rows).toHaveLength(0);
   });
 
+  // Review round 1 on #3347: a test-send claim row (#3326) left QUEUED by a crash or a failed final
+  // save is flagged for a human, and it no longer hides other batches' leftover credit.
+  it('flags a stranded QUEUED test-send claim and does not let it hide another BATCH_REMAINDER', async () => {
+    await credits.grant(A, 10, { idempotencyKey: `seed:${A}` });
+    const testBatch = '88888888-8888-4888-8888-888888888881';
+    const other = '88888888-8888-4888-8888-888888888882';
+    await credits.reserve(A, 1, `batch:${testBatch}`, { type: 'batch', id: testBatch });
+    await credits.reserve(A, 2, `batch:calendar:${other}`, { type: 'batch', id: other });
+    const claim = await addLog(A, {
+      status: CommunicationStatus.QUEUED,
+      trigger: CommunicationTrigger.MANUAL,
+      metadata: { test: true, batch_id: testBatch },
+    });
+    await dataSource.query(
+      `UPDATE sms_credit_ledger SET created_at = now() - interval '2 days' WHERE tenant_id = $1`,
+      [A],
+    );
+    await dataSource.query(
+      `UPDATE communication_logs SET created_at = now() - interval '47 hours' WHERE id = $1`,
+      [claim.id],
+    );
+    const before = await snapshot(A);
+
+    const [rep] = await reconcileStrandedSmsCredit(dataSource, credits, {
+      apply: true,
+      tenantId: A,
+    });
+
+    expect(rep.rows.map((r) => [r.reason, r.logId, r.units])).toEqual([
+      ['TEST_CLAIM_STRANDED', claim.id, 1],
+      ['BATCH_REMAINDER', null, 2],
+    ]);
+    expect(rep.rows.every((r) => r.action === 'MANUAL_REVIEW')).toBe(true);
+    // List only: nothing settles.
+    expect((await snapshot(A)).ledger).toEqual(before.ledger);
+  });
+
+  // Review round 2 on #3347: the REJECTED + save-failed path releases the reserve under
+  // `log:<batch id>:settle`. If its best-effort row delete also failed, the QUEUED claim is left
+  // behind, but no credit is held, so it must not be listed (a human could settle it twice).
+  it('does not list a stranded claim whose credit was already released under the batch key', async () => {
+    await credits.grant(A, 10, { idempotencyKey: `seed:${A}` });
+    const testBatch = '88888888-8888-4888-8888-888888888884';
+    await credits.reserve(A, 1, `batch:${testBatch}`, { type: 'batch', id: testBatch });
+    await credits.releaseForLog(A, testBatch, 1, testBatch);
+    const claim = await addLog(A, {
+      status: CommunicationStatus.QUEUED,
+      trigger: CommunicationTrigger.MANUAL,
+      metadata: { test: true, batch_id: testBatch },
+    });
+    await dataSource.query(
+      `UPDATE sms_credit_ledger SET created_at = now() - interval '2 days' WHERE tenant_id = $1`,
+      [A],
+    );
+    await dataSource.query(
+      `UPDATE communication_logs SET created_at = now() - interval '47 hours' WHERE id = $1`,
+      [claim.id],
+    );
+
+    const [rep] = await reconcileStrandedSmsCredit(dataSource, credits, {
+      apply: false,
+      tenantId: A,
+    });
+    expect(rep.rows).toHaveLength(0);
+  });
+
+  // The report shows what the ledger holds, not a recount of the message body.
+  it('reports the units the reserve holds for a stranded claim', async () => {
+    await credits.grant(A, 10, { idempotencyKey: `seed:${A}` });
+    const testBatch = '88888888-8888-4888-8888-888888888885';
+    // The body is one segment; the reserve holds 3 (a counting rule that changed later).
+    await credits.reserve(A, 3, `batch:${testBatch}`, { type: 'batch', id: testBatch });
+    const claim = await addLog(A, {
+      status: CommunicationStatus.QUEUED,
+      trigger: CommunicationTrigger.MANUAL,
+      metadata: { test: true, batch_id: testBatch },
+    });
+    await dataSource.query(
+      `UPDATE communication_logs SET created_at = now() - interval '2 hours' WHERE id = $1`,
+      [claim.id],
+    );
+
+    const [rep] = await reconcileStrandedSmsCredit(dataSource, credits, {
+      apply: false,
+      tenantId: A,
+    });
+    expect(rep.rows.map((r) => [r.reason, r.logId, r.units])).toEqual([
+      ['TEST_CLAIM_STRANDED', claim.id, 3],
+    ]);
+  });
+
+  it('a fresh test-send claim (still at the vendor) is not flagged', async () => {
+    await credits.grant(A, 10, { idempotencyKey: `seed:${A}` });
+    const testBatch = '88888888-8888-4888-8888-888888888883';
+    await credits.reserve(A, 1, `batch:${testBatch}`, { type: 'batch', id: testBatch });
+    await addLog(A, {
+      status: CommunicationStatus.QUEUED,
+      trigger: CommunicationTrigger.MANUAL,
+      metadata: { test: true, batch_id: testBatch },
+    });
+
+    const [rep] = await reconcileStrandedSmsCredit(dataSource, credits, {
+      apply: false,
+      tenantId: A,
+    });
+    expect(rep.rows).toHaveLength(0);
+  });
+
   it('does not double-list an ENQUEUE_FAILED reserve as BATCH_REMAINDER', async () => {
     await credits.grant(A, 10, { idempotencyKey: `seed:${A}` });
     await credits.reserve(A, 1, `batch:fee-notify:${G}:sms`, { type: 'batch', id: G });

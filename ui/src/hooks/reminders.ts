@@ -1,13 +1,21 @@
 import type {
   CommunicationMedium,
   CommunicationStatus,
+  CommunicationTrigger,
   ReminderBatchStatus,
 } from '@biddaloy/shared';
-import { keepPreviousData, queryOptions, useMutation, useQuery } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import { apiClient } from '../api/client';
 import type { components } from '../api/schema';
 
+import { communicationLogKeys } from './communications';
 import { useIdempotencyKey } from './idempotency-key';
 import { createEntityKeys } from './query-keys';
 import { shouldRetryQuery } from './retry';
@@ -168,6 +176,13 @@ export function useReminderBatches(filters: ReminderBatchListFilters = {}) {
 
 // [87.SD] Mirrors `QueryCommunicationLogsDto` (reminders.dto.ts).
 export interface CommunicationLogListFilters {
+  search?: string;
+  /** [#3343] One student's or guardian's messages (their detail pages' Messages link). */
+  student_id?: string;
+  guardian_id?: string;
+  trigger?: CommunicationTrigger;
+  sent_by?: string;
+  provider?: string;
   status?: CommunicationStatus;
   medium?: CommunicationMedium;
   from_date?: string;
@@ -196,6 +211,63 @@ export function communicationLogsQueryOptions(filters: CommunicationLogListFilte
 
 export function useCommunicationLogs(filters: CommunicationLogListFilters = {}) {
   return useQuery(communicationLogsQueryOptions(filters));
+}
+
+export type MessageLogFilterOptions = components['schemas']['MessageLogFilterOptionsDto'];
+
+/** [97.4.02] `GET /communications/logs/filter-options` — the Company and Sent-by choices, on the
+ * log's own permission (every role that opens the page can read it). */
+export function useMessageLogFilterOptions() {
+  return useQuery(
+    queryOptions({
+      queryKey: [...messageLogKeys.all, 'filter-options'] as const,
+      queryFn: async ({ signal }) => {
+        const res = await apiClient.get<MessageLogFilterOptions>(
+          '/communications/logs/filter-options',
+          { signal },
+        );
+        return res.data;
+      },
+      retry: shouldRetryQuery,
+      staleTime: 5 * 60_000,
+    }),
+  );
+}
+
+/**
+ * [97.4.02] `POST /communications/logs/{id}/check-status` — asks the sending company whether a
+ * SENT message arrived. One Idempotency-Key per message until a success (Rule 25), `retry: false`;
+ * the caller picks its own translated sentence from the status code, never the server's or the
+ * vendor's text. The fresh row replaces the one in every cached log page.
+ */
+export function useCheckMessageStatus() {
+  const queryClient = useQueryClient();
+  const { keyFor, rotate } = useIdempotencyKey();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiClient.post<ReminderBatchLog>(
+        `/communications/logs/${id}/check-status`,
+        undefined,
+        { headers: { 'Idempotency-Key': keyFor({ id }) } },
+      );
+      return res.data;
+    },
+    onSuccess: (row) => {
+      rotate();
+      queryClient.setQueriesData<PaginatedReminderBatchLogs>(
+        { queryKey: messageLogKeys.lists() },
+        (old) => old && { ...old, data: old.data.map((r) => (r.id === row.id ? row : r)) },
+      );
+      // A new status moves the row between status-filtered pages, and changes the student and
+      // guardian Communication tabs and the dashboard's Failed messages count.
+      void queryClient.invalidateQueries({ queryKey: messageLogKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: communicationLogKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard', 'widget', 'failed-messages'] });
+    },
+    // Asks, never writes anything to double: the page shows its own sentence for a 5xx.
+    meta: { handlesUnknownOutcome: true },
+    retry: false,
+  });
 }
 
 /** How often the batch detail page re-asks the server about a batch that

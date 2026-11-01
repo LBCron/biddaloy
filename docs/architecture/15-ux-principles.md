@@ -151,7 +151,8 @@ Finance
 Communications
   Send message [have] (+ to staff, role-wise [partial])             A E T
   Send an alert [67.0] — one-off bar alert to a chosen audience      A E
-  Fee reminders [have] · Reminder history [have]                    A Ac E
+  Fee reminders [have] · Reminder history [have]                    A Ac (+ office)
+  Message log [have] (97.0) — every message sent, Check status      A Ac (+ office)
   Notices [have]                                                    A E T
   Automatic notices [partial: absent ✓ · fine ✓ (38.0) · result/marks 19.0 · homework 22.0 · receipt 3.0]
 

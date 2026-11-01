@@ -16,6 +16,7 @@ import {
   UserRole,
 } from '@biddaloy/shared';
 import { createTestModule } from '@test/helpers/module.helper';
+import { localDate, localToday } from '../../common/time';
 import { enrollPlacedStudents } from '@test/helpers/enrollment.helper';
 import { ALL_ENTITIES } from '@test/all-entities';
 import { SEED_ADMIN_USER_ID, SEED_TENANT_ID } from '@test/constants';
@@ -51,10 +52,12 @@ describe('Arrival notice hooks (integration)', () => {
   let studentIds: string[];
   let guardianIds: string[];
 
-  const TODAY = () => new Date().toISOString().slice(0, 10);
-  const YESTERDAY = () => new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+  // The school below runs on UTC, so "today" is the UTC date: the spec and the app read one zone.
+  const SCHOOL_TZ = 'UTC';
+  const TODAY = () => localToday(SCHOOL_TZ);
   const shiftDays = (days: number) =>
-    new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+    localDate(new Date(Date.now() + days * 86_400_000), SCHOOL_TZ);
+  const YESTERDAY = () => shiftDays(-1);
 
   async function setSettings(arrival: object | undefined, extra: object = {}) {
     await dataSource.getRepository(School).update(
@@ -62,7 +65,7 @@ describe('Arrival notice hooks (integration)', () => {
       {
         settings: {
           version: 1,
-          region: { timezone: 'UTC' },
+          region: { timezone: SCHOOL_TZ },
           attendance: {
             weeklyOffDays: [],
             lateAfter: '08:15',
@@ -277,6 +280,7 @@ describe('Arrival notice hooks (integration)', () => {
       await devices.ingest(d, [punch(studentIds[0], '01:30:00')]);
       expect(spy).toHaveBeenCalledTimes(1);
       await waitLogs(1);
+      await spy.mock.results[0].value;
     });
 
     it('a batch of first punches calls the service once, grouped by date', async () => {
@@ -288,8 +292,10 @@ describe('Arrival notice hooks (integration)', () => {
       ]);
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy.mock.calls[0][0].students).toHaveLength(2);
-      // The send is fire-and-forget: wait for it, or its log lands in the next test (the CI
-      // flake, ported from epic/97's fix).
+      // The send is fire-and-forget: wait for it, or it lands in the next test (the CI flake).
+      // The rows can exist before the call has finished (credit reservation, queue.add), so
+      // also wait for the call itself.
+      await waitLogs(2);
       await spy.mock.results[0].value;
     });
 

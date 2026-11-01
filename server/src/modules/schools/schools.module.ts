@@ -118,8 +118,8 @@ export function encryptionServiceFactory(config: ConfigService): EncryptionServi
       useFactory: () => new TenantSettingsCache(TENANT_SETTINGS_CACHE_TTL_MS),
     },
   ],
-  // TenantSettingsCache is exported so #8.7.10's TenantProviderConfigResolver
-  // (in CommunicationsModule) can share the exact same cache instance
+  // TenantSettingsCache is exported so MessagingConfigResolver
+  // (in communications/config) can share the exact same cache instance
   // SchoolsService invalidates on write — a second, module-local instance
   // would never see that invalidation and could serve stale credentials
   // past a rotation.

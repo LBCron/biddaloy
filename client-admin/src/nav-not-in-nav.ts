@@ -117,8 +117,6 @@ export const NOT_IN_NAV: Record<string, string> = {
   '/_staff/promotions/new':
     'action reached from the promotions list or the palette, not its own nav item',
   '/_staff/communications/batches/$batchId': 'detail route reached from the batches list',
-  '/_staff/communications/message-log/':
-    '[87.SD] message log reached from the dashboard Failed messages / SMS balance widgets, not its own nav item',
   '/_staff/fees/schedules/$id': 'detail route reached from the schedules list',
   '/_staff/fees/fines/rules':
     "[38.4.3] Rules tab reached from the Fines page's own tab bar, not a separate nav item",

@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as nodemailer from 'nodemailer';
-import { SmtpEmailProvider } from './smtp-email.provider';
-import { ProviderNotConfiguredError } from '../../config/provider-not-configured.error';
+import { SmtpProvider } from './smtp.provider';
 import {
   assertSafeSmtpDestination,
   DestinationBlockedError,
@@ -15,7 +14,9 @@ vi.mock('nodemailer', () => ({
 // unit under test in outbound-destination-guard.spec.ts, and does a real
 // DNS lookup — stub it out here so these tests stay hermetic and fast.
 vi.mock('../shared/outbound-destination-guard', () => {
-  class OutboundDestinationError extends Error {}
+  class OutboundDestinationError extends Error {
+    readonly publicMessage = 'This server address cannot be used — check it and try again.';
+  }
   class DestinationBlockedError extends OutboundDestinationError {}
   return {
     assertSafeSmtpDestination: vi.fn().mockResolvedValue({
@@ -27,37 +28,38 @@ vi.mock('../shared/outbound-destination-guard', () => {
   };
 });
 
-describe('SmtpEmailProvider', () => {
-  const tenantId = 'tenant-1';
-  let configResolver: Record<string, ReturnType<typeof vi.fn>>;
+describe('SmtpProvider', () => {
+  let cfg: any;
   let sendMail: ReturnType<typeof vi.fn>;
   let verify: ReturnType<typeof vi.fn>;
-  let provider: SmtpEmailProvider;
+  let provider: SmtpProvider;
 
   beforeEach(() => {
     vi.mocked(nodemailer.createTransport).mockReset();
-    configResolver = {
-      resolveEmail: vi.fn().mockResolvedValue({
-        host: 'smtp.example.com',
-        port: 587,
-        user: 'user-1',
-        password: 'pass-1',
-        from: 'noreply@example.com',
-      }),
+    cfg = {
+      host: 'smtp.example.com',
+      port: '587',
+      user: 'user-1',
+      password: 'pass-1',
+      from: 'noreply@example.com',
     };
     sendMail = vi.fn().mockResolvedValue({ messageId: 'msg-1', response: '250 OK' });
     verify = vi.fn().mockResolvedValue(true);
     vi.mocked(nodemailer.createTransport).mockReturnValue({ sendMail, verify } as any);
-    provider = new SmtpEmailProvider(configResolver as any);
+    provider = new SmtpProvider();
+  });
+
+  it('a blank port falls back to 587; a non-numeric port is a config error', async () => {
+    const ok = await provider.send({ to: 'g@example.com', body: 'x' }, { ...cfg, port: '' });
+    expect(ok.error).toBeUndefined();
+    expect(vi.mocked(nodemailer.createTransport).mock.calls[0][0]).toMatchObject({ port: 587 });
+    const bad = await provider.send({ to: 'g@example.com', body: 'x' }, { ...cfg, port: 'abc' });
+    expect(bad).toMatchObject({ success: false, outcome: 'REJECTED' });
   });
 
   it('builds a transporter from the tenant-resolved config and sends the message', async () => {
-    const result = await provider.send(
-      { to: 'guardian@example.com', body: 'Fee reminder' },
-      tenantId,
-    );
+    const result = await provider.send({ to: 'guardian@example.com', body: 'Fee reminder' }, cfg);
 
-    expect(configResolver.resolveEmail).toHaveBeenCalledWith(tenantId);
     expect(nodemailer.createTransport).toHaveBeenCalledWith({
       host: '203.0.113.5',
       port: 587,
@@ -80,15 +82,15 @@ describe('SmtpEmailProvider', () => {
   });
 
   it('marks the transport secure for port 465', async () => {
-    configResolver.resolveEmail.mockResolvedValue({
+    cfg = {
       host: 'smtp.example.com',
       port: 465,
       user: 'user-1',
       password: 'pass-1',
       from: 'noreply@example.com',
-    });
+    };
 
-    await provider.send({ to: 'guardian@example.com', body: 'hi' }, tenantId);
+    await provider.send({ to: 'guardian@example.com', body: 'hi' }, cfg);
 
     expect(nodemailer.createTransport).toHaveBeenCalledWith(
       expect.objectContaining({ secure: true }),
@@ -96,20 +98,20 @@ describe('SmtpEmailProvider', () => {
   });
 
   it('builds a fresh transporter per tenant rather than reusing a cached one', async () => {
-    await provider.send({ to: 'a@example.com', body: 'hi' }, tenantId);
+    await provider.send({ to: 'a@example.com', body: 'hi' }, cfg);
 
-    configResolver.resolveEmail.mockResolvedValue({
+    cfg = {
       host: 'smtp.other-tenant.com',
       port: 587,
       user: 'other-user',
       password: 'other-pass',
       from: 'noreply@other-tenant.com',
-    });
+    };
     vi.mocked(assertSafeSmtpDestination).mockResolvedValueOnce({
       addresses: [{ address: '198.51.100.9', family: 4 }],
       servername: 'smtp.other-tenant.com',
     });
-    await provider.send({ to: 'b@example.com', body: 'hi' }, 'tenant-2');
+    await provider.send({ to: 'b@example.com', body: 'hi' }, cfg);
 
     expect(nodemailer.createTransport).toHaveBeenCalledTimes(2);
     expect(nodemailer.createTransport).toHaveBeenLastCalledWith(
@@ -120,26 +122,39 @@ describe('SmtpEmailProvider', () => {
     );
   });
 
-  it('returns success: false instead of throwing when the tenant is unconfigured', async () => {
-    configResolver.resolveEmail.mockRejectedValue(
-      new ProviderNotConfiguredError('Email', 'configure it'),
-    );
+  // Port comes from settings/env as free text; a bad one is a definite config error, never sent.
+  it.each([['abc'], ['0'], ['70000'], ['58 7'], ['5e2']])(
+    'rejects port %s as REJECTED / non-retryable without connecting',
+    async (port) => {
+      const result = await provider.send({ to: 'a@example.com', body: 'hi' }, { ...cfg, port });
 
-    const result = await provider.send({ to: 'guardian@example.com', body: 'hi' }, tenantId);
+      expect(result.success).toBe(false);
+      expect(result.outcome).toBe('REJECTED');
+      expect(result.retryable).toBe(false);
+      expect(result.error).toMatch(/port must be an integer between 1 and 65535/);
+      expect(nodemailer.createTransport).not.toHaveBeenCalled();
+    },
+  );
 
-    expect(result.success).toBe(false);
-    expect(result.error).toMatch(/configure it/);
-    expect(result.retryable).toBe(false);
-    expect(nodemailer.createTransport).not.toHaveBeenCalled();
+  it('defaults the port to 587 when the config carries none', async () => {
+    const { port: _port, ...noPort } = cfg;
+
+    await provider.send({ to: 'a@example.com', body: 'hi' }, noPort as any);
+
+    expect(nodemailer.createTransport).toHaveBeenCalledWith(expect.objectContaining({ port: 587 }));
   });
 
   it('returns success: false instead of throwing when sendMail rejects', async () => {
     sendMail.mockRejectedValue(new Error('SMTP connection refused'));
 
-    const result = await provider.send({ to: 'guardian@example.com', body: 'hi' }, tenantId);
+    const result = await provider.send({ to: 'guardian@example.com', body: 'hi' }, cfg);
 
     expect(result.success).toBe(false);
-    expect(result.error).toBe('SMTP connection refused');
+    // Rules 23/24: a fixed sentence, never nodemailer's text.
+    expect(result.error).toBe(
+      'Could not reach the SMTP server; the message may or may not have been sent.',
+    );
+    expect(result.error).not.toContain('refused');
     expect(result.retryable).toBeUndefined();
   });
 
@@ -148,10 +163,13 @@ describe('SmtpEmailProvider', () => {
       new DestinationBlockedError('"10.0.0.5" is a private/reserved address.'),
     );
 
-    const result = await provider.send({ to: 'guardian@example.com', body: 'hi' }, tenantId);
+    const result = await provider.send({ to: 'guardian@example.com', body: 'hi' }, cfg);
 
     expect(result.success).toBe(false);
     expect(result.retryable).toBe(false);
+    // Rule 23: the stored error is the fixed sentence, never the blocked address.
+    expect(result.error).toBe('This server address cannot be used — check it and try again.');
+    expect(result.error).not.toContain('10.0.0.5');
   });
 
   it('omits tls.servername when the tenant host is already a literal IP', async () => {
@@ -160,7 +178,7 @@ describe('SmtpEmailProvider', () => {
       servername: undefined,
     });
 
-    await provider.send({ to: 'guardian@example.com', body: 'hi' }, tenantId);
+    await provider.send({ to: 'guardian@example.com', body: 'hi' }, cfg);
 
     const transportOptions = vi.mocked(nodemailer.createTransport).mock.calls[0]![0] as Record<
       string,
@@ -203,7 +221,7 @@ describe('SmtpEmailProvider', () => {
         .mockReturnValueOnce({ sendMail: failingSendMail, verify } as any)
         .mockReturnValueOnce({ sendMail, verify } as any);
 
-      const result = await provider.send({ to: 'guardian@example.com', body: 'hi' }, tenantId);
+      const result = await provider.send({ to: 'guardian@example.com', body: 'hi' }, cfg);
 
       expect(result.success).toBe(true);
       expect(nodemailer.createTransport).toHaveBeenCalledTimes(2);
@@ -246,10 +264,13 @@ describe('SmtpEmailProvider', () => {
         verify,
       } as any);
 
-      const result = await provider.send({ to: 'guardian@example.com', body: 'hi' }, tenantId);
+      const result = await provider.send({ to: 'guardian@example.com', body: 'hi' }, cfg);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('535 auth failed');
+      expect(result.error).toBe(
+        'Could not reach the SMTP server; the message may or may not have been sent.',
+      );
+      expect(result.error).not.toContain('535');
       expect(nodemailer.createTransport).toHaveBeenCalledTimes(1);
     });
 
@@ -264,10 +285,13 @@ describe('SmtpEmailProvider', () => {
         verify,
       } as any);
 
-      const result = await provider.send({ to: 'guardian@example.com', body: 'hi' }, tenantId);
+      const result = await provider.send({ to: 'guardian@example.com', body: 'hi' }, cfg);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('connect ECONNREFUSED');
+      expect(result.error).toBe(
+        'Could not reach the SMTP server; the message may or may not have been sent.',
+      );
+      expect(result.error).not.toContain('ECONNREFUSED');
       expect(nodemailer.createTransport).toHaveBeenCalledTimes(2);
     });
   });

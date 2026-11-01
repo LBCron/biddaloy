@@ -5,12 +5,18 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, MoreThan, MoreThanOrEqual, QueryFailedError, Repository } from 'typeorm';
 import Redis from 'ioredis';
 import { PromotionRunStatus } from '@biddaloy/shared';
-import type { TenantSettings, OrganisationSettings } from '@biddaloy/shared';
+import type {
+  TenantSettings,
+  OrganisationSettings,
+  MessagingProvidersResponse,
+} from '@biddaloy/shared';
+import { buildMessagingProvidersResponse } from './settings/messaging-descriptors';
 import {
   AuditAction,
   CommunicationStatus,
@@ -193,6 +199,11 @@ export class SchoolsService {
     return resolveTenantSettings(school.settings);
   }
 
+  /** D32: schema + selected + configured per medium. Reads stored (encrypted) settings, presence only. Never returns a value. */
+  async getMessagingProviders(schoolId: string): Promise<MessagingProvidersResponse> {
+    return buildMessagingProvidersResponse(await this.getResolvedSettings(schoolId));
+  }
+
   /** The school's local calendar date (YYYY-MM-DD) from its `region.timezone`.
    * `resolveTenantSettings` always fills the timezone (the `??` only satisfies the optional type). */
   async todayFor(tenantId: string): Promise<string> {
@@ -242,7 +253,7 @@ export class SchoolsService {
    * reencrypt-settings.ts` — hasn't reached yet) is dropped from the
    * result and logged with the school and path, rather than failing the
    * whole call: one bad WhatsApp token shouldn't also take down a
-   * school's working SMS or SMTP settings.
+   * school's working messaging settings.
    */
   async getDecryptedSettings(schoolId: string): Promise<TenantSettings> {
     const resolved = await this.getResolvedSettings(schoolId);
@@ -299,6 +310,7 @@ export class SchoolsService {
     dto: TenantSettingsDto,
     userId: string,
     context: RequestContext = { ip: null, userAgent: null },
+    isPlatformAdmin = false,
   ): Promise<Record<string, unknown>> {
     // [33.3.1] `organisationRenames` rides alongside the PATCH as a write
     // instruction, not a stored setting — pulled out of the plain patch
@@ -320,6 +332,21 @@ export class SchoolsService {
         .getOne();
       if (!school) {
         throw new NotFoundException('School not found');
+      }
+
+      // #3346: `sms.metering` (who pays for SMS) is the platform's to set. A school caller may
+      // resend the stored value (dropped, so the merge never writes it) but not change it.
+      const sentSms = (plainPatch.communications as { sms?: Record<string, unknown> } | undefined)
+        ?.sms;
+      if (sentSms && Object.hasOwn(sentSms, 'metering') && !isPlatformAdmin) {
+        const stored = (
+          school.settings as { communications?: { sms?: { metering?: string } } } | null
+        )?.communications?.sms?.metering;
+        if ((stored ?? 'OFF') !== sentSms.metering) {
+          throw new ForbiddenException('Only the platform can change the SMS account setting.');
+        }
+        delete sentSms.metering;
+        delete (encryptedPatch.communications as { sms?: Record<string, unknown> }).sms?.metering;
       }
 
       const oldSnapshot = pickPatchShape(

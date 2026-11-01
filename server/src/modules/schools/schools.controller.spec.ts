@@ -116,6 +116,7 @@ describe('SchoolsController', () => {
         expect.any(TenantSettingsDto),
         'user-1',
         { ip: '127.0.0.1', userAgent: 'vitest' },
+        false,
       );
       // updateSettings already returns the masked shape — no follow-up
       // getMaskedSettings call, which would be a redundant query and a
@@ -132,7 +133,7 @@ describe('SchoolsController', () => {
         patch(),
         { id: SCHOOL_B, role: 'SUPER_ADMIN' },
         USER,
-        REQUEST,
+        { ...REQUEST, isPlatformSuperAdmin: true },
       );
 
       expect(service.updateSettings).toHaveBeenCalledWith(
@@ -140,6 +141,27 @@ describe('SchoolsController', () => {
         expect.any(TenantSettingsDto),
         'user-1',
         { ip: '127.0.0.1', userAgent: 'vitest' },
+        true,
+      );
+    });
+
+    it('does not treat a legacy tenant-local SUPER_ADMIN as the platform (#3346)', async () => {
+      service.updateSettings.mockResolvedValue({ version: 1 });
+
+      await controller.updateSettings(
+        SCHOOL_A,
+        patch(),
+        { id: SCHOOL_A, role: 'SUPER_ADMIN' },
+        USER,
+        { ...REQUEST, isPlatformSuperAdmin: false },
+      );
+
+      expect(service.updateSettings).toHaveBeenCalledWith(
+        SCHOOL_A,
+        expect.any(TenantSettingsDto),
+        'user-1',
+        { ip: '127.0.0.1', userAgent: 'vitest' },
+        false,
       );
     });
 

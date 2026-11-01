@@ -3,7 +3,13 @@ import { School } from '../../../schools/entities/school.entity';
 import { cellText, toCell } from '../../codec/cell-format';
 import { assertRegistryValid } from '../../codec/registry';
 import type { ExportContext, ImportContext } from '../../codec/tab-spec';
-import { deepMergePresent, schoolTab, stripSecretPaths, type SchoolRow } from './school.tab';
+import {
+  deepMergePresent,
+  mergeImportedSettings,
+  schoolTab,
+  stripSecretPaths,
+  type SchoolRow,
+} from './school.tab';
 import { schoolTabs } from './index';
 
 const SCHOOL_ID = '7f3e4b2a-1c5d-4e8f-9a6b-2d1c3e4f5a6b';
@@ -259,6 +265,63 @@ describe('secret handling on export', () => {
   });
 });
 
+// Epic 97 D6: a backup may hold the old flat settings or the per-provider blob. Both export, read back
+// and keep every non-secret field; neither ever carries a secret out.
+describe('messaging settings round trip (flat and D6 blobs)', () => {
+  const roundTrip = (settings: Record<string, unknown>) =>
+    (schoolTab.fromRow(toCells(makeSchool({ settings })), 2, importCtx) as { row: SchoolRow }).row
+      .settings;
+
+  it('an old flat WhatsApp / email blob keeps its non-secret fields and drops the secrets', () => {
+    const out = roundTrip({
+      communications: {
+        whatsapp: { phoneNumberId: '123', accessToken: SECRET },
+        email: { host: 'smtp.test', user: 'u', password: SECRET, from: 'a@b.test' },
+      },
+    });
+
+    expect(out).toEqual({
+      communications: {
+        whatsapp: { phoneNumberId: '123' },
+        email: { host: 'smtp.test', user: 'u', from: 'a@b.test' },
+      },
+    });
+    expect(JSON.stringify(out)).not.toContain(SECRET);
+  });
+
+  it('a D6 blob keeps provider, metering and non-secret fields and drops every secret', () => {
+    const out = roundTrip({
+      communications: {
+        sms: {
+          provider: 'onecodesoft',
+          onecodesoft: { apiKey: SECRET, senderId: 'BMSC', apiUrl: 'https://sms.test/api' },
+          metering: 'PLATFORM',
+        },
+        whatsapp: {
+          provider: 'meta-cloud',
+          'meta-cloud': { phoneNumberId: '123', accessToken: SECRET },
+        },
+        email: { provider: 'smtp', smtp: { host: 'smtp.test', password: SECRET } },
+        messenger: { provider: 'meta-page', 'meta-page': { pageId: '456', accessToken: SECRET } },
+      },
+    });
+
+    expect(out).toEqual({
+      communications: {
+        sms: {
+          provider: 'onecodesoft',
+          onecodesoft: { senderId: 'BMSC', apiUrl: 'https://sms.test/api' },
+          metering: 'PLATFORM',
+        },
+        whatsapp: { provider: 'meta-cloud', 'meta-cloud': { phoneNumberId: '123' } },
+        email: { provider: 'smtp', smtp: { host: 'smtp.test' } },
+        messenger: { provider: 'meta-page', 'meta-page': { pageId: '456' } },
+      },
+    });
+    expect(JSON.stringify(out)).not.toContain(SECRET);
+  });
+});
+
 describe('deepMergePresent', () => {
   // Business-critical: an imported settings object never carries secrets
   // (export strips them), so a merge that only overwrites present keys is
@@ -336,5 +399,104 @@ describe('diffFields', () => {
     };
 
     expect(schoolTab.diffFields(row, existing)).toEqual([]);
+  });
+});
+
+// Review round 2, item 1: a school stored flat (pre-D6) WhatsApp credentials, and the workbook
+// carries the nested D6 blob. Without lifting the stored side first, the merge keeps both shapes:
+// the resolver reads the nested block, never finds the stored token, and every send is REJECTED.
+describe('upsert: flat-stored messaging settings + a nested import', () => {
+  const manager = {
+    save: async (_entity: unknown, school: School) => school,
+  } as unknown as Parameters<typeof schoolTab.upsert>[3];
+
+  const nestedImport = (existing: School): SchoolRow => ({
+    ...(schoolTab.fromRow(toCells(existing), 2, importCtx) as { row: SchoolRow }).row,
+    settings: {
+      communications: {
+        whatsapp: { provider: 'meta-cloud', 'meta-cloud': { phoneNumberId: 'NEW' } },
+      },
+    },
+  });
+
+  it('lifts the stored flat block so the stored token sits next to the imported fields', async () => {
+    const existing = makeSchool({
+      settings: { communications: { whatsapp: { phoneNumberId: 'OLD', accessToken: SECRET } } },
+    });
+
+    const saved = await schoolTab.upsert(nestedImport(existing), existing, SCHOOL_ID, manager);
+
+    expect(saved.settings).toEqual({
+      communications: {
+        whatsapp: {
+          provider: 'meta-cloud',
+          'meta-cloud': { phoneNumberId: 'NEW', accessToken: SECRET },
+        },
+      },
+    });
+  });
+
+  it('the diff preview reports the same change upsert makes', () => {
+    const existing = makeSchool({
+      settings: { communications: { whatsapp: { phoneNumberId: 'OLD', accessToken: SECRET } } },
+    });
+
+    expect(schoolTab.diffFields(nestedImport(existing), existing)).toEqual(['settings']);
+  });
+});
+
+// #3346: a school ADMIN can restore a workbook (BACKUP_MANAGE), so an imported file must never move
+// the school on or off the platform SMS account. The destination keeps its own value.
+describe('sms.metering is never imported', () => {
+  const file = (metering: string) => ({
+    communications: { sms: { metering, provider: 'greenweb' } },
+  });
+
+  it('drops a PLATFORM value from the file when the school has none', () => {
+    const merged = mergeImportedSettings({ communications: { sms: {} } }, file('PLATFORM'));
+    expect(merged).toEqual({ communications: { sms: { provider: 'greenweb' } } });
+  });
+
+  it('keeps the stored PLATFORM value when the file says OFF', () => {
+    const merged = mergeImportedSettings(
+      { communications: { sms: { metering: 'PLATFORM' } } },
+      file('OFF'),
+    );
+    expect(merged).toEqual({
+      communications: { sms: { metering: 'PLATFORM', provider: 'greenweb' } },
+    });
+  });
+
+  it('works when the school has no settings yet', () => {
+    expect(mergeImportedSettings(null, file('PLATFORM'))).toEqual({
+      communications: { sms: { provider: 'greenweb' } },
+    });
+  });
+  const stored = () => ({
+    communications: {
+      sms: { metering: 'PLATFORM', provider: 'greenweb', greenweb: { apiKey: 'enc:key' } },
+      email: { provider: 'smtp' },
+    },
+  });
+
+  it('a null communications.sms cannot wipe the stored metering or credentials', () => {
+    const merged = mergeImportedSettings(stored(), {
+      communications: { sms: null, email: { provider: 'ses' } },
+    });
+    expect(merged).toEqual({
+      communications: {
+        sms: { metering: 'PLATFORM', provider: 'greenweb', greenweb: { apiKey: 'enc:key' } },
+        email: { provider: 'ses' },
+      },
+    });
+  });
+
+  it('a null communications cannot wipe the stored block', () => {
+    const merged = mergeImportedSettings(stored(), { communications: null, region: 'BD' });
+    expect(merged).toEqual({ ...stored(), region: 'BD' });
+  });
+
+  it('a non-object communications.sms (a string) is dropped the same way', () => {
+    expect(mergeImportedSettings(stored(), { communications: { sms: 'OFF' } })).toEqual(stored());
   });
 });

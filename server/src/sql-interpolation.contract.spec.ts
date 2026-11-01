@@ -119,8 +119,8 @@ const REVIEWED_INTERPOLATIONS: Record<string, string[]> = {
   'scripts/load/seed-load-10k.ts': ['t'],
   // dayRecords: rollYearFilter is a fixed SQL fragment chosen by whether a year was given; the year is bound as :yearId
   'modules/attendance/attendance-dashboard.service.ts': ['rollYearFilter'],
-  // BN_COLLATION constant
-  'modules/communications/reminders.service.ts': ['BN_COLLATION'],
+  // BN_COLLATION constant (batch names; [97.4.02] message-log sender names)
+  'modules/communications/reminders.service.ts': ['BN_COLLATION', 'BN_COLLATION'],
   // lockBills: k is a key of Partial<StudentFee> from internal callers, i is the loop index; values bound as :v<i>
   'modules/fees/fee-generation-batch.service.ts': ['i', 'k'],
   // getAgeing: bal/age are module-local SQL constants (the date is bound as :today); inner is a query builder whose params are copied over

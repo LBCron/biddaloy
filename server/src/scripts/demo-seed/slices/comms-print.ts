@@ -19,11 +19,21 @@ import { SmsCreditBalance } from '../../../modules/communications/credits/entiti
 import { PrintTemplatesService } from '../../../modules/print/templates/print-templates.service';
 import { PrintJobsService } from '../../../modules/print/jobs/print-jobs.service';
 import { formatArrivalTime } from '../../../modules/attendance/arrival-notice.service';
+import { buildEncryptionKey } from '../../../modules/schools/settings/encryption-key';
+import { EncryptionService } from '../../../modules/schools/settings/encryption.service';
 import { insertChunked } from '../bulk';
 import { orgIds, type OrgTenant } from './org';
 import { studentIds } from './students';
 
-const DEMO_PROVIDER = 'mailpit-sink';
+/**
+ * [97.4.04] D27: the company that would have sent each medium, as the worker records it in
+ * `metadata.provider`. The demo schools chose OneCodeSoft (`demoMessagingSettings`); PUSH has no
+ * company, so its rows carry none. The ids are fake and the sink delivers, so nothing is ever called.
+ */
+const COMPANY: Partial<Record<CommunicationMedium, string>> = {
+  [CommunicationMedium.SMS]: 'onecodesoft',
+  [CommunicationMedium.EMAIL]: 'smtp',
+};
 /** Issue comment on #2176: reminders spend credit, so every branch keeps this much after the history. */
 const CREDIT_FLOOR = 10_000;
 const CONDUCT = 'সন্তোষজনক';
@@ -92,7 +102,9 @@ export const slice: DemoSlice = {
       rows += await calendarTokens(ctx, tenant, org.adminUserId);
       rows += await printing(ctx, tenant, org.adminUserId);
     }
-    return rows + (await arrivalLogs(ctx));
+    rows += await arrivalLogs(ctx);
+    // Last, so the extra rng draws shift nothing above.
+    return rows + (await messagingSettings(ctx, org.tenants));
   },
 };
 
@@ -138,11 +150,17 @@ async function messages(ctx: DemoSeedContext, tenant: OrgTenant, adminId: string
     const email = kind === 'INVOICE' && g.email;
     if (!email && !g.phone) return;
     const medium = email ? CommunicationMedium.EMAIL : CommunicationMedium.SMS;
-    const status = ctx.weighted([
+    const drawn = ctx.weighted([
       [CommunicationStatus.SENT, 40],
       [CommunicationStatus.DELIVERED, 58],
       [CommunicationStatus.FAILED, 2],
     ] as const);
+    // SMTP has no delivery report, so an email stops at SENT. Remapped after the draw, so the
+    // random stream (and every later value: keys, tokens, print jobs) stays the same.
+    const status =
+      medium === CommunicationMedium.EMAIL && drawn === CommunicationStatus.DELIVERED
+        ? CommunicationStatus.SENT
+        : drawn;
     const when = at(
       date,
       9 + rng.number.int({ min: 0, max: 7 }),
@@ -166,14 +184,18 @@ async function messages(ctx: DemoSeedContext, tenant: OrgTenant, adminId: string
         (kind === 'RESULT' ? CommunicationTrigger.RESULT_SMS : CommunicationTrigger.AUTOMATED),
       student_id: studentId,
       guardian_id: g.id,
-      sent_by_user_id: null,
+      // A reminder round records who started it (RemindersService), so "Sent by" has data.
+      sent_by_user_id: extra.batchId ? adminId : null,
       reminder_batch_id: extra.batchId ?? null,
-      provider_message_id:
-        status === CommunicationStatus.FAILED ? null : `${DEMO_PROVIDER}-${rng.string.uuid()}`,
-      metadata:
-        status === CommunicationStatus.FAILED
-          ? { provider: DEMO_PROVIDER, reason: 'SIMULATED_FAILURE' }
-          : { provider: DEMO_PROVIDER, kind },
+      provider_message_id: status === CommunicationStatus.FAILED ? null : vendorId(medium),
+      metadata: {
+        provider: COMPANY[medium],
+        kind,
+        // Any `error` text reads as "Failed" in Why it failed (delivery-error-code.ts).
+        ...(status === CommunicationStatus.FAILED ? { error: 'SIMULATED_FAILURE' } : {}),
+        // DELIVERED only ever comes from Check status (D23), which records what it read.
+        ...(status === CommunicationStatus.DELIVERED ? { delivery: delivered(when) } : {}),
+      },
       reference_key: referenceKey,
       created_at: when,
       updated_at: when,
@@ -181,6 +203,12 @@ async function messages(ctx: DemoSeedContext, tenant: OrgTenant, adminId: string
     if (medium === CommunicationMedium.SMS && status !== CommunicationStatus.FAILED) {
       debits.push({ id, at: when });
     }
+  };
+
+  /** Same single `rng` draw as before Epic 97, shaped like the company's own id. */
+  const vendorId = (medium: CommunicationMedium) => {
+    const raw = rng.string.uuid();
+    return medium === CommunicationMedium.EMAIL ? `<${raw}@bmsc.example>` : raw;
   };
 
   for (const year of years) {
@@ -231,6 +259,36 @@ async function messages(ctx: DemoSeedContext, tenant: OrgTenant, adminId: string
       } as never);
     }
   }
+  // D28: one "Send a test message" from Settings, shaped like ConnectionTestService writes it, so
+  // the Test badge has a row. A guardian's seeded number; no `rng` draw (stableId, anchor time).
+  const testTo = [...guardian.values()].find((g) => g.phone)?.phone;
+  if (testTo) {
+    const id = stableId(`${tenant.slug}:settings-test`);
+    const when = at(addDays(ctx.anchor, -1), 11);
+    const [school] = await ctx.ds.query(`SELECT name FROM schools WHERE id = $1`, [tenant.id]);
+    logs.push({
+      id,
+      tenant_id: tenant.id,
+      medium: CommunicationMedium.SMS,
+      recipient_address: testTo,
+      recipient_name: 'Test',
+      message_body: `Biddaloy test message from ${school.name} — সব ঠিক আছে / all good`,
+      subject: null,
+      status: CommunicationStatus.SENT,
+      trigger: CommunicationTrigger.MANUAL,
+      student_id: null,
+      guardian_id: null,
+      sent_by_user_id: adminId,
+      reminder_batch_id: null,
+      provider_message_id: id,
+      metadata: { test: true, provider: COMPANY[CommunicationMedium.SMS] },
+      reference_key: null,
+      created_at: when,
+      updated_at: when,
+    });
+    debits.push({ id, at: when });
+  }
+  companySamples(ctx, tenant, adminId, years[0].start, guardian, names, logs, debits);
   let rows = await insertChunked(ctx.ds.getRepository(CommunicationLog), logs as never);
 
   // SMS credit: top-ups cover the history and leave CREDIT_FLOOR; the ledger sums to the balance.
@@ -269,6 +327,90 @@ async function messages(ctx: DemoSeedContext, tenant: OrgTenant, adminId: string
   );
   return rows + 1;
 }
+
+type SeedGuardian = { id: string; name: string; phone: string | null; email: string | null };
+
+/**
+ * #3310 acceptance: every Message log Company and Status choice has a row. The history above
+ * only uses the school's current companies, so these few rows add the rest, each shaped like
+ * its real writer leaves it:
+ * - Greenweb and MiMSMS: SENT SMS from the first weeks, before the school moved to OneCodeSoft;
+ * - WhatsApp (`meta-cloud`): a manual SENT send from the admin;
+ * - Messenger (`meta-page`): FAILED, as every real send is (the provider is a stub, and
+ *   reminders never pick Messenger, `DISPATCHABLE_MEDIA`);
+ * - an invoice email still QUEUED: no company yet (the worker stamps it at send time), no id.
+ * READ is left out: no production path writes it. No `ctx.rng` draw (stableId, dates from the
+ * year start and the anchor), so later random values stay the same.
+ */
+function companySamples(
+  ctx: DemoSeedContext,
+  tenant: OrgTenant,
+  adminId: string,
+  yearStart: string,
+  guardian: Map<string, SeedGuardian>,
+  names: ReadonlyMap<unknown, unknown>,
+  logs: Record<string, unknown>[],
+  debits: { id: string; at: Date }[],
+): void {
+  const row = (
+    key: string,
+    [studentId, g]: [string, SeedGuardian],
+    medium: CommunicationMedium,
+    status: CommunicationStatus,
+    when: Date,
+    metadata: Record<string, unknown>,
+  ) => {
+    const id = stableId(`${tenant.slug}:${key}`);
+    const email = medium === CommunicationMedium.EMAIL;
+    const kind: Kind = email ? 'INVOICE' : 'FEE';
+    logs.push({
+      id,
+      tenant_id: tenant.id,
+      medium,
+      recipient_address: email ? g.email : g.phone,
+      recipient_name: g.name,
+      message_body: body(kind, names.get(studentId) as string, dhakaDate(when)),
+      subject: email ? 'ফি ইনভয়েস' : null,
+      status,
+      trigger: CommunicationTrigger.MANUAL,
+      student_id: studentId,
+      guardian_id: g.id,
+      sent_by_user_id: adminId,
+      reminder_batch_id: null,
+      provider_message_id: status === CommunicationStatus.SENT ? id : null,
+      metadata: { kind, ...metadata },
+      reference_key: null,
+      created_at: when,
+      updated_at: when,
+    });
+    if (medium === CommunicationMedium.SMS && status === CommunicationStatus.SENT) {
+      debits.push({ id, at: when });
+    }
+  };
+  const phoned = [...guardian].find(([, g]) => g.phone);
+  const mailed = [...guardian].find(([, g]) => g.email);
+  const { SMS, WHATSAPP, MESSENGER, EMAIL } = CommunicationMedium;
+  const { SENT, FAILED, QUEUED } = CommunicationStatus;
+  if (phoned) {
+    row('greenweb', phoned, SMS, SENT, at(addDays(yearStart, 3), 10), { provider: 'greenweb' });
+    row('mimsms', phoned, SMS, SENT, at(addDays(yearStart, 4), 10), { provider: 'mimsms' });
+    row('whatsapp', phoned, WHATSAPP, SENT, at(addDays(ctx.anchor, -3), 12), {
+      provider: 'meta-cloud',
+    });
+    // Older than any recent-failures window, so no dashboard or alert count moves.
+    row('messenger', phoned, MESSENGER, FAILED, at(addDays(ctx.anchor, -40), 12), {
+      provider: 'meta-page',
+      error: 'Messenger sending is not yet implemented',
+    });
+  }
+  if (mailed) row('queued-email', mailed, EMAIL, QUEUED, at(addDays(ctx.anchor, -1), 15), {});
+}
+
+/** What Check status writes for a DELIVERED answer (D23), a few minutes after the send. */
+const delivered = (sent: Date) => ({
+  status: 'DELIVERED',
+  checkedAt: new Date(sent.getTime() + 20 * 60_000).toISOString(),
+});
 
 /** A stable uuid-shaped id from a string, so the log ids take no `ctx.rng` draw. */
 const stableId = (seed: string) => {
@@ -362,8 +504,13 @@ export async function arrivalLogs(ctx: DemoSeedContext): Promise<number> {
         student_id: sub.student_id,
         guardian_id: sub.guardian_id,
         sent_by_user_id: null,
-        provider_message_id: `${DEMO_PROVIDER}-${id}`,
-        metadata: { provider: DEMO_PROVIDER, kind: 'ARRIVAL', subscription_id: sub.id },
+        // A push has no company and no company id (CommunicationsProcessor.pushToGuardian).
+        provider_message_id: sms ? id : null,
+        metadata: {
+          ...(sms ? { provider: COMPANY[CommunicationMedium.SMS] } : {}),
+          kind: 'ARRIVAL',
+          subscription_id: sub.id,
+        },
         reference_key: referenceKey,
         created_at: when,
         updated_at: when,
@@ -629,4 +776,68 @@ async function printing(ctx: DemoSeedContext, tenant: OrgTenant, adminId: string
     }
   }
   return 2 + jobCount;
+}
+
+/**
+ * Epic 97 (D6): every demo school's Settings > SMS / WhatsApp / Email / Messenger show "Set up", in the
+ * per-provider shape. The values are fake (`ctx.rng`, `example.com`); the message sink delivers, so
+ * nothing here is ever called. Raw SQL for the same reason as fees.ts: SchoolsService needs the
+ * organisation guards, which the slice specs stub.
+ */
+export function demoMessagingSettings(
+  rng: DemoSeedContext['rng'],
+  encrypt: (s: string) => string | undefined,
+) {
+  const token = () => encrypt(rng.string.alphanumeric(32));
+  const digits = () => rng.string.numeric(15);
+  return {
+    sms: {
+      provider: 'onecodesoft',
+      onecodesoft: {
+        apiKey: token(),
+        senderId: 'BMSC',
+        apiUrl: 'https://sms.bmsc.example/api',
+      },
+      // No PLATFORM metering: the school sends on its own gateway, so it pays the vendor itself.
+    },
+    whatsapp: {
+      provider: 'meta-cloud',
+      'meta-cloud': { phoneNumberId: digits(), accessToken: token() },
+    },
+    email: {
+      provider: 'smtp',
+      smtp: {
+        host: 'smtp.bmsc.example',
+        port: '587',
+        user: `demo-${rng.string.alphanumeric(6).toLowerCase()}`,
+        password: token(),
+        from: 'noreply@bmsc.example',
+      },
+    },
+    messenger: {
+      provider: 'meta-page',
+      'meta-page': { pageId: digits(), accessToken: token() },
+    },
+  };
+}
+
+async function messagingSettings(ctx: DemoSeedContext, tenants: OrgTenant[]): Promise<number> {
+  // Secrets are stored encrypted, like SchoolsService does. No key (a bare local DB): the secret is left
+  // out (JSON drops undefined), so the page shows "Not set up" instead of the seed failing.
+  const key = buildEncryptionKey(process.env.NODE_ENV, process.env.SETTINGS_ENCRYPTION_KEY);
+  const encryption = new EncryptionService(key, []);
+  const encrypt = (s: string) => (key ? encryption.encrypt(s) : undefined);
+  for (const t of tenants) {
+    // One level deep per medium: the seed's keys on a medium block replace the stored ones (a
+    // provider block is replaced whole); stored keys the seed does not set, and other media, stay.
+    await ctx.ds.query(
+      `UPDATE schools SET settings = COALESCE(settings, '{}'::jsonb) || jsonb_build_object('communications',
+         COALESCE(settings->'communications', '{}'::jsonb) || (
+           SELECT jsonb_object_agg(e.key, COALESCE(settings->'communications'->e.key, '{}'::jsonb) || e.value)
+             FROM jsonb_each($2::jsonb) AS e))
+        WHERE id = $1`,
+      [t.id, JSON.stringify(demoMessagingSettings(ctx.rng, encrypt))],
+    );
+  }
+  return tenants.length;
 }
