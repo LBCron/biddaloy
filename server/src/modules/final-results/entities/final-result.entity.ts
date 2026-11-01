@@ -37,7 +37,10 @@ import { Class } from '../../academics/entities/class.entity';
   unique: true,
   where: '"deleted_at" IS NULL',
 })
-@Check('CHK_final_results_best_of_mode', `"best_of_count" IS NULL OR "mode" = 'BEST_OF'`)
+@Check(
+  'CHK_final_results_best_of_mode',
+  `"best_of_count" IS NULL OR ("mode" = 'BEST_OF' AND "best_of_count" >= 1)`,
+)
 export class FinalResult {
   @PrimaryGeneratedColumn('uuid')
   id: string;

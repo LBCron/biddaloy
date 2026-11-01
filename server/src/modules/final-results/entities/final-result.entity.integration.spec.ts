@@ -83,6 +83,12 @@ describe('FinalResultsAndReportCardNotes1791900003000 (integration)', () => {
     await expect(
       q(`UPDATE "final_results" SET best_of_count = 2 WHERE id = $1`, [finalResultId]),
     ).rejects.toThrow(/CHK_final_results_best_of_mode/);
+    // Best of 0 exams has no mean (the rules would divide by zero).
+    await expect(
+      q(`UPDATE "final_results" SET mode = 'BEST_OF', best_of_count = 0 WHERE id = $1`, [
+        finalResultId,
+      ]),
+    ).rejects.toThrow(/CHK_final_results_best_of_mode/);
     await q(`UPDATE "final_results" SET mode = 'BEST_OF', best_of_count = 2 WHERE id = $1`, [
       finalResultId,
     ]);
