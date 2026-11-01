@@ -57,6 +57,11 @@ import { Exam } from '../src/modules/exams/entities/exam.entity';
 import { ExamComponent } from '../src/modules/exams/entities/exam-component.entity';
 import { Mark } from '../src/modules/exams/entities/mark.entity';
 import { MarkGrid } from '../src/modules/exams/entities/mark-grid.entity';
+import { FinalResult } from '../src/modules/final-results/entities/final-result.entity';
+import { FinalResultWeight } from '../src/modules/final-results/entities/final-result-weight.entity';
+import { FinalResultRow } from '../src/modules/final-results/entities/final-result-row.entity';
+import { FinalResultSubject } from '../src/modules/final-results/entities/final-result-subject.entity';
+import { ReportCardNote } from '../src/modules/report-card-notes/entities/report-card-note.entity';
 import { Result } from '../src/modules/exams/entities/result.entity';
 import { ResultSubject } from '../src/modules/exams/entities/result-subject.entity';
 import { ExamSchedule } from '../src/modules/exams/entities/exam-schedule.entity';
@@ -198,6 +203,11 @@ export const ALL_ENTITIES = [
   MarkGrid,
   Result,
   ResultSubject,
+  FinalResult,
+  FinalResultWeight,
+  FinalResultRow,
+  FinalResultSubject,
+  ReportCardNote,
   ExamSchedule,
   StudentSubjectChoice,
   Shift,

@@ -1,4 +1,9 @@
 import type { EntityTarget } from 'typeorm';
+import { FinalResult } from '../../final-results/entities/final-result.entity';
+import { FinalResultWeight } from '../../final-results/entities/final-result-weight.entity';
+import { FinalResultRow } from '../../final-results/entities/final-result-row.entity';
+import { FinalResultSubject } from '../../final-results/entities/final-result-subject.entity';
+import { ReportCardNote } from '../../report-card-notes/entities/report-card-note.entity';
 import { SeatOrder } from '../../billing/entities/seat-order.entity';
 import { PlatformPayment } from '../../billing/entities/platform-payment.entity';
 import { CalendarEventClass } from '../../calendar/entities/calendar-event-class.entity';
@@ -138,6 +143,15 @@ export const ENTITY_COVERAGE_EXEMPT: ReadonlyMap<EntityTarget<unknown>, string> 
     PrintJobItem,
     'print audit trail + certificate register (Epic 32 D44, Epic 48 D33): verify tokens and serial numbers must not travel to another tenant',
   ],
+
+  // --- Epic 70 final results (temporary) ---
+  // No service writes these yet; the workbook tabs ship in Epic 70 wave 4 (#3422),
+  // which deletes these five entries.
+  [FinalResult, 'Epic 70 final results: workbook tab owed by #3422; nothing writes it yet.'],
+  [FinalResultWeight, 'Epic 70 final result weights: workbook tab owed by #3422.'],
+  [FinalResultRow, 'Epic 70 final result rows: workbook tab owed by #3422.'],
+  [FinalResultSubject, 'Epic 70 final result subjects: workbook tab owed by #3422.'],
+  [ReportCardNote, 'Epic 70 report card notes: workbook tab owed by #3422.'],
 
   // Epic 19.0's exams/marks/results spine got a workbook tab in [19.10.1]
   // (#906). No exemption entries left for them.

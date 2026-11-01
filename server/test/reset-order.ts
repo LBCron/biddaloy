@@ -125,6 +125,13 @@ export const TRANSACTIONAL_TABLES_CHILD_FIRST = [
   // student_subject_choices references students+class_subjects;
   // [19.11.1] exam_schedules references exams+subjects. All must clear
   // before their parents below.
+  // [70.1.2] final results + report card notes reference exams/students/subjects/
+  // grading_scales, so they clear first.
+  'report_card_notes',
+  'final_result_subjects',
+  'final_result_rows',
+  'final_result_weights',
+  'final_results',
   'result_subjects',
   'results',
   'mark_grids',

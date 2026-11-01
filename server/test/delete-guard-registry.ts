@@ -544,6 +544,12 @@ export const GUARDED: Guarded[] = [
   auto('MarkGrid.subject -> Subject', 'Subject'),
   auto('ResultSubject.subject -> Subject', 'Subject'),
   auto('Result.section -> ClassSection', 'ClassSection'),
+  // [70.1.2] Final results: same shape as their per-exam twins above.
+  auto('FinalResult.class -> Class', 'Class'),
+  auto('FinalResult.academic_year -> AcademicYear', 'AcademicYear'),
+  auto('FinalResultRow.section -> ClassSection', 'ClassSection'),
+  auto('FinalResultWeight.subject -> Subject', 'Subject'),
+  auto('FinalResultSubject.subject -> Subject', 'Subject'),
   auto('FeeGeneration.academic_year -> AcademicYear', 'AcademicYear'),
   auto('FeeStructure.class -> Class', 'Class'),
   auto('FeeStructure.section -> ClassSection', 'ClassSection'),
@@ -822,7 +828,15 @@ export const BARE_GUARDED: Guarded[] = [
 
 // ---- KNOWN_GAPS (each becomes a GitHub issue at wave close, D22) -------------
 
-export const KNOWN_GAPS: KnownGap[] = [];
+export const KNOWN_GAPS: KnownGap[] = [
+  {
+    // GradingService.remove() counts only `results`; the grading module is outside the
+    // lane that added this FK. The Epic 70 final-results service wave must add the count.
+    key: 'FinalResultRow.grading_scale -> GradingScale',
+    reason: 'GradingService.remove() does not count live final_result_rows yet (Epic 70).',
+    followUp: 2203,
+  },
+];
 
 /**
  * [2688] References the metadata scan cannot prove: plain uuid columns with no
