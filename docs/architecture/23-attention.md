@@ -554,6 +554,13 @@ flowchart LR
   30 / 7 / 0 days (`seats_d30`, `seats_d7`, `seats_expired`), once per key per `period_end`. The
   stamps live in `schools.onboarding.seat_warnings`.
 
+## Learning: Epic 83 coordinators (2026-10-31)
+
+- **Surprise:** the attendance rule only builds recipients for a draft when a class teacher exists or heads are added. A section with no class teacher but a coordinator would have been skipped. **Cost:** none (caught in design). **Fix:** coordinators join `users` before the "anyone to tell?" check. **Rule candidate:** a rule that adds recipients beyond roles adds them before deciding whether to emit.
+- **Surprise:** the coordinator SQL mentions `user_tenants` inside an `EXISTS`, and the unit specs' SQL routers matched `FROM user_tenants` first. **Cost:** a wrong mock row. **Fix:** route `FROM coordinator_assignments` first in both specs. **Rule candidate:** SQL-routing mocks match the most specific table first.
+- **Surprise:** the demo seed's FAST sweep alone gives a coordinator their alerts; nothing needed hand-writing. **Rule candidate:** prefer the real engine over hand-written alert rows in seeds.
+- **Scope flag:** read paths opt in with `includeCoordinated: true`; writes never do. The baseline spec (`coordinator-scope.e2e-spec.ts`) runs the same routes before and after a coordinator row, which is what makes the flag safe to add to more call sites later.
+
 ## Shipped choices worth knowing (and why)
 
 Where the code differs from what the epic first described, the code is right and

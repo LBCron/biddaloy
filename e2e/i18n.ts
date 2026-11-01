@@ -46,6 +46,7 @@ import bnGuardians from '../ui/src/i18n/locales/bn/guardians.json';
 import bnHomework from '../ui/src/i18n/locales/bn/homework.json';
 import bnLeave from '../ui/src/i18n/locales/bn/leave.json';
 import bnMyClass from '../ui/src/i18n/locales/bn/myClass.json';
+import bnCoordination from '../ui/src/i18n/locales/bn/coordination.json';
 import bnNav from '../ui/src/i18n/locales/bn/nav.json';
 import bnPayments from '../ui/src/i18n/locales/bn/payments.json';
 import bnPerformance from '../ui/src/i18n/locales/bn/performance.json';
@@ -139,6 +140,7 @@ import enStudents from '../ui/src/i18n/locales/en/students.json';
 import enSyllabus from '../ui/src/i18n/locales/en/syllabus.json';
 import enStudyPlans from '../ui/src/i18n/locales/en/studyPlans.json';
 import enTeacherAssignments from '../ui/src/i18n/locales/en/teacherAssignments.json';
+import enCoordination from '../ui/src/i18n/locales/en/coordination.json';
 import bnRegister from '../ui/src/i18n/locales/bn/register.json';
 import bnOnboardingSetup from '../ui/src/i18n/locales/bn/onboardingSetup.json';
 import bnOnboardingPeople from '../ui/src/i18n/locales/bn/onboardingPeople.json';
@@ -203,6 +205,7 @@ const catalogs = {
     applicationsReports: bnApplicationsReports,
     leave: bnLeave,
     myClass: bnMyClass,
+    coordination: bnCoordination,
     nav: bnNav,
     payments: bnPayments,
     platform: bnPlatform,
@@ -278,6 +281,7 @@ const catalogs = {
     applicationsReports: enApplicationsReports,
     leave: enLeave,
     myClass: enMyClass,
+    coordination: enCoordination,
     nav: enNav,
     payments: enPayments,
     platform: enPlatform,

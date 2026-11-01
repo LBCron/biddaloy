@@ -475,6 +475,23 @@ export const ACTIONS: readonly PaletteAction[] = [
     group: 'academics',
     run: (ctx) => ctx.navigate({ to: '/my-class' }),
   },
+  // [83.4.1] D9: Academics › My coordination; `?then=notify` opens "Notify teachers".
+  {
+    id: 'coordination.open',
+    label: { en: 'Open my coordination', bn: 'আমার সমন্বয় খুলুন' },
+    permission: Permission.COORDINATION_VIEW,
+    kind: 'navigate',
+    group: 'academics',
+    run: (ctx) => ctx.navigate({ to: '/my-coordination' }),
+  },
+  {
+    id: 'coordination.notify-teachers',
+    label: { en: 'Notify teachers', bn: 'শিক্ষকদের জানান' },
+    permission: Permission.COORDINATION_VIEW,
+    kind: 'modal',
+    group: 'academics',
+    run: (ctx) => ctx.navigate({ to: '/my-coordination?then=notify' }),
+  },
   {
     id: 'my-class.take-attendance',
     label: { en: "Take my class's attendance", bn: 'আমার শ্রেণির উপস্থিতি নিন' },
@@ -615,6 +632,15 @@ export const ACTIONS: readonly PaletteAction[] = [
     // `-assign-teacher-dialog.tsx` from there (U7: reuse the page, never a
     // second copy of the dialog).
     run: (ctx) => ctx.navigate({ to: '/staff/teaching-assignments' }),
+  },
+  // [83.3.3] D33: lands on Teaching assignments › Coordinators with the assign dialog open.
+  {
+    id: 'coordinators.assign',
+    label: { en: 'Assign coordinator', bn: 'সমন্বয়ক দিন' },
+    permission: Permission.CLASS_MANAGE,
+    kind: 'modal',
+    group: 'people',
+    run: (ctx) => ctx.navigate({ to: '/staff/teaching-assignments?tab=coordinators&assign=1' }),
   },
   {
     id: 'exams.copyComponents',

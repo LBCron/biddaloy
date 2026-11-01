@@ -106,6 +106,9 @@ consecutive classes of `bmsc-high`'s current year (picked by position with `ctx.
 opens Academics › My coordination with real data. A second High teacher who teaches Mathematics is **Mathematics
 subject coordinator** of two consecutive classes. All five `coordinator_assignments` rows come from
 `slices/staff.ts` and record the demo admin as the assigner.
+The coordinator's "attendance not taken" alerts are not written by hand: the attention slice's FAST sweep
+runs the real rule, which adds class coordinators at level 1 (83.2.4). So whenever a section of a coordinated class
+has no register at 10:30 on the anchor day, the 8-A card login gets that alert as its coordinator.
 
 #### Deep links
 

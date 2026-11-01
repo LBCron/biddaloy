@@ -757,6 +757,11 @@
       "overlays": ["add-yourself"]
     },
     {
+      "path": "/my-coordination",
+      "role": "teacher",
+      "archetype": "list"
+    },
+    {
       "path": "/attendance",
       "role": "admin",
       "archetype": "list"

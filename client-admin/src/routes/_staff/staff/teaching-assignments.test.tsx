@@ -331,3 +331,75 @@ describe('/staff/teaching-assignments', () => {
     toastSpy.mockRestore();
   });
 });
+
+/** [83.3.3] Teaching assignments › Coordinators (`?tab=coordinators`). */
+describe('/staff/teaching-assignments › Coordinators', () => {
+  afterEach(async () => {
+    await cleanupTestState();
+  });
+
+  const coordinator = (over: Record<string, unknown> = {}) => ({
+    id: 'c1',
+    teacher_id: 't1',
+    teacher_name: 'Rahim Uddin',
+    class_id: 'k6',
+    class_name: 'Class 6',
+    subject_id: null,
+    subject_name: null,
+    assigned_by_name: 'Head Admin',
+    created_at: '2026-10-01T04:00:00.000Z',
+    ...over,
+  });
+  const NEVER_SAY = /\b(scope|slice|grant|recipient|audience|widen)\b/i;
+
+  it('lists rows with their kind and who assigned them; no never-say word', async () => {
+    server.use(
+      http.get('/api/v1/coordinators', () =>
+        HttpResponse.json([
+          coordinator(),
+          coordinator({
+            id: 'c2',
+            teacher_name: 'Karim Hossain',
+            class_name: 'Class 9',
+            subject_id: 'm1',
+            subject_name: 'Mathematics',
+          }),
+        ]),
+      ),
+    );
+    render('/staff/teaching-assignments?tab=coordinators');
+    expect(await screen.findByText('Rahim Uddin')).toBeTruthy();
+    expect(screen.getAllByText('Class coordinator').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Subject coordinator').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/assigned by Head Admin on/).length).toBe(2);
+    expect(document.body.textContent ?? '').not.toMatch(NEVER_SAY);
+  });
+
+  it('shows the empty state with an Assign button', async () => {
+    render('/staff/teaching-assignments?tab=coordinators');
+    expect(await screen.findByText('No coordinator has been assigned yet')).toBeTruthy();
+  });
+
+  it('remove asks first, then DELETEs the row', async () => {
+    let deleted = '';
+    server.use(
+      http.get('/api/v1/coordinators', () => HttpResponse.json(deleted ? [] : [coordinator()])),
+      http.delete('/api/v1/coordinators/:id', ({ params }) => {
+        deleted = String(params.id);
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const user = userEvent.setup();
+    render('/staff/teaching-assignments?tab=coordinators');
+    await screen.findByText('Rahim Uddin');
+    await user.click(screen.getByRole('button', { name: /Remove coordinator/ }));
+    const confirm = await screen.findByRole('alertdialog');
+    await user.click(within(confirm).getByRole('button', { name: 'Remove' }));
+    await waitFor(() => expect(deleted).toBe('c1'));
+  });
+
+  it('?assign=1 opens the Assign coordinator dialog on arrival', async () => {
+    render('/staff/teaching-assignments?tab=coordinators&assign=1');
+    expect(await screen.findByRole('dialog', { name: 'Assign coordinator' })).toBeTruthy();
+  });
+});

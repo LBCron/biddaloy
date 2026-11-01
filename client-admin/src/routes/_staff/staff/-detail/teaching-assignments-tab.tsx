@@ -24,11 +24,15 @@ import {
   useHasPermission,
   useTeacherAssignments,
   useUnassignTeacherAssignment,
+  useCoordinators,
+  type CoordinatorAssignment,
 } from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
 import { UserPlusIcon } from 'lucide-react';
 import * as React from 'react';
 
+import { AssignCoordinatorDialog } from '../-assign-coordinator-dialog';
+import { CoordinatorsTable, RemoveCoordinatorDialog } from '../-coordinators-table';
 import { AssignTeacherDialog, sortByAssignmentType } from '../../classes/-assign-teacher-dialog';
 
 import { TabQueryState } from './tab-query-state';
@@ -68,97 +72,147 @@ export function TeachingAssignmentsTab({ teacherId }: TeachingAssignmentsTabProp
   ];
 
   return (
-    <section className="overflow-hidden rounded-lg border border-border-subtle bg-surface shadow-e1">
-      <div className="flex flex-wrap items-center justify-between gap-2 p-4 md:px-5">
-        <h2 className="text-h2">{t('detail.teachingAssignments.title')}</h2>
-        {canManage && (
-          <Button type="button" variant="outline" onClick={() => setAssignOpen(true)}>
-            <UserPlusIcon aria-hidden="true" />
-            {t('detail.teachingAssignments.assign')}
-          </Button>
+    <>
+      <section className="overflow-hidden rounded-lg border border-border-subtle bg-surface shadow-e1">
+        <div className="flex flex-wrap items-center justify-between gap-2 p-4 md:px-5">
+          <h2 className="text-h2">{t('detail.teachingAssignments.title')}</h2>
+          {canManage && (
+            <Button type="button" variant="outline" onClick={() => setAssignOpen(true)}>
+              <UserPlusIcon aria-hidden="true" />
+              {t('detail.teachingAssignments.assign')}
+            </Button>
+          )}
+        </div>
+
+        {unassign.isError && (
+          <p role="alert" className="px-4 pb-3 text-caption text-destructive md:px-5">
+            {t('detail.teachingAssignments.removeError')}
+          </p>
         )}
-      </div>
 
-      {unassign.isError && (
-        <p role="alert" className="px-4 pb-3 text-caption text-destructive md:px-5">
-          {t('detail.teachingAssignments.removeError')}
-        </p>
-      )}
+        <TabQueryState
+          query={query}
+          forbiddenMessage={t('detail.forbidden')}
+          errorMessage={t('detail.teachingAssignments.errorMessage')}
+        >
+          {(rows) => (
+            <DataTable
+              tableId="staff-teaching-assignments"
+              caption={t('detail.teachingAssignments.caption')}
+              columns={columns}
+              data={sortByAssignmentType(rows)}
+              getRowId={(row) => row.id}
+              sorting={sorting}
+              onSortingChange={setSorting}
+              totalCount={rows.length}
+              paginated={false}
+              rowActions={(row) =>
+                canManage
+                  ? [
+                      {
+                        intent: 'remove',
+                        label: t('detail.teachingAssignments.remove'),
+                        onClick: () => setRemoving(row),
+                      },
+                    ]
+                  : []
+              }
+              emptyState={{
+                title: t('detail.teachingAssignments.emptyMessage'),
+                explanation: t('detail.teachingAssignments.emptyExplanation'),
+              }}
+              announceResults={(count, total) =>
+                t('detail.teachingAssignments.announceResults', { count, total })
+              }
+            />
+          )}
+        </TabQueryState>
 
-      <TabQueryState
-        query={query}
-        forbiddenMessage={t('detail.forbidden')}
-        errorMessage={t('detail.teachingAssignments.errorMessage')}
-      >
-        {(rows) => (
-          <DataTable
-            tableId="staff-teaching-assignments"
-            caption={t('detail.teachingAssignments.caption')}
-            columns={columns}
-            data={sortByAssignmentType(rows)}
-            getRowId={(row) => row.id}
-            sorting={sorting}
-            onSortingChange={setSorting}
-            totalCount={rows.length}
-            paginated={false}
-            rowActions={(row) =>
-              canManage
-                ? [
-                    {
-                      intent: 'remove',
-                      label: t('detail.teachingAssignments.remove'),
-                      onClick: () => setRemoving(row),
-                    },
-                  ]
-                : []
-            }
-            emptyState={{
-              title: t('detail.teachingAssignments.emptyMessage'),
-              explanation: t('detail.teachingAssignments.emptyExplanation'),
+        {canManage && removing && (
+          <ConfirmDialog
+            open
+            onOpenChange={(open) => {
+              if (!open) setRemoving(null);
             }}
-            announceResults={(count, total) =>
-              t('detail.teachingAssignments.announceResults', { count, total })
+            tone="danger"
+            title={t('detail.teachingAssignments.removeConfirmTitle')}
+            helpId="people.teachingAssignments.action.unassign"
+            description={t('detail.teachingAssignments.removeConfirmDescription', {
+              sectionName: `${removing.class_name} · ${removing.section_name}`,
+            })}
+            confirmLabel={t('detail.teachingAssignments.removeConfirm')}
+            busy={unassign.isPending}
+            onConfirm={() =>
+              unassign.mutate(
+                {
+                  classId: removing.class_id,
+                  sectionId: removing.section_id,
+                  assignmentId: removing.id,
+                },
+                // The error line above the table reports a failure; close either way.
+                { onSettled: () => setRemoving(null) },
+              )
             }
           />
         )}
-      </TabQueryState>
 
-      {canManage && removing && (
-        <ConfirmDialog
-          open
-          onOpenChange={(open) => {
-            if (!open) setRemoving(null);
+        {canManage && (
+          <AssignTeacherDialog
+            open={assignOpen}
+            onOpenChange={setAssignOpen}
+            teacherId={teacherId}
+            onAssigned={() => setAssignOpen(false)}
+          />
+        )}
+      </section>
+      {canManage && <TeacherCoordinationBlock teacherId={teacherId} />}
+    </>
+  );
+}
+
+/**
+ * [83.3.3] D30: the classes this teacher coordinates, with assign and remove. Rendered for
+ * CLASS_MANAGE only (`GET /coordinators` needs it).
+ */
+function TeacherCoordinationBlock({ teacherId }: { teacherId: string }) {
+  const { t } = useTranslation('teacherAssignments');
+  const query = useCoordinators({ teacherId });
+  const [assignOpen, setAssignOpen] = React.useState(false);
+  const [removing, setRemoving] = React.useState<CoordinatorAssignment | null>(null);
+  return (
+    <section className="mt-6 overflow-hidden rounded-lg border border-border-subtle bg-surface shadow-e1">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-4 md:px-5">
+        <h2 className="text-h2">{t('coordinators.blockTitle')}</h2>
+        <Button type="button" variant="outline" onClick={() => setAssignOpen(true)}>
+          <UserPlusIcon aria-hidden="true" />
+          {t('coordinators.assign')}
+        </Button>
+      </div>
+      {!query.isError && query.isSuccess && query.data.length === 0 ? (
+        <p className="px-4 pb-4 text-text-secondary md:px-5">{t('coordinators.blockEmpty')}</p>
+      ) : (
+        <CoordinatorsTable
+          tableId={`teacher-coordination-${teacherId}`}
+          caption={t('coordinators.blockTitle')}
+          rows={query.data}
+          loading={query.isLoading}
+          fetching={query.isFetching}
+          isError={query.isError}
+          onRetry={() => void query.refetch()}
+          hideTeacher
+          onRemove={setRemoving}
+          emptyState={{
+            title: t('coordinators.blockEmpty'),
+            explanation: t('coordinators.emptyMessage'),
           }}
-          tone="danger"
-          title={t('detail.teachingAssignments.removeConfirmTitle')}
-          helpId="people.teachingAssignments.action.unassign"
-          description={t('detail.teachingAssignments.removeConfirmDescription', {
-            sectionName: `${removing.class_name} · ${removing.section_name}`,
-          })}
-          confirmLabel={t('detail.teachingAssignments.removeConfirm')}
-          busy={unassign.isPending}
-          onConfirm={() =>
-            unassign.mutate(
-              {
-                classId: removing.class_id,
-                sectionId: removing.section_id,
-                assignmentId: removing.id,
-              },
-              // The error line above the table reports a failure; close either way.
-              { onSettled: () => setRemoving(null) },
-            )
-          }
         />
       )}
-
-      {canManage && (
-        <AssignTeacherDialog
-          open={assignOpen}
-          onOpenChange={setAssignOpen}
-          teacherId={teacherId}
-          onAssigned={() => setAssignOpen(false)}
-        />
-      )}
+      <AssignCoordinatorDialog
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+        teacherId={teacherId}
+      />
+      <RemoveCoordinatorDialog row={removing} onClose={() => setRemoving(null)} />
     </section>
   );
 }

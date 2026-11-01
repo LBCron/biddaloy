@@ -20,6 +20,10 @@
  * whatever `classId`/`sectionId` happened to be in state when the DELETE
  * settles — wrong if the confirm dialog closed or the class filter changed
  * meanwhile.
+ *
+ * [83.3.3] A second tab, Coordinators (`?tab=coordinators`), lists class and subject
+ * coordinators with who assigned them; `?assign=1` opens "Assign coordinator" on mount
+ * (palette action `coordinators.assign`, D33).
  */
 import { Permission } from '@biddaloy/shared';
 import {
@@ -37,6 +41,10 @@ import {
   SelectTrigger,
   SelectValue,
   Skeleton,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   toast,
   type DataTableColumn,
 } from '@biddaloy/ui/components';
@@ -47,8 +55,10 @@ import {
   useAcademicYears,
   useAllClasses,
   useClassSections,
+  useCoordinators,
   useHasPermission,
   useUnassignTeacherAssignment,
+  type CoordinatorAssignment,
   type SectionTeacherAssignment,
 } from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
@@ -62,9 +72,19 @@ import { z } from 'zod';
 import { loadRouteNamespaces, swallowUnlessOffline } from '../../../route-loaders';
 import { AssignTeacherDialog, sortByAssignmentType } from '../classes/-assign-teacher-dialog';
 
+import { AssignCoordinatorDialog } from './-assign-coordinator-dialog';
+import { CoordinatorsTable, RemoveCoordinatorDialog } from './-coordinators-table';
+
+const TABS = ['byClass', 'coordinators'] as const;
+
 export const Route = createFileRoute('/_staff/staff/teaching-assignments')({
   // Same param name as the old list filter key, so old links keep working.
-  validateSearch: z.object({ classId: z.string().uuid().optional().catch(undefined) }),
+  validateSearch: z.object({
+    classId: z.string().uuid().optional().catch(undefined),
+    // [83.3.3] Coordinators tab; `assign=1` opens its dialog on mount (D33).
+    tab: z.enum(TABS).optional().catch(undefined),
+    assign: z.literal(1).optional().catch(undefined),
+  }),
   loader: ({ context: { queryClient } }) =>
     Promise.all([
       // Classes are fetched for the current year only, so the years come first.
@@ -169,134 +189,163 @@ function TeachingAssignmentsPage() {
     <PageContainer size="wide">
       <PageHeader title={t('list.title')} subtitle={t('list.subtitle')} />
 
-      {academicYearsQuery.isError ? (
-        <ErrorState
-          message={t('list.classListErrorMessage')}
-          retryLabel={t('actions.retry', { ns: 'common' })}
-          onRetry={() => void academicYearsQuery.refetch()}
-        />
-      ) : classesQuery.isError ? (
-        <ErrorState
-          message={t('list.classListErrorMessage')}
-          retryLabel={t('actions.retry', { ns: 'common' })}
-          onRetry={() => void classesQuery.refetch()}
-        />
-      ) : classesQuery.isLoading ? (
-        <Skeleton className="h-40 w-full rounded-lg" />
-      ) : classes.length === 0 ? (
-        <EmptyState
-          title={t('list.noClassesTitle')}
-          explanation={t('list.noClassesExplanation')}
-          action={{ label: t('list.addClass'), onClick: () => void navigate({ to: '/classes' }) }}
-        />
-      ) : (
-        <>
-          <div className="grid gap-1.5 md:w-72">
-            <Label htmlFor="ta-class">{t('list.classLabel')}</Label>
-            <Select
-              {...(effectiveClassId ? { value: effectiveClassId } : {})}
-              onValueChange={(value) => {
-                void navigate({ to: '/staff/teaching-assignments', search: { classId: value } });
-                setAssignSectionId(null);
-                // Class switch closes any open unassign confirm — its row
-                // belongs to the old class.
-                setUnassigning(null);
-              }}
-            >
-              <SelectTrigger id="ta-class">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {classes.map((klass) => (
-                  <SelectItem key={klass.id} value={klass.id}>
-                    {klass.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {sectionsQuery.isError && (
+      <Tabs
+        value={search.tab ?? 'byClass'}
+        onValueChange={(value) =>
+          void navigate({
+            to: '/staff/teaching-assignments',
+            search: (prev) => ({
+              ...prev,
+              tab: value === 'byClass' ? undefined : (value as (typeof TABS)[number]),
+              assign: undefined,
+            }),
+          })
+        }
+      >
+        <TabsList>
+          <TabsTrigger value="byClass">{t('tabs.byClass')}</TabsTrigger>
+          <TabsTrigger value="coordinators">{t('tabs.coordinators')}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="coordinators" className="mt-4">
+          <CoordinatorsPanel canManage={canManage} openOnMount={search.assign === 1} />
+        </TabsContent>
+        <TabsContent value="byClass" className="mt-4 space-y-6">
+          {academicYearsQuery.isError ? (
             <ErrorState
-              message={t('list.errorMessage')}
+              message={t('list.classListErrorMessage')}
               retryLabel={t('actions.retry', { ns: 'common' })}
-              onRetry={() => void sectionsQuery.refetch()}
+              onRetry={() => void academicYearsQuery.refetch()}
             />
-          )}
-
-          <div className="space-y-6">
-            {sections.map((section, index) => {
-              const q = sectionTeacherQueries[index];
-              return (
-                <section
-                  key={section.id}
-                  className="overflow-hidden rounded-lg border border-border-subtle bg-surface shadow-e1"
+          ) : classesQuery.isError ? (
+            <ErrorState
+              message={t('list.classListErrorMessage')}
+              retryLabel={t('actions.retry', { ns: 'common' })}
+              onRetry={() => void classesQuery.refetch()}
+            />
+          ) : classesQuery.isLoading ? (
+            <Skeleton className="h-40 w-full rounded-lg" />
+          ) : classes.length === 0 ? (
+            <EmptyState
+              title={t('list.noClassesTitle')}
+              explanation={t('list.noClassesExplanation')}
+              action={{
+                label: t('list.addClass'),
+                onClick: () => void navigate({ to: '/classes' }),
+              }}
+            />
+          ) : (
+            <>
+              <div className="grid gap-1.5 md:w-72">
+                <Label htmlFor="ta-class">{t('list.classLabel')}</Label>
+                <Select
+                  {...(effectiveClassId ? { value: effectiveClassId } : {})}
+                  onValueChange={(value) => {
+                    void navigate({
+                      to: '/staff/teaching-assignments',
+                      search: { classId: value },
+                    });
+                    setAssignSectionId(null);
+                    // Class switch closes any open unassign confirm — its row
+                    // belongs to the old class.
+                    setUnassigning(null);
+                  }}
                 >
-                  <div className="flex items-center justify-between gap-4 p-4 md:px-5 md:py-4">
-                    <h2 className="text-h2">
-                      {t('list.sectionTitle', { name: section.section_name })}
-                    </h2>
-                    {canManage && (
-                      <span className="inline-flex items-center gap-1">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            setAssignSectionId(section.id);
-                            setAssignOpen(true);
+                  <SelectTrigger id="ta-class">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((klass) => (
+                      <SelectItem key={klass.id} value={klass.id}>
+                        {klass.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {sectionsQuery.isError && (
+                <ErrorState
+                  message={t('list.errorMessage')}
+                  retryLabel={t('actions.retry', { ns: 'common' })}
+                  onRetry={() => void sectionsQuery.refetch()}
+                />
+              )}
+
+              <div className="space-y-6">
+                {sections.map((section, index) => {
+                  const q = sectionTeacherQueries[index];
+                  return (
+                    <section
+                      key={section.id}
+                      className="overflow-hidden rounded-lg border border-border-subtle bg-surface shadow-e1"
+                    >
+                      <div className="flex items-center justify-between gap-4 p-4 md:px-5 md:py-4">
+                        <h2 className="text-h2">
+                          {t('list.sectionTitle', { name: section.section_name })}
+                        </h2>
+                        {canManage && (
+                          <span className="inline-flex items-center gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setAssignSectionId(section.id);
+                                setAssignOpen(true);
+                              }}
+                            >
+                              <UserPlusIcon aria-hidden="true" />
+                              {t('list.assign')}
+                            </Button>
+                            <HelpHint helpId="people.teachingAssignments.action.assign" />
+                          </span>
+                        )}
+                      </div>
+                      {q?.isError ? (
+                        <ErrorState
+                          message={t('list.errorMessage')}
+                          retryLabel={t('actions.retry', { ns: 'common' })}
+                          onRetry={() => void q.refetch()}
+                        />
+                      ) : (
+                        <DataTable
+                          tableId={`teacher-assignments-${section.id}`}
+                          caption={t('list.sectionCaption', { name: section.section_name })}
+                          columns={columns}
+                          data={sortByAssignmentType(
+                            (q?.data ?? []).map((a) => ({ ...a, classId: effectiveClassId! })),
+                          )}
+                          getRowId={(row) => row.id}
+                          sorting={null}
+                          onSortingChange={() => undefined}
+                          totalCount={q?.data?.length ?? 0}
+                          paginated={false}
+                          loading={q?.isLoading ?? true}
+                          isFetching={q?.isFetching ?? false}
+                          rowActions={(row) => [
+                            {
+                              intent: 'remove',
+                              label: t('list.unassign'),
+                              allowed: canManage,
+                              onClick: () => setUnassigning(row),
+                            },
+                          ]}
+                          emptyState={{
+                            title: t('list.emptyTitle'),
+                            explanation: t('list.emptyMessage'),
                           }}
-                        >
-                          <UserPlusIcon aria-hidden="true" />
-                          {t('list.assign')}
-                        </Button>
-                        <HelpHint helpId="people.teachingAssignments.action.assign" />
-                      </span>
-                    )}
-                  </div>
-                  {q?.isError ? (
-                    <ErrorState
-                      message={t('list.errorMessage')}
-                      retryLabel={t('actions.retry', { ns: 'common' })}
-                      onRetry={() => void q.refetch()}
-                    />
-                  ) : (
-                    <DataTable
-                      tableId={`teacher-assignments-${section.id}`}
-                      caption={t('list.sectionCaption', { name: section.section_name })}
-                      columns={columns}
-                      data={sortByAssignmentType(
-                        (q?.data ?? []).map((a) => ({ ...a, classId: effectiveClassId! })),
+                          announceResults={(count, total) =>
+                            t('list.announceResults', { count, total })
+                          }
+                        />
                       )}
-                      getRowId={(row) => row.id}
-                      sorting={null}
-                      onSortingChange={() => undefined}
-                      totalCount={q?.data?.length ?? 0}
-                      paginated={false}
-                      loading={q?.isLoading ?? true}
-                      isFetching={q?.isFetching ?? false}
-                      rowActions={(row) => [
-                        {
-                          intent: 'remove',
-                          label: t('list.unassign'),
-                          allowed: canManage,
-                          onClick: () => setUnassigning(row),
-                        },
-                      ]}
-                      emptyState={{
-                        title: t('list.emptyTitle'),
-                        explanation: t('list.emptyMessage'),
-                      }}
-                      announceResults={(count, total) =>
-                        t('list.announceResults', { count, total })
-                      }
-                    />
-                  )}
-                </section>
-              );
-            })}
-          </div>
-        </>
-      )}
+                    </section>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {canManage && effectiveClassId && assignSectionId && (
         <AssignTeacherDialog
@@ -345,6 +394,52 @@ function TeachingAssignmentsPage() {
         />
       )}
     </PageContainer>
+  );
+}
+
+/** [83.3.3] Coordinators tab: every coordinator row of the school, with assign / remove. */
+function CoordinatorsPanel({
+  canManage,
+  openOnMount,
+}: {
+  canManage: boolean;
+  openOnMount: boolean;
+}) {
+  const { t } = useTranslation('teacherAssignments');
+  const query = useCoordinators();
+  const [assignOpen, setAssignOpen] = React.useState(openOnMount && canManage);
+  const [removing, setRemoving] = React.useState<CoordinatorAssignment | null>(null);
+  const open = () => setAssignOpen(true);
+
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-h2">{t('coordinators.caption')}</h2>
+        {canManage && (
+          <Button type="button" variant="outline" onClick={open}>
+            <UserPlusIcon aria-hidden="true" />
+            {t('coordinators.assign')}
+          </Button>
+        )}
+      </div>
+      <CoordinatorsTable
+        tableId="coordinators"
+        caption={t('coordinators.caption')}
+        rows={query.data}
+        loading={query.isLoading}
+        fetching={query.isFetching}
+        isError={query.isError}
+        onRetry={() => void query.refetch()}
+        onRemove={canManage ? setRemoving : undefined}
+        emptyState={{
+          title: t('coordinators.emptyTitle'),
+          explanation: t('coordinators.emptyMessage'),
+          ...(canManage ? { action: { label: t('coordinators.assign'), onClick: open } } : {}),
+        }}
+      />
+      {canManage && <AssignCoordinatorDialog open={assignOpen} onOpenChange={setAssignOpen} />}
+      {canManage && <RemoveCoordinatorDialog row={removing} onClose={() => setRemoving(null)} />}
+    </section>
   );
 }
 

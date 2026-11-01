@@ -48,6 +48,7 @@
   - [Creating and managing academic years](academics/academic-years.md)
   - [Arranging classes, sections and subjects](academics/classes.md)
   - [Seeing your own class on one page](academics/my-class.md)
+  - [Seeing what is still not done in the classes you coordinate](academics/my-coordination.md)
   - [Giving homework](academics/homework.md)
   - [Syllabus and study plans](academics/syllabus.md)
   - [Setting up shifts, period times, rooms and rules for the routine](academics/routine-setup.md)

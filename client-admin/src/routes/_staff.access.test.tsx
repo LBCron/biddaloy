@@ -65,6 +65,27 @@ describe('_staff route access [8.14.17]', () => {
     await waitFor(() => expect(screen.queryByText(ACCESS_DENIED_TITLE)).toBeNull());
   });
 
+  // [83.4.1] D25: COORDINATION_VIEW is TEACHER only; ADMIN already sees every class.
+  it('renders /my-coordination for a TEACHER and refuses an ADMIN in place', async () => {
+    renderWithRouter(routeTree, {
+      initialEntries: ['/my-coordination'],
+      tenantId: 'tenant-1',
+      role: UserRole.TEACHER,
+      locale: 'en',
+    });
+    await waitFor(() => expect(screen.queryByText(ACCESS_DENIED_TITLE)).toBeNull());
+    await cleanupTestState();
+
+    const { router } = renderWithRouter(routeTree, {
+      initialEntries: ['/my-coordination'],
+      tenantId: 'tenant-1',
+      role: UserRole.ADMIN,
+      locale: 'en',
+    });
+    await waitFor(() => expect(screen.getByText(ACCESS_DENIED_TITLE)).toBeTruthy());
+    expect(router.state.location.pathname).toBe('/my-coordination');
+  });
+
   it('refuses an EXECUTIVE at /invoices, who holds no INVOICE_READ', async () => {
     const { router } = renderWithRouter(routeTree, {
       initialEntries: ['/invoices'],

@@ -108,8 +108,11 @@ export class CoordinationService {
         pending_grids: (pendingByClass.get(row.class_id) ?? []).filter(
           (g) => row.subject_id === null || g.subject_id === row.subject_id,
         ),
+        // The coordinator is left out: they never remind themself (`notify` drops them too).
         teachers: groupTeachers(
-          teaching.filter((t) => row.section_ids.includes(t.section_id) && mine(t)),
+          teaching.filter(
+            (t) => row.section_ids.includes(t.section_id) && mine(t) && t.user_id !== userId,
+          ),
         ),
       };
     });

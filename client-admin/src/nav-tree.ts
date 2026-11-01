@@ -265,6 +265,15 @@ export const STAFF_NAV_ITEMS = {
     label: { key: 'myClass' },
     synonyms: ['class teacher', 'form master', 'homeroom', 'my section'],
   },
+  // [83.4.1] D9/D25: TEACHER-only (`COORDINATION_VIEW`); shows for every teacher like My
+  // class (P12); a teacher with no coordinator rows sees the page's empty state.
+  'academics.myCoordination': {
+    id: 'academics.myCoordination',
+    to: '/my-coordination',
+    permission: Permission.COORDINATION_VIEW,
+    label: { key: 'myCoordination' },
+    synonyms: ['coordinator', 'class coordinator', 'subject coordinator', 'oversight'],
+  },
   'attendance.attendance': {
     id: 'attendance.attendance',
     to: '/attendance',
@@ -535,6 +544,7 @@ export const STAFF_NAV_GROUPS: readonly StaffNavGroupDef[] = [
       STAFF_NAV_ITEMS['academics.routineSubstitutions'],
       STAFF_NAV_ITEMS['academics.myRoutine'],
       STAFF_NAV_ITEMS['academics.myClass'],
+      STAFF_NAV_ITEMS['academics.myCoordination'],
       STAFF_NAV_ITEMS['academics.homework'],
       STAFF_NAV_ITEMS['academics.syllabus'],
     ],

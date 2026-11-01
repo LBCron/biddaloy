@@ -1556,6 +1556,19 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'task-main',
     knownIssues: 0,
   },
+  'academics.myCoordination': {
+    title: {
+      bn: 'আপনার সমন্বয়ের শ্রেণিগুলোতে কী বাকি তা দেখা',
+      en: 'Seeing what is still not done in the classes you coordinate',
+    },
+    summary: {
+      bn: 'শ্রেণি বা বিষয় সমন্বয়ক হিসেবে দেখুন আজ কোন শাখায় হাজিরা হয়নি, কার নম্বর বাকি, কে কী পড়ান, আর সেই শিক্ষকদের একটি বার্তা পাঠান।',
+      en: 'As a class or subject coordinator, see which sections have no attendance today, whose marks are still pending and who teaches what, and send those teachers one reminder.',
+    },
+    path: 'academics/my-coordination',
+    anchor: '',
+    knownIssues: 0,
+  },
   'academics.homework': {
     title: { bn: 'বাড়ির কাজ দেওয়া', en: 'Giving homework' },
     summary: {
@@ -4803,6 +4816,7 @@ export const HELP_ROUTES = {
   '/routines/my': 'academics.myRoutine',
   '/my-class': 'academics.myClass',
   '/my-class/$sectionId': 'academics.myClass',
+  '/my-coordination': 'academics.myCoordination',
   '/academics/homework': 'academics.homework',
   '/academics/homework/$homeworkId': 'academics.homework',
   '/academics/homework/import': 'academics.homework',

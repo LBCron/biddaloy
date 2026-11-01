@@ -7,6 +7,9 @@ sources:
   - client-admin/src/routes/_staff/staff/teaching-assignments.tsx
   - client-admin/src/routes/_staff/classes/-assign-teacher-dialog.tsx
   - client-admin/src/routes/_staff/staff/-detail/teaching-assignments-tab.tsx
+  - client-admin/src/routes/_staff/staff/-assign-coordinator-dialog.tsx
+  - client-admin/src/routes/_staff/staff/-coordinators-table.tsx
+  - server/src/modules/classes/coordinators.controller.ts
   - server/src/modules/classes/classes.service.ts
   - server/src/modules/classes/teacher-scope.service.ts
   - server/src/modules/exams/marks-authorization.util.ts
@@ -35,7 +38,7 @@ keywords:
   [শিক্ষকের দায়িত্ব, শ্রেণি শিক্ষক, বিষয় শিক্ষক, সহকারী শ্রেণি শিক্ষক, শাখা, নিয়োগ, teaching assignment, class teacher, subject teacher, assign]
 appVersion: 0.1.0 (e81ef857f)
 owner: tareq89
-lastVerified: 2026-10-24
+lastVerified: 2026-10-31
 knownIssues: []
 -->
 
@@ -58,6 +61,7 @@ Every section has a **list of duties**. Each row of the list is one teacher and 
   - [Change the class teacher](#task-replace)
   - [Remove from a section](#task-unassign)
   - [See or give all of one teacher's duties](#task-teacher)
+  - [Make a teacher a coordinator](#task-coordinators)
 - [What the teacher sees next](#after)
 - [Problems and fixes](#trouble)
 - [Who can do what](#roles)
@@ -179,6 +183,35 @@ To see all the classes and sections of one teacher together:
 
    → The dialog text: "The teacher will be removed from {class · section}." When it is gone, the row leaves the list. If it does not, it shows **Couldn't remove the assignment. Try again.**
 
+### Make a teacher a coordinator <a href="#task-coordinators" id="task-coordinators"></a>
+
+A **coordinator** is a teacher who looks after other teachers' work in some classes. There are two kinds:
+
+- **Class coordinator** — sees every subject of the class: students, attendance, marks, homework reports and study plans of every section.
+- **Subject coordinator** — sees the same students and attendance, but marks and study plans of one subject only.
+
+A coordinator only looks; they never change marks or attendance. They see what is still not done on their own page, [My coordination](../academics/my-coordination.md).
+
+1. Press **People → Staff → Teacher assignments** in the left menu, then the **Coordinators** tab.
+
+   → The list of coordinators: **Teacher**, **Kind**, **Class**, **Subject**, and when they were given, for example "assigned by Head Admin on 1 October 2026". With nobody yet, it says **No coordinator has been assigned yet**.
+
+2. Press **Assign coordinator**.
+
+   → The **Assign coordinator** dialog opens.
+
+3. Choose the **Teacher**, then one or more **Classes** of this year (for example Class 6, Class 7 and Class 8).
+
+4. Leave **Subject** empty for a **Class coordinator**. Choose a subject (for example Mathematics) for a **Subject coordinator**.
+
+5. Press **Save**.
+
+   → One row per class appears in the list. If the same teacher already coordinates one of those classes the same way, **This coordinator assignment already exists.** shows beside **Save** and nothing is saved.
+
+**To remove a coordinator:** press **Remove coordinator** at the end of the row, then **Remove**. The teacher keeps their own sections; only the coordination goes.
+
+**Quick way:** in the search box (Ctrl+K), type **Assign coordinator**. The tab opens with the dialog already open. A teacher's page (**People → Staff → the teacher → Teacher assignments**) also has a **Coordination** block with the same assign and remove, and a class's **Teachers** tab shows its coordinators.
+
 ---
 
 ## What the teacher sees next <a href="#after" id="after"></a>
@@ -297,6 +330,7 @@ Someone without permission who opens the page sees **You don't have access to th
 - [**Giving homework**](../academics/homework.md) — a teacher can give homework only to sections assigned here.
 - [**Syllabus and study plans**](../academics/syllabus.md) — study plans follow the duties given here.
 - [**Attendance register**](../attendance/attendance-register.md) — which sections a teacher sees in the register.
+- [**My coordination**](../academics/my-coordination.md) — what a coordinator sees for the classes given here.
 - [**Evaluations: ACR, teacher surveys and incidents**](evaluations.md) — evaluations of the teacher who holds these duties.
 - [**Taking attendance**](../attendance/attendance.md) — attendance is taken for the sections assigned here.
 - [**Roles and permissions**](../administration/roles.md) — See side by side what each staff role in the school can see and do, on one page. The page is view-only.
