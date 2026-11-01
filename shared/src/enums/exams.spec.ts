@@ -33,6 +33,12 @@ describe('exam enums', () => {
       'punctuality',
       'sports',
     ]);
+    // D30 names, verbatim: the card prints these.
+    expect(DEFAULT_CONDUCT_ITEMS[3]).toEqual({
+      key: 'sports',
+      name_bn: 'খেলাধুলা ও সহশিক্ষা',
+      name_en: 'Sports & co-curricular',
+    });
   });
 
   it('ExamKind has the four kinds', () => {

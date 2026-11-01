@@ -11,7 +11,7 @@ export const DEFAULT_CONDUCT_ITEMS: ConductItem[] = [
   { key: 'discipline', name_bn: 'শৃঙ্খলা', name_en: 'Discipline' },
   { key: 'neatness', name_bn: 'পরিচ্ছন্নতা', name_en: 'Neatness' },
   { key: 'punctuality', name_bn: 'সময়ানুবর্তিতা', name_en: 'Punctuality' },
-  { key: 'sports', name_bn: 'খেলাধুলা', name_en: 'Sports' },
+  { key: 'sports', name_bn: 'খেলাধুলা ও সহশিক্ষা', name_en: 'Sports & co-curricular' },
 ];
 
 export interface ReportCardNoteView {
