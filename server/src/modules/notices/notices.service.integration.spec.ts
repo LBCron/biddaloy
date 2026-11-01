@@ -165,9 +165,14 @@ describe('NoticesService (integration)', () => {
 
   it('select-all above 5,000 is refused with the fixed sentence and stores nothing', async () => {
     const n = await draft();
-    const person = { kind: 'STUDENT', userId: null, studentId: kid1, guardianId: null };
+    // 5,001 DISTINCT people: the cap counts people, not rows
     vi.spyOn(audience, 'matchAll').mockResolvedValueOnce(
-      Array.from({ length: 5001 }, () => person) as never,
+      Array.from({ length: 5001 }, () => ({
+        kind: 'STUDENT',
+        userId: null,
+        studentId: randomUUID(),
+        guardianId: null,
+      })) as never,
     );
     const err = await recipients
       .addMatching(T, admin, n.id, {
@@ -178,6 +183,22 @@ describe('NoticesService (integration)', () => {
     expect(err).toBeInstanceOf(BadRequestException);
     expect(err.message).toBe('সর্বোচ্চ ৫,০০০ জন');
     expect(await rows(n.id)).toHaveLength(0);
+  });
+
+  it('guardians with two children count once toward the cap', async () => {
+    const n = await draft();
+    // 5,002 guardian rows over 2,501 distinct guardians (each with two children): under the cap
+    const refs = Array.from({ length: 2501 }, () => randomUUID()).flatMap((guardianId) => [
+      { kind: 'GUARDIAN', userId: null, studentId: randomUUID(), guardianId },
+      { kind: 'GUARDIAN', userId: null, studentId: randomUUID(), guardianId },
+    ]);
+    vi.spyOn(audience, 'matchAll').mockResolvedValueOnce(refs as never);
+    const res = await recipients.addMatching(T, admin, n.id, {
+      target: AudienceTarget.GUARDIANS,
+      tab: AudienceTab.CLASS,
+    });
+    // the fake ids join nothing, so nothing is stored; the point is no cap error
+    expect(res.added).toBe(0);
   });
 
   it('select-all checks ownership and DRAFT before it runs the audience query', async () => {
