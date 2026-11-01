@@ -160,7 +160,8 @@ export class AudienceService {
   ): Promise<{ items: AudiencePersonDto[]; total: number }> {
     if (ADVANCED_TABS.includes(f.tab)) throw new BadRequestException(NOT_BUILT);
     if (!BUILT_TABS[f.target]?.includes(f.tab)) throw new BadRequestException(BAD_COMBO);
-    if (f.roles?.some((r) => ['SUPER_ADMIN', 'PARENT', 'STUDENT'].includes(r))) throw new BadRequestException(BAD_COMBO);
+    if (f.roles?.some((r) => ['SUPER_ADMIN', 'PARENT', 'STUDENT'].includes(r)))
+      throw new BadRequestException(BAD_COMBO);
     if (
       (f.tab === AudienceTab.ROLE && !f.roles?.length) ||
       (f.tab === AudienceTab.CLASS && !f.classIds?.length) ||
