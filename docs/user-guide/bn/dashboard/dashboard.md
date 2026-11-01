@@ -150,6 +150,7 @@ knownIssues:
 9. [SMS ব্যালান্স](widgets.md#widget.sms-balance) — আর কতগুলো SMS পাঠানো যাবে
 10. [যে বার্তা যায়নি](widgets.md#widget.failed-messages) — গত ৭ দিনে যে SMS যায়নি
 11. [সেটআপ তালিকা](widgets.md#widget.setup-checklist) — স্কুলের জন্য আর কী কী সেটআপ বাকি
+12. [সাম্প্রতিক নোটিশ](widgets.md#widget.latest-notices) — আপনার জন্য সবচেয়ে নতুন নোটিশ
 
 ### হিসাবরক্ষক
 
@@ -161,6 +162,7 @@ knownIssues:
 6. [বকেয়া কত দিনের](widgets.md#widget.dues-ageing) — কত দিন ধরে বকেয়া, সেই অনুযায়ী টাকার পরিমাণ (ফোনে ছোট ঘর হিসেবে দেখায়)
 7. [সাম্প্রতিক পেমেন্ট](widgets.md#widget.recent-payments) — সবশেষ যে পেমেন্টগুলো এসেছে
 8. [শ্রেণি অনুযায়ী বকেয়া](widgets.md#widget.dues-by-class) — কোন শ্রেণির বকেয়া সবচেয়ে বেশি
+9. [সাম্প্রতিক নোটিশ](widgets.md#widget.latest-notices) — আপনার জন্য সবচেয়ে নতুন নোটিশ
 
 ### শিক্ষক
 
@@ -171,6 +173,7 @@ knownIssues:
 5. [আমার ছুটির হিসাব](widgets.md#widget.my-leave-balance) — কত ছুটি নিয়েছেন আর কত বাকি (ফোনে ছোট ঘর হিসেবে দেখায়)
 6. [আমার শ্রেণির ধারাবাহিকতা](widgets.md#widget.class-teacher-streaks) — যারা টানা কয়েক দিন অনুপস্থিত
 7. [আমার সিলেবাস অগ্রগতি](widgets.md#widget.my-syllabus-progress) — প্রতি শ্রেণিতে কতটা পড়ানো হলো
+8. [সাম্প্রতিক নোটিশ](widgets.md#widget.latest-notices) — আপনার জন্য সবচেয়ে নতুন নোটিশ
 
 ### একাডেমিক কো-অর্ডিনেটর
 
@@ -182,6 +185,7 @@ knownIssues:
 6. [মার্ক এন্ট্রি](widgets.md#widget.mark-entry-progress) — কোন শ্রেণির মার্ক জমা বাকি
 7. [সিলেবাস অগ্রগতি](widgets.md#widget.syllabus-progress) — কোন শ্রেণি পড়ানোয় পিছিয়ে আছে
 8. [সামনে কী আছে](widgets.md#widget.upcoming) — পরের ছুটি আর সামনের অনুষ্ঠান
+9. [সাম্প্রতিক নোটিশ](widgets.md#widget.latest-notices) — আপনার জন্য সবচেয়ে নতুন নোটিশ
 
 ### অফিস সহকারী
 
@@ -192,6 +196,7 @@ knownIssues:
 5. [শিক্ষক ও স্টাফ](widgets.md#widget.staff-today) — কে উপস্থিত, কে কোন ছুটিতে
 6. [প্রিন্টের তালিকা](widgets.md#widget.print-queue) — প্রিন্টের অপেক্ষায় থাকা নথি
 7. [সামনে কী আছে](widgets.md#widget.upcoming) — পরের ছুটি আর সামনের অনুষ্ঠান
+8. [সাম্প্রতিক নোটিশ](widgets.md#widget.latest-notices) — আপনার জন্য সবচেয়ে নতুন নোটিশ
 
 ### পরীক্ষা নিয়ন্ত্রক
 
@@ -200,6 +205,7 @@ knownIssues:
 3. [আসন পরিকল্পনা](widgets.md#widget.seat-plan-status) — কোন পরীক্ষার আসন পরিকল্পনা আছে, কোনটার নেই
 4. [প্রিন্টের তালিকা](widgets.md#widget.print-queue) — প্রিন্টের অপেক্ষায় থাকা নথি
 5. [সামনে কী আছে](widgets.md#widget.upcoming) — পরের ছুটি আর সামনের অনুষ্ঠান
+6. [সাম্প্রতিক নোটিশ](widgets.md#widget.latest-notices) — আপনার জন্য সবচেয়ে নতুন নোটিশ
 
 ### পরিচালনা পর্ষদ সদস্য
 
