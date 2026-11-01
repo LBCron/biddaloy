@@ -30,6 +30,10 @@ DELETE /invoices/:id/share/:tokenId | InvoicesController | perm: INVOICE_SEND
 DELETE /me/push/subscriptions | PushSubscriptionsController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
 DELETE /me/push/subscriptions/:id | PushSubscriptionsController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
 DELETE /milestone-achievements/:id | MilestoneAchievementsController | perm: PROGRAM_RECORD
+DELETE /notices/:id | NoticesController | perm: NOTICE_POST
+DELETE /notices/:id/files/:fileId | NoticeFilesController | perm: NOTICE_POST
+DELETE /notices/:id/public-link | NoticesController | perm: NOTICE_POST
+DELETE /notices/:id/recipients | NoticesController | perm: NOTICE_POST
 DELETE /programs/:id | ProgramsController | perm: PROGRAM_MANAGE
 DELETE /programs/:id/milestones/:milestoneId | ProgramsController | perm: PROGRAM_MANAGE
 DELETE /promotions/:id | PromotionsController | perm: PROMOTION_MANAGE
@@ -91,6 +95,7 @@ GET /attention/manual | ManualAlertsController | perm: ALERT_SEND
 GET /attention/report | AlertsReportController | perm: ALERT_REPORT_READ
 GET /attention/students/:studentId | AttentionController | perm: STUDENT_READ
 GET /attention/summary | AttentionController | identity
+GET /audience/people | AudienceController | perm: NOTICE_POST
 GET /audit-logs | AuditController | perm: AUDIT_LOG_READ
 GET /audit-logs/entity/:entityType/:entityId | AuditController | perm: AUDIT_ENTITY_HISTORY_READ
 GET /audit-logs/export | AuditController | perm: AUDIT_LOG_READ,REPORTS_EXPORT
@@ -247,6 +252,13 @@ GET /lesson-deliveries | LessonDeliveriesController | perm: SYLLABUS_READ
 GET /me/push/public-key | PushSubscriptionsController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
 GET /me/push/subscriptions | PushSubscriptionsController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
 GET /my-class/sections | MyClassController | perm: MY_CLASS_VIEW
+GET /notices | NoticesController | perm: NOTICE_POST
+GET /notices/:id | NoticesController | perm: NOTICE_POST
+GET /notices/:id/files/:fileId | NoticeFilesController | perm: NOTICE_READ
+GET /notices/:id/recipients | NoticesController | perm: NOTICE_POST
+GET /notices/:id/report | NoticesController | perm: NOTICE_POST
+GET /notices/mine | NoticeReaderController | perm: NOTICE_READ
+GET /notices/mine/:id | NoticeReaderController | perm: NOTICE_READ
 GET /onboarding/status | OnboardingController | identity | roles: ADMIN,SUPER_ADMIN
 GET /payments | FeeController | perm: PAYMENT_READ
 GET /payments/:id | FeeController | perm: PAYMENT_READ
@@ -296,6 +308,8 @@ GET /promotions/:id | PromotionsController | perm: PROMOTION_MANAGE
 GET /promotions/suggest-target | PromotionsController | perm: PROMOTION_MANAGE
 GET /public/admission/:slug | PublicAdmissionController | allowlist: none
 GET /public/invoices/:token | PublicInvoiceController | allowlist: none
+GET /public/notices/:token | PublicNoticeController | allowlist: none
+GET /public/notices/:token/files/:fileId | PublicNoticeController | allowlist: none
 GET /public/verify/:token | PublicVerifyController | allowlist: none
 GET /reports/catalogue | ReportDefinitionsController | perm: REPORTS_VIEW
 GET /reports/catalogue/:id/definition | ReportDefinitionsController | perm: REPORTS_VIEW
@@ -431,6 +445,7 @@ PATCH /guardians/mine | StudentController | identity | roles: PARENT
 PATCH /homework-assignments/:id | HomeworkController | perm: HOMEWORK_ASSIGN
 PATCH /homework-assignments/:id/submissions | HomeworkSubmissionController | perm: HOMEWORK_GRADE
 PATCH /homework-submissions/:id | HomeworkSubmissionController | perm: HOMEWORK_GRADE
+PATCH /notices/:id | NoticesController | perm: NOTICE_POST
 PATCH /onboarding | OnboardingController | identity | roles: ADMIN,SUPER_ADMIN
 PATCH /print-jobs/:id/confirm | PrintJobActionsController | perm: DOCUMENT_PRINT
 PATCH /print-templates/:id | PrintTemplatesController | perm: PRINT_TEMPLATE_MANAGE
@@ -600,6 +615,16 @@ POST /invoices/:id/share/regenerate | InvoicesController | perm: INVOICE_SEND
 POST /lesson-deliveries/extra | LessonDeliveriesController | perm: SYLLABUS_MANAGE
 POST /lesson-deliveries/today-all-taught | LessonDeliveriesController | perm: SYLLABUS_MANAGE
 POST /me/push/subscriptions | PushSubscriptionsController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
+POST /notices | NoticesController | perm: NOTICE_POST
+POST /notices/:id/copy | NoticesController | perm: NOTICE_POST
+POST /notices/:id/files | NoticeFilesController | perm: NOTICE_POST
+POST /notices/:id/public-link | NoticesController | perm: NOTICE_POST
+POST /notices/:id/publish | NoticesController | perm: NOTICE_POST
+POST /notices/:id/recipients | NoticesController | perm: NOTICE_POST
+POST /notices/:id/recipients/matching | NoticesController | perm: NOTICE_POST
+POST /notices/:id/sms/request | NoticesController | perm: NOTICE_POST
+POST /notices/:id/withdraw | NoticesController | perm: NOTICE_POST
+POST /notices/mine/:id/acknowledge | NoticeReaderController | perm: NOTICE_READ
 POST /payments/:id/reverse | CheckoutController | perm: PAYMENT_REVERSE | approval: payments.reverse
 POST /payments/checkout | CheckoutController | perm: PAYMENT_RECORD
 POST /platform/billing/orders/:id/offline-payment | PlatformBillingController | identity | roles: SUPER_ADMIN
@@ -630,6 +655,7 @@ POST /promotions/:id/commit | PromotionsController | perm: PROMOTION_MANAGE
 POST /promotions/:id/refresh | PromotionsController | perm: PROMOTION_MANAGE
 POST /public/admission/:slug/applicants | PublicAdmissionController | allowlist: none
 POST /public/admission/:slug/status | PublicAdmissionController | allowlist: none
+POST /public/notices/:token/opened | PublicNoticeController | allowlist: none
 POST /reports/definitions | ReportDefinitionsController | perm: REPORTS_DESIGN
 POST /reports/definitions/:id/archive | ReportDefinitionsController | perm: REPORTS_DESIGN
 POST /reports/definitions/:id/clone | ReportDefinitionsController | perm: REPORTS_DESIGN

@@ -55,16 +55,17 @@ function safeDecode(text: string): string {
 }
 
 // [PUB-07] Path segments that ARE bearer secrets: `/public/invoices/:token`,
-// `/public/verify/:token`, `/calendar/feed/:token.ics`. Here, not only in the
+// `/public/verify/:token`, `/public/notices/:token`, `/calendar/feed/:token.ics`. Here, not only in the
 // pino serializer, so the exception filter and Sentry mask them too.
-const SECRET_PATH_PATTERN = /(\/(?:public\/invoices|public\/verify|calendar\/feed)\/)[^/?\s"]+/g;
+const SECRET_PATH_PATTERN =
+  /(\/(?:public\/invoices|public\/verify|public\/notices|calendar\/feed)\/)[^/?\s"]+/g;
 
 // [75.23] The SPA pages people open from a shared link: `/i/:token` (invoice
-// receipt) and `/v/:token` (certificate verify). Only at the start of the
+// receipt) `/v/:token` (certificate verify) and `/n/:token` (notice link). Only at the start of the
 // URL (or of a log word), so `/api/v1/v/x` is never matched.
 // Also after a scheme+host (`https://x.test:8080/i/tok`) or `key=`. The host
 // part is length-capped so the lookbehind stays linear.
-const SECRET_SPA_PATH_PATTERN = /(?<=^|[\s"=]|\/\/[^\s/"]{1,255})(\/[iv]\/)[^/?\s"]+/g;
+const SECRET_SPA_PATH_PATTERN = /(?<=^|[\s"=]|\/\/[^\s/"]{1,255})(\/[ivn]\/)[^/?\s"]+/g;
 
 // A connection string's password: `postgres://app:pw@db:5432/x`, or with no
 // username, `redis://:pw@redis:6379`. The host `db` has no TLD, so
