@@ -107,6 +107,13 @@ export function effectiveShares(
   return shares;
 }
 
+/**
+ * Half-up to a whole mark, rounding once. Rounding to 2 places first would turn
+ * 80.495 into 80.5 and then 81. `toFixed(6)` only wipes float noise
+ * (80.49999999999999 -> 80.5), far below any 2-decimal mark.
+ */
+const roundHalfUpWhole = (v: number): number => Math.floor(Number(v.toFixed(6)) + 0.5);
+
 const percentOf = (m: ExamSubjectMark): number =>
   // Absent counts as 0 (D2) and a zero-mark paper cannot divide.
   m.obtained === null || m.full_marks <= 0 ? 0 : (m.obtained / m.full_marks) * 100;
@@ -146,7 +153,7 @@ export function combineSubject(marks: ExamSubjectMark[], settings: FinalSettings
   const scaled = Math.min((percent / 100) * full_marks, full_marks);
   const obtained =
     settings.rounding === FinalResultRounding.WHOLE
-      ? Math.round(roundHalfUp2(scaled))
+      ? roundHalfUpWhole(scaled)
       : roundHalfUp2(scaled);
 
   return {
