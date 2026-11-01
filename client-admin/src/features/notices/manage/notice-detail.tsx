@@ -3,14 +3,25 @@
  * "Notice" (the text) and tab "Who has read it". The tab lives in `?tab=`.
  * The route (53.4.01) passes `noticeId`.
  */
+import { Permission } from '@biddaloy/shared';
 import { Button, StatusBadge, toast } from '@biddaloy/ui/components';
+import { useHasPermission } from '@biddaloy/ui/hooks';
 import { useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
-import { DetailShell, useDetailShellTab, type DetailShellAction } from '@biddaloy/ui/shells';
+import { useSearchNavigate } from '@biddaloy/ui/routes';
+import {
+  DetailShell,
+  useCloseFullPage,
+  useDetailShellTab,
+  type DetailShellAction,
+} from '@biddaloy/ui/shells';
 import { formatDate } from '@biddaloy/ui/utils';
+import { useSearch } from '@tanstack/react-router';
 import * as React from 'react';
 
+import { NoticeLinkPanel, NoticeSmsPanel } from './notice-link-panel';
 import { NoticeStatusBadge, WithdrawDialog } from './notice-list';
 import { NoticeReportTab } from './notice-report-tab';
+import { NoticeSmsPage } from './notice-sms-page';
 import { useCopyNotice, useNotice, useWithdrawNotice } from './use-notices';
 
 const TABS = ['notice', 'report'] as const;
@@ -24,6 +35,21 @@ export function NoticeDetail({ noticeId }: { noticeId: string }) {
   const withdraw = useWithdrawNotice();
   const copy = useCopyNotice();
   const notice = query.data;
+  const canApprove = useHasPermission(Permission.NOTICE_SMS_APPROVE);
+  const navigateSearch = useSearchNavigate();
+  // `?sms=1` opens the SMS approval page over the detail; closing goes back, or drops the param.
+  const search: Record<string, unknown> = useSearch({ strict: false });
+  const smsParam = search.sms;
+  const closeSms = useCloseFullPage(() =>
+    navigateSearch(
+      (prev) => {
+        const next = { ...prev };
+        delete next.sms;
+        return next;
+      },
+      { replace: true },
+    ),
+  );
 
   if (query.isError) {
     return (
@@ -94,8 +120,14 @@ export function NoticeDetail({ noticeId }: { noticeId: string }) {
             label: t('manage.tabNotice'),
             content: (
               <div className="flex flex-col gap-4">
-                {/* 53.6.01 mounts the public-link and SMS panels here. */}
-                <div data-slot="notice-extras" />
+                <div data-slot="notice-extras" className="flex flex-col gap-4">
+                  {notice.status === 'PUBLISHED' && (
+                    <>
+                      <NoticeLinkPanel notice={notice} />
+                      <NoticeSmsPanel notice={notice} canApprove={canApprove} />
+                    </>
+                  )}
+                </div>
                 <p className="whitespace-pre-line">{notice.body || t('manage.noBody')}</p>
               </div>
             ),
@@ -107,6 +139,9 @@ export function NoticeDetail({ noticeId }: { noticeId: string }) {
           },
         ]}
       />
+      {(smsParam === 1 || smsParam === '1') && (
+        <NoticeSmsPage noticeId={notice.id} onClose={closeSms} />
+      )}
       <WithdrawDialog
         notice={confirming ? notice : null}
         onClose={() => setConfirming(false)}
