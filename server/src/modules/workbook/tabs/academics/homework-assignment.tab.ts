@@ -1,4 +1,4 @@
-import type { EntityManager } from 'typeorm';
+import { Not, type EntityManager } from 'typeorm';
 import { HomeworkAssignmentStatus } from '@biddaloy/shared';
 import { HomeworkAssignment } from '../../../homework/entities/homework-assignment.entity';
 import { fromCell } from '../../codec/cell-format';
@@ -75,6 +75,23 @@ const excluded: readonly string[] = [
   'section_id', // exported instead as the `section` ref column
   'student_id', // exported instead as the `student` ref column, keyed by registration_number
 ];
+
+/** The homework / section / student keys of a sheet row, or of a loaded entity
+ * (its relations, as `load()` fetches them). */
+function refKeys(x: HomeworkAssignmentRow | HomeworkAssignment): {
+  homeworkKey: string;
+  sectionKey: string;
+  studentKey: string;
+} {
+  if (!(x instanceof HomeworkAssignment)) {
+    return { homeworkKey: x.homework_key, sectionKey: x.section_key, studentKey: x.student_key };
+  }
+  return {
+    homeworkKey: x.homework ? homeworkTab.keyOf(x.homework) : '',
+    sectionKey: x.section ? sectionsTab.keyOf(x.section) : '',
+    studentKey: x.student ? studentsTab.keyOf(x.student) : '',
+  };
+}
 
 export const homeworkAssignmentTab: TabSpec<HomeworkAssignment, HomeworkAssignmentRow> = {
   name: 'homework_assignments',
@@ -218,25 +235,22 @@ export const homeworkAssignmentTab: TabSpec<HomeworkAssignment, HomeworkAssignme
   },
 
   keyOf(x: HomeworkAssignmentRow | HomeworkAssignment): string {
-    const homeworkKey =
-      x instanceof HomeworkAssignment
-        ? x.homework
-          ? homeworkTab.keyOf(x.homework)
-          : ''
-        : x.homework_key;
-    const sectionKey =
-      x instanceof HomeworkAssignment
-        ? x.section
-          ? sectionsTab.keyOf(x.section)
-          : ''
-        : x.section_key;
-    const studentKey =
-      x instanceof HomeworkAssignment
-        ? x.student
-          ? studentsTab.keyOf(x.student)
-          : ''
-        : x.student_key;
+    const { homeworkKey, sectionKey, studentKey } = refKeys(x);
     return `${homeworkKey}|${sectionKey}|${studentKey}|${x.assigned_date}`;
+  },
+
+  // [#3172] One ACTIVE assignment per (homework, target), backed by two partial
+  // unique indexes. Two ACTIVE rows for one target in one file is a validation
+  // error, and a TEMPLATE import may not add a second ACTIVE row next to the
+  // destination's. Named by the sheet's own keys, so the restore error points
+  // at rows a person can find (a backup taken before the #3172 migration can
+  // still hold such a pair).
+  secondaryKeyOf(x: HomeworkAssignmentRow | HomeworkAssignment): string | null {
+    if (x.status !== HomeworkAssignmentStatus.ACTIVE) return null;
+    const { homeworkKey, sectionKey, studentKey } = refKeys(x);
+    return sectionKey
+      ? `ACTIVE assignment of homework ${homeworkKey} to section ${sectionKey}`
+      : `ACTIVE assignment of homework ${homeworkKey} to student ${studentKey}`;
   },
 
   diffFields(row: HomeworkAssignmentRow, existing: HomeworkAssignment): string[] {
@@ -255,6 +269,26 @@ export const homeworkAssignmentTab: TabSpec<HomeworkAssignment, HomeworkAssignme
     tenantId: string,
     m: EntityManager,
   ): Promise<HomeworkAssignment> {
+    // [#3172] The restore upserts before it deletes by absence, so a backup taken
+    // before a reassign can make this row ACTIVE while the destination's newer
+    // ACTIVE row for the same target still exists. Demote that row first so the
+    // partial unique index never trips. It is either absent from the file
+    // (deleted later in this restore) or present with its own status (written
+    // when its row is reached); `secondaryKeyOf` already keeps the file itself
+    // to one ACTIVE row per target, and refuses this case for a TEMPLATE import.
+    if (row.status === HomeworkAssignmentStatus.ACTIVE) {
+      await m.update(
+        HomeworkAssignment,
+        {
+          tenant_id: tenantId,
+          homework_id: row.homework_id,
+          ...(row.section_id ? { section_id: row.section_id } : { student_id: row.student_id! }),
+          status: HomeworkAssignmentStatus.ACTIVE,
+          ...(existing ? { id: Not(existing.id) } : {}),
+        },
+        { status: HomeworkAssignmentStatus.DEACTIVATED },
+      );
+    }
     const assignment = existing ?? new HomeworkAssignment();
     assignment.tenant_id = tenantId;
     assignment.homework_id = row.homework_id;

@@ -416,8 +416,8 @@ describe('FilterBar helpId', () => {
       { locale: 'en' },
     );
     await localeReady;
-    expect(await screen.findByRole('button', { name: 'Help: Who did it' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Help: Date help' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Help: Performed by' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Help: Date' })).toBeTruthy();
     expect(screen.getByRole('combobox', { name: 'Performed by' })).toBeTruthy();
     // An id with no index entry draws nothing.
     expect(screen.getAllByRole('button', { name: /^Help:/ })).toHaveLength(2);

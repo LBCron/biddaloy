@@ -67,6 +67,47 @@ export class HomeworkNoticeService {
     );
   }
 
+  /**
+   * #3172: told to families when a live assignment's due date moves (`DUE_CHANGED`, with the
+   * assignment's new date), when it is withdrawn by a deactivate or a reassign to someone
+   * else (`WITHDRAWN`), or when a deactivated one is switched back on (`REACTIVATED`, with its
+   * due date: they were told it no longer needed submitting). Same school switch and the same recipients as `notifyAssignment`.
+   * `keepFor` is the reassign's new target: its students still have the homework (a section
+   * narrowed to one of its students, or a student widened to their section), so they are not
+   * told it was withdrawn.
+   */
+  async notifyChange(
+    assignment: HomeworkAssignment,
+    homework: Homework,
+    kind: 'DUE_CHANGED' | 'WITHDRAWN' | 'REACTIVATED',
+    keepFor?: HomeworkAssignment,
+  ): Promise<void> {
+    const settings = await this.schoolsService.getResolvedSettings(assignment.tenant_id);
+    if (settings.homework?.notifyOnAssign !== true) return;
+    let students = await this.loadTargetStudents(assignment);
+    if (keepFor) {
+      const keep = new Set((await this.loadTargetStudents(keepFor)).map((s) => s.id));
+      students = students.filter((s) => !keep.has(s.id));
+    }
+    const due = assignment.due_date;
+    const bn = resolveFeeNotificationLocale(settings.region?.locale) === 'bn';
+    await this.sendToGuardians(assignment.tenant_id, students, bn, (names) => {
+      if (kind === 'REACTIVATED') {
+        return bn
+          ? `প্রিয় অভিভাবক, ${names}-এর বাড়ির কাজ "${homework.title}" আবার চালু হয়েছে। জমার শেষ তারিখ ${formatFeeNotificationDueDate('bn', due)}।`
+          : `Dear Guardian, homework "${homework.title}" for ${names} is back on. It is due ${due}.`;
+      }
+      if (kind === 'WITHDRAWN') {
+        return bn
+          ? `প্রিয় অভিভাবক, ${names}-এর বাড়ির কাজ "${homework.title}" বাতিল করা হয়েছে। জমা দিতে হবে না।`
+          : `Dear Guardian, homework "${homework.title}" for ${names} has been withdrawn. It does not need to be submitted.`;
+      }
+      return bn
+        ? `প্রিয় অভিভাবক, ${names}-এর বাড়ির কাজ "${homework.title}"-এর জমার শেষ তারিখ এখন ${formatFeeNotificationDueDate('bn', due)}।`
+        : `Dear Guardian, the due date of homework "${homework.title}" for ${names} is now ${due}.`;
+    });
+  }
+
   /** Called by `HomeworkDefaulterScheduler`'s daily sweep — one notice per
    * guardian of every still-`NOT_SUBMITTED` student past `due_date`. */
   async notifyDefaulters(

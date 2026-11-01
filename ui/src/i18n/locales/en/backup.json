@@ -111,6 +111,20 @@
   "migrateWholeSchoolLink": "Use the full workbook template",
   "downloadTemplate": "Download blank template",
   "downloadTemplateFailed": "Couldn't download the template. Try again.",
+  "fileErrors": {
+    "notXlsx": "This is not a valid .xlsx workbook. Upload a backup you downloaded here, or the blank template from this page, as it was saved.",
+    "tooLarge": "This file is too large to read. Check that it is the backup file you downloaded.",
+    "missingMeta": "This workbook cannot be identified as a backup from here. Upload the file as you downloaded it, with all its sheets.",
+    "unsupportedVersion": "This file was made by a different version of the app and cannot be read here. Keep the original file, and ask the SchoolManager team to help restore it.",
+    "busy": "Another file is being checked right now. Wait a minute and try again."
+  },
+  "starterFileErrors": {
+    "notXlsx": "This is not a valid .xlsx file. Save the sample as .xlsx in Excel and upload it again.",
+    "tooLarge": "This file is too large to read. Check that it is the sample file you filled in.",
+    "missingMeta": "This is not the sample file. Download it above and use that one.",
+    "unsupportedVersion": "This sample was made by a different version of the app. Download it again above and use that one.",
+    "busy": "Another file is being checked right now. Wait a minute and try again."
+  },
   "template": {
     "starter": "Download starter file",
     "starterHint": "A small file with only years, classes, sections, subjects and fee structures."

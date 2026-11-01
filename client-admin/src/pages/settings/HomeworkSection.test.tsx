@@ -9,7 +9,7 @@ import { HomeworkSection } from './HomeworkSection';
 import { WithTestRouter } from './with-test-router';
 
 const SCHOOL_ID = 'school-1';
-const ASSIGN = 'Text guardians when homework is assigned';
+const ASSIGN = 'Text guardians when homework is assigned or changed';
 const DEFAULTERS = 'Text guardians when homework is not submitted';
 const opts = { locale: 'en' as const, role: 'ADMIN' as const, tenantId: SCHOOL_ID };
 

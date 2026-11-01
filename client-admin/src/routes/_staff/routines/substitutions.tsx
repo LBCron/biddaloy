@@ -34,7 +34,13 @@ import {
   PageHeader,
   type FilterFieldDescriptor,
 } from '@biddaloy/ui/shells';
-import { formatDate, formatNumber, formatTime, formatWeekday } from '@biddaloy/ui/utils';
+import {
+  formatDate,
+  formatNumber,
+  formatTime,
+  formatWeekday,
+  tenantTodayIso,
+} from '@biddaloy/ui/utils';
 import { createFileRoute } from '@tanstack/react-router';
 import { PlusIcon } from 'lucide-react';
 import * as React from 'react';
@@ -42,6 +48,7 @@ import { z } from 'zod';
 
 import { loadRouteNamespaces } from '../../../route-loaders';
 
+import { addDays } from './-marking/dates';
 import { subjectName } from './-subject-name';
 import { SubstitutionDialog } from './-substitution-dialog';
 
@@ -198,6 +205,13 @@ function SubstitutionsPage() {
     (a, b) => b.substitution.date.localeCompare(a.substitution.date) || a.sequence - b.sequence,
   );
   const pageSize = 25;
+  // #3022: the server refuses to delete a record dated before the school's today, so
+  // the action is not offered (it would only ever answer 409). `config` may be the locale
+  // default rather than the school's own zone (settings not loaded, or a role that cannot
+  // read them). That default is Asia/Dhaka (UTC+6), and every zone (UTC-12 to UTC+14) is
+  // within 18 hours of it: so only a record older than yesterday is surely past. Yesterday's stays offered; the server decides, and its 409
+  // has its own sentence (`pastDeleteError`).
+  const surelyPastBefore = addDays(tenantTodayIso(config), -1);
 
   function handleDelete() {
     if (!deleting) return;
@@ -334,6 +348,7 @@ function SubstitutionsPage() {
             {
               intent: 'delete',
               label: t('substitutionsPage.deleteAction'),
+              allowed: row.substitution.date >= surelyPastBefore,
               onClick: () => setDeleting(row.substitution),
             },
           ]}

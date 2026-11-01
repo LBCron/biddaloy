@@ -228,12 +228,21 @@ export function FilterBar({ fields, values, onChange, debounceMs, resultCount }:
   const collapsibleActiveCount = chips.filter((chip) => collapsibleKeys.has(chip.key)).length;
 
   /** The label, plus a (?) beside it when `helpId` resolves; no wrapper otherwise. */
-  function withHelp(label: React.ReactNode, helpId: string | undefined, hideOnPhone = false) {
+  function withHelp(
+    label: React.ReactNode,
+    helpId: string | undefined,
+    text: string,
+    hideOnPhone = false,
+  ) {
     if (!resolve(helpId)) return label;
     return (
       <span className="inline-flex items-center gap-1">
         {label}
-        <HelpHint helpId={helpId} className={hideOnPhone ? 'hidden md:inline-flex' : undefined} />
+        <HelpHint
+          helpId={helpId}
+          label={text}
+          className={hideOnPhone ? 'hidden md:inline-flex' : undefined}
+        />
       </span>
     );
   }
@@ -252,6 +261,7 @@ export function FilterBar({ fields, values, onChange, debounceMs, resultCount }:
             {label}
           </Label>,
           helpId,
+          label,
           srOnlyOnPhone,
         )}
         {control}
@@ -284,6 +294,7 @@ export function FilterBar({ fields, values, onChange, debounceMs, resultCount }:
             {groupLabel}
           </span>,
           helpId,
+          groupLabel,
         )}
         <div role="group" aria-labelledby={labelId} className="flex items-center gap-1.5">
           {from.control}
@@ -398,7 +409,7 @@ export function FilterBar({ fields, values, onChange, debounceMs, resultCount }:
               checked={values[f.key] === 'true'}
               onCheckedChange={(checked) => setValue(f.key, checked === true ? 'true' : null)}
             />
-            {withHelp(<Label htmlFor={id(f.key)}>{f.label}</Label>, f.helpId)}
+            {withHelp(<Label htmlFor={id(f.key)}>{f.label}</Label>, f.helpId, f.label)}
           </div>
         );
       case 'number-range': {

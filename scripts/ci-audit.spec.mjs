@@ -58,6 +58,13 @@ describe('real ALLOWLIST', () => {
   });
   it('no longer carries the tmp advisory', () => {
     expect(ALLOWLIST[1120654]).toBeUndefined();
-    expect(Object.keys(ALLOWLIST).sort()).toEqual(['1119441', '1139346', '1193685', '1243066']);
+    expect(Object.keys(ALLOWLIST).sort()).toEqual([
+      '1119441',
+      '1139346',
+      '1193685',
+      '1243066',
+      '1244012',
+      '1244013',
+    ]);
   });
 });

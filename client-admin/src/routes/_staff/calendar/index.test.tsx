@@ -15,6 +15,8 @@ import { formatDate } from '@biddaloy/ui/utils';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp, withHelp } from '../../../help/test-utils';
+
 import { EventDetailsSheet } from './-event-details-sheet';
 import { EventFormPage } from './-event-form-dialog';
 import { GovernmentHolidaysDialog } from './-government-holidays-dialog';
@@ -674,6 +676,31 @@ describe('EventFormPage', () => {
     await user.type(reason, 'bc hartal');
     await user.click(screen.getByRole('button', { name: 'Save' }));
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ reason: 'abc hartal' }));
+  });
+
+  // [#3314] The late-reason field carries its (?) only on the late-closure branch.
+  it('shows the late-reason (?) on a past closure', async () => {
+    renderWithProviders(
+      withHelp(
+        <EventFormPage
+          mode="create"
+          initialValues={baseEvent({
+            type: CalendarEventType.HOLIDAY,
+            name: 'Hartal',
+            start_date: '2020-03-10',
+            end_date: '2020-03-10',
+            counts_as_working_day: false,
+          })}
+          isPending={false}
+          error={null}
+          onClose={() => {}}
+          onSubmit={() => {}}
+        />,
+      ),
+      { locale: 'en' },
+    );
+    await screen.findByLabelText('Why is this being added late?');
+    await expectHelp('people.calendar.field.lateReason');
   });
 
   // #2253 review: a closure is "past" once its first day has passed, even if it ends later.

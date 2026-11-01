@@ -12,7 +12,6 @@ import {
   Card,
   ConfirmDialog,
   Input,
-  HelpHint,
   Label,
   PhoneInput,
   Select,
@@ -126,10 +125,9 @@ export function EditGuardianDialog({ guardian, config, onClose }: EditGuardianDi
     opts?: { helpId?: string },
   ) => (
     <div className={className}>
-      <span className="inline-flex items-center gap-1">
-        <Label htmlFor={id}>{label}</Label>
-        {opts?.helpId && <HelpHint helpId={opts.helpId} />}
-      </span>
+      <Label htmlFor={id} helpId={opts?.helpId} helpLabel={label}>
+        {label}
+      </Label>
       <div className="mt-1.5">{control}</div>
     </div>
   );
@@ -273,6 +271,8 @@ export function EditGuardianDialog({ guardian, config, onClose }: EditGuardianDi
                   ))}
                 </SelectContent>
               </Select>,
+              undefined,
+              { helpId: 'people.guardians.field.preferredCommunication' },
             )}
             {field(
               'guardian-edit-address',

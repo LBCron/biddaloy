@@ -4,8 +4,9 @@ import { formatNumber } from '@biddaloy/ui/utils';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../help/test-utils';
 import { routeTree } from '../../../routeTree.gen';
 
 type State = 'DRAFT' | 'SUBMITTED';
@@ -60,6 +61,7 @@ const render = (role: string) =>
 
 describe('/marks', () => {
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await cleanupTestState();
   });
 
@@ -80,6 +82,14 @@ describe('/marks', () => {
     expect(draftRow.getByText('Not submitted')).toBeTruthy();
     expect(draftRow.queryByText('Submitted')).toBeNull();
     expect(doneRow.getByText('Submitted')).toBeTruthy();
+  });
+
+  it('shows the exam picker (?) [#3293]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    mockExam([row('Six - A', 'Math', '1', 'DRAFT')]);
+    render('TEACHER');
+    await screen.findByRole('heading', { name: 'Enter marks' });
+    await expectHelp('examsResults.marksEntry.field.exam');
   });
 
   it('labels the exam picker, names the class, and shows progress in the subtitle', async () => {

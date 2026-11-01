@@ -80,7 +80,7 @@ export function Field({
             </>
           )}
         </label>
-        {helpId && <HelpHint helpId={helpId} />}
+        {helpId && <HelpHint helpId={helpId} label={label} />}
       </span>
       {children}
     </div>

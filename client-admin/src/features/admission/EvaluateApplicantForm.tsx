@@ -7,6 +7,7 @@
  */
 import {
   Button,
+  HelpHint,
   Dialog,
   DialogContent,
   DialogFooter,
@@ -59,7 +60,10 @@ export function EvaluateApplicantForm({
             <DialogTitle>{title}</DialogTitle>
           </DialogHeader>
 
-          <Label htmlFor="evaluate-notes">{t('evaluate.notesLabel')}</Label>
+          <span className="inline-flex items-center gap-1">
+            <Label htmlFor="evaluate-notes">{t('evaluate.notesLabel')}</Label>
+            <HelpHint helpId="people.admissionApplicants.field.notes" />
+          </span>
           <Textarea
             id="evaluate-notes"
             value={notes}

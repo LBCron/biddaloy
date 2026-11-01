@@ -109,7 +109,7 @@ export function NotTaughtDialog({
           </DialogHeader>
           <RadioRows
             legend={t('marking.reason.label')}
-            legendHidden
+            helpId="academics.myRoutine.field.notTaughtReason"
             value={reason}
             onValueChange={setReason}
             options={REASONS.map((r) => ({ value: r, title: t(`marking.reason.${r}`) }))}

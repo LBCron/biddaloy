@@ -19,7 +19,6 @@ helpIds:
     people.programs,
     people.programs.action.enrol,
     people.programs.action.record,
-    people.programs.action.archive,
     people.programs.action.delete,
     people.programs.action.removeMilestone,
     people.programs.field.showOnReportCard,

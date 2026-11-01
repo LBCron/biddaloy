@@ -38,6 +38,7 @@ import { getActiveTenant } from '@biddaloy/ui/api';
 import {
   RoutePending,
   StatusBadge,
+  HelpHint,
   Tabs,
   TabsContent,
   TabsList,
@@ -396,6 +397,7 @@ function ReportsPageContent() {
             kind: 'text',
             key: 'threshold',
             label: t('reports.thresholdLabel'),
+            helpId: 'attendance.attendanceReports.field.threshold',
             placeholder: t('reports.thresholdPlaceholder'),
             formatChip: (value: string) => formatNumber(Number(value), regionConfig),
           },
@@ -430,11 +432,35 @@ function ReportsPageContent() {
         value={view}
         onValueChange={(next) => actions.setFilters({ view: next === 'summary' ? null : next })}
       >
-        <TabsList variant="line" aria-label={t('reports.viewLabel')}>
-          <TabsTrigger value="summary">{t('reports.viewSummary')}</TabsTrigger>
-          {canSeeFlags && <TabsTrigger value="flags">{t('reports.viewFlags')}</TabsTrigger>}
-          {periodEnabled && <TabsTrigger value="subjects">{t('reports.viewSubjects')}</TabsTrigger>}
-        </TabsList>
+        {/* One (?) for the open view, beside the tablist, not in it: a tablist may own only
+            tabs (axe aria-required-children), and one icon keeps the row narrow on phones. */}
+        <div className="flex flex-wrap items-center gap-1">
+          <TabsList variant="line" aria-label={t('reports.viewLabel')}>
+            <TabsTrigger value="summary">{t('reports.viewSummary')}</TabsTrigger>
+            {canSeeFlags && <TabsTrigger value="flags">{t('reports.viewFlags')}</TabsTrigger>}
+            {periodEnabled && (
+              <TabsTrigger value="subjects">{t('reports.viewSubjects')}</TabsTrigger>
+            )}
+          </TabsList>
+          {view === 'summary' && (
+            <HelpHint
+              helpId="attendance.attendanceReports.section.summary"
+              label={t('reports.viewSummary')}
+            />
+          )}
+          {view === 'flags' && (
+            <HelpHint
+              helpId="attendance.attendanceReports.section.flags"
+              label={t('reports.viewFlags')}
+            />
+          )}
+          {view === 'subjects' && (
+            <HelpHint
+              helpId="attendance.attendanceReports.section.subjects"
+              label={t('reports.viewSubjects')}
+            />
+          )}
+        </div>
         {/* The selected view's report is its tab's panel. mt-4 + the Tabs gap-2 = the page's space-y-6. */}
         <TabsContent value={view} className="mt-4 space-y-6">
           <FilterBar

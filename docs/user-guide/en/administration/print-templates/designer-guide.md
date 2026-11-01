@@ -13,11 +13,7 @@ labels:
     printEditor:fields.*,
     printEditor:help.*,
   ]
-helpIds:
-  [
-    administration.printTemplates.action.publish,
-    administration.printTemplates.action.makeDefault,
-  ]
+helpIds: [administration.printDesignerGuide]
 devices: [desktop]
 entry: []
 keywords:

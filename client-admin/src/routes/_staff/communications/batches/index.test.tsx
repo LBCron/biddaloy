@@ -15,8 +15,9 @@ import {
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../../help/test-utils';
 import { routeTree } from '../../../../routeTree.gen';
 
 function render(role = 'ADMIN') {
@@ -30,7 +31,20 @@ function render(role = 'ADMIN') {
 
 describe('/communications/batches', () => {
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await cleanupTestState();
+  });
+
+  it('shows the status filter (?) [#3293]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    server.use(
+      http.get('/api/v1/communications/reminder/bulk', () =>
+        HttpResponse.json({ data: [], total: 0, page: 1, limit: 25, totalPages: 0 }),
+      ),
+    );
+    render();
+    await screen.findAllByRole('button', { name: /^Help:/ });
+    await expectHelp('communications.reminderHistory.field.status');
   });
 
   it('lists batches with status badges and a View action per row', async () => {

@@ -64,7 +64,7 @@ The numbers come from the school's [applications](../applications/applications.m
 
 2. Look at the four boxes at the top: **Submitted**, **Approved**, **Rejected** and **Average time to decide**.
 
-   → Under **Approved** and **Rejected** it says what share of the total, for example **60% of applications**. **Average time to decide** is in hours, for example **12.5 hours**.
+   → Under **Submitted** it says **This academic year**; if you filter by dates only (no year), it says **In the dates you picked**. Under **Approved** and **Rejected** it says what share of the total, for example **60% of applications**. **Average time to decide** is in hours, for example **12.5 hours**.
 
 3. Below, look at the **Waiting more than 3 days** list. These are still waiting for someone's decision.
 4. Look at the **By type and status** and **By month** tables.
@@ -75,10 +75,10 @@ The numbers come from the school's [applications](../applications/applications.m
 
 ## How to know the numbers are right <a href="#confirm" id="confirm"></a>
 
-| State                               | How you know                                              | What next |
-| ----------------------------------- | --------------------------------------------------------- | --------- |
-| **Only picked on screen**           | When you change a filter, the numbers change at once      | —         |
-| **Loaded from the school's system** | The four boxes show numbers, with no grey placeholder     | Done      |
+| State                               | How you know                                          | What next |
+| ----------------------------------- | ----------------------------------------------------- | --------- |
+| **Only picked on screen**           | When you change a filter, the numbers change at once  | —         |
+| **Loaded from the school's system** | The four boxes show numbers, with no grey placeholder | Done      |
 
 This page does not keep anything on your phone or computer, so there is no "saved on this device" state. The filters are kept in the page address; if you send the link, the other person sees the same count.
 
@@ -103,11 +103,11 @@ If there is nothing, it says **No application has been waiting more than 3 days.
 
    → The dates are added under the title too; with only one date it says **From {date}** or **Up to {date}**. If no application matches, it says **No applications in this period**; press **Clear all filters** to remove the filters.
 
-| You pick                     | Which applications are counted                                                      | The **Academic year** box says |
-| ---------------------------- | ----------------------------------------------------------------------------------- | ------------------------------ |
-| Nothing                      | The current year, plus applications that have no year                               | **Current year (…)**           |
-| A year                       | Only that year                                                                      | The year's name                |
-| Only dates, no year          | Every year, within the dates; the year is not shown under the title                 | **All years**                  |
+| You pick            | Which applications are counted                                      | The **Academic year** box says |
+| ------------------- | ------------------------------------------------------------------- | ------------------------------ |
+| Nothing             | The current year, plus applications that have no year               | **Current year (…)**           |
+| A year              | Only that year                                                      | The year's name                |
+| Only dates, no year | Every year, within the dates; the year is not shown under the title | **All years**                  |
 
 ### Who is on leave today, and how many days each took <a href="#task-leave" id="task-leave"></a>
 
@@ -120,24 +120,24 @@ If there is nothing, it says **No application has been waiting more than 3 days.
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                                              | What to do                                                                                                           | Who can help |
-| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------ |
-| **Could not load the report.**                            | Press **Try again**, or reload the page.                                                                             | Admin        |
-| **No applications in this period**                        | Press **Clear all filters**, or choose another year.                                                                 | —            |
-| **Average time to decide** shows **—**                    | No application was decided in this time.                                                                             | —            |
-| Staff leave days do not change when the year changes      | Leave days are filtered by **Submitted on** only, by the day the leave starts; not by academic year.                 | —            |
-| **Application reports** is not in the left menu           | Your role cannot see this page. See [who can do what](#roles).                                                       | Admin        |
+| What you see                                         | What to do                                                                                           | Who can help |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------ |
+| **Could not load the report.**                       | Press **Try again**, or reload the page.                                                             | Admin        |
+| **No applications in this period**                   | Press **Clear all filters**, or choose another year.                                                 | —            |
+| **Average time to decide** shows **—**               | No application was decided in this time.                                                             | —            |
+| Staff leave days do not change when the year changes | Leave days are filtered by **Submitted on** only, by the day the leave starts; not by academic year. | —            |
+| **Application reports** is not in the left menu      | Your role cannot see this page. See [who can do what](#roles).                                       | Admin        |
 
 ---
 
 ## Who can do what <a href="#roles" id="roles"></a>
 
-| Role                                                          | View the report |
-| ------------------------------------------------------------- | --------------- |
-| Admin                                                         | Yes             |
-| Academic coordinator                                          | Yes             |
-| Office staff                                                  | Yes             |
-| Accountant, Teacher, Exam controller, Committee member        | No              |
+| Role                                                   | View the report |
+| ------------------------------------------------------ | --------------- |
+| Admin                                                  | Yes             |
+| Academic coordinator                                   | Yes             |
+| Office staff                                           | Yes             |
+| Accountant, Teacher, Exam controller, Committee member | No              |
 
 **Admin, Academic coordinator and Office staff:** all three see the same count for the whole school; there is no difference in the code. All applications are counted, not only your own share.
 

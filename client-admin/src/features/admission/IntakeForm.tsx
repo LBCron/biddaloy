@@ -80,21 +80,18 @@ function RequiredLabel({
   children: React.ReactNode;
 }) {
   const { t } = useTranslation('admission-staff-intakes');
-  const label = (
-    <Label htmlFor={htmlFor}>
+  return (
+    <Label
+      htmlFor={htmlFor}
+      helpId={helpId}
+      helpLabel={typeof children === 'string' ? children : undefined}
+    >
       {children}
       <span className="text-destructive" aria-hidden="true">
         {' *'}
       </span>
       <span className="sr-only">{t('form.required', { ns: 'common' })}</span>
     </Label>
-  );
-  if (!helpId) return label;
-  return (
-    <span className="inline-flex items-center gap-1">
-      {label}
-      <HelpHint helpId={helpId} />
-    </span>
   );
 }
 
@@ -170,7 +167,9 @@ export function IntakeForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <RequiredLabel htmlFor="intake-open-date">{t('form.openDateLabel')}</RequiredLabel>
+        <RequiredLabel htmlFor="intake-open-date" helpId="people.admissionIntakes.field.dates">
+          {t('form.openDateLabel')}
+        </RequiredLabel>
         <DatePicker
           id="intake-open-date"
           aria-label={t('form.openDateLabel')}
@@ -205,7 +204,10 @@ export function IntakeForm({
       >
         <legend className="flex items-center gap-1 text-label">
           {t('form.requiredDocumentsLabel')}
-          <HelpHint helpId="people.admissionIntakes.field.requiredDocuments" />
+          <HelpHint
+            helpId="people.admissionIntakes.field.requiredDocuments"
+            label={t('form.requiredDocumentsLabel')}
+          />
         </legend>
         <p className="text-caption text-text-secondary">{t('form.documentsHelp')}</p>
         {ALL_DOCUMENT_TYPES.map((type) => (

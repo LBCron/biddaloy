@@ -20,8 +20,9 @@ import { formatNumber, formatPhone } from '@biddaloy/ui/utils';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../help/test-utils';
 import { routeTree } from '../../../routeTree.gen';
 
 /** Counts render in the region's numerals. */
@@ -116,7 +117,19 @@ async function pickStudent(user: ReturnType<typeof userEvent.setup>) {
 
 describe('/communications/reminders', () => {
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await cleanupTestState();
+  });
+
+  it('shows the guardians, message and medium (?) [#3293]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    server.use(...referenceHandlers(), previewHandler());
+    const user = userEvent.setup();
+    render();
+    await pickStudent(user);
+    await expectHelp('communications.feeReminders.field.guardians');
+    await expectHelp('communications.feeReminders.field.message');
+    await expectHelp('communications.feeReminders.field.medium');
   });
 
   it('keeps Send disabled until a preview runs, and re-disables it when inputs change', async () => {

@@ -29,6 +29,8 @@ import { http, HttpResponse } from 'msw';
 import * as React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp, withHelp } from '../../../../help/test-utils';
+
 import { ScheduleFormDialog } from './-schedule-form-dialog';
 
 const YEAR = academicYearFactory({
@@ -437,5 +439,24 @@ describe('ScheduleFormDialog', () => {
     expect(onOpenChange).not.toHaveBeenCalled();
     await user.click(confirm.getByRole('button', { name: 'Discard changes' }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+});
+
+describe('ScheduleFormDialog (?) hints [#3293]', () => {
+  it('shows the audience, rule and due days (?)', async () => {
+    server.use(...referenceHandlers());
+    const view = renderWithProviders(
+      withHelp(
+        <RegionConfigProvider value={REGION_BD_EN}>
+          <ScheduleFormDialog open onOpenChange={vi.fn()} mode="create" onSaved={vi.fn()} />
+        </RegionConfigProvider>,
+      ),
+      { tenantId: 'tenant-1', role: 'ADMIN', locale: 'en' },
+    );
+    await view.localeReady;
+    await expectHelp('finance.recurringSchedules.field.audience');
+    await expectHelp('finance.recurringSchedules.field.rule');
+    await expectHelp('finance.recurringSchedules.field.dueDays');
+    await cleanupTestState();
   });
 });

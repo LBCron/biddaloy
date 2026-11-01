@@ -5,6 +5,7 @@ import { act, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../help/test-utils';
 import { routeTree } from '../../../routeTree.gen';
 
 // `register.tsx`'s search schema validates these with `z.string().uuid()`,
@@ -320,6 +321,7 @@ async function openEditor(role = 'ADMIN', url = EDIT_URL) {
 
 describe('/attendance/register month edit', () => {
   afterEach(async () => {
+    vi.unstubAllEnvs();
     setDesktop(false);
     await cleanupTestState();
   });
@@ -330,6 +332,17 @@ describe('/attendance/register month edit', () => {
     await openEditor('ACCOUNTANT');
     await screen.findByRole('table');
     expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+  });
+
+  it('shows the reason (?) in edit mode [#3293]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    setDesktop(true);
+    useMatrix();
+    const user = userEvent.setup();
+    await openEditor();
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await screen.findByLabelText(/Reason for correction/);
+    await expectHelp('attendance.attendanceRegister.field.reason');
   });
 
   it('saves one item per changed date with every marked student', async () => {

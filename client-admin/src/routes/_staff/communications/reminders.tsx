@@ -448,9 +448,15 @@ function SingleReminderForm() {
       {student !== undefined && studentId !== null && (
         <>
           <Card padded aria-labelledby="reminder-guardians-title">
-            <h2 id="reminder-guardians-title" className="text-h2">
-              {t('reminders.guardiansLabel')}
-            </h2>
+            <div className="flex items-center gap-1">
+              <h2 id="reminder-guardians-title" className="text-h2">
+                {t('reminders.guardiansLabel')}
+              </h2>
+              <HelpHint
+                helpId="communications.feeReminders.field.guardians"
+                label={t('reminders.guardiansLabel')}
+              />
+            </div>
             {student.guardians.length === 0 ? (
               <p
                 role="alert"
@@ -509,7 +515,12 @@ function SingleReminderForm() {
             </h2>
             <div className="mt-4 grid gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="reminder-template">{t('reminders.messageLabel')}</Label>
+                <Label
+                  htmlFor="reminder-template"
+                  helpId="communications.feeReminders.field.message"
+                >
+                  {t('reminders.messageLabel')}
+                </Label>
                 <Textarea
                   id="reminder-template"
                   value={template}
@@ -541,7 +552,10 @@ function SingleReminderForm() {
               <PlaceholderButtons labels={labels} onInsert={insertPlaceholder} />
 
               <div className="flex flex-col gap-1.5 md:w-1/2">
-                <Label htmlFor="reminder-medium-override">
+                <Label
+                  htmlFor="reminder-medium-override"
+                  helpId="communications.feeReminders.field.medium"
+                >
                   {t('reminders.mediumOverrideLabel')}
                 </Label>
                 <Select value={mediumOverride} onValueChange={setMediumOverride}>
@@ -605,7 +619,10 @@ function SingleReminderForm() {
                       ? t('reminders.previewAgain')
                       : t('reminders.previewAction')}
                 </Button>
-                <HelpHint helpId="communications.feeReminders.action.preview" />
+                <HelpHint
+                  helpId="communications.feeReminders.action.preview"
+                  label={t('reminders.previewAction')}
+                />
               </span>
             </div>
             {preview.isError && (

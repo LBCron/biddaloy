@@ -50,8 +50,6 @@ helpIds:
     people.staff.field.employeeId,
     people.staff.field.designations,
     people.staff.action.edit,
-    people.staff.action.view,
-    people.staff.action.restore,
   ]
 devices: [desktop]
 entry: [sidebar, palette, page:admin.createSchool]

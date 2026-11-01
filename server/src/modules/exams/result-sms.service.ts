@@ -17,7 +17,7 @@ import { Result } from './entities/result.entity';
 import { Student } from '../students/entities/student.entity';
 import { School } from '../schools/entities/school.entity';
 import { resolveReminderAudience } from '../communications/reminder-recipients.util';
-import { resolveFeeNotificationLocale } from '../communications/fee-notification-template.util';
+import { resolveTemplateLocale } from '../account-access/account-access-templates';
 import { CommunicationLog } from '../communications/entities/communication-log.entity';
 import { SmsCreditService } from '../communications/credits/sms-credit.service';
 import { INSUFFICIENT_SMS_CREDIT } from '../communications/credits/insufficient-sms-credit.constants';
@@ -103,8 +103,8 @@ export class ResultSmsService {
       where: { id: tenantId },
       select: { id: true, settings: true },
     });
-    // [#2403] The stored locale only: no locale means English, not the bn-BD region default.
-    const locale = resolveFeeNotificationLocale(school?.settings?.region?.locale);
+    // No stored locale resolves to the bn-BD default (#3136).
+    const locale = resolveTemplateLocale(school?.settings?.region?.locale);
     // Nullable on older rows; 0 still gives them one stable publication key.
     const publishedAt = exam.published_at?.getTime() ?? 0;
 

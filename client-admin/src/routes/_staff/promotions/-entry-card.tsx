@@ -8,6 +8,7 @@
 import type { PromotionOutcome } from '@biddaloy/shared';
 import {
   Button,
+  HelpHint,
   Input,
   Label,
   RadioGroup,
@@ -157,7 +158,10 @@ export function PromotionEntryCard({
       </dl>
 
       <div className="space-y-1">
-        <span className="font-medium">{t('grid.columnFinal')}</span>
+        <span className="inline-flex items-center gap-1 font-medium">
+          {t('grid.columnFinal')}
+          <HelpHint helpId="examsResults.promotion.field.finalOutcome" />
+        </span>
         <RadioGroup
           aria-label={t('grid.columnFinal')}
           value={eff.final_outcome}
@@ -214,15 +218,18 @@ export function PromotionEntryCard({
       )}
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor={noteId}>
-          {t('grid.columnOverrideNote')}
-          {override && (
-            <span aria-hidden="true" className="text-status-overdue-fg">
-              {' '}
-              *
-            </span>
-          )}
-        </Label>
+        <span className="inline-flex items-center gap-1">
+          <Label htmlFor={noteId}>
+            {t('grid.columnOverrideNote')}
+            {override && (
+              <span aria-hidden="true" className="text-status-overdue-fg">
+                {' '}
+                *
+              </span>
+            )}
+          </Label>
+          <HelpHint helpId="examsResults.promotion.field.overrideNote" />
+        </span>
         <Input
           id={noteId}
           disabled={readOnly}

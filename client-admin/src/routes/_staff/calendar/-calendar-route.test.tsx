@@ -9,6 +9,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../help/test-utils';
 import { routeTree } from '../../../routeTree.gen';
 
 // Local 03:00 on 5 Oct in any zone: in UTC+6 the UTC day is still 4 Oct (B20).
@@ -118,6 +119,16 @@ describe('/calendar', () => {
     expect(
       document.querySelector('[data-help-id="people.calendar.action.addEvent"]'),
     ).not.toBeNull();
+  });
+
+  it('shows the event form (?) hints [#3293]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    renderCalendar();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /^(Add event|ইভেন্ট যোগ করুন)$/ }));
+    await screen.findByRole('heading', { name: /^(Add event|ইভেন্ট যোগ করুন)$/, level: 1 });
+    await expectHelp('people.calendar.field.countsAsWorkingDay');
+    await expectHelp('people.calendar.field.notify');
   });
 
   it('labels the month with the month name and year, not "2026-10"', async () => {

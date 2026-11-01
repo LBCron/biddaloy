@@ -381,11 +381,11 @@ describe('CalendarNotifyService (integration)', () => {
     await setSmsSettings('OFF');
   });
 
-  // [#2403] No stored locale means English, not the bn-BD region default.
-  it('tenant with no stored locale: SMS body is English', async () => {
+  // [#3136] No stored locale resolves to the bn-BD default, like every other sender.
+  it('tenant with no stored locale: SMS body is Bangla', async () => {
     await setLocale();
     await grantSmsCredit(100);
-    const event = await makeEvent({ audience: CalendarAudience.ALL, name: 'English Event' });
+    const event = await makeEvent({ audience: CalendarAudience.ALL, name: 'Default Event' });
     await notify.eventCreated(event, { notify: true, notifySms: true, userId: adminUserId });
     const batch = await dataSource
       .getRepository(ReminderBatch)
@@ -394,7 +394,7 @@ describe('CalendarNotifyService (integration)', () => {
       .getRepository(CommunicationLog)
       .find({ where: { reminder_batch_id: batch!.id } });
     expect(logs[0].message_body).toBe(
-      `${event.name} on ${event.start_date}. Please check the school calendar for details.`,
+      `${event.name} — ${formatFeeNotificationDueDate('bn', event.start_date)}। বিস্তারিত স্কুলের ক্যালেন্ডারে দেখুন।`,
     );
     await setSmsSettings('OFF');
   });

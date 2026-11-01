@@ -17,6 +17,7 @@ import {
   Checkbox,
   ConfirmDialog,
   DatePicker,
+  HelpHint,
   Input,
   Select,
   SelectContent,
@@ -80,7 +81,9 @@ function CheckRow({
   checked,
   disabled,
   onChange,
+  helpId,
 }: {
+  helpId?: string;
   id: string;
   label: string;
   checked: boolean;
@@ -96,6 +99,7 @@ function CheckRow({
         onCheckedChange={(value) => onChange(value === true)}
       />
       <label htmlFor={id}>{label}</label>
+      {helpId && <HelpHint helpId={helpId} label={label} />}
     </div>
   );
 }
@@ -299,9 +303,15 @@ export function EventFormPage({
 
             {lateClosure && (
               <div className="flex flex-col gap-1.5 md:col-span-2">
-                <label htmlFor="event-form-late-reason" className={LABEL}>
-                  {t('eventForm.lateReason')}
-                </label>
+                <span className="inline-flex items-center gap-1">
+                  <label htmlFor="event-form-late-reason" className={LABEL}>
+                    {t('eventForm.lateReason')}
+                  </label>
+                  <HelpHint
+                    helpId="people.calendar.field.lateReason"
+                    label={t('eventForm.lateReason')}
+                  />
+                </span>
                 <Textarea
                   id="event-form-late-reason"
                   value={reason}
@@ -334,6 +344,7 @@ export function EventFormPage({
           <div className="mt-2">
             <CheckRow
               id="event-form-working-day"
+              helpId="people.calendar.field.countsAsWorkingDay"
               label={t('eventForm.countsAsWorkingDay')}
               checked={working}
               disabled={isMakeup}
@@ -354,6 +365,7 @@ export function EventFormPage({
             )}
             <CheckRow
               id="event-form-notify"
+              helpId="people.calendar.field.notify"
               label={t('eventForm.notify')}
               checked={lateClosure ? false : notify}
               disabled={lateClosure}

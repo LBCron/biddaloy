@@ -173,7 +173,7 @@ describe('PATCH /users/me/preferences/dashboard [8.10.7.1.02]', () => {
   });
 
   it('a school the caller does not belong to -> rejected by ContextGuard, row unchanged', async () => {
-    // ContextGuard answers 401 "not a member of tenant" (not 403) for every route.
+    // ContextGuard answers 401 "User is not a member of the requested tenant" (not 403) for every route.
     await patch(UserRole.ADMIN, { widgets: [] }, OTHER_TENANT).expect(401);
     expect(await readPrefs()).toBeNull();
   });

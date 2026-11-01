@@ -310,8 +310,8 @@
   "homework": {
     "legend": "Homework",
     "description": "When guardians get a text about homework. Both are off until you turn them on.",
-    "notifyOnAssign": "Text guardians when homework is assigned",
-    "notifyOnAssignHelp": "Every guardian in the section gets one text when a teacher assigns homework.",
+    "notifyOnAssign": "Text guardians when homework is assigned or changed",
+    "notifyOnAssignHelp": "Every guardian in the section gets one text when a teacher assigns homework, and again when its due date moves or it is withdrawn or given to someone else.",
     "notifyDefaulters": "Text guardians when homework is not submitted",
     "notifyDefaultersHelp": "Leave off if homework is collected on paper and ticked later."
   },

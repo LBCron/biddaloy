@@ -607,7 +607,10 @@ export function BulkReminderWizard() {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="bulk-template">{t('bulk.message.messageLabel')}</Label>
+                      <span className="inline-flex items-center gap-1">
+                        <Label htmlFor="bulk-template">{t('bulk.message.messageLabel')}</Label>
+                        <HelpHint helpId="communications.feeReminders.section.bulkMessage" />
+                      </span>
                       <Textarea
                         id="bulk-template"
                         value={template}

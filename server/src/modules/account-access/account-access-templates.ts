@@ -1,3 +1,5 @@
+import { DEFAULT_REGION_SETTINGS } from '../schools/settings/tenant-settings-defaults';
+
 export type TemplateKind =
   | 'INVITATION'
   | 'OTP'
@@ -312,7 +314,16 @@ export function redact(
 /** Sender name for messages that belong to no single school (shared users, D28). */
 export const PLATFORM_SENDER_NAME = 'SchoolManager';
 
-/** `settings.region.locale` (e.g. `bn-BD`) -> template locale. Anything not starting with `bn` falls back to English. */
-export function resolveTemplateLocale(regionLocale: string | undefined | null): TemplateLocale {
-  return regionLocale?.toLowerCase().startsWith('bn') ? 'bn' : 'en';
+/**
+ * `settings.region.locale` (e.g. `bn-BD`) -> template locale. The one resolver every sender uses.
+ * A missing, empty or non-string locale (raw stored settings are untyped) means the platform
+ * default region (`DEFAULT_REGION_SETTINGS.locale`, bn-BD), the same answer `resolveTenantSettings`
+ * gives. Any other locale not starting with `bn` is English.
+ */
+export function resolveTemplateLocale(regionLocale: unknown): TemplateLocale {
+  const locale =
+    typeof regionLocale === 'string' && regionLocale
+      ? regionLocale
+      : DEFAULT_REGION_SETTINGS.locale;
+  return locale.toLowerCase().startsWith('bn') ? 'bn' : 'en';
 }

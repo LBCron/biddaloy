@@ -216,7 +216,7 @@ See: [**Dashboard**](../dashboard/dashboard.md).
 
 The box **What happens with these settings** at the top shows the current rules in plain words.
 
-**Homework.** Two checkboxes; both are off until you turn them on: **Text guardians when homework is assigned** and **Text guardians when homework is not submitted**. See: [**Homework**](../academics/homework.md).
+**Homework.** Two checkboxes; both are off until you turn them on: **Text guardians when homework is assigned or changed** (a new homework, and later a moved due date, a withdrawn row or a hand-over to another section or student) and **Text guardians when homework is not submitted**. See: [**Homework**](../academics/homework.md).
 
 **Applications.** **Tell guardians the decision by SMS** — only the final decision (approved or rejected). The in-app notice always goes. See: [**Applications**](../applications/applications.md).
 
@@ -243,6 +243,8 @@ This category has one part: **Fee rules**. "Approval, telling families and late 
 | **Always need a second admin to reverse a payment** | When on, cancelling a payment always needs a second person. When off, if the school has only one admin, that admin can approve their own cancellation. |
 
 **Notify families** — two checkboxes: **Notify by default for scheduled fee generation** and **Notify by default for manual fee generation**. They decide whether telling families is on at the start when bills are created ([**Fee bills created**](../finance/generate-fees.md), [**Automatic billing**](../finance/recurring-schedules.md)).
+
+**Fine due after (days)** — a new fine is due this many days after it is made; 1 to 60 (it starts at 7). Press **Save** to apply it. See [**Fines**](../finance/fines.md).
 
 **Late fees** — "Tick the fees that get a late fee." One row for each fee type (except the late fee itself):
 
@@ -510,26 +512,30 @@ Press **Keep forever** and that backup is not deleted by itself.
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                                                                             | What to do                                                                                                                           | Who can help |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------ |
-| **Settings** is not in the menu                                                          | This page is only for the Admin.                                                                                                     | Admin        |
-| **Couldn't load settings for this school. Try refreshing the page.**                     | Refresh the page.                                                                                                                    | Admin        |
-| **Couldn't save. Try again.**                                                            | Check the internet and press **Save** again. What you typed is not lost.                                                             | Admin        |
-| **You don't have permission to do this.**                                                | Only the Admin can do this.                                                                                                          | Admin        |
-| **Couldn't upload that image. …**                                                        | Use a PNG, JPEG or WebP image, up to 512 KB and 2048 pixels.                                                                         | Admin        |
-| **That file is larger than 512KB.**                                                      | Make the image smaller and give it again.                                                                                            | Admin        |
-| **"…" is still used by classes or sections, so it can't be removed. Rename it instead.** | Press **Undo remove**, then change the name, or first take the name off that class/section ([**Classes**](../academics/classes.md)). | Admin        |
-| **Another entry for the same shift already covers some of these dates.**                 | Change the dates of the special timing so they do not overlap.                                                                       | Admin        |
-| **Code and both names are required.** / **Each code must be unique.**                    | Fill in every ACR row and keep the codes different.                                                                                  | Admin        |
-| SMS is not going, a warning in the part                                                  | Add an SMS company in the [**Communication**](#task-communication) category.                                                         | Admin        |
-| **This file type isn't supported — choose a .csv or .xlsx file**                         | Give an .xlsx backup taken from this app.                                                                                            | Admin        |
-| **Confirm** cannot be pressed                                                            | Type the school's name exactly. Also check the **What will change** table for an error, or nothing to change.                        | Admin        |
-| **This backup is bigger than this app can restore. You can still download it.**          | Download the file and keep it.                                                                                                       | Support      |
-| **Download expired** / **This backup has expired — request a new one.**                  | 30 days have passed or the backup was deleted. Press **Create a new backup**.                                                        | Admin        |
-| **The restore stopped at …**                                                             | **Download the copy taken before the restore**, then restore it.                                                                     | Admin        |
-| Nothing saves while a restore is running                                                 | Wait until the restore ends.                                                                                                         | Admin        |
-| **Your browser blocked the print window. …**                                             | Allow pop-ups for this site and press **Print measuring page** again.                                                                | Admin        |
-| **Printing** or **Backup** is not in the category list                                   | These two categories show only with a separate permission ([Who can do what](#roles)).                                               | Admin        |
+| What you see                                                                                                | What to do                                                                                                                           | Who can help |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------ |
+| **Settings** is not in the menu                                                                             | This page is only for the Admin.                                                                                                     | Admin        |
+| **Couldn't load settings for this school. Try refreshing the page.**                                        | Refresh the page.                                                                                                                    | Admin        |
+| **Couldn't save. Try again.**                                                                               | Check the internet and press **Save** again. What you typed is not lost.                                                             | Admin        |
+| **You don't have permission to do this.**                                                                   | Only the Admin can do this.                                                                                                          | Admin        |
+| **Couldn't upload that image. …**                                                                           | Use a PNG, JPEG or WebP image, up to 512 KB and 2048 pixels.                                                                         | Admin        |
+| **That file is larger than 512KB.**                                                                         | Make the image smaller and give it again.                                                                                            | Admin        |
+| **"…" is still used by classes or sections, so it can't be removed. Rename it instead.**                    | Press **Undo remove**, then change the name, or first take the name off that class/section ([**Classes**](../academics/classes.md)). | Admin        |
+| **Another entry for the same shift already covers some of these dates.**                                    | Change the dates of the special timing so they do not overlap.                                                                       | Admin        |
+| **Code and both names are required.** / **Each code must be unique.**                                       | Fill in every ACR row and keep the codes different.                                                                                  | Admin        |
+| SMS is not going, a warning in the part                                                                     | Add an SMS company in the [**Communication**](#task-communication) category.                                                         | Admin        |
+| **This file type isn't supported — choose a .csv or .xlsx file**                                            | Give an .xlsx backup taken from this app.                                                                                            | Admin        |
+| **This is not a valid .xlsx workbook. …** / **This workbook cannot be identified as a backup from here. …** | The file is not a backup or blank template from this app, or its sheets were changed. Upload it as you downloaded it.                | Admin        |
+| **This file is too large to read. …**                                                                       | Check that it is the backup file you downloaded.                                                                                     | Admin        |
+| **This file was made by a different version of the app and cannot be read here. …**                         | Keep the original file; a new backup holds today's data, not the data in that file. Ask the SchoolManager team to help restore it.   | Admin        |
+| **Another file is being checked right now. Wait a minute and try again.**                                   | Wait a minute and give the file again.                                                                                               | Admin        |
+| **Confirm** cannot be pressed                                                                               | Type the school's name exactly. Also check the **What will change** table for an error, or nothing to change.                        | Admin        |
+| **This backup is bigger than this app can restore. You can still download it.**                             | Download the file and keep it.                                                                                                       | Support      |
+| **Download expired** / **This backup has expired — request a new one.**                                     | 30 days have passed or the backup was deleted. Press **Create a new backup**.                                                        | Admin        |
+| **The restore stopped at …**                                                                                | **Download the copy taken before the restore**, then restore it.                                                                     | Admin        |
+| Nothing saves while a restore is running                                                                    | Wait until the restore ends.                                                                                                         | Admin        |
+| **Your browser blocked the print window. …**                                                                | Allow pop-ups for this site and press **Print measuring page** again.                                                                | Admin        |
+| **Printing** or **Backup** is not in the category list                                                      | These two categories show only with a separate permission ([Who can do what](#roles)).                                               | Admin        |
 
 ---
 

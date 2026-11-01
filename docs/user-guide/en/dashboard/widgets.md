@@ -11,6 +11,7 @@ sources:
 labels: [dashboard:widgets.*, dashboard:help.widget.*, dashboard:states.*, nav:items.reminderHistory, nav:items.batchDetail, settings:dashboard.risk.absentStreakDays]
 helpIds:
   [
+    dashboard.widgets,
     widget.attendance-today,
     widget.staff-today,
     widget.collection-month,

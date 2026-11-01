@@ -182,6 +182,15 @@ Not present in the running application — only used to build, test, and ship
 it: GitHub Actions, CodeQL, Lighthouse CI (`@lhci/cli`), CodeRabbit,
 Playwright, Storybook.
 
+CodeRabbit only auto-reviews PRs into `main`, `develop`, `feature-*` and
+`epic-*`, and it has a review limit. Stacked PRs (base `epic/97/accum-3`,
+`claude/...-pr2`) and rate-limited PRs need someone to comment
+`@coderabbitai full review`. `scripts/coderabbit-review-queue.sh` does that one
+PR at a time: it waits for CodeRabbit's "Next included review available in N
+minutes", and 60 minutes after the last review, before it asks again. It runs
+on a developer's Mac, not in CI, because CodeRabbit ignores commands from bot
+accounts. Run it with `--help` for the settings.
+
 ## Deliberately not used
 
 Worth stating explicitly so nobody assumes one of these is wired up

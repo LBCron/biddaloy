@@ -83,6 +83,20 @@ describe('/applications/reports', () => {
     expect(within(tiles).getByText('১৮.৫ ঘণ্টা')).toBeTruthy();
   });
 
+  // #3059: dates alone count every year, so the tile must not say "this academic year".
+  it.each([
+    ['', 'This academic year'],
+    [`?academic_year_id=${Y2}&from=2026-01-01`, 'This academic year'],
+    ['?from=2026-01-01&to=2026-03-31', 'In the dates you picked'],
+  ])('the Submitted tile caption for search %j is "%s"', async (search, caption) => {
+    render(REPORT, { locale: 'en', search });
+    const tiles = await screen.findByLabelText('Totals');
+    expect(await within(tiles).findByText(caption)).toBeTruthy();
+    const other =
+      caption === 'This academic year' ? 'In the dates you picked' : 'This academic year';
+    expect(within(tiles).queryByText(other)).toBeNull();
+  });
+
   it('shows a dash when there is no average', async () => {
     render({ ...REPORT, avg_decision_hours: null });
     const tiles = await screen.findByLabelText('মোট হিসাব');

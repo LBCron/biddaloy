@@ -12,11 +12,7 @@ labels:
   [
     printPreview:*,
   ]
-helpIds:
-  [
-    administration.printTemplates.field.printer,
-    administration.printTemplates.field.batchSize,
-  ]
+helpIds: [administration.printPrinters]
 devices: [desktop]
 entry: []
 keywords:
@@ -82,11 +78,11 @@ Here a **printer** is a name plus a few measurements: what kind of printer it is
 
 ## How to know the printer is added <a href="#confirm" id="confirm"></a>
 
-| State                           | How you know                                                      | What next                              |
-| ------------------------------- | ----------------------------------------------------------------- | -------------------------------------- |
-| **Only changed on screen**      | The window says **Saving…**                                       | Wait, do not close the window          |
-| **Reached the school's system** | The window closes and the printer shows in the list               | [Print the measuring page](#calibrate) |
-| **Ready to print**              | On the measuring page the cross lands at exactly 20 mm            | Done, choose this printer in the preview |
+| State                           | How you know                                           | What next                                |
+| ------------------------------- | ------------------------------------------------------ | ---------------------------------------- |
+| **Only changed on screen**      | The window says **Saving…**                            | Wait, do not close the window            |
+| **Reached the school's system** | The window closes and the printer shows in the list    | [Print the measuring page](#calibrate)   |
+| **Ready to print**              | On the measuring page the cross lands at exactly 20 mm | Done, choose this printer in the preview |
 
 **To check:** open any print preview and look for the name in the **Printer** list.
 
@@ -122,14 +118,14 @@ Do this once for every printer. Do it again when you change the paper or card ty
 
 5. Enter how many millimetres it is off:
 
-| Where the cross landed       | Which box                      | What to enter |
-| ---------------------------- | ------------------------------ | ------------- |
-| 1 mm too far **right**       | **Shift left–right (mm)**      | −1            |
-| 1 mm too far **left**        | **Shift left–right (mm)**      | 1             |
-| 0.5 mm too far **down**      | **Shift up–down (mm)**         | −0.5          |
-| 0.5 mm too far **up**        | **Shift up–down (mm)**         | 0.5           |
+| Where the cross landed  | Which box                 | What to enter |
+| ----------------------- | ------------------------- | ------------- |
+| 1 mm too far **right**  | **Shift left–right (mm)** | −1            |
+| 1 mm too far **left**   | **Shift left–right (mm)** | 1             |
+| 0.5 mm too far **down** | **Shift up–down (mm)**    | −0.5          |
+| 0.5 mm too far **up**   | **Shift up–down (mm)**    | 0.5           |
 
-   The value must be between −10 and 10 mm. If the whole print is too small or too big, change **Size** (1 = actual size, from 0.90 to 1.10).
+The value must be between −10 and 10 mm. If the whole print is too small or too big, change **Size** (1 = actual size, from 0.90 to 1.10).
 
 6. Press **Save**.
 
@@ -145,13 +141,13 @@ Do this once for every printer. Do it again when you change the paper or card ty
 
 Set these in the browser's print window every time you print:
 
-| Setting             | Value                                           |
-| ------------------- | ----------------------------------------------- |
-| Printer             | the one you chose in the app's **Printer** box  |
-| Margins             | **None**                                        |
-| Scale               | **100%** (not "Fit to page")                    |
-| Headers and footers | off                                             |
-| Background graphics | on                                              |
+| Setting             | Value                                          |
+| ------------------- | ---------------------------------------------- |
+| Printer             | the one you chose in the app's **Printer** box |
+| Margins             | **None**                                       |
+| Scale               | **100%** (not "Fit to page")                   |
+| Headers and footers | off                                            |
+| Background graphics | on                                             |
 
 ### Print on pre-printed cards <a href="#preprinted" id="preprinted"></a>
 
@@ -177,15 +173,15 @@ If the school buys blank cards that already have the design printed on them, onl
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                                                               | What to do                                                                 | Who can help |
-| -------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------------ |
-| The **Printers** section is missing under **Settings → Printing**          | Only an Admin sees it; ask an Admin                                        | Admin        |
-| **Your browser blocked the print window. …**                               | Allow pop-ups for this site and try again                                  | You          |
-| **Could not open the print window.**                                       | Refresh the page and press **Print measuring page** again                  | You          |
-| **The shift must be between −10 and 10 mm.**                               | If it is off by more than 10 mm, first check the print window's **Scale** and **Margins** | You |
-| The print is still shifted                                                 | Check that you chose the same printer in the preview and in the print window, then fix the measurements again | Admin |
-| A thin white border around the card                                        | An office printer does not print to the edge; use a card printer, or add [bleed](designer-guide.md#safe-bleed) in the design | Admin |
-| The whole print is a little small or big                                   | Check that **Scale** is 100%, then fix **Size**                            | Admin        |
+| What you see                                                      | What to do                                                                                                                   | Who can help |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| The **Printers** section is missing under **Settings → Printing** | Only an Admin sees it; ask an Admin                                                                                          | Admin        |
+| **Your browser blocked the print window. …**                      | Allow pop-ups for this site and try again                                                                                    | You          |
+| **Could not open the print window.**                              | Refresh the page and press **Print measuring page** again                                                                    | You          |
+| **The shift must be between −10 and 10 mm.**                      | If it is off by more than 10 mm, first check the print window's **Scale** and **Margins**                                    | You          |
+| The print is still shifted                                        | Check that you chose the same printer in the preview and in the print window, then fix the measurements again                | Admin        |
+| A thin white border around the card                               | An office printer does not print to the edge; use a card printer, or add [bleed](designer-guide.md#safe-bleed) in the design | Admin        |
+| The whole print is a little small or big                          | Check that **Scale** is 100%, then fix **Size**                                                                              | Admin        |
 
 More help with this: [What to do when something goes wrong](../../help/troubleshooting.md#print).
 
@@ -193,12 +189,12 @@ More help with this: [What to do when something goes wrong](../../help/troublesh
 
 ## Who can do what <a href="#roles" id="roles"></a>
 
-| Role                | Add printers, fix measurements, archive | Choose the printer when printing |
-| ------------------- | --------------------------------------- | -------------------------------- |
-| Admin               | Yes                                     | Yes                              |
-| Accountant          | No                                      | Yes                              |
-| Office staff        | No                                      | Yes                              |
-| Exam controller     | No                                      | Yes                              |
+| Role            | Add printers, fix measurements, archive | Choose the printer when printing |
+| --------------- | --------------------------------------- | -------------------------------- |
+| Admin           | Yes                                     | Yes                              |
+| Accountant      | No                                      | Yes                              |
+| Office staff    | No                                      | Yes                              |
+| Exam controller | No                                      | Yes                              |
 
 ---
 

@@ -5,8 +5,9 @@ import { HomeworkAssignmentStatus } from '@biddaloy/shared';
 import { Homework } from './entities/homework.entity';
 import { HomeworkAssignment } from './entities/homework-assignment.entity';
 import { HomeworkAccessService } from './homework-access.service';
-import { teacherAssignments } from '../classes/teacher-scope.service';
+import { teacherAssignments, type TeacherAssignmentRow } from '../classes/teacher-scope.service';
 import { HomeworkNoticeService } from './homework-notice.service';
+import { homeworkTargetTaken } from '../../common/filters/known-errors';
 import { HomeworkToCheckDto } from './dto/homework-dashboard.dto';
 import { attentionEvents } from '../attention/attention.constants';
 import { emitRecheck } from '../attention/engine/attention-events';
@@ -67,6 +68,29 @@ export class HomeworkService {
         ctx.tenantId,
       );
     }
+  }
+
+  /** #3172: one ACTIVE row per (homework, target). The partial unique indexes
+   * (IDX_homework_assignments_active_section / _student) are the race backstop; this check gives
+   * the caller a fixed 409 text first. `exceptId` is the row being reassigned or reactivated. */
+  private async assertNoLiveRow(
+    homeworkId: string,
+    target: { section_id?: string | null; student_id?: string | null },
+    tenantId: string,
+    exceptId?: string,
+  ): Promise<void> {
+    const live = await this.assignmentRepo.exists({
+      where: {
+        tenant_id: tenantId,
+        homework_id: homeworkId,
+        status: HomeworkAssignmentStatus.ACTIVE,
+        ...(target.section_id
+          ? { section_id: target.section_id }
+          : { student_id: target.student_id as string }),
+        ...(exceptId ? { id: Not(exceptId) } : {}),
+      },
+    });
+    if (live) throw homeworkTargetTaken();
   }
 
   /** Shared by assign + reassign: exactly-one-target shape (D24), due_date
@@ -252,11 +276,9 @@ export class HomeworkService {
   private async applyTeacherScope(
     qb: SelectQueryBuilder<Homework>,
     ctx: CallerContext,
+    scopeRows?: TeacherAssignmentRow[],
   ): Promise<boolean> {
-    const rows = await teacherAssignments(this.homeworkRepo.manager, {
-      userId: ctx.userId,
-      tenantId: ctx.tenantId,
-    });
+    const rows = scopeRows ?? (await this.teacherScopeRows(ctx));
     if (rows.length === 0) return false;
     const homeroomClassIds = [
       ...new Set(rows.filter((r) => r.subject_id === null).map((r) => r.class_id)),
@@ -313,7 +335,21 @@ export class HomeworkService {
     return true;
   }
 
-  async findOne(id: string, ctx: CallerContext): Promise<Homework> {
+  /** The caller's current-year section duties (`teacherAssignments`, the one teacher join). */
+  private teacherScopeRows(ctx: CallerContext): Promise<TeacherAssignmentRow[]> {
+    return teacherAssignments(this.homeworkRepo.manager, {
+      userId: ctx.userId,
+      tenantId: ctx.tenantId,
+    });
+  }
+
+  /** `scopeRows`: a caller that already read the teacher's duties passes them in, so one
+   * request does not run the same join twice (#3173). */
+  async findOne(
+    id: string,
+    ctx: CallerContext,
+    scopeRows?: TeacherAssignmentRow[],
+  ): Promise<Homework> {
     const homework = await this.homeworkRepo.findOne({
       where: { id, tenant_id: ctx.tenantId },
     });
@@ -337,7 +373,7 @@ export class HomeworkService {
       const scoped = this.homeworkRepo
         .createQueryBuilder('h')
         .where('h.id = :id AND h.tenant_id = :tenantId', { id, tenantId: ctx.tenantId });
-      if (!(await this.applyTeacherScope(scoped, ctx)) || !(await scoped.getExists())) {
+      if (!(await this.applyTeacherScope(scoped, ctx, scopeRows)) || !(await scoped.getExists())) {
         throw new NotFoundException('Homework not found');
       }
     }
@@ -353,7 +389,11 @@ export class HomeworkService {
     homeworkId: string,
     ctx: CallerContext,
   ): Promise<HomeworkAssignmentListItemDto[]> {
-    const homework = await this.findOne(homeworkId, ctx);
+    // A teacher's duties are read once and shared with the `findOne` gate (#3173).
+    const teacherRows = this.access.canManageTenantWide(ctx.role)
+      ? undefined
+      : await this.teacherScopeRows(ctx);
+    const homework = await this.findOne(homeworkId, ctx, teacherRows);
     const qb = this.assignmentRepo
       .createQueryBuilder('ha')
       .leftJoin(
@@ -383,11 +423,8 @@ export class HomeworkService {
         homeworkId: homework.id,
         tenantId: ctx.tenantId,
       });
-    if (!this.access.canManageTenantWide(ctx.role)) {
-      const rows = await teacherAssignments(this.homeworkRepo.manager, {
-        userId: ctx.userId,
-        tenantId: ctx.tenantId,
-      });
+    if (teacherRows) {
+      const rows = teacherRows;
       if (rows.length === 0) return [];
       qb.andWhere(
         `EXISTS (SELECT 1 FROM unnest(CAST(:scopeSections AS uuid[]), CAST(:scopeSubjects AS uuid[]))
@@ -418,6 +455,7 @@ export class HomeworkService {
     const homework = await this.findOne(homeworkId, ctx);
 
     await this.assertValidNewTarget(dto, homework, ctx);
+    await this.assertNoLiveRow(homework.id, dto, ctx.tenantId);
 
     const assignment = this.assignmentRepo.create({
       homework_id: homework.id,
@@ -430,23 +468,24 @@ export class HomeworkService {
     });
     const saved = await this.assignmentRepo.save(assignment);
 
-    // [22.3.3] Fire-and-forget would risk a silently-lost notice on a
-    // transient error with no caller to see it; awaiting keeps it on the
-    // request but must never turn a successful assignment into a 500 just
-    // because a guardian's CommunicationLog insert failed.
-    try {
-      await this.notice.notifyAssignment(saved, homework);
-    } catch (err) {
-      // HomeworkNoticeService already logs internally per-guardian; this
-      // catches a failure *before* that (e.g. loading target students), so
-      // it still needs its own trace. The assignment itself is the source
-      // of truth and must not be rolled back for a notification failure.
-      this.logger.warn(
-        `Failed to send assignment notice for assignment ${saved.id}: ${(err as Error).message}`,
-      );
-    }
+    await this.tryNotice(saved.id, () => this.notice.notifyAssignment(saved, homework));
 
     return saved;
+  }
+
+  /** [22.3.3] Fire-and-forget would risk a silently-lost notice on a transient error with no
+   * caller to see it; awaiting keeps it on the request but must never turn a successful write
+   * into a 500 just because a guardian's CommunicationLog insert failed. HomeworkNoticeService
+   * already logs per guardian; this catches a failure *before* that (e.g. loading target
+   * students). The assignment is the source of truth and is never rolled back for a notice. */
+  private async tryNotice(assignmentId: string, send: () => Promise<void>): Promise<void> {
+    try {
+      await send();
+    } catch (err) {
+      this.logger.warn(
+        `Failed to send homework notice for assignment ${assignmentId}: ${(err as Error).message}`,
+      );
+    }
   }
 
   /** D20 — reassignment always creates a new row rather than mutating the
@@ -457,39 +496,48 @@ export class HomeworkService {
     dto: AssignHomeworkDto,
     ctx: CallerContext,
   ): Promise<HomeworkAssignment> {
+    // Rule 23: unknown id, other tenant and out-of-scope all answer one text; the superseded 400
+    // is only reachable by a caller who may manage the row (same order as updateAssignment).
+    const miss = () => new NotFoundException('Homework assignment not found');
     const old = await this.assignmentRepo.findOne({
       where: { id: assignmentId, tenant_id: ctx.tenantId },
     });
-    if (!old) {
-      throw new NotFoundException('Homework assignment not found');
+    if (!old) throw miss();
+    let homework: Homework;
+    try {
+      homework = await this.findOne(old.homework_id, ctx);
+      // The caller must be able to manage the OLD target too, not just the
+      // new one — otherwise any teacher on the tenant could reassign (and so
+      // supersede) another teacher's assignment by naming their own section
+      // as the new target.
+      await this.assertCanManageTarget(old, homework, ctx);
+    } catch (e) {
+      throw e instanceof NotFoundException ? miss() : e;
     }
     if (old.status === HomeworkAssignmentStatus.SUPERSEDED) {
       throw new BadRequestException('This assignment has already been reassigned');
     }
-    const homework = await this.findOne(old.homework_id, ctx);
-
-    // The caller must be able to manage the OLD target too, not just the
-    // new one — otherwise any teacher on the tenant could reassign (and so
-    // supersede) another teacher's assignment by naming their own section
-    // as the new target.
-    await this.assertCanManageTarget(old, homework, ctx);
+    // A withdrawn row is brought back with Reactivate, never silently revived by a new ACTIVE row.
+    if (old.status === HomeworkAssignmentStatus.DEACTIVATED) {
+      throw new BadRequestException('Reactivate this assignment before reassigning it');
+    }
     await this.assertValidNewTarget(dto, homework, ctx);
+    await this.assertNoLiveRow(old.homework_id, dto, ctx.tenantId, old.id);
 
     // Both writes in one transaction, and the old row's supersede is a
     // conditional UPDATE (not a save() of the already-fetched entity): a
     // crash between the two writes must never leave the homework with two
-    // live ACTIVE rows, and two concurrent reassign calls for the same
-    // assignmentId must not both pass the earlier SUPERSEDED check and each
-    // create a new row — whichever loses the race gets 0 affected rows here
-    // and aborts instead.
-    return this.assignmentRepo.manager.transaction(async (manager) => {
+    // live ACTIVE rows, and two concurrent reassign calls (or a reassign racing a
+    // deactivate) for the same assignmentId must not both pass the earlier status
+    // checks — whichever loses the race gets 0 affected rows here and aborts instead.
+    const created = await this.assignmentRepo.manager.transaction(async (manager) => {
       const repo = manager.getRepository(HomeworkAssignment);
       const result = await repo.update(
-        { id: old.id, tenant_id: ctx.tenantId, status: Not(HomeworkAssignmentStatus.SUPERSEDED) },
+        { id: old.id, tenant_id: ctx.tenantId, status: HomeworkAssignmentStatus.ACTIVE },
         { status: HomeworkAssignmentStatus.SUPERSEDED },
       );
       if (!result.affected) {
-        throw new BadRequestException('This assignment has already been reassigned');
+        throw new BadRequestException('This assignment has changed. Reload and try again.');
       }
       return repo.save(
         repo.create({
@@ -503,6 +551,22 @@ export class HomeworkService {
         }),
       );
     });
+
+    // #3172: families hear about it. Another target: the new one gets the assigned notice and
+    // the old one is told it was withdrawn. Same target: only a moved due date is news.
+    const sameTarget =
+      old.section_id === created.section_id && old.student_id === created.student_id;
+    if (!sameTarget) {
+      await this.tryNotice(created.id, () => this.notice.notifyAssignment(created, homework));
+      await this.tryNotice(old.id, () =>
+        this.notice.notifyChange(old, homework, 'WITHDRAWN', created),
+      );
+    } else if (old.due_date.slice(0, 10) !== created.due_date.slice(0, 10)) {
+      await this.tryNotice(created.id, () =>
+        this.notice.notifyChange(created, homework, 'DUE_CHANGED'),
+      );
+    }
+    return created;
   }
 
   /** `PATCH /homework-assignments/:id`: status and/or due date, in place (#2900). Every miss
@@ -520,8 +584,9 @@ export class HomeworkService {
       where: { id: assignmentId, tenant_id: ctx.tenantId },
     });
     if (!assignment) throw miss();
+    let homework: Homework;
     try {
-      const homework = await this.findOne(assignment.homework_id, ctx);
+      homework = await this.findOne(assignment.homework_id, ctx);
       await this.assertCanManageTarget(assignment, homework, ctx);
     } catch (e) {
       throw e instanceof NotFoundException ? miss() : e;
@@ -533,21 +598,26 @@ export class HomeworkService {
     if (dto.due_date !== undefined && dto.due_date < assignment.assigned_date) {
       throw new BadRequestException('due_date must be on or after assigned_date');
     }
+    // Reactivating must not leave two live rows for one target.
+    if (
+      dto.status === HomeworkAssignmentStatus.ACTIVE &&
+      assignment.status !== HomeworkAssignmentStatus.ACTIVE
+    ) {
+      await this.assertNoLiveRow(assignment.homework_id, assignment, ctx.tenantId, assignment.id);
+    }
     const patch: Pick<Partial<HomeworkAssignment>, 'due_date' | 'status'> = {
       ...(dto.due_date !== undefined ? { due_date: dto.due_date } : {}),
       ...(dto.status !== undefined ? { status: dto.status } : {}),
     };
-    // Conditional update: a reassign racing this PATCH must not be overwritten (0 rows = lost race).
+    // Conditional on the status read above: a reassign, or a second PATCH (two tabs, a double
+    // click), that got there first wins and this one changes nothing and tells no one
+    // (0 rows = lost race).
     const result = await this.assignmentRepo.update(
-      {
-        id: assignment.id,
-        tenant_id: ctx.tenantId,
-        status: Not(HomeworkAssignmentStatus.SUPERSEDED),
-      },
+      { id: assignment.id, tenant_id: ctx.tenantId, status: assignment.status },
       patch,
     );
     if (!result.affected) {
-      throw new BadRequestException('A superseded assignment cannot be changed');
+      throw new BadRequestException('This assignment has changed. Reload and try again.');
     }
     // The not-submitted alert keys on status + due_date: a deactivate or date move clears it now.
     emitRecheck(attentionEvents, {
@@ -555,6 +625,28 @@ export class HomeworkService {
       ruleKey: 'homework.not_submitted',
       actorUserId: ctx.userId,
     });
+    // #3172: tell families about a real change only. Deactivating withdraws the homework;
+    // reactivating puts it back (they were told it no longer needed submitting), with its due
+    // date; a moved due date on a live row is news. A repeated PATCH that changes nothing sends
+    // nothing, and one change sends one notice.
+    const updated = Object.assign({}, assignment, patch);
+    const deactivated =
+      updated.status === HomeworkAssignmentStatus.DEACTIVATED &&
+      assignment.status !== HomeworkAssignmentStatus.DEACTIVATED;
+    const reactivated =
+      updated.status === HomeworkAssignmentStatus.ACTIVE &&
+      assignment.status === HomeworkAssignmentStatus.DEACTIVATED;
+    const dueMoved = updated.due_date.slice(0, 10) !== assignment.due_date.slice(0, 10);
+    const kind = deactivated
+      ? 'WITHDRAWN'
+      : reactivated
+        ? 'REACTIVATED'
+        : dueMoved && updated.status === HomeworkAssignmentStatus.ACTIVE
+          ? 'DUE_CHANGED'
+          : null;
+    if (kind) {
+      await this.tryNotice(assignment.id, () => this.notice.notifyChange(updated, homework, kind));
+    }
     return Object.assign(assignment, patch);
   }
 }

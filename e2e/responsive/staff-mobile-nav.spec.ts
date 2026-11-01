@@ -127,19 +127,30 @@ test.describe('staff bottom nav', () => {
       // late row can extend below the bar after the scroll-to-bottom was taken.
       await page.waitForLoadState('networkidle');
       await expect(page.locator('main [aria-busy="true"]')).toHaveCount(0);
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       const viewportHeight = page.viewportSize()!.height;
-      const barBox = (await bar.boundingBox())!;
-      expect(Math.abs(barBox.y + barBox.height - viewportHeight)).toBeLessThanOrEqual(1);
-      const lastBottom = await page.evaluate(() => {
-        const main = document.querySelector('main')!;
-        let bottom = 0;
-        for (const child of Array.from(main.children)) {
-          bottom = Math.max(bottom, child.getBoundingClientRect().bottom);
-        }
-        return bottom;
-      });
-      expect(lastBottom).toBeLessThanOrEqual(barBox.y + 1);
+      // #3087: this failed once in CI, never locally. Read the boxes only once they are stable
+      // (scroll and layout can settle a frame later), so poll until the bar's
+      // bottom edge and the content's last edge both hold, instead of taking one early reading.
+      // Every sample scrolls to the bottom first, so content that grows mid-poll is re-measured
+      // from the new bottom, not from a stale scroll position.
+      await expect
+        .poll(
+          async () =>
+            page.evaluate((vh) => {
+              window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' });
+              const bar = document.querySelector('[data-app-bottom-nav]')!.getBoundingClientRect();
+              let bottom = 0;
+              for (const child of Array.from(document.querySelector('main')!.children)) {
+                bottom = Math.max(bottom, child.getBoundingClientRect().bottom);
+              }
+              return {
+                barAtBottom: Math.abs(bar.y + bar.height - vh) <= 1,
+                contentClear: bottom <= bar.y + 1,
+              };
+            }, viewportHeight),
+          { message: `bar fixed to bottom and content clear of it on ${path}` },
+        )
+        .toEqual({ barAtBottom: true, contentClear: true });
     }
   });
 

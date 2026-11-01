@@ -83,21 +83,18 @@ function Field({
 }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className ?? ''}`}>
-      <span className="inline-flex items-center gap-1">
-        <Label htmlFor={id}>
-          {label}
-          {required && (
-            <>
-              <span className="text-destructive" aria-hidden="true">
-                {' '}
-                *
-              </span>
-              <span className="sr-only"> {requiredLabel}</span>
-            </>
-          )}
-        </Label>
-        {helpId && <HelpHint helpId={helpId} />}
-      </span>
+      <Label htmlFor={id} helpId={helpId} helpLabel={label}>
+        {label}
+        {required && (
+          <>
+            <span className="text-destructive" aria-hidden="true">
+              {' '}
+              *
+            </span>
+            <span className="sr-only"> {requiredLabel}</span>
+          </>
+        )}
+      </Label>
       {children}
       {error && (
         <p id={`${id}-error`} className="flex items-center gap-1 text-caption text-destructive">

@@ -7,7 +7,13 @@
  * tokens, not a new component — a handful of `{grade: count}` pairs
  * doesn't warrant one).
  */
-import { Checkbox, DataTable, ErrorState, type DataTableColumn } from '@biddaloy/ui/components';
+import {
+  Checkbox,
+  DataTable,
+  ErrorState,
+  HelpHint,
+  type DataTableColumn,
+} from '@biddaloy/ui/components';
 import {
   passFailByComponentQueryOptions,
   passFailQueryOptions,
@@ -223,10 +229,16 @@ export function PassFailTab({
           {sectionName ? ` · ${sectionName}` : ''}
         </p>
       </div>
-      <label className="flex min-h-11 items-center gap-3 md:min-h-8 print:hidden">
-        <Checkbox checked={byComponent} onCheckedChange={(v) => onByComponentChange(v === true)} />
-        {tg('analysisPage.byPart')}
-      </label>
+      <div className="flex items-center gap-1 print:hidden">
+        <label className="flex min-h-11 items-center gap-3 md:min-h-8">
+          <Checkbox
+            checked={byComponent}
+            onCheckedChange={(v) => onByComponentChange(v === true)}
+          />
+          {tg('analysisPage.byPart')}
+        </label>
+        <HelpHint helpId="examsResults.analysis.field.byPart" />
+      </div>
       {byComponent ? (
         <DataTable
           tableId="analysis-pass-fail-component"

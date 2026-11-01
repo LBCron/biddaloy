@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsIn, IsOptional, IsUUID } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsIn, IsOptional, IsUUID } from 'class-validator';
 
 /** `GET /calendar/export` query — [17.3.2]. `format` defaults to `xlsx`,
  * same default as `GET /calendar-import/template`. */
@@ -26,6 +26,8 @@ export class CloneCalendarDto {
 
   @IsOptional()
   @IsArray()
+  // Rule 5: an unbounded list reaches an `IN (...)` query. A year holds a few hundred events.
+  @ArrayMaxSize(500)
   @IsUUID('4', { each: true })
   event_ids?: string[];
 }

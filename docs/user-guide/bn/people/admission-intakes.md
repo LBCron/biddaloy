@@ -39,8 +39,6 @@ helpIds:
     people.admissionIntakes.field.seatCount,
     people.admissionIntakes.field.dates,
     people.admissionIntakes.field.requiredDocuments,
-    people.admissionIntakes.section.publicForm,
-    people.admissionIntakes.section.status,
   ]
 devices: [desktop]
 entry: [sidebar, palette]

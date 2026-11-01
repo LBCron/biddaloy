@@ -1,7 +1,7 @@
 import { toast } from '@biddaloy/ui/components';
 import { REGION_BD_BN } from '@biddaloy/ui/i18n';
 import { cleanupTestState, renderWithRouter, server } from '@biddaloy/ui/test';
-import { formatDate } from '@biddaloy/ui/utils';
+import { formatDate, tenantTodayIso } from '@biddaloy/ui/utils';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -159,6 +159,19 @@ const OLD_YEAR = {
   },
 };
 
+/** A record dated tomorrow in the school's own clock: still changeable, so Delete is offered (#3175). */
+function tomorrowIso(): string {
+  const [y, m, d] = tenantTodayIso(REGION_BD_BN).split('-').map(Number);
+  return new Date(Date.UTC(y!, m! - 1, d! + 1)).toISOString().slice(0, 10);
+}
+const UPCOMING = { ...COVERED, id: 'sub-upcoming', date: tomorrowIso() };
+/** Yesterday in the school's clock may still be today in another zone, so it keeps Delete. */
+function yesterdayIso(): string {
+  const [y, m, d] = tenantTodayIso(REGION_BD_BN).split('-').map(Number);
+  return new Date(Date.UTC(y!, m! - 1, d! - 1)).toISOString().slice(0, 10);
+}
+const YESTERDAY = { ...COVERED, id: 'sub-yesterday', date: yesterdayIso() };
+
 function render(entry = '/routines/substitutions') {
   return renderWithRouter(routeTree, {
     initialEntries: [entry],
@@ -269,11 +282,33 @@ describe('/routines/substitutions', () => {
     expect(screen.getByRole('dialog', { name: /record a substitute teacher/i })).toBeTruthy();
   });
 
+  it('offers Delete on a record dated today or later, not on a past one (#3175)', async () => {
+    mockBaseData();
+    server.use(
+      http.get('/api/v1/routines/substitutions', () => HttpResponse.json([COVERED, UPCOMING])),
+    );
+    render();
+    // Both rows render; only the upcoming one can be deleted (the server answers 409 for past).
+    await screen.findByText(formatDate(UPCOMING.date, REGION_BD_BN));
+    expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(1);
+  });
+
+  it('keeps Delete on yesterday: the page may not know the school zone, so the server decides', async () => {
+    mockBaseData();
+    server.use(
+      http.get('/api/v1/routines/substitutions', () => HttpResponse.json([COVERED, YESTERDAY])),
+    );
+    render();
+    await screen.findByText(formatDate(YESTERDAY.date, REGION_BD_BN));
+    // COVERED is weeks old (surely past); YESTERDAY keeps its Delete.
+    expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(1);
+  });
+
   it('Delete asks first, then sends DELETE /routines/substitutions/<id>', async () => {
     mockBaseData();
     let deletedId: string | null = null;
     server.use(
-      http.get('/api/v1/routines/substitutions', () => HttpResponse.json([COVERED])),
+      http.get('/api/v1/routines/substitutions', () => HttpResponse.json([UPCOMING])),
       http.delete('/api/v1/routines/substitutions/:id', ({ params }) => {
         deletedId = String(params['id']);
         return new HttpResponse(null, { status: 204 });
@@ -287,13 +322,13 @@ describe('/routines/substitutions', () => {
     expect(deletedId).toBeNull();
     await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
 
-    await waitFor(() => expect(deletedId).toBe('sub-1'));
+    await waitFor(() => expect(deletedId).toBe('sub-upcoming'));
   });
 
   it('a 409 SUBSTITUTION_IN_PAST shows the past-record sentence', async () => {
     mockBaseData();
     server.use(
-      http.get('/api/v1/routines/substitutions', () => HttpResponse.json([COVERED])),
+      http.get('/api/v1/routines/substitutions', () => HttpResponse.json([UPCOMING])),
       http.delete('/api/v1/routines/substitutions/:id', () =>
         HttpResponse.json(
           {
@@ -326,7 +361,7 @@ describe('/routines/substitutions', () => {
   it('a failing DELETE shows "Could not delete"', async () => {
     mockBaseData();
     server.use(
-      http.get('/api/v1/routines/substitutions', () => HttpResponse.json([COVERED])),
+      http.get('/api/v1/routines/substitutions', () => HttpResponse.json([UPCOMING])),
       http.delete('/api/v1/routines/substitutions/:id', () =>
         HttpResponse.json({ statusCode: 500, message: 'x' }, { status: 500 }),
       ),

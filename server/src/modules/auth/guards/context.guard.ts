@@ -100,7 +100,7 @@ function resolveRole(
     // A genuine platform SUPER_ADMIN who ALSO happens to hold an unrelated
     // membership in THIS tenant (e.g. invited as ADMIN before being promoted
     // to platform SUPER_ADMIN) must still get SUPER_ADMIN here instead of
-    // falling through to "not a member of tenant" — the tenant-membership
+    // falling through to "User is not a member of the requested tenant" — the tenant-membership
     // fallback below only fires when there is NO membership at all.
     if (explicitRole === UserRole.SUPER_ADMIN && platformAuthority) {
       return UserRole.SUPER_ADMIN;

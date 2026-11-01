@@ -412,7 +412,7 @@ describe('Study plans E2E (66.2.01)', () => {
 
     it('a tenant-2 ADMIN naming tenant 1 in X-Tenant-ID (not a member) is 401, as is a missing header', async () => {
       const id = await createPlan();
-      // ContextGuard answers 401 ("not a member of tenant") for a foreign X-Tenant-ID.
+      // ContextGuard answers 401 ("User is not a member of the requested tenant") for a foreign X-Tenant-ID.
       await as('get', `/study-plans/${id}`, 'ADMIN2', SEED_TENANT_ID).expect(401);
       await supertest(app.getHttpServer())
         .get(`${API}/study-plans/${id}`)

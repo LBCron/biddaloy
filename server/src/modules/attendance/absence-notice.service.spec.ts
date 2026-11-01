@@ -110,8 +110,8 @@ describe('AbsenceNoticeService', () => {
       getResolvedSettings: vi.fn(async () => ({
         attendance: { autoAbsentNotification: { enabled: true, cutoffTime: '14:00' } },
       })),
-      // [#2403] Notice language reads the stored locale; none stored = English.
-      findById: vi.fn(async () => ({ id: TENANT, settings: {} })),
+      // English by default so the template tests read in English; no stored locale = bn-BD (#3136).
+      findById: vi.fn(async () => ({ id: TENANT, settings: { region: { locale: 'en-US' } } })),
     };
     // Unmetered by default: reserveForLog returns no extra job data.
     smsCreditService = { reserveForLog: vi.fn(async () => ({})), releaseForLog: vi.fn() };
@@ -395,13 +395,14 @@ describe('AbsenceNoticeService', () => {
     expect(recipients[0].vars.student_names).toBe('রহিম ও Karim');
   });
 
-  it('school with no stored locale gets the English template', async () => {
+  it('school with no stored locale gets the Bangla template (bn-BD default)', async () => {
+    schoolsService.findById = vi.fn(async () => ({ id: TENANT, settings: {} }));
     const { template } = await service.buildRecipients({
       tenantId: TENANT,
       sectionId: SECTION,
       date: DATE,
     });
-    expect(template).toBe(DEFAULT_ABSENCE_NOTICE_TEMPLATE);
+    expect(template).toBe(ABSENCE_NOTICE_TEMPLATE_BN);
   });
 
   describe('notifyCorrection does nothing when there was no notice to correct', () => {

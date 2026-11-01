@@ -463,7 +463,8 @@
     "notOnDateError": "This period doesn't happen on the date you picked (it may run every other week or once a month). Pick another date.",
     "slotTeacherError": "This teacher already teaches this period. Pick someone else.",
     "teacherBusyError": "This teacher has another class from {{from}} to {{to}}. Pick someone else.",
-    "teacherBusyNoTimeError": "This teacher is not free at that time. Pick someone else."
+    "teacherBusyNoTimeError": "This teacher is not free at that time. Pick someone else.",
+    "pastError": "A substitution on an earlier date is part of the record and cannot be changed. Pick today or a later date."
   },
   "marking": {
     "todayTitle": "Today, {{weekday}}",

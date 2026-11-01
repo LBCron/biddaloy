@@ -103,7 +103,7 @@ describe('FormField', () => {
       </HelpProvider>,
       { wrapper: I18nProvider },
     );
-    expect(await screen.findByRole('button', { name: 'Help: Name' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Help: Student name' })).toBeTruthy();
     await user.click(screen.getByText('Student name'));
     expect(document.activeElement).toBe(screen.getByRole('textbox', { name: /Student name/ }));
   });

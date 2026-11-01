@@ -7,6 +7,7 @@ import * as React from 'react';
 
 import { cn } from '../primitives/lib/utils';
 
+import { HelpHint, useHelp } from './help-hint';
 import { RadioGroup, RadioGroupItem } from './radio';
 
 export interface RadioRowOption {
@@ -22,6 +23,11 @@ export interface RadioRowsProps {
   options: RadioRowOption[];
   legend: string;
   legendHidden?: boolean;
+  /**
+   * A (?) beside the legend, outside it, so the group's name stays the legend alone.
+   * Ignored with `legendHidden`: a (?) with no visible label beside it means nothing.
+   */
+  helpId?: string | undefined;
   className?: string;
 }
 
@@ -31,16 +37,36 @@ export function RadioRows({
   options,
   legend,
   legendHidden = false,
+  helpId,
   className,
 }: RadioRowsProps) {
+  const { resolve } = useHelp();
+  const hasHint = !legendHidden && resolve(helpId) !== null;
   const baseId = React.useId();
   const legendId = `${baseId}-legend`;
+  // The legend stays the fieldset's first child, so it names the fieldset natively (floated or
+  // not). No aria-labelledby on the fieldset: that would make it and the radiogroup both match
+  // a label query for the legend. With a (?), the legend's line box matches the icon's height
+  // (44px on phones) so the text and the icon share one centre line.
   return (
     <fieldset className={cn('min-w-0', className)}>
-      <legend id={legendId} className={cn('mb-2 text-label', legendHidden && 'sr-only')}>
+      <legend
+        id={legendId}
+        className={cn(
+          'mb-2 text-label',
+          legendHidden && 'sr-only',
+          hasHint && 'float-start me-1 flex min-h-11 items-center md:min-h-6',
+        )}
+      >
         {legend}
       </legend>
-      <RadioGroup value={value} onValueChange={onValueChange} aria-labelledby={legendId}>
+      {hasHint && <HelpHint helpId={helpId} label={legend} className="float-start" />}
+      <RadioGroup
+        value={value}
+        onValueChange={onValueChange}
+        aria-labelledby={legendId}
+        className={hasHint ? 'clear-both' : undefined}
+      >
         {options.map((option, i) => {
           const id = `${baseId}-${i}`;
           const selected = value === option.value;

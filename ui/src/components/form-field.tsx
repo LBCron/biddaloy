@@ -29,7 +29,6 @@ import {
 import { useTranslation } from '../i18n';
 import { cn } from '../primitives/lib/utils';
 
-import { HelpHint, useHelp } from './help-hint';
 import { Label } from './label';
 
 const Form = FormProvider;
@@ -105,18 +104,22 @@ function FormLabel({
   required,
   children,
   helpId,
+  helpLabel,
   ...props
 }: React.ComponentProps<typeof Label> & {
   required?: boolean | undefined;
   /** A (?) after the label text; a sibling of the label, so clicking the label still focuses the input. */
   helpId?: string | undefined;
+  /** Names the (?) when the children are not plain text; defaults to the children. */
+  helpLabel?: string | undefined;
 }) {
   const { error, formItemId } = useFormField();
   const { t } = useTranslation();
-  const { resolve } = useHelp();
-  const label = (
+  return (
     <Label
       {...props}
+      helpId={helpId}
+      helpLabel={helpLabel ?? (typeof children === 'string' ? children : undefined)}
       data-slot="form-label"
       data-error={!!error}
       className={cn(error && 'text-destructive', className)}
@@ -149,14 +152,6 @@ function FormLabel({
         children
       )}
     </Label>
-  );
-  // No wrapper when no (?) renders, so the label keeps its DOM.
-  if (!resolve(helpId)) return label;
-  return (
-    <span className="inline-flex items-center gap-1">
-      {label}
-      <HelpHint helpId={helpId} />
-    </span>
   );
 }
 

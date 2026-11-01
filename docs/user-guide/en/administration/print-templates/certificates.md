@@ -15,12 +15,7 @@ labels:
     printHistory:revoke.*,
     verify:*,
   ]
-helpIds:
-  [
-    administration.printTemplates.action.print,
-    administration.printTemplates.action.revoke,
-    administration.printTemplates.field.kind,
-  ]
+helpIds: [administration.printCertificates]
 devices: [desktop]
 entry: []
 keywords:
@@ -87,10 +82,10 @@ The window has four steps: **Kind**, **Details**, **Preview**, **Print**.
 
 ## How to know the certificate is issued <a href="#confirm" id="confirm"></a>
 
-| State                           | How you know                                                                 | What next      |
-| ------------------------------- | ---------------------------------------------------------------------------- | -------------- |
-| **Only changed on screen**      | You are looking at the preview, you have not pressed **Print** yet           | Print          |
-| **Reached the school's system** | The question whether everything printed correctly has appeared               | Answer it      |
+| State                           | How you know                                                                                                        | What next            |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| **Only changed on screen**      | You are looking at the preview, you have not pressed **Print** yet                                                  | Print                |
+| **Reached the school's system** | The question whether everything printed correctly has appeared                                                      | Answer it            |
 | **Done**                        | **… certificates issued**; the **Documents** tab's **Issued certificates** list has a row with **Status** **Valid** | Give the certificate |
 
 **To check:** scan the certificate's QR code; the **Verify document** page shows **Valid document** ([Check a card by its QR code](../print-templates.md#qr-check)). The page has only the document type, the holder's name, school, issue date, copy and serial number.
@@ -101,13 +96,13 @@ The window has four steps: **Kind**, **Details**, **Preview**, **Print**.
 
 ### Who can get which certificate <a href="#eligible" id="eligible"></a>
 
-| Certificate                       | Who gets it                                          | What it shows if not                                                         |
-| --------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------- |
-| **Transfer certificate (TC)**     | Someone whose leaving (transfer or withdrawal) is recorded | **Record a transfer or withdrawal first.** and a **Record leaving** button |
-| **Testimonial**                   | A current or graduated student                       | **Only for current or graduated students.**                                  |
-| **Study certificate**             | A current student                                    | **Only for current students.**                                               |
-| **Character certificate**         | Any student                                          | —                                                                            |
-| **Participation certificate**     | Any student                                          | —                                                                            |
+| Certificate                   | Who gets it                                                | What it shows if not                                                       |
+| ----------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Transfer certificate (TC)** | Someone whose leaving (transfer or withdrawal) is recorded | **Record a transfer or withdrawal first.** and a **Record leaving** button |
+| **Testimonial**               | A current or graduated student                             | **Only for current or graduated students.**                                |
+| **Study certificate**         | A current student                                          | **Only for current students.**                                             |
+| **Character certificate**     | Any student                                                | —                                                                          |
+| **Participation certificate** | Any student                                                | —                                                                          |
 
 If there is no published design of the kind, it shows **No published template yet.** and a **Create a template** button. If a student leaves and is later admitted again, a transfer certificate can no longer be issued; the latest event counts.
 
@@ -115,15 +110,15 @@ If there is no published design of the kind, it shows **No published template ye
 
 A serial number looks like `TSM-2026-00009`: the certificate code, the year and a five-digit running number.
 
-| Certificate                    | Code  |
-| ------------------------------ | ----- |
-| Transfer certificate (TC)      | `TC`  |
-| Testimonial                    | `TSM` |
-| Character certificate          | `CHR` |
-| Study certificate              | `STD` |
-| Participation certificate      | `PRT` |
-| Result certificate             | `RES` |
-| Merit certificate              | `MRT` |
+| Certificate               | Code  |
+| ------------------------- | ----- |
+| Transfer certificate (TC) | `TC`  |
+| Testimonial               | `TSM` |
+| Character certificate     | `CHR` |
+| Study certificate         | `STD` |
+| Participation certificate | `PRT` |
+| Result certificate        | `RES` |
+| Merit certificate         | `MRT` |
 
 - If the school sets a **School short code (optional)** (Settings → **Printing** → **Documents and certificates**; 2–8 capital letters or digits) it goes in front: `DAHS-TC-2026-00007`.
 - Numbers run separately for each kind and each year, from 1. The year is taken from the Dhaka date of the day of issue.
@@ -157,7 +152,6 @@ From **Reports → Print & documents** → **Certificate register** (or **Print 
 
 The **Certificate register** tab of [**Reports → Print & documents**](../../reports/printables.md) holds every certificate issued, revoked ones too: serial, kind, student, date and status. Filter by kind and year. Press **Download for Excel** to get a CSV file that opens in Excel (up to 10,000 rows).
 
-
 ![certificate register, one row revoked showing its reason](../img/certificates-02.png)
 
 ### Revoke a certificate <a href="#revoke" id="revoke"></a>
@@ -179,16 +173,16 @@ Only an Admin can do this.
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                                                                | What to do                                                                  | Who can help |
-| --------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------ |
-| **Issue certificate** is missing from the **Documents** tab                 | You need permission to issue certificates; ask an Admin                     | Admin        |
-| **Record a transfer or withdrawal first.**                                  | Press **Record leaving** and enter the transfer or withdrawal ([Students](../../people/students.md)) | Admin |
-| **No published template yet.**                                              | Press **Create a template**, or ask an Admin to publish a design ([Print designs](../print-templates.md#task-main)) | Admin |
-| **Add a printer in Settings first.**                                        | Press **Open printing settings** ([add a printer](printers-and-calibration.md#task-main)) | Admin |
-| **This class is too big to issue at once. …**                               | Issue one by one, or in small groups                                        | You          |
-| **Reprint** is missing in the register                                      | The certificate is revoked, or you have no permission to issue certificates | Admin        |
-| **Could not revoke this card.**                                             | Try again                                                                   | Admin        |
-| The print is shifted or cut on the paper                                    | [Fix the measurements](printers-and-calibration.md#calibrate)               | Admin        |
+| What you see                                                | What to do                                                                                                          | Who can help |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------ |
+| **Issue certificate** is missing from the **Documents** tab | You need permission to issue certificates; ask an Admin                                                             | Admin        |
+| **Record a transfer or withdrawal first.**                  | Press **Record leaving** and enter the transfer or withdrawal ([Students](../../people/students.md))                | Admin        |
+| **No published template yet.**                              | Press **Create a template**, or ask an Admin to publish a design ([Print designs](../print-templates.md#task-main)) | Admin        |
+| **Add a printer in Settings first.**                        | Press **Open printing settings** ([add a printer](printers-and-calibration.md#task-main))                           | Admin        |
+| **This class is too big to issue at once. …**               | Issue one by one, or in small groups                                                                                | You          |
+| **Reprint** is missing in the register                      | The certificate is revoked, or you have no permission to issue certificates                                         | Admin        |
+| **Could not revoke this card.**                             | Try again                                                                                                           | Admin        |
+| The print is shifted or cut on the paper                    | [Fix the measurements](printers-and-calibration.md#calibrate)                                                       | Admin        |
 
 More help with this: [What to do when something goes wrong](../../help/troubleshooting.md#print).
 
@@ -196,13 +190,13 @@ More help with this: [What to do when something goes wrong](../../help/troublesh
 
 ## Who can do what <a href="#roles" id="roles"></a>
 
-| Role                    | Issue, reprint | See the register | Revoke |
-| ----------------------- | -------------- | ---------------- | ------ |
-| Admin                   | Yes            | Yes              | Yes    |
-| Office staff            | Yes            | Yes              | No     |
-| Academic coordinator    | Yes            | Yes              | No     |
-| Accountant              | No             | No               | No     |
-| Exam controller         | No             | Yes              | No     |
+| Role                 | Issue, reprint | See the register | Revoke |
+| -------------------- | -------------- | ---------------- | ------ |
+| Admin                | Yes            | Yes              | Yes    |
+| Office staff         | Yes            | Yes              | No     |
+| Academic coordinator | Yes            | Yes              | No     |
+| Accountant           | No             | No               | No     |
+| Exam controller      | No             | Yes              | No     |
 
 The QR check page is open to everyone, no sign-in needed.
 

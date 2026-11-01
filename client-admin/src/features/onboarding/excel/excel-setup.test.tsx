@@ -102,6 +102,48 @@ afterEach(async () => {
 });
 
 describe('ExcelSetup', () => {
+  it('shows a translated sentence, not the server text, when the file is refused (#3174)', async () => {
+    server.use(
+      http.post('/api/v1/backup/validate', () =>
+        HttpResponse.json(
+          {
+            statusCode: 400,
+            message: 'Server English text',
+            requestId: 'req-1',
+            details: { code: 'NOT_XLSX' },
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+    const { user } = await setup();
+    await upload(user);
+    const alert = await screen.findByRole('alert');
+    // The starter wording speaks of the sample, not of a backup.
+    expect(alert.textContent).toContain(
+      'This is not a valid .xlsx file. Save the sample as .xlsx in Excel and upload it again.',
+    );
+    expect(alert.textContent).not.toContain('backup');
+    expect(alert.textContent).not.toContain('Server English text');
+  });
+
+  it('maps a bare 413 from the upload limit to the sample too-large sentence', async () => {
+    server.use(
+      http.post('/api/v1/backup/validate', () =>
+        HttpResponse.json(
+          { statusCode: 413, message: 'File too large', requestId: 'req-1' },
+          { status: 413 },
+        ),
+      ),
+    );
+    const { user } = await setup();
+    await upload(user);
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain(
+      'This file is too large to read. Check that it is the sample file you filled in.',
+    );
+  });
+
   it('downloads the starter variant in the current language', async () => {
     let params: URLSearchParams | undefined;
     server.use(

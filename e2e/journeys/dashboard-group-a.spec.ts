@@ -183,13 +183,15 @@ test.describe('dashboard: admin', () => {
         .first()
         .click();
       const dialog = page.getByRole('dialog', { name: t('exams.examForm.createTitle') });
-      await dialog.getByLabel(t('exams.examForm.nameLabel')).fill(name);
+      await dialog.getByRole('textbox', { name: t('exams.examForm.nameLabel') }).fill(name);
       await dialog.getByRole('combobox', { name: t('exams.examForm.academicYearLabel') }).click();
       await page.getByRole('option').first().click();
       await dialog.getByRole('combobox', { name: t('exams.examForm.classLabel') }).click();
       await page.getByRole('option').first().click();
 
-      await dialog.getByRole('button', { name: t('exams.examForm.deadlineLabel') }).click();
+      await dialog
+        .getByRole('button', { name: t('exams.examForm.deadlineLabel'), exact: true })
+        .click();
       const cell = page.locator(`[data-date="${deadline}"]`);
       for (let i = 0; i < 2 && !(await cell.isVisible()); i += 1) {
         await page.getByRole('button', { name: t('common.date.nextMonth') }).click();
@@ -212,7 +214,7 @@ test.describe('dashboard: admin', () => {
       await list.clickRowAction(name, 'exams.list.edit');
       const edit = page.getByRole('dialog', { name: t('exams.examForm.editTitle') });
       await expect(
-        edit.getByRole('button', { name: t('exams.examForm.deadlineLabel') }),
+        edit.getByRole('button', { name: t('exams.examForm.deadlineLabel'), exact: true }),
       ).not.toContainText(t('exams.examForm.deadlinePlaceholder'));
       await edit.getByRole('button', { name: t('exams.examForm.save') }).click();
       await expect(edit).toBeHidden();

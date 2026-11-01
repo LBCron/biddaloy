@@ -31,6 +31,10 @@ export interface AssignmentsCardProps {
 
 const TONE = { ACTIVE: 'success', DEACTIVATED: 'warning', SUPERSEDED: 'neutral' } as const;
 
+/** Mirrors the server's fixed cap on `GET /homework/:id/assignments` (`.limit(100)`). A full
+ * page means older rows may be missing, so the card says so instead of hiding it (#3173). */
+export const HOMEWORK_ASSIGNMENTS_LIST_CAP = 100;
+
 /** "Section A" or "Rahim Uddin · Section B": the row's target as names, never ids. */
 export function assignmentTargetLabel(
   row: HomeworkAssignmentListItem,
@@ -118,6 +122,11 @@ export function AssignmentsCard({
             ...(onAssign ? { action: { label: t('detail.assignAgain'), onClick: onAssign } } : {}),
           }}
         />
+      )}
+      {assignments && assignments.length >= HOMEWORK_ASSIGNMENTS_LIST_CAP && (
+        <p role="status" className="p-4 pt-2 text-caption text-text-secondary md:px-5">
+          {t('detail.assignments.capped', { count: HOMEWORK_ASSIGNMENTS_LIST_CAP })}
+        </p>
       )}
     </Card>
   );

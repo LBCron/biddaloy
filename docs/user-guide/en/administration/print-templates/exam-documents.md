@@ -12,12 +12,7 @@ labels:
     examDocuments:help.*,
     printPreview:*,
   ]
-helpIds:
-  [
-    administration.printTemplates.action.print,
-    administration.printTemplates.field.kind,
-    administration.printTemplates.field.design,
-  ]
+helpIds: [administration.printExamDocuments]
 devices: [desktop]
 entry: []
 keywords:
@@ -76,11 +71,11 @@ On the **Print** tab the papers are arranged in three parts, in the order you ne
 
 ## How to know they are printed <a href="#confirm" id="confirm"></a>
 
-| State                           | How you know                                                              | What next    |
-| ------------------------------- | ------------------------------------------------------------------------- | ------------ |
-| **Only changed on screen**      | The paper shows on screen, you have not pressed **Print** yet             | Print        |
-| **Reached the school's system** | The browser's print window has opened                                     | Print        |
-| **Done**                        | On the Admit cards card **Printed** went up and **Remaining** went down   | Hand them out |
+| State                           | How you know                                                            | What next     |
+| ------------------------------- | ----------------------------------------------------------------------- | ------------- |
+| **Only changed on screen**      | The paper shows on screen, you have not pressed **Print** yet           | Print         |
+| **Reached the school's system** | The browser's print window has opened                                   | Print         |
+| **Done**                        | On the Admit cards card **Printed** went up and **Remaining** went down | Hand them out |
 
 When you press **Print**, the print record is made first. If it cannot be made, the app shows **The print could not be recorded, so it was not printed. Try again.** and nothing prints.
 
@@ -96,12 +91,12 @@ One A4 for the notice board, made from the exam schedule. On the **Exam routine 
 
 The first three need a published seat plan first ([Seat plans](../../exams-results/seat-plans.md)).
 
-| Paper                  | What it has                                         | Button                    |
-| ---------------------- | --------------------------------------------------- | ------------------------- |
-| **Seat list**          | For the door; one page per room per sitting         | **Print seat list**       |
-| **Invigilator sheet**  | Attendance, script number and signature boxes       | **Print sheets**          |
-| **Seat stickers**      | Roll, name and class for the desks                  | **Print stickers**        |
-| **Blank marks sheet**  | Teachers write marks by hand, entered later; by section | **Print marks sheets** |
+| Paper                 | What it has                                             | Button                 |
+| --------------------- | ------------------------------------------------------- | ---------------------- |
+| **Seat list**         | For the door; one page per room per sitting             | **Print seat list**    |
+| **Invigilator sheet** | Attendance, script number and signature boxes           | **Print sheets**       |
+| **Seat stickers**     | Roll, name and class for the desks                      | **Print stickers**     |
+| **Blank marks sheet** | Teachers write marks by hand, entered later; by section | **Print marks sheets** |
 
 1. Press the card's button.
 
@@ -111,12 +106,12 @@ The first three need a published seat plan first ([Seat plans](../../exams-resul
 
 ### Mark sheets, tabulation, result and merit certificates <a href="#after" id="after"></a>
 
-| Paper                           | When it opens              | What to do                                                                                    |
-| ------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------- |
-| **Mark sheet (report card)**    | After results are published | Choose a **Section**, press **Print mark sheets**                                            |
-| **Tabulation sheet**            | After results are processed | Choose a **Section**, press **Print tabulation**; a whole section on one A4 landscape page   |
-| **Result certificate**          | After results are published | Press **Print certificates**; only students who passed get one, in roll order                |
-| **Merit certificate**           | After results are published | Press **Print certificates** → in the **Who gets a merit certificate?** window follow the steps below |
+| Paper                        | When it opens               | What to do                                                                                            |
+| ---------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Mark sheet (report card)** | After results are published | Choose a **Section**, press **Print mark sheets**                                                     |
+| **Tabulation sheet**         | After results are processed | Choose a **Section**, press **Print tabulation**; a whole section on one A4 landscape page            |
+| **Result certificate**       | After results are published | Press **Print certificates**; only students who passed get one, in roll order                         |
+| **Merit certificate**        | After results are published | Press **Print certificates** → in the **Who gets a merit certificate?** window follow the steps below |
 
 In the merit certificate window:
 
@@ -134,13 +129,13 @@ Result certificates and merit certificates get a serial number too (`RES-2026-00
 
 A paper that cannot be printed yet has a grey card. The card says why and shows a button to fix it:
 
-| What the card says                    | Which papers                                                  | Button to fix            |
-| ------------------------------------- | ------------------------------------------------------------- | ------------------------ |
-| **No published seat plan yet.**       | Admit cards, seat list, invigilator sheet, seat stickers      | **Make a seat plan**     |
-| **The exam has no schedule yet.**     | Routine notice                                                | **Add the schedule**     |
-| **No marks parts are set up yet.**    | Blank marks sheet                                             | **Set up marks**         |
-| **Results are not processed yet.**    | Tabulation                                                    | **See progress**         |
-| **Results are not published yet.**    | Mark sheets, result certificate, merit certificate            | **Go to Results**        |
+| What the card says                 | Which papers                                             | Button to fix        |
+| ---------------------------------- | -------------------------------------------------------- | -------------------- |
+| **No published seat plan yet.**    | Admit cards, seat list, invigilator sheet, seat stickers | **Make a seat plan** |
+| **The exam has no schedule yet.**  | Routine notice                                           | **Add the schedule** |
+| **No marks parts are set up yet.** | Blank marks sheet                                        | **Set up marks**     |
+| **Results are not processed yet.** | Tabulation                                               | **See progress**     |
+| **Results are not published yet.** | Mark sheets, result certificate, merit certificate       | **Go to Results**    |
 
 If there is no design, the card does not turn grey; opening the preview shows **No design for this document yet**, with **Create one from a suggestion** ([Print designs](../print-templates.md#task-main)).
 
@@ -152,17 +147,17 @@ In the guardian portal, on the **Exam schedule** page, the guardian presses **Pr
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                                                                  | What to do                                                              | Who can help    |
-| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------- | --------------- |
-| The exam page has no **Print** tab                                            | You need print permission; ask an Admin                                 | Admin           |
-| A card is grey                                                                | Press the card's fix button ([why a card is grey](#unavailable))        | Exam controller |
-| **No design for this document yet**                                           | Publish a design ([Print designs](../print-templates.md#task-main))     | Admin           |
-| **No student passed this exam, so there is no result certificate to print.**  | Check the results ([Results](../../exams-results/results.md))           | Exam controller |
-| **Could not load the results. Try again.**                                    | Press **Print certificates** again                                      | You             |
-| **No students found.** (merit certificate)                                    | Change **Rank by**, and check that results are published                | Exam controller |
-| **The print could not be recorded, so it was not printed. Try again.**        | Press **Print** again                                                   | You             |
-| **Nothing to print.**                                                         | Open it again from the exam's **Print** tab                             | You             |
-| The print is shifted or cut on the paper                                      | [Fix the measurements](printers-and-calibration.md#calibrate)           | Admin           |
+| What you see                                                                 | What to do                                                          | Who can help    |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------- |
+| The exam page has no **Print** tab                                           | You need print permission; ask an Admin                             | Admin           |
+| A card is grey                                                               | Press the card's fix button ([why a card is grey](#unavailable))    | Exam controller |
+| **No design for this document yet**                                          | Publish a design ([Print designs](../print-templates.md#task-main)) | Admin           |
+| **No student passed this exam, so there is no result certificate to print.** | Check the results ([Results](../../exams-results/results.md))       | Exam controller |
+| **Could not load the results. Try again.**                                   | Press **Print certificates** again                                  | You             |
+| **No students found.** (merit certificate)                                   | Change **Rank by**, and check that results are published            | Exam controller |
+| **The print could not be recorded, so it was not printed. Try again.**       | Press **Print** again                                               | You             |
+| **Nothing to print.**                                                        | Open it again from the exam's **Print** tab                         | You             |
+| The print is shifted or cut on the paper                                     | [Fix the measurements](printers-and-calibration.md#calibrate)       | Admin           |
 
 More help with this: [What to do when something goes wrong](../../help/troubleshooting.md#print).
 
@@ -170,11 +165,11 @@ More help with this: [What to do when something goes wrong](../../help/troublesh
 
 ## Who can do what <a href="#roles" id="roles"></a>
 
-| Role             | Print exam papers (Print tab) | Own child's admit card |
-| ---------------- | ----------------------------- | ---------------------- |
-| Admin            | Yes                           | —                      |
-| Exam controller  | Yes                           | —                      |
-| Guardian         | No                            | Yes, from the portal   |
+| Role            | Print exam papers (Print tab) | Own child's admit card |
+| --------------- | ----------------------------- | ---------------------- |
+| Admin           | Yes                           | —                      |
+| Exam controller | Yes                           | —                      |
+| Guardian        | No                            | Yes, from the portal   |
 
 To see the **Print** tab you need both the permission to manage exams and the print permission. The Accountant and Office staff have the print permission but not the permission to open the exam page, so they cannot print from here.
 

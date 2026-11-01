@@ -44,9 +44,7 @@ const ROWS: Row[] = [
   { id: '1', name: 'রহিম উদ্দিন' },
   { id: '2', name: 'ফাতেমা বেগম' },
 ];
-const COLUMNS: DataTableColumn<Row>[] = [
-  { id: 'name', header: 'Name', accessorFn: (r) => r.name },
-];
+const COLUMNS: DataTableColumn<Row>[] = [{ id: 'name', header: 'Name', accessorFn: (r) => r.name }];
 
 export const Wide: Story = {
   args: { size: 'wide' },

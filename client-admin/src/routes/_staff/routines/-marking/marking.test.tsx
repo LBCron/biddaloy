@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../../help/test-utils';
 import { routeTree } from '../../../../routeTree.gen';
 
 // Wednesday. Only Date is faked so msw / userEvent timers keep running.
@@ -206,6 +207,17 @@ beforeEach(() => {
 });
 
 describe('/routines/my marking', () => {
+  it('shows one lesson-status (?) in the day header, not one per period card [#3313]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    setup({ periods: [OPEN, period({ routine_slot_id: 'slot-2' })] });
+    render();
+    await screen.findAllByText('Lesson 12: Adding fractions');
+    await expectHelp('academics.myRoutine.field.lessonStatus');
+    expect(
+      document.querySelectorAll('[data-help-id="academics.myRoutine.field.lessonStatus"]'),
+    ).toHaveLength(1);
+  });
+
   it('a planned period shows its lesson; picking taught / partly sends the status', async () => {
     setup({ periods: [OPEN] });
     const user = userEvent.setup();

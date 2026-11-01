@@ -10,8 +10,9 @@ import { formatDate, parseServerDate } from '@biddaloy/ui/utils';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../help/test-utils';
 import { routeTree } from '../../../routeTree.gen';
 
 function render(initialEntries: string[]) {
@@ -53,6 +54,7 @@ function mockList(seen?: URLSearchParams[]) {
 
 describe('/payments', () => {
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await cleanupTestState();
   });
 
@@ -83,6 +85,15 @@ describe('/payments', () => {
     await localeReady;
 
     expect(await screen.findByText(formatDate(parseServerDate(stamp), REGION_BD_EN))).toBeTruthy();
+  });
+
+  it('shows the Show reversed too (?) [#3293]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    mockList();
+    const { localeReady } = render(['/payments']);
+    await localeReady;
+    await screen.findByText('Rahim Uddin');
+    await expectHelp('finance.payments.field.includeReversed');
   });
 
   it('"Show reversed too" sends include_reversed=true and reveals the status column', async () => {

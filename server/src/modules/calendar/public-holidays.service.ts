@@ -19,6 +19,7 @@ import { CalendarEventsService } from './calendar-events.service';
 import { localToday } from '../attendance/attendance-policy.util';
 import { SchoolsService } from '../schools/schools.service';
 import { AuditService } from '../audit/audit.service';
+import { resolveTemplateLocale } from '../account-access/account-access-templates';
 
 export interface SuggestedHolidayEntry {
   id: string;
@@ -274,7 +275,7 @@ export class PublicHolidaysService {
     if (publishedEntries.length === 0) return { added: 0 };
 
     const settings = await this.schoolsService.getResolvedSettings(tenantId);
-    const useBn = (settings.region?.locale ?? '').toLowerCase().startsWith('bn');
+    const useBn = resolveTemplateLocale(settings.region?.locale) === 'bn';
     const today = localToday(settings.region?.timezone ?? 'UTC');
 
     // Two concurrent bulkAdd calls for the same tenant could otherwise

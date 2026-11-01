@@ -96,6 +96,10 @@ If more than one child is linked, **Choose a student** appears at the top. Tap t
 
 The [**Overview**](overview.md) page has a **Today's homework** card with the next few tasks that are due, for all your children together. Tap **All homework** to open this page.
 
+### Texts about homework <a href="#task-texts" id="task-texts"></a>
+
+If the school has homework texts switched on, you get an SMS when your child is given new homework. You also get one when the teacher moves the due date, or withdraws the homework or gives it to another section or student. A withdrawn task leaves this page and does not need to be handed in. If the teacher switches it back on, you get a text with its due date and it shows here again. The page always shows the latest due date.
+
 ---
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>

@@ -7,6 +7,7 @@
  */
 
 import { FeeType } from '@biddaloy/shared';
+import { resolveTemplateLocale } from '../account-access/account-access-templates';
 
 export type FeeNotificationLocale = 'bn' | 'en';
 
@@ -184,15 +185,10 @@ export function buildFeeNotificationMessage(
     : `New fees added: ${billsText} — Due date ${dueDateText}`;
 }
 
-/** `settings.region.locale` (e.g. `bn-BD`) -> this util's locale. Mirrors
- * `account-access-templates.ts#resolveTemplateLocale` exactly, duplicated
- * rather than imported since that file's `TemplateLocale` type is scoped to
- * its own module's template kinds. */
+/** `settings.region.locale` (e.g. `bn-BD`) -> this util's locale. Delegates
+ * to the one resolver (#3136): no stored locale means the bn-BD default. */
 export function resolveFeeNotificationLocale(
   regionLocale: string | undefined | null,
 ): FeeNotificationLocale {
-  // Raw stored settings are untyped: a non-string locale means English.
-  return typeof regionLocale === 'string' && regionLocale.toLowerCase().startsWith('bn')
-    ? 'bn'
-    : 'en';
+  return resolveTemplateLocale(regionLocale);
 }

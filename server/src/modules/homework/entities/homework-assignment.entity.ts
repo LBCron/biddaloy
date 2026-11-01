@@ -32,6 +32,15 @@ import { HomeworkAssignmentStatus } from '@biddaloy/shared';
  */
 @Entity('homework_assignments')
 @Index(['tenant_id'])
+// One ACTIVE row per (homework, target) (#3172); DEACTIVATED / SUPERSEDED rows never collide.
+@Index('IDX_homework_assignments_active_section', ['homework_id', 'section_id'], {
+  unique: true,
+  where: `"status" = 'ACTIVE'`,
+})
+@Index('IDX_homework_assignments_active_student', ['homework_id', 'student_id'], {
+  unique: true,
+  where: `"status" = 'ACTIVE'`,
+})
 @Check(
   'CHK_homework_assignments_exactly_one_target',
   '(("section_id" IS NULL) <> ("student_id" IS NULL))',

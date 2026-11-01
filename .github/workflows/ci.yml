@@ -93,6 +93,8 @@ jobs:
               - 'scripts/flake-report.mjs'
               - 'scripts/flake-report.spec.mjs'
               - 'scripts/check-arch-docs.spec.mjs'
+              - 'scripts/coderabbit-review-queue.sh'
+              - 'scripts/coderabbit-review-queue.spec.mjs'
               - 'docs/architecture/**'
               - 'CLAUDE.md'
               - 'server/CLAUDE.md'
@@ -1225,6 +1227,8 @@ jobs:
             .lighthouseci-landing/
             playwright-report/
             test-results/
+          # .lighthouseci-landing/ is a dot-directory; upload-artifact skips those by default.
+          include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
 

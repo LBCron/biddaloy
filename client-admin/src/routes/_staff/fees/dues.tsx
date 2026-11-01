@@ -536,6 +536,7 @@ function DuesQueuePage() {
       kind: 'checkbox',
       key: 'flagged',
       label: t('dues.flaggedToggleLabel'),
+      helpId: 'finance.dues.field.flagged',
     },
   ];
 

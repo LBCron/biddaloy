@@ -12,8 +12,9 @@ import {
 } from '@biddaloy/ui/test';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../help/test-utils';
 import { routeTree } from '../../../routeTree.gen';
 
 /**
@@ -25,6 +26,7 @@ import { routeTree } from '../../../routeTree.gen';
  */
 describe('/students/new', () => {
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await cleanupTestState();
   });
 
@@ -55,6 +57,20 @@ describe('/students/new', () => {
     // No jest-dom in this repo's test setup — `document.activeElement`
     // instead of `toHaveFocus()`.
     expect(document.activeElement).toBe(summary);
+  });
+
+  it('shows the roll number, blood group and preferred channel (?) [#3293]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    renderWithRouter(routeTree, {
+      initialEntries: ['/students/new'],
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+      locale: 'en',
+    });
+    await screen.findByRole('heading', { name: 'Add student' });
+    await expectHelp('people.students.field.rollNumber');
+    await expectHelp('people.students.field.bloodGroup');
+    await expectHelp('people.students.field.preferredCommunication');
   });
 
   it('renders the full-page frame: heading, Close, gender select, one primary, Close goes to the list', async () => {

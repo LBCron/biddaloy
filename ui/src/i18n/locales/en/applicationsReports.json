@@ -12,6 +12,7 @@
   "tilesLabel": "Totals",
   "tileSubmitted": "Submitted",
   "tileSubmittedCaption": "This academic year",
+  "tileSubmittedCaptionDates": "In the dates you picked",
   "tileApproved": "Approved",
   "tileRejected": "Rejected",
   "tilePct": "{{pct}}% of applications",

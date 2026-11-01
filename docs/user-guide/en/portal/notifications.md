@@ -9,7 +9,7 @@ sources:
   - client-admin/src/features/attention/attention-worklist.tsx
   - shared/src/attention/rule-catalogue.ts
 labels: [attention:worklist.*, attention:item.*, attention:state.*, attention:severity.*, attention:snooze.*, nav:notifications.*]
-helpIds: [portal.notifications, portal.notifications.action.close, portal.notifications.action.snooze]
+helpIds: [portal.notifications]
 devices: [phone]
 entry: [bell]
 keywords: [বিজ্ঞপ্তি, সতর্কতা, ঘণ্টা, করণীয়, রিমাইন্ডার, notification, alert, bell, reminder]

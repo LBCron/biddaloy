@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../help/test-utils';
 import { routeTree } from '../../../routeTree.gen';
 
 const GRID_URL = '/api/v1/exams/exam-1/marks';
@@ -56,6 +57,48 @@ describe('/marks/$examId/$sectionId/$subjectId', () => {
         document.querySelector('[data-help-id="examsResults.marksEntry.action.submit"]'),
       ).not.toBeNull(),
     );
+  });
+
+  it('shows the mark grid (?) beside the keyboard help [#3293]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    server.use(http.get(GRID_URL, () => HttpResponse.json(baseGrid)));
+    renderWithRouter(routeTree, {
+      initialEntries: ['/marks/exam-1/sec-1/subj-1'],
+      tenantId: 'tenant-1',
+      role: 'TEACHER',
+      locale: 'en',
+    });
+    await screen.findByLabelText('Rafi Ahmed — Written');
+    await expectHelp('examsResults.marksEntry.field.mark');
+  });
+
+  it('shows the mark (?) once above the stepper on a phone [#3314]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+      onchange: null,
+    }));
+    try {
+      server.use(http.get(GRID_URL, () => HttpResponse.json(baseGrid)));
+      renderWithRouter(routeTree, {
+        initialEntries: ['/marks/exam-1/sec-1/subj-1'],
+        tenantId: 'tenant-1',
+        role: 'TEACHER',
+        locale: 'en',
+      });
+      await expectHelp('examsResults.marksEntry.field.mark');
+      expect(
+        document.querySelectorAll('[data-help-id="examsResults.marksEntry.field.mark"]'),
+      ).toHaveLength(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('shows the save-state header and moves saving -> saved after a batch commits', async () => {

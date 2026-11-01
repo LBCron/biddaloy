@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-import { adminApiSession, get } from '../api';
+import { adminApiSession, get, post } from '../api';
 import { expectNoAxeViolations } from '../a11y/assert';
 import { expect, loggedIn, test } from '../fixtures/test';
 import { t } from '../i18n';
@@ -24,6 +24,8 @@ const REG_NO = SEED_LIFECYCLE_STUDENTS.withdrawnThenReadmitted;
 interface StudentRow {
   id: string;
   full_name: string;
+  enrollment_status: string;
+  class_section_id: string;
   class_section: { section_name: string; class: { name: string } };
 }
 
@@ -73,7 +75,19 @@ test.describe('student lifecycle, keyboard only', () => {
 
   test('(a) list > Enter > Record leaving > Ctrl+Enter > timeline; focus after close', async ({
     page,
+    request,
   }) => {
+    // A retry of (a) finds the student already off ACTIVE (the group is serial, so (b) flaking
+    // retries (a) after an earlier attempt left them), and there is no "Record leaving" button
+    // to reach. Readmit first so every attempt starts from the state the file documents.
+    if (student.enrollment_status !== 'ACTIVE') {
+      await post(request, await adminApiSession(request), `/students/${student.id}/readmit`, {
+        occurred_on: new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dhaka' }).format(
+          new Date(),
+        ),
+        class_section_id: student.class_section_id,
+      });
+    }
     const reason = `Kbd leave ${Date.now()}`;
     await page.goto(`/students?search=${REG_NO}`);
     await expect(

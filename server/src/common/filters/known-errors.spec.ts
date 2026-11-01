@@ -114,6 +114,21 @@ describe('mapKnownError — unique violations', () => {
   it('leaves other Postgres error codes alone', () => {
     expect(mapKnownError(pgError('23503', 'classes'))).toBeNull();
   });
+
+  it('[#3172] maps the ACTIVE-assignment backstop indexes to the coded homework 409', () => {
+    for (const index of [
+      'IDX_homework_assignments_active_section',
+      'IDX_homework_assignments_active_student',
+    ]) {
+      const mapped = mapKnownError(pgError('23505', 'homework_assignments', index));
+      expect(mapped?.getStatus()).toBe(409);
+      // The homework screen branches on this code, not on the text.
+      expect(mapped?.getResponse()).toMatchObject({
+        message: 'This homework is already assigned to that target',
+        details: { code: 'HOMEWORK_TARGET_TAKEN' },
+      });
+    }
+  });
 });
 
 /** A 23514 CHECK violation as pg reports it: the constraint name, and a detail row holding values. */

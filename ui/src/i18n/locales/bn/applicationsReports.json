@@ -12,6 +12,7 @@
   "tilesLabel": "মোট হিসাব",
   "tileSubmitted": "জমা পড়েছে",
   "tileSubmittedCaption": "এই শিক্ষাবর্ষে",
+  "tileSubmittedCaptionDates": "আপনার বাছা তারিখগুলিতে",
   "tileApproved": "অনুমোদিত",
   "tileRejected": "নামঞ্জুর",
   "tilePct": "{{pct}}% আবেদন",

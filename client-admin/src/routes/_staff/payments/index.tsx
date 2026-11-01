@@ -123,7 +123,12 @@ function PaymentsList({ canRecord, onRecord }: { canRecord: boolean; onRecord: (
       fromLabel: t('list.dateFromLabel'),
       toLabel: t('list.dateToLabel'),
     },
-    { kind: 'checkbox', key: 'include_reversed', label: t('list.includeReversed') },
+    {
+      kind: 'checkbox',
+      key: 'include_reversed',
+      label: t('list.includeReversed'),
+      helpId: 'finance.payments.field.includeReversed',
+    },
   ];
 
   const columns: DataTableColumn<Payment>[] = [

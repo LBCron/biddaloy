@@ -46,7 +46,6 @@ helpIds:
     people.students.action.recordLeaving,
     people.students.action.readmit,
     people.students.action.delete,
-    people.students.action.printIdCard,
     people.students.action.collectFees,
     people.students.action.sendReminder,
     people.students.field.rollNumber,

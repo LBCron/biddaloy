@@ -40,7 +40,9 @@ test('comms W12: send message', async ({ browser }, info) => {
   });
   await step('send-message-02', async () => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.getByRole('button', { name: tr('communications', 'send.submit') }).click();
+    await page
+      .getByRole('button', { name: tr('communications', 'send.submit'), exact: true })
+      .click();
     await page.waitForTimeout(1500);
     await snap(page, f('send-message-02'), []);
   });
@@ -81,7 +83,7 @@ test('comms W12: fee reminders', async ({ browser }, info) => {
       );
     await page.waitForTimeout(500);
     await page
-      .getByRole('button', { name: tr('communications', 'reminders.previewAction') })
+      .getByRole('button', { name: tr('communications', 'reminders.previewAction'), exact: true })
       .click();
     await page.waitForTimeout(3500);
     await snap(page, f('fee-reminders-01'), []);
@@ -105,7 +107,7 @@ test('comms W12: fee reminders', async ({ browser }, info) => {
     await page.getByRole('button', { name: tr('communications', 'bulk.nextToReview') }).click();
     await page.waitForTimeout(1500);
     await page
-      .getByRole('button', { name: tr('communications', 'reminders.previewAction') })
+      .getByRole('button', { name: tr('communications', 'reminders.previewAction'), exact: true })
       .click();
     await page.waitForTimeout(4000);
     await page.setViewportSize({ width: 1440, height: 760 });

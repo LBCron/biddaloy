@@ -29,7 +29,7 @@ gifTour(
     await dialog
       .getByLabel(tr('staff', 'addUser.emailLabel'))
       .pressSequentially(EMAIL, { delay: 25 });
-    await dialog.getByLabel(tr('staff', 'addUser.roleLabel')).click();
+    await dialog.getByRole('combobox', { name: tr('staff', 'addUser.roleLabel') }).click();
     await p.getByRole('option', { name: new RegExp(`^${tr('staff', 'roles.TEACHER')}`) }).click();
     await beat(p);
     await dialog.getByRole('button', { name: tr('staff', 'addUser.save') }).click();

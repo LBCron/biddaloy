@@ -45,7 +45,6 @@ helpIds:
     administration.printTemplates.action.archive,
     administration.printTemplates.action.print,
     administration.printTemplates.action.confirmRound,
-    administration.printTemplates.action.revoke,
     administration.printTemplates.field.kind,
     administration.printTemplates.field.design,
     administration.printTemplates.field.printer,
@@ -125,11 +124,11 @@ This is the whole path up to the first ID card. If no printer is added yet, firs
 
 ## How to know the design is made <a href="#confirm" id="confirm"></a>
 
-| State                              | How you know                                                                            | What next                      |
-| ---------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------ |
-| **Only changed on screen**         | The top of the editor says **Unsaved changes…** or **Saving…**                          | Wait until it says **Saved**   |
-| **Reached the school's system**    | The top says **Saved**; in the list, the **Status** column says **Draft only**          | Publish it                     |
-| **Ready to print**                 | The message **Published v…**; in the list **Published**, and **Default** if it is the default | Done, you can print now |
+| State                           | How you know                                                                                  | What next                    |
+| ------------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------- |
+| **Only changed on screen**      | The top of the editor says **Unsaved changes…** or **Saving…**                                | Wait until it says **Saved** |
+| **Reached the school's system** | The top says **Saved**; in the list, the **Status** column says **Draft only**                | Publish it                   |
+| **Ready to print**              | The message **Published v…**; in the list **Published**, and **Default** if it is the default | Done, you can print now      |
 
 **To check:** open **Administration → Print designs** and look at the design's **Status** and its **Default** mark.
 
@@ -155,12 +154,12 @@ ID card printing starts from a student's or staff member's page ([Printing ID ca
 
 5. When the cards come out, the app asks **Did all … cards print correctly?**
 
-| You press                  | What happens                                                              | Recorded? |
-| -------------------------- | ------------------------------------------------------------------------- | --------- |
-| **Yes, all printed**       | The round is recorded as printed and the next round opens                 | Yes       |
-| **Some failed…**           | Tick the cards that did not print correctly, then print those again       | Yes       |
+| You press            | What happens                                                        | Recorded? |
+| -------------------- | ------------------------------------------------------------------- | --------- |
+| **Yes, all printed** | The round is recorded as printed and the next round opens           | Yes       |
+| **Some failed…**     | Tick the cards that did not print correctly, then print those again | Yes       |
 
-   → **Recorded.** appears. When all rounds are done you go back to where you started.
+→ **Recorded.** appears. When all rounds are done you go back to where you started.
 
 > **Remember:** pressing **Print** creates the print record straight away, before any paper comes out. So answer the question, so that the history stays right. Once printing starts, the **Design** can no longer be changed.
 
@@ -192,10 +191,10 @@ The **Default** design is the one chosen at first when you print. Each document 
 
    → The app asks **Archive …?**: **It will no longer be offered when printing. Past prints keep their record.**
 
-| You press   | What happens                                              | Changed? |
-| ----------- | --------------------------------------------------------- | -------- |
-| **Archive** | The design leaves the list and is no longer offered       | Yes      |
-| **Cancel**  | Nothing changes                                           | No       |
+| You press   | What happens                                        | Changed? |
+| ----------- | --------------------------------------------------- | -------- |
+| **Archive** | The design leaves the list and is no longer offered | Yes      |
+| **Cancel**  | Nothing changes                                     | No       |
 
 The default design cannot be archived directly; first make another design the default.
 
@@ -223,19 +222,19 @@ Every printed card has its own QR code. Anyone can scan it with a phone and the 
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                                                                  | What to do                                                                   | Who can help |
-| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------ |
-| **No design for this document yet**                                           | Press **Create one from a suggestion**, or ask an Admin to publish a design  | Admin        |
-| **Add your first printer to be able to print.**                               | Press **Add your first printer** ([Printers](print-templates/printers-and-calibration.md)) | Admin |
-| **Your browser blocked the print window. …**                                  | Allow pop-ups for this site, then press **Print** again                      | You          |
-| **Could not start printing. Nothing was printed.**                            | Try again in a little while                                                  | You          |
-| **Confirm the current round before the next one unlocks.**                    | Answer the question **Did all … cards print correctly?**                     | You          |
-| **This is the default design. Make another design the default first.**        | Publish another design and **Make default**, then archive this one           | Admin        |
-| **A design with this name already exists.**                                   | Give it another name                                                         | You          |
-| The publish button cannot be pressed, **Wait for saving to finish…**          | Wait for **Saved**, or fix the list under **Fix these before publishing:**   | You          |
-| The print is shifted or cut on the paper                                      | Set **Scale 100%** and **Margins None**, then [calibrate](print-templates/printers-and-calibration.md) | Admin |
-| Printing a staff card says you have no permission                             | A staff card also needs permission to see staff HR details; ask an Admin     | Admin        |
-| When scanning a QR code: **Too many checks — try again in a minute.**         | Wait a minute and scan again                                                 | You          |
+| What you see                                                           | What to do                                                                                             | Who can help |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------ |
+| **No design for this document yet**                                    | Press **Create one from a suggestion**, or ask an Admin to publish a design                            | Admin        |
+| **Add your first printer to be able to print.**                        | Press **Add your first printer** ([Printers](print-templates/printers-and-calibration.md))             | Admin        |
+| **Your browser blocked the print window. …**                           | Allow pop-ups for this site, then press **Print** again                                                | You          |
+| **Could not start printing. Nothing was printed.**                     | Try again in a little while                                                                            | You          |
+| **Confirm the current round before the next one unlocks.**             | Answer the question **Did all … cards print correctly?**                                               | You          |
+| **This is the default design. Make another design the default first.** | Publish another design and **Make default**, then archive this one                                     | Admin        |
+| **A design with this name already exists.**                            | Give it another name                                                                                   | You          |
+| The publish button cannot be pressed, **Wait for saving to finish…**   | Wait for **Saved**, or fix the list under **Fix these before publishing:**                             | You          |
+| The print is shifted or cut on the paper                               | Set **Scale 100%** and **Margins None**, then [calibrate](print-templates/printers-and-calibration.md) | Admin        |
+| Printing a staff card says you have no permission                      | A staff card also needs permission to see staff HR details; ask an Admin                               | Admin        |
+| When scanning a QR code: **Too many checks — try again in a minute.**  | Wait a minute and scan again                                                                           | You          |
 
 More help with this: [What to do when something goes wrong](../help/troubleshooting.md#print).
 
@@ -243,13 +242,13 @@ More help with this: [What to do when something goes wrong](../help/troubleshoot
 
 ## Who can do what <a href="#roles" id="roles"></a>
 
-| Role                    | Make, publish, make default, archive designs; add printers | Print ID cards and exam papers                               | Issue certificates | See print history | Revoke cards |
-| ----------------------- | ---------------------------------------------------------- | ------------------------------------------------------------ | ------------------ | ----------------- | ------------ |
-| Admin                   | Yes                                                        | Yes                                                          | Yes                | Yes               | Yes          |
-| Accountant              | No                                                         | ID cards only (not staff cards); exam papers no              | No                 | No                | No           |
-| Office staff            | No                                                         | ID cards only (not staff cards); exam papers no              | Yes                | Yes               | No           |
-| Exam controller         | No                                                         | Yes (not staff cards)                                        | No                 | Yes               | No           |
-| Academic coordinator    | No                                                         | No                                                           | Yes                | Yes               | No           |
+| Role                 | Make, publish, make default, archive designs; add printers | Print ID cards and exam papers                  | Issue certificates | See print history | Revoke cards |
+| -------------------- | ---------------------------------------------------------- | ----------------------------------------------- | ------------------ | ----------------- | ------------ |
+| Admin                | Yes                                                        | Yes                                             | Yes                | Yes               | Yes          |
+| Accountant           | No                                                         | ID cards only (not staff cards); exam papers no | No                 | No                | No           |
+| Office staff         | No                                                         | ID cards only (not staff cards); exam papers no | Yes                | Yes               | No           |
+| Exam controller      | No                                                         | Yes (not staff cards)                           | No                 | Yes               | No           |
+| Academic coordinator | No                                                         | No                                              | Yes                | Yes               | No           |
 
 The QR check page is open to everyone, no sign-in needed.
 

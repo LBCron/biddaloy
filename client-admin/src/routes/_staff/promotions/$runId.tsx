@@ -34,6 +34,7 @@ import {
   StatusBadge,
   toast,
   type StatusTone,
+  HelpHint,
 } from '@biddaloy/ui/components';
 import {
   useAcademicYears,
@@ -686,7 +687,12 @@ function PromotionRunPage() {
                     <th className="h-10 px-4 text-start font-medium">
                       {t('grid.columnSuggested')}
                     </th>
-                    <th className="h-10 px-4 text-start font-medium">{t('grid.columnFinal')}</th>
+                    <th className="h-10 px-4 text-start font-medium">
+                      <span className="inline-flex items-center gap-1">
+                        {t('grid.columnFinal')}
+                        <HelpHint helpId="examsResults.promotion.field.finalOutcome" />
+                      </span>
+                    </th>
                     {groups.length > 0 && (
                       <th className="h-10 px-4 text-start font-medium">{t('grid.columnGroup')}</th>
                     )}
@@ -694,7 +700,10 @@ function PromotionRunPage() {
                       {t('grid.columnPlacement')}
                     </th>
                     <th className="h-10 min-w-40 px-4 text-start font-medium">
-                      {t('grid.columnOverrideNote')}
+                      <span className="inline-flex items-center gap-1">
+                        {t('grid.columnOverrideNote')}
+                        <HelpHint helpId="examsResults.promotion.field.overrideNote" />
+                      </span>
                     </th>
                   </tr>
                 </thead>

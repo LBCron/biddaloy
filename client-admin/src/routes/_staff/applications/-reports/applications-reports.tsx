@@ -80,7 +80,12 @@ export function ApplicationsReports() {
   const fmt = (n: number) => formatNumber(n, config);
   const pct = (n: number) => (total ? fmt(Math.round((n * 100) / total)) : '—');
   const tiles = [
-    { label: t('tileSubmitted'), value: report && fmt(total), detail: t('tileSubmittedCaption') },
+    {
+      label: t('tileSubmitted'),
+      value: report && fmt(total),
+      // #3059: dates alone count every year, so "this academic year" would be wrong.
+      detail: t(yearApplies ? 'tileSubmittedCaption' : 'tileSubmittedCaptionDates'),
+    },
     {
       label: t('tileApproved'),
       value: report && fmt(sum('APPROVED')),

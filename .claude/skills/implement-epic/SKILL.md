@@ -67,6 +67,12 @@ instead:
   - Chosen: A
 ```
 
+With `--recommended` the run **does not stop until the whole epic is
+implemented**: every wave, every wave-close task, every PR opened and put
+through step 8. The model takes the recommended path at every fork itself. The
+only stops are GATE 3 (merging) and a hard error (an outage or usage limit is
+not one — wait and resume).
+
 Passing `--recommended` is the user's approval for GATE 1 and GATE 2. It is
 **not** approval for:
 
@@ -848,6 +854,13 @@ Stacked-PR rules (each one has already cost this repo time):
   new `main`, push. CodeRabbit then reviews it; fold its findings into a
   step-8 round.
 
+**PR size: under 100 files, aiming for 80–90.** Do not cut a PR early. Keep
+merging waves into the accumulating branch until the next wave would push it
+past 99 files; cut there, so each PR lands in the 80–99 range. Only the **last**
+PR of the epic may be smaller. If a wave boundary leaves the branch under 80
+and the next wave would cross 99, cut at the commit boundary inside that wave
+that lands closest to 90.
+
 So in the common case a small-to-medium epic ships as **one** PR opened after
 the final wave. A large epic ships as **two or three**, each as large as the
 100-file cap allows, opened only when the cap would otherwise be breached —
@@ -901,6 +914,11 @@ minimum, cut at that boundary if needed.
   it arrived close behind another, that's a `pr-fix`-round problem to catch
   in step 8, not a reason to sit idle in step 7.
 - PR 1 targets `main`; each later PR targets the PR before it.
+- **Title format:** `<epic number> <wave number> <issue numbers> <title>`, e.g.
+  `44 w2 #3015 #3017 Wire remaining help ids`. A PR spanning waves writes the
+  range (`w1-2`); a `[RED]` prefix, when it applies, goes in front. The issue
+  numbers are exactly the ones this PR solves, the same set as its `Closes`
+  lines.
 - Each description: the issue, the approach, plan corrections the planner
   found, design-system additions, how to test, its position in the merge
   order, and these sections whenever they're non-empty:
@@ -969,7 +987,7 @@ session on one stubborn PR.
 and move on to the next wave:
 
 ```bash
-gh pr edit <n> --title "[RED] <original title>"
+gh pr edit <n> --title "[RED] <original title>"   # title format: see Step 7
 ```
 
 Add a PR comment listing what is still failing or unresolved, and note it in
@@ -1117,7 +1135,9 @@ gets exactly one of two outcomes:
 
    ```bash
    gh issue list --state open --search "<key words>"
-   gh issue create --title "<what is wrong, in one line>" --body-file <issue.md>
+   gh issue create --title "<what is wrong, in one line>" --body-file <issue.md> \
+     --label "<fitting label>" --milestone "<milestone>"
+   gh project item-add 2 --owner tareq89 --url <issue-url>   # Biddaloy Development
    ```
 
    The body:
@@ -1163,7 +1183,7 @@ session model and report it. Never re-plan a ticket that already has a current
   a PR when the accumulating branch's diff against `main` would otherwise
   exceed 100 files; then start a fresh accumulating branch stacked on that
   PR's branch, right away — PR N+1 targets PR N, not `main`.
-- Never open a PR whose diff against its target exceeds 100 files, generated
+- Never open a PR whose diff against its target is 100+ files (aim 80–99; only the last PR may be smaller), generated
   files included — cut the accumulating branch at the last wave boundary that
   stays under the limit instead.
 - Never open PRs before that wave's integration is green.

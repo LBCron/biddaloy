@@ -14,6 +14,7 @@ import {
   DataTable,
   EmptyState,
   ErrorState,
+  HelpHint,
   Label,
   RoutePending,
   Select,
@@ -226,7 +227,10 @@ function MarksListPage() {
         <>
           <div className="flex flex-col gap-4 md:flex-row md:items-end">
             <div className="flex flex-col gap-1.5 md:w-96 md:shrink-0">
-              <Label htmlFor="marks-exam">{tExams('marksList.examLabel')}</Label>
+              <span className="inline-flex items-center gap-1">
+                <Label htmlFor="marks-exam">{tExams('marksList.examLabel')}</Label>
+                <HelpHint helpId="examsResults.marksEntry.field.exam" />
+              </span>
               <Select value={selectedExamId ?? ''} onValueChange={setExamId}>
                 <SelectTrigger id="marks-exam" className="w-full">
                   <SelectValue placeholder={tExams('marksList.examPlaceholder')} />

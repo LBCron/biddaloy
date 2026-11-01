@@ -16,15 +16,8 @@ import { readMeta } from './guide-gen/help-index';
 import { HELP_GAPS, HELP_INDEX } from './help-index.gen';
 import { HELP_UNWIRED, PUBLIC } from './help-unwired';
 
-/** Guide pages whose feature id is not in their own helpIds yet (gap for #3017); shrink, never grow. */
-const NO_PAGE_ENTRY_YET = new Set([
-  'dashboard.widgets',
-  'administration.printDesignerGuide',
-  'administration.printPrinters',
-  'administration.printIdCards',
-  'administration.printExamDocuments',
-  'administration.printCertificates',
-]);
+/** Guide pages whose feature id is not in their own helpIds yet; shrink, never grow. */
+const NO_PAGE_ENTRY_YET = new Set<string>();
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const features = JSON.parse(
@@ -76,22 +69,7 @@ const gapMentions = (id: string) => gapIds.includes(id);
  * ids, so one more or one fewer declaration of an already-listed id also fails. Shrink-only: a
  * new gap or a fixed one fails until this list matches.
  */
-const KNOWN_GAPS: string[] = [
-  'helpId "administration.printTemplates.action.confirmRound" is declared twice (administration/print-templates/id-cards)',
-  'helpId "administration.printTemplates.action.makeDefault" is declared twice (administration/print-templates/designer-guide)',
-  'helpId "administration.printTemplates.action.print" is declared twice (administration/print-templates/certificates)',
-  'helpId "administration.printTemplates.action.print" is declared twice (administration/print-templates/exam-documents)',
-  'helpId "administration.printTemplates.action.print" is declared twice (administration/print-templates/id-cards)',
-  'helpId "administration.printTemplates.action.publish" is declared twice (administration/print-templates/designer-guide)',
-  'helpId "administration.printTemplates.action.revoke" is declared twice (administration/print-templates/certificates)',
-  'helpId "administration.printTemplates.action.revoke" is declared twice (administration/print-templates/id-cards)',
-  'helpId "administration.printTemplates.field.batchSize" is declared twice (administration/print-templates/id-cards)',
-  'helpId "administration.printTemplates.field.batchSize" is declared twice (administration/print-templates/printers-and-calibration)',
-  'helpId "administration.printTemplates.field.design" is declared twice (administration/print-templates/exam-documents)',
-  'helpId "administration.printTemplates.field.kind" is declared twice (administration/print-templates/certificates)',
-  'helpId "administration.printTemplates.field.kind" is declared twice (administration/print-templates/exam-documents)',
-  'helpId "administration.printTemplates.field.printer" is declared twice (administration/print-templates/printers-and-calibration)',
-];
+const KNOWN_GAPS: string[] = [];
 
 /** Pages with knownIssues but no id="known-issues" section in bn or en (guide gap). Shrink-only. */
 const NO_KNOWN_ISSUES_SECTION_YET = new Set<string>();

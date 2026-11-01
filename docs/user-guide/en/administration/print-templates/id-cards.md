@@ -16,13 +16,7 @@ labels:
     printHistory:revoke.*,
     verify:*,
   ]
-helpIds:
-  [
-    administration.printTemplates.action.print,
-    administration.printTemplates.action.confirmRound,
-    administration.printTemplates.action.revoke,
-    administration.printTemplates.field.batchSize,
-  ]
+helpIds: [administration.printIdCards]
 devices: [desktop]
 entry: []
 keywords:
@@ -84,11 +78,11 @@ Every printed card is a **copy**: copy 1 the first time, copy 2 when you print a
 
 ## How to know the card is printed <a href="#confirm" id="confirm"></a>
 
-| State                           | How you know                                                              | What next          |
-| ------------------------------- | ------------------------------------------------------------------------- | ------------------ |
-| **Only changed on screen**      | The preview shows the card, you have not pressed **Print** yet            | Print              |
-| **Reached the school's system** | The question **Did all … cards print correctly?** has appeared            | Answer it          |
-| **Done**                        | The message **Recorded.**; in the history **Printed**                     | Hand over the card |
+| State                           | How you know                                                   | What next          |
+| ------------------------------- | -------------------------------------------------------------- | ------------------ |
+| **Only changed on screen**      | The preview shows the card, you have not pressed **Print** yet | Print              |
+| **Reached the school's system** | The question **Did all … cards print correctly?** has appeared | Answer it          |
+| **Done**                        | The message **Recorded.**; in the history **Printed**          | Hand over the card |
 
 **To check:** find the row in [**Reports → Print & documents**](#history), or scan the card's QR code and see **Valid document** ([Check a card by its QR code](../print-templates.md#qr-check)).
 
@@ -98,11 +92,11 @@ Every printed card is a **copy**: copy 1 the first time, copy 2 when you print a
 
 ### Several people or a whole section <a href="#many" id="many"></a>
 
-| What you want         | What to do                                                                                                      |
-| --------------------- | --------------------------------------------------------------------------------------------------------------- |
-| A few people          | In the **Students** (or **Staff**) list tick whose cards you need, then press **Print ID cards (n)** at the top  |
-| A whole section       | In the **Students** list filter by class and section, then press **Print ID cards for whole …**                 |
-| Without opening a list | In the **Print ID cards** window choose **Who is it for?**, then **Choose by name** or **Whole section**       |
+| What you want          | What to do                                                                                                      |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------- |
+| A few people           | In the **Students** (or **Staff**) list tick whose cards you need, then press **Print ID cards (n)** at the top |
+| A whole section        | In the **Students** list filter by class and section, then press **Print ID cards for whole …**                 |
+| Without opening a list | In the **Print ID cards** window choose **Who is it for?**, then **Choose by name** or **Whole section**        |
 
 The preview and printing are then the same as for one person ([Print one person's card](#task-main)).
 
@@ -115,10 +109,10 @@ With many cards the app splits them into **rounds**. The round size comes from t
 1. Print the first round.
 2. Answer the question:
 
-| You press                  | What happens                                                                                                  |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **Yes, all printed**       | The round is recorded and the next round opens                                                                |
-| **Some failed…**           | Tick the cards that did not print correctly and press **Confirm**; then press **Reprint n failed** and only those print |
+| You press            | What happens                                                                                                            |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Yes, all printed** | The round is recorded and the next round opens                                                                          |
+| **Some failed…**     | Tick the cards that did not print correctly and press **Confirm**; then press **Reprint n failed** and only those print |
 
 3. Keep going until all rounds are done. You cannot move to the next round without answering.
 
@@ -168,18 +162,18 @@ Only an Admin can do this.
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                                                    | What to do                                                                              | Who can help |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------ |
-| **No design for this document yet**                             | Ask an Admin to publish a design ([Print designs](../print-templates.md#task-main))     | Admin        |
-| **Add your first printer to be able to print.**                 | Ask an Admin to [add a printer](printers-and-calibration.md#task-main)                  | Admin        |
-| **Your browser blocked the print window. …**                    | Allow pop-ups for this site and press **Print** again                                   | You          |
-| **Could not start printing. Nothing was printed.**              | Try again in a little while                                                             | You          |
-| **Confirm the current round before the next one unlocks.**      | Answer the question of the earlier round                                                | You          |
-| The card shows **No photo**                                     | Add a photo in the student's **Documents** tab                                          | You          |
-| Printing a staff card says you have no permission               | A staff card also needs permission to see staff HR details; ask an Admin                | Admin        |
-| **Reprint** does not work because the card is revoked           | A revoked card cannot be reprinted; print a new one from the student's page             | You          |
-| **Could not revoke this card.**                                 | Try again                                                                               | Admin        |
-| The print is shifted or cut on the paper                        | Set **Scale 100%**, **Margins None**, then [fix the measurements](printers-and-calibration.md#calibrate) | Admin |
+| What you see                                               | What to do                                                                                               | Who can help |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------ |
+| **No design for this document yet**                        | Ask an Admin to publish a design ([Print designs](../print-templates.md#task-main))                      | Admin        |
+| **Add your first printer to be able to print.**            | Ask an Admin to [add a printer](printers-and-calibration.md#task-main)                                   | Admin        |
+| **Your browser blocked the print window. …**               | Allow pop-ups for this site and press **Print** again                                                    | You          |
+| **Could not start printing. Nothing was printed.**         | Try again in a little while                                                                              | You          |
+| **Confirm the current round before the next one unlocks.** | Answer the question of the earlier round                                                                 | You          |
+| The card shows **No photo**                                | Add a photo in the student's **Documents** tab                                                           | You          |
+| Printing a staff card says you have no permission          | A staff card also needs permission to see staff HR details; ask an Admin                                 | Admin        |
+| **Reprint** does not work because the card is revoked      | A revoked card cannot be reprinted; print a new one from the student's page                              | You          |
+| **Could not revoke this card.**                            | Try again                                                                                                | Admin        |
+| The print is shifted or cut on the paper                   | Set **Scale 100%**, **Margins None**, then [fix the measurements](printers-and-calibration.md#calibrate) | Admin        |
 
 More help with this: [What to do when something goes wrong](../../help/troubleshooting.md#print).
 
@@ -187,12 +181,12 @@ More help with this: [What to do when something goes wrong](../../help/troublesh
 
 ## Who can do what <a href="#roles" id="roles"></a>
 
-| Role                | Print and reprint student cards | Print staff cards | See print history | Revoke cards |
-| ------------------- | ------------------------------- | ----------------- | ----------------- | ------------ |
-| Admin               | Yes                             | Yes               | Yes               | Yes          |
-| Accountant          | Yes                             | No                | No                | No           |
-| Office staff        | Yes                             | No                | Yes               | No           |
-| Exam controller     | Yes                             | No                | Yes               | No           |
+| Role            | Print and reprint student cards | Print staff cards | See print history | Revoke cards |
+| --------------- | ------------------------------- | ----------------- | ----------------- | ------------ |
+| Admin           | Yes                             | Yes               | Yes               | Yes          |
+| Accountant      | Yes                             | No                | No                | No           |
+| Office staff    | Yes                             | No                | Yes               | No           |
+| Exam controller | Yes                             | No                | Yes               | No           |
 
 To print a staff card you need the print permission and also the permission to see staff HR details; for now only an Admin has both.
 

@@ -12,7 +12,11 @@ import {
 import { useTranslation } from '@biddaloy/ui/i18n';
 import * as React from 'react';
 
-import { sumTabDiffs, tabLabel } from '../../../pages/settings/restore-wizard';
+import {
+  sumTabDiffs,
+  tabLabel,
+  translateWorkbookFileError,
+} from '../../../pages/settings/restore-wizard';
 
 import { StarterGuide } from './starter-guide';
 import { StarterPreview } from './starter-preview';
@@ -50,11 +54,16 @@ export function ExcelSetup({ onDone }: { onDone?: () => void } = {}) {
   const [tabs, setTabs] = React.useState<RestoreSummary['tabs']>([]);
   const validate = React.useCallback(
     (file: File, onProgress: (percent: number) => void) =>
-      validateAsync({ file, onProgress }).then((result) => {
-        setTabs(result.summary.tabs);
-        return result;
-      }),
-    [validateAsync],
+      validateAsync({ file, onProgress }).then(
+        (result) => {
+          setTabs(result.summary.tabs);
+          return result;
+        },
+        (err: unknown) => {
+          throw translateWorkbookFileError(tb, err, 'starter');
+        },
+      ),
+    [validateAsync, tb],
   );
   // A starter file creates only, so nothing can be deleted: the server's
   // typed-confirmation phrase (the school's name) is sent for the user.

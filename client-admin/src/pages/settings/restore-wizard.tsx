@@ -101,13 +101,18 @@ export function RestoreWizard({
 
   const validate = React.useCallback(
     (file: File, onProgress: (percent: number) => void) =>
-      validateAsync({ file, onProgress }).then((result) => {
-        setLatestResult(result);
-        setConfirmationText('');
-        setInviteRestoredUsers(false);
-        return result;
-      }),
-    [validateAsync],
+      validateAsync({ file, onProgress }).then(
+        (result) => {
+          setLatestResult(result);
+          setConfirmationText('');
+          setInviteRestoredUsers(false);
+          return result;
+        },
+        (err: unknown) => {
+          throw translateWorkbookFileError(t, err);
+        },
+      ),
+    [validateAsync, t],
   );
 
   const commit = React.useCallback(
@@ -222,6 +227,41 @@ export function sumTabDiffs(tabs: TabSummaryDto[]): TabDiffTotals {
 
 export function tabLabel(t: ReturnType<typeof useTranslation<'backup'>>['t'], tab: string): string {
   return t(`diffTabName.${tab}`, { defaultValue: tab });
+}
+
+// `POST /backup/validate` refuses a whole file with its own `details.code` set
+// (`WorkbookFormatError` and `VALIDATE_BUSY`), apart from `ImportFileErrorCode`, so it
+// has its own map onto `backup:fileErrors.*` (#3174).
+const WORKBOOK_FILE_ERROR_KEY: Readonly<Record<string, string>> = {
+  NOT_XLSX: 'notXlsx',
+  TOO_LARGE: 'tooLarge',
+  MISSING_META: 'missingMeta',
+  UNSUPPORTED_VERSION: 'unsupportedVersion',
+  VALIDATE_BUSY: 'busy',
+};
+
+/** The translated sentence for a refused workbook; any other error comes back as it was, so
+ * the server's English text is never what gets shown for a code we know. Shared with
+ * the onboarding Excel setup, which validates through the same route: `'starter'` speaks of
+ * the sample file it uploads (`starterFileErrors.*`), not of a backup. */
+export function translateWorkbookFileError(
+  t: ReturnType<typeof useTranslation<'backup'>>['t'],
+  error: unknown,
+  file: 'backup' | 'starter' = 'backup',
+): unknown {
+  const e = error as { statusCode?: unknown; details?: { code?: unknown } } | null;
+  const code = e?.details?.code;
+  // A file over the upload limit is refused by the upload interceptor before validation,
+  // with a bare 413 and no code: it is the same "too large" for the person.
+  const key =
+    typeof code === 'string' && Object.hasOwn(WORKBOOK_FILE_ERROR_KEY, code)
+      ? WORKBOOK_FILE_ERROR_KEY[code]
+      : e?.statusCode === 413
+        ? WORKBOOK_FILE_ERROR_KEY.TOO_LARGE
+        : undefined;
+  if (!key) return error;
+  const group = file === 'starter' ? 'starterFileErrors' : 'fileErrors';
+  return new Error(t(`${group}.${key}`), { cause: error });
 }
 
 /** `renderSummary` — a per-tab create/update/unchanged/delete table (from

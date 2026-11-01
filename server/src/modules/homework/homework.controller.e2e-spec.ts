@@ -854,6 +854,50 @@ describe('Homework E2E', () => {
       it('Rule 3: a non-UUID id is 400', async () => {
         expect((await patch('not-a-uuid', { status: 'ACTIVE' })).status).toBe(400);
       });
+
+      // #3172: the server refuses what the UI hides, and never holds two live rows per target.
+      it('#3172 reassign of a DEACTIVATED row is a 400 and creates no row', async () => {
+        const h = await mkHomework('Reassign deactivated');
+        const a = await assignRow(h, { section_id: MAPPED_SECTION_ID });
+        await patch(a, { status: 'DEACTIVATED' });
+        const res = await withAdmin(
+          supertest(app.getHttpServer()).post(`/api/v1/homework-assignments/${a}/reassign`),
+          await adminToken(),
+        ).send({
+          section_id: MAPPED_SECTION_ID,
+          assigned_date: '2026-01-01',
+          due_date: '2026-01-15',
+        });
+        expect(res.status).toBe(400);
+        expect(res.body.message).toBe('Reactivate this assignment before reassigning it');
+        expect(await rows(h)).toHaveLength(1);
+      });
+
+      it('#3172 a second ACTIVE row for one target is a 409 (assign and reactivate)', async () => {
+        const h = await mkHomework('Two live rows');
+        const first = await assignRow(h, { section_id: MAPPED_SECTION_ID });
+        const again = await withAdmin(
+          supertest(app.getHttpServer()).post(`/api/v1/homework/${h}/assign`),
+          await adminToken(),
+        ).send({
+          section_id: MAPPED_SECTION_ID,
+          assigned_date: '2026-01-01',
+          due_date: '2026-01-08',
+        });
+        expect(again.status).toBe(409);
+        // The screen shows its own sentence for this code (no echo of the target).
+        expect(again.body.details).toEqual({ code: 'HOMEWORK_TARGET_TAKEN' });
+        expect(await rows(h)).toHaveLength(1);
+
+        // Deactivate the first, assign the target again, then reactivating the first would
+        // make two live rows.
+        await patch(first, { status: 'DEACTIVATED' });
+        await assignRow(h, { section_id: MAPPED_SECTION_ID });
+        const revive = await patch(first, { status: 'ACTIVE' });
+        expect(revive.status).toBe(409);
+        expect(revive.body.details).toEqual({ code: 'HOMEWORK_TARGET_TAKEN' });
+        expect((await rows(h)).filter((r) => r.status === 'ACTIVE')).toHaveLength(1);
+      }, 20000); // ten requests, each with its own login
     });
 
     describe('check work: GET/PATCH /homework-assignments/:id/submissions (#2899)', () => {
@@ -870,7 +914,10 @@ describe('Homework E2E', () => {
             .send({ ...target, assigned_date: '2026-01-01', due_date: '2026-01-08' })
             .expect(201)
         ).body.id as string;
-      const mkMarksHomework = async (title: string): Promise<string> =>
+      const mkMarksHomework = async (
+        title: string,
+        mode: HomeworkGradingMode = HomeworkGradingMode.MARKS,
+      ): Promise<string> =>
         (
           await withAdmin(
             supertest(app.getHttpServer()).post('/api/v1/homework'),
@@ -880,7 +927,7 @@ describe('Homework E2E', () => {
               subject_id: subjectId,
               class_id: SEED_CLASS_1_ID,
               title,
-              grading_mode: HomeworkGradingMode.MARKS,
+              grading_mode: mode,
             })
             .expect(201)
         ).body.id as string;
@@ -999,6 +1046,27 @@ describe('Homework E2E', () => {
         expect(await countRows(tickA, s)).toBe(0);
       });
 
+      it('#3172 PARTIAL is only accepted by a PARTIAL-mode homework', async () => {
+        const s = await mkStudent(MAPPED_SECTION_ID);
+        const tickA = await assignRow(await mkHomework('CW partial tick'), {
+          section_id: MAPPED_SECTION_ID,
+        });
+        const res = await grade(tickA, { items: [{ student_id: s, status: 'PARTIAL' }] });
+        expect(res.status).toBe(400);
+        expect(res.body.message).toBe(
+          'Partial can only be set when the homework grading mode is PARTIAL',
+        );
+        expect(await countRows(tickA, s)).toBe(0);
+
+        const partialA = await assignRow(
+          await mkMarksHomework('CW partial mode', HomeworkGradingMode.PARTIAL),
+          { section_id: MAPPED_SECTION_ID },
+        );
+        const ok = await grade(partialA, { items: [{ student_id: s, status: 'PARTIAL' }] });
+        expect(ok.status).toBe(200);
+        expect(rowFor(ok.body, s).status).toBe('PARTIAL');
+      });
+
       it('E6 validation: each is a 400 and nothing is written', async () => {
         const s = await mkStudent(MAPPED_SECTION_ID);
         const other = await mkStudent(await mkSectionB());
@@ -1070,7 +1138,7 @@ describe('Homework E2E', () => {
         expect(res.status).toBe(200);
         expect(res.body.map((r: any) => r.student_id)).toEqual([s]);
         expect(
-          (await grade(a, { items: [{ student_id: s, status: 'PARTIAL' }] }, 'teacher')).status,
+          (await grade(a, { items: [{ student_id: s, status: 'DONE' }] }, 'teacher')).status,
         ).toBe(200);
       });
 
@@ -1096,9 +1164,7 @@ describe('Homework E2E', () => {
         const bad = await grade(a, { items: [{ student_id: sB, status: 'DONE' }] });
         expect(bad.status).toBe(400);
         expect(bad.body.message).toBe('A student in this list is not on this homework');
-        expect((await grade(a, { items: [{ student_id: sA, status: 'PARTIAL' }] })).status).toBe(
-          200,
-        );
+        expect((await grade(a, { items: [{ student_id: sA, status: 'DONE' }] })).status).toBe(200);
       });
 
       it('E10 a student who moved sections keeps their existing row (reconciliation)', async () => {

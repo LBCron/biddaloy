@@ -32,7 +32,7 @@ import {
   renderReminderTemplate,
   ReminderTemplateVars,
 } from '../communications/reminder-template.util';
-import { resolveFeeNotificationLocale } from '../communications/fee-notification-template.util';
+import { resolveTemplateLocale } from '../account-access/account-access-templates';
 import { sectionRosterStudentIds } from '../enrollments/section-roster';
 import { AuditService } from '../audit/audit.service';
 import { SchoolsService } from '../schools/schools.service';
@@ -328,11 +328,10 @@ export class AbsenceNoticeService {
     return { recipients, skipped, template };
   }
 
-  /** [#2403] The stored locale only: a school with none gets English, not
-   * the bn-BD region default `getResolvedSettings` fills in. */
+  /** No stored locale resolves to the bn-BD default (#3136). */
   private async noticeLocale(tenantId: string) {
     const school = await this.schoolsService.findById(tenantId);
-    return resolveFeeNotificationLocale(school.settings?.region?.locale);
+    return resolveTemplateLocale(school.settings?.region?.locale);
   }
 
   private async absenceTemplate(tenantId: string): Promise<string> {

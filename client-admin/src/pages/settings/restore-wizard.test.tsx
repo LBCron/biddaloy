@@ -193,6 +193,49 @@ describe('RestoreWizard', () => {
     expect(screen.queryByRole('button', { name: 'Download blank template' })).toBeNull();
   });
 
+  // #3174: a refused file shows our own sentence per details.code, never the server's English text.
+  it.each([
+    ['NOT_XLSX', /not a valid \.xlsx workbook/],
+    ['TOO_LARGE', /too large to read/],
+    ['MISSING_META', /cannot be identified as a backup/],
+    ['UNSUPPORTED_VERSION', /different version of the app/],
+    ['VALIDATE_BUSY', /Another file is being checked/],
+  ])('maps the workbook refusal %s to a translated sentence', async (code, sentence) => {
+    server.use(
+      http.post('/api/v1/backup/validate', () =>
+        HttpResponse.json(
+          {
+            statusCode: 400,
+            message: 'Server English text',
+            requestId: 'req-1',
+            details: { code },
+          },
+          { status: code === 'VALIDATE_BUSY' ? 429 : 400 },
+        ),
+      ),
+    );
+    await renderAndUpload();
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toMatch(sentence);
+    expect(alert.textContent).not.toContain('Server English text');
+  });
+
+  it('maps a bare 413 from the upload limit (no details.code) to the too-large sentence', async () => {
+    server.use(
+      http.post('/api/v1/backup/validate', () =>
+        HttpResponse.json(
+          { statusCode: 413, message: 'File too large', requestId: 'req-1' },
+          { status: 413 },
+        ),
+      ),
+    );
+    await renderAndUpload();
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toMatch(/too large to read/);
+    expect(alert.textContent).not.toContain('File too large');
+  });
+
   it('Confirm stays disabled until the session school name is typed, and enables on an exact match', async () => {
     mockValidate({
       staging_id: 'staging-1',

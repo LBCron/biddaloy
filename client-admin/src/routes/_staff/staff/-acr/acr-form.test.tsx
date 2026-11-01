@@ -12,6 +12,8 @@ import { http, HttpResponse } from 'msw';
 import * as React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp, withHelp } from '../../../../help/test-utils';
+
 import { AcrForm, type AcrStep } from './acr-form';
 
 // The form has no router in tests; the print button only needs navigate + pathname.
@@ -73,12 +75,14 @@ async function renderForm(
     }),
   );
   renderWithProviders(
-    <Harness
-      assessment={assessment}
-      criteria={formCriteria}
-      onServerUpdate={onServerUpdate}
-      {...(onStepChange ? { onStepChange } : {})}
-    />,
+    withHelp(
+      <Harness
+        assessment={assessment}
+        criteria={formCriteria}
+        onServerUpdate={onServerUpdate}
+        {...(onStepChange ? { onStepChange } : {})}
+      />,
+    ),
     { locale: 'en', tenantId: 'tenant-1', role: 'ADMIN' },
   );
   // The `evaluations` namespace suspends on first render.
@@ -220,6 +224,14 @@ describe('AcrForm', () => {
     expect(screen.queryByRole('button', { name: 'Print ACR' })).toBeNull();
   });
 
+  it('draws a (?) next to Complete ACR on the last step', async () => {
+    await renderForm();
+    fireEvent.click(shellNext());
+    fireEvent.click(shellNext());
+    await screen.findByRole('button', { name: 'Complete ACR' });
+    await expectHelp('people.evaluations.action.completeAcr');
+  });
+
   it('renders a completed ACR read-only with a Reopen button', async () => {
     const assessment = acrAssessmentFactory({
       id: 'acr-1',
@@ -251,6 +263,7 @@ describe('AcrForm', () => {
     fireEvent.keyDown(document.body, { key: '1' });
     expect(pressed('4')).toBe('true');
 
+    await expectHelp('people.evaluations.action.reopenAcr');
     fireEvent.click(screen.getByRole('button', { name: 'Reopen' }));
     await waitFor(() => expect(onServerUpdate).toHaveBeenCalledWith(reopened));
   });

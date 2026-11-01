@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
+  HelpHint,
   Label,
   RadioGroup,
   RadioGroupItem,
@@ -212,7 +213,10 @@ export function CellPicker({
           </div>
 
           <div className="flex flex-col gap-1">
-            <Label htmlFor="cell-picker-teacher-filter">{t('cellPicker.teacherLabel')}</Label>
+            <span className="inline-flex items-center gap-1">
+              <Label htmlFor="cell-picker-teacher-filter">{t('cellPicker.teacherLabel')}</Label>
+              <HelpHint helpId="academics.routineBuilder.field.teachers" />
+            </span>
             <Input
               id="cell-picker-teacher-filter"
               value={teacherFilter}
@@ -264,7 +268,10 @@ export function CellPicker({
           </div>
 
           <div className="flex flex-col gap-1">
-            <Label id="cell-picker-recurrence-label">{t('cellPicker.recurrenceLabel')}</Label>
+            <span className="inline-flex items-center gap-1">
+              <Label id="cell-picker-recurrence-label">{t('cellPicker.recurrenceLabel')}</Label>
+              <HelpHint helpId="academics.routineBuilder.field.recurrence" />
+            </span>
             <RadioGroup
               aria-labelledby="cell-picker-recurrence-label"
               value={recurrence}

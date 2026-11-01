@@ -175,7 +175,9 @@ export const REGISTRY: DialogEntry[] = [
       await page
         .getByRole('textbox', { name: t('communications.send.messageLabel') })
         .fill('Dbl message');
-      await page.getByRole('button', { name: t('communications.send.submit') }).click();
+      await page
+        .getByRole('button', { name: t('communications.send.submit'), exact: true })
+        .click();
       await expect(page.getByRole('dialog')).toBeVisible();
     },
     submitKey: 'communications.send.confirmSend',

@@ -63,15 +63,17 @@ const EMPTY_VALUES: YearFormInitialValues = {
 export function Field({
   label,
   htmlFor,
+  helpId,
   children,
 }: {
   label: string;
   htmlFor?: string;
+  helpId?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor={htmlFor}>
+      <Label htmlFor={htmlFor} helpId={helpId} helpLabel={label}>
         {label}
         <span className="text-destructive" aria-hidden="true">
           {' *'}
@@ -184,7 +186,7 @@ export function YearFormDialog({
             </Field>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label={t('form.startDateLabel')}>
+              <Field label={t('form.startDateLabel')} helpId="academics.academicYears.field.dates">
                 <DatePicker
                   aria-label={t('form.startDateLabel')}
                   config={regionConfig}
@@ -208,7 +210,12 @@ export function YearFormDialog({
                 checked={isCurrent}
                 onCheckedChange={(checked) => handleIsCurrentChange(checked === true)}
               />
-              <Label htmlFor="year-form-is-current">{t('form.isCurrentLabel')}</Label>
+              <Label
+                htmlFor="year-form-is-current"
+                helpId="academics.academicYears.field.isCurrent"
+              >
+                {t('form.isCurrentLabel')}
+              </Label>
             </div>
 
             {confirmingIsCurrent && (

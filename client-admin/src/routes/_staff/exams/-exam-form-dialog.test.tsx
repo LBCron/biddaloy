@@ -17,6 +17,8 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp, withHelp } from '../../../help/test-utils';
+
 import { ExamFormDialog } from './-exam-form-dialog';
 
 // No Toaster is mounted in tests, so the toast calls are spies.
@@ -93,6 +95,17 @@ describe('ExamFormDialog template field', () => {
     toastSuccess.mockReset();
     toastInfo.mockReset();
     await cleanupTestState();
+  });
+
+  it('shows the name and kind (?) [#3293]', async () => {
+    mockApi({ templates: [] });
+    renderWithProviders(
+      withHelp(<ExamFormDialog open onOpenChange={() => {}} mode="create" onSaved={() => {}} />),
+      { locale: 'en', role: 'ADMIN', tenantId: 'tenant-1' },
+    );
+    await screen.findByLabelText('Name');
+    await expectHelp('examsResults.exams.field.name');
+    await expectHelp('examsResults.exams.field.kind');
   });
 
   it('is hidden when the tenant has no templates', async () => {

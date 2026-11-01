@@ -46,6 +46,7 @@ helpIds:
     communications.feeReminders.field.message,
     communications.feeReminders.field.medium,
     communications.feeReminders.field.bulkMediums,
+    communications.feeReminders.section.bulkMessage#task-bulk,
   ]
 devices: [desktop]
 entry: [sidebar, palette]

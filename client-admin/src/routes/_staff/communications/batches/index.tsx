@@ -157,6 +157,7 @@ function ReminderHistoryList() {
       kind: 'select',
       key: 'status',
       label: t('batches.statusFilterLabel'),
+      helpId: 'communications.reminderHistory.field.status',
       allLabel: t('batches.allStatuses'),
       options: Object.values(ReminderBatchStatus).map((status) => ({
         value: status,

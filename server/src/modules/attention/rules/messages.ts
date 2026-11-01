@@ -1,9 +1,11 @@
 import type { RuleMessage } from '@biddaloy/shared';
+import { resolveTemplateLocale } from '../../account-access/account-access-templates';
 
 export type AttentionLocale = 'bn' | 'en';
 
+/** One resolver (#3136): no stored locale means the bn-BD default. */
 export function resolveLocale(regionLocale?: string | null): AttentionLocale {
-  return regionLocale?.toLowerCase().startsWith('bn') ? 'bn' : 'en';
+  return resolveTemplateLocale(regionLocale);
 }
 
 const BN_DIGITS = '০১২৩৪৫৬৭৮৯';

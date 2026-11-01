@@ -17,8 +17,9 @@ import { formatMonthName, formatNumber } from '@biddaloy/ui/utils';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../../help/test-utils';
 import { routeTree } from '../../../../routeTree.gen';
 
 const STUDENT_A = 'aaaaaaaa-0000-0000-0000-000000000001';
@@ -88,7 +89,23 @@ async function fillMessageStep(user: ReturnType<typeof userEvent.setup>) {
 
 describe('bulk reminder wizard', () => {
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await cleanupTestState();
+  });
+
+  it('shows the message and mediums (?) on the message step [#3314]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    server.use(duesHandler());
+    const user = userEvent.setup();
+    render();
+
+    await screen.findByRole('checkbox', { name: `Select row ${n(1)}` });
+    await selectBothStudents(user);
+    await user.click(wizardNext());
+    await expectHelp('communications.feeReminders.section.bulkMessage');
+    await expectHelp('communications.feeReminders.field.bulkMediums');
+    // The (?) sits beside the label, so the textbox keeps its name.
+    expect(screen.getByRole('textbox', { name: 'Message template' })).toBeTruthy();
   });
 
   it('opens as a full page from the single-reminder page, and Close returns to it', async () => {

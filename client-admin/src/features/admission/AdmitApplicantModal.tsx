@@ -114,6 +114,7 @@ export function AdmitApplicantModal({
                 </p>
                 <RadioRows
                   legend={t('admitModal.choiceLegend')}
+                  helpId="people.admissionApplicants.field.guardianChoice"
                   value={choice}
                   onValueChange={(v) => setChoice(v as 'LINK_EXISTING' | 'CREATE_NEW')}
                   options={[

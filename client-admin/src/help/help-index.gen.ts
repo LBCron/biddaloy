@@ -184,19 +184,6 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'task-main',
     knownIssues: 0,
   },
-  'people.students.action.printIdCard': {
-    title: {
-      bn: 'শিক্ষার্থী যোগ করা ও তাদের তথ্য দেখা',
-      en: 'Adding students and viewing their details',
-    },
-    summary: {
-      bn: 'নতুন শিক্ষার্থী যোগ করুন, একসাথে অনেককে আমদানি করুন, আর প্রত্যেকের প্রোফাইল থেকে শ্রেণি, অভিভাবক, ফি, নোট ও স্কুল ছাড়ার তথ্য সামলান।',
-      en: "Add a new student, import many at once, and use each student's profile to handle class, guardians, fees, notes and leaving the school.",
-    },
-    path: 'people/students',
-    anchor: 'task-main',
-    knownIssues: 0,
-  },
   'people.students.action.collectFees': {
     title: {
       bn: 'শিক্ষার্থী যোগ করা ও তাদের তথ্য দেখা',
@@ -562,26 +549,6 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'task-main',
     knownIssues: 0,
   },
-  'people.staff.action.view': {
-    title: { bn: 'কর্মী যোগ করা ও পরিচালনা', en: 'Adding and managing staff' },
-    summary: {
-      bn: 'স্কুলের কর্মী যোগ করুন, তাঁদের যোগাযোগ বদলান, আমন্ত্রণ পাঠান, শিক্ষক প্রোফাইল দিন, আর কাউকে স্কুল থেকে সরান বা ফিরিয়ে আনুন।',
-      en: 'Add school staff, change their contact details, send invitations, give teacher profiles, and remove people from the school or bring them back.',
-    },
-    path: 'people/staff',
-    anchor: 'task-main',
-    knownIssues: 0,
-  },
-  'people.staff.action.restore': {
-    title: { bn: 'কর্মী যোগ করা ও পরিচালনা', en: 'Adding and managing staff' },
-    summary: {
-      bn: 'স্কুলের কর্মী যোগ করুন, তাঁদের যোগাযোগ বদলান, আমন্ত্রণ পাঠান, শিক্ষক প্রোফাইল দিন, আর কাউকে স্কুল থেকে সরান বা ফিরিয়ে আনুন।',
-      en: 'Add school staff, change their contact details, send invitations, give teacher profiles, and remove people from the school or bring them back.',
-    },
-    path: 'people/staff',
-    anchor: 'task-main',
-    knownIssues: 0,
-  },
   'people.staffImport': {
     title: { bn: 'এক্সেল থেকে কর্মী যোগ করা', en: 'Adding staff from Excel' },
     summary: {
@@ -639,16 +606,6 @@ export const HELP_INDEX: HelpIndex = {
     knownIssues: 0,
   },
   'people.programs.action.record': {
-    title: { bn: 'প্রোগ্রাম ও মাইলস্টোন', en: 'Programs and milestones' },
-    summary: {
-      bn: 'হিফজ, ক্লাব বা কোর্সের মতো প্রোগ্রাম যোগ করুন, মাইলস্টোন ঠিক করুন, শিক্ষার্থী তালিকাভুক্ত করুন আর প্রতিটি অর্জন রেকর্ড করে অগ্রগতি দেখুন।',
-      en: 'Add programs such as Hifz, a club or a course, set their milestones, enrol students, and record each achievement to follow progress.',
-    },
-    path: 'people/programs',
-    anchor: 'task-main',
-    knownIssues: 0,
-  },
-  'people.programs.action.archive': {
     title: { bn: 'প্রোগ্রাম ও মাইলস্টোন', en: 'Programs and milestones' },
     summary: {
       bn: 'হিফজ, ক্লাব বা কোর্সের মতো প্রোগ্রাম যোগ করুন, মাইলস্টোন ঠিক করুন, শিক্ষার্থী তালিকাভুক্ত করুন আর প্রতিটি অর্জন রেকর্ড করে অগ্রগতি দেখুন।',
@@ -763,32 +720,6 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'more',
     knownIssues: 0,
     field: { ns: 'admission-staff-intakes', key: 'requiredDocuments' },
-  },
-  'people.admissionIntakes.section.publicForm': {
-    title: {
-      bn: 'ভর্তি পর্ব ও অনলাইন ভর্তির ফর্ম',
-      en: 'Admission rounds and the online admission form',
-    },
-    summary: {
-      bn: 'কোন শ্রেণিতে কত আসনে, কবে থেকে কবে পর্যন্ত অনলাইনে আবেদন নেওয়া হবে তা ঠিক করুন; অভিভাবক ফোন থেকে ফর্ম পূরণ করে রেফারেন্স নম্বর পান আর পরে আবেদনের অবস্থা দেখেন।',
-      en: 'Decide which class takes how many seats, and from when to when applications are open online; guardians fill in the form on their phone, get a reference number and check their application status later.',
-    },
-    path: 'people/admission-intakes',
-    anchor: 'task-main',
-    knownIssues: 0,
-  },
-  'people.admissionIntakes.section.status': {
-    title: {
-      bn: 'ভর্তি পর্ব ও অনলাইন ভর্তির ফর্ম',
-      en: 'Admission rounds and the online admission form',
-    },
-    summary: {
-      bn: 'কোন শ্রেণিতে কত আসনে, কবে থেকে কবে পর্যন্ত অনলাইনে আবেদন নেওয়া হবে তা ঠিক করুন; অভিভাবক ফোন থেকে ফর্ম পূরণ করে রেফারেন্স নম্বর পান আর পরে আবেদনের অবস্থা দেখেন।',
-      en: 'Decide which class takes how many seats, and from when to when applications are open online; guardians fill in the form on their phone, get a reference number and check their application status later.',
-    },
-    path: 'people/admission-intakes',
-    anchor: 'task-main',
-    knownIssues: 0,
   },
   'people.admissionApplicants': {
     title: {
@@ -1422,16 +1353,6 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'task-main',
     knownIssues: 0,
   },
-  'academics.routineBuilder.action.clearCell': {
-    title: { bn: 'শ্রেণির সাপ্তাহিক রুটিন সাজানো', en: "Arranging a class's weekly routine" },
-    summary: {
-      bn: 'প্রতিটি শাখার সাপ্তাহিক রুটিনের ছকে বিষয় ও শিক্ষক বসান, নিয়মের সংঘাত দেখুন, খালি ঘর একসাথে পূরণ করুন আর শিক্ষকের কর্মভার মিলিয়ে নিন।',
-      en: "Place subjects and teachers in each section's weekly routine table, see rule clashes, fill empty cells in one go, and check teacher workload.",
-    },
-    path: 'academics/routine-builder',
-    anchor: 'task-main',
-    knownIssues: 0,
-  },
   'academics.routineBuilder.field.teachers': {
     title: { bn: 'শ্রেণির সাপ্তাহিক রুটিন সাজানো', en: "Arranging a class's weekly routine" },
     summary: { bn: '', en: '' },
@@ -1793,16 +1714,6 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'task-main',
     knownIssues: 0,
   },
-  'academics.syllabus.action.copyToMine': {
-    title: { bn: 'সিলেবাস ও পাঠ পরিকল্পনা', en: 'Syllabus and study plans' },
-    summary: {
-      bn: 'শ্রেণি ও বিষয়ের সিলেবাস টপিক ক্রমে সাজান, প্রতিটি শাখার বিষয়ের জন্য পাঠ পরিকল্পনা বানান, আর দেখুন কোন শাখা পিছিয়ে আছে।',
-      en: "Put a class and subject's syllabus topics in order, make a study plan for each section's subject, and see which section is behind.",
-    },
-    path: 'academics/syllabus',
-    anchor: 'task-main',
-    knownIssues: 0,
-  },
   'attendance.attendance': {
     title: { bn: 'উপস্থিতি নেওয়া', en: 'Taking attendance' },
     summary: {
@@ -1851,7 +1762,15 @@ export const HELP_INDEX: HelpIndex = {
     anchor: '',
     knownIssues: 0,
   },
-  'attendance.attendanceReports.action.sendReminder': {
+  'attendance.attendanceReports.field.threshold': {
+    title: { bn: 'উপস্থিতি প্রতিবেদন', en: 'Attendance reports' },
+    summary: { bn: '', en: '' },
+    path: 'attendance/attendance-reports',
+    anchor: 'more',
+    knownIssues: 0,
+    field: { ns: 'attendanceReports', key: 'threshold' },
+  },
+  'attendance.attendanceReports.section.summary': {
     title: { bn: 'উপস্থিতি প্রতিবেদন', en: 'Attendance reports' },
     summary: {
       bn: 'একটি শাখার মাসের হাজিরার হিসাব দেখুন, কার উপস্থিতি কম তা খুঁজে বের করুন, আর দরকার হলে রিমাইন্ডার পাঠান।',
@@ -1861,13 +1780,25 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'task-main',
     knownIssues: 0,
   },
-  'attendance.attendanceReports.field.threshold': {
+  'attendance.attendanceReports.section.flags': {
     title: { bn: 'উপস্থিতি প্রতিবেদন', en: 'Attendance reports' },
-    summary: { bn: '', en: '' },
+    summary: {
+      bn: 'একটি শাখার মাসের হাজিরার হিসাব দেখুন, কার উপস্থিতি কম তা খুঁজে বের করুন, আর দরকার হলে রিমাইন্ডার পাঠান।',
+      en: "See a section's monthly attendance figures, find who is falling behind, and send a reminder if needed.",
+    },
     path: 'attendance/attendance-reports',
-    anchor: 'more',
+    anchor: 'task-low',
     knownIssues: 0,
-    field: { ns: 'attendanceReports', key: 'threshold' },
+  },
+  'attendance.attendanceReports.section.subjects': {
+    title: { bn: 'উপস্থিতি প্রতিবেদন', en: 'Attendance reports' },
+    summary: {
+      bn: 'একটি শাখার মাসের হাজিরার হিসাব দেখুন, কার উপস্থিতি কম তা খুঁজে বের করুন, আর দরকার হলে রিমাইন্ডার পাঠান।',
+      en: "See a section's monthly attendance figures, find who is falling behind, and send a reminder if needed.",
+    },
+    path: 'attendance/attendance-reports',
+    anchor: 'task-subjects',
+    knownIssues: 0,
   },
   'attendance.attendanceRegister': {
     title: { bn: 'উপস্থিতির খাতা', en: 'Attendance register' },
@@ -3391,6 +3322,16 @@ export const HELP_INDEX: HelpIndex = {
     knownIssues: 0,
     field: { ns: 'communications', key: 'bulkMediums' },
   },
+  'communications.feeReminders.section.bulkMessage': {
+    title: { bn: 'ফি রিমাইন্ডার', en: 'Fee reminders' },
+    summary: {
+      bn: 'একজন শিক্ষার্থীর অভিভাবকদের, বা একসাথে সর্বোচ্চ ৫০০ জন শিক্ষার্থীর অভিভাবকদের বকেয়ার কথা মনে করিয়ে দিন; নাম আর টাকা নিজে থেকে বসে, পাঠানোর আগে প্রিভিউতে দেখুন কে পাবেন, কে বাদ আর কয়টি এসএমএস লাগবে।',
+      en: 'Remind the guardians of one student, or of up to 500 students at once, about unpaid fees; names and amounts fill in by themselves, and the preview shows who will get it, who is skipped and how many SMS are needed.',
+    },
+    path: 'communications/fee-reminders',
+    anchor: 'task-bulk',
+    knownIssues: 0,
+  },
   'communications.reminderHistory': {
     title: { bn: 'রিমাইন্ডার ইতিহাস', en: 'Reminder history' },
     summary: {
@@ -3508,19 +3449,6 @@ export const HELP_INDEX: HelpIndex = {
     knownIssues: 0,
   },
   'administration.printTemplates.action.confirmRound': {
-    title: {
-      bn: 'পরিচয়পত্র, সনদ ও পরীক্ষার কাগজ ছাপা',
-      en: 'Printing ID cards, certificates and exam papers',
-    },
-    summary: {
-      bn: 'তৈরি নকশা থেকে প্রিন্টের নকশা বানান, প্রকাশ করুন আর ডিফল্ট করুন; প্রিভিউ দেখে নিজের প্রিন্টারে ছাপুন; হারানো কার্ড বাতিল করলে তার কিউআর কোড আর বৈধ দেখায় না।',
-      en: 'Make a print design from a ready-made one, publish it and make it the default; check the preview and print on your own printer; when a card is lost and revoked, its QR code no longer shows as valid.',
-    },
-    path: 'administration/print-templates',
-    anchor: 'task-main',
-    knownIssues: 0,
-  },
-  'administration.printTemplates.action.revoke': {
     title: {
       bn: 'পরিচয়পত্র, সনদ ও পরীক্ষার কাগজ ছাপা',
       en: 'Printing ID cards, certificates and exam papers',
@@ -4317,6 +4245,16 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'task-main',
     knownIssues: 0,
   },
+  'dashboard.widgets': {
+    title: { bn: 'উইজেটগুলোর মানে বোঝা', en: 'What the widgets mean' },
+    summary: {
+      bn: 'ড্যাশবোর্ডের প্রতিটি উইজেট কী বলে, সংখ্যাটি কোথা থেকে আসে, আর দেখে কী করবেন।',
+      en: 'What each dashboard widget says, where its number comes from, and what to do after you read it.',
+    },
+    path: 'dashboard/widgets',
+    anchor: '',
+    knownIssues: 0,
+  },
   'widget.attendance-today': {
     title: { bn: 'উইজেটগুলোর মানে বোঝা', en: 'What the widgets mean' },
     summary: {
@@ -4727,6 +4665,56 @@ export const HELP_INDEX: HelpIndex = {
     anchor: '',
     knownIssues: 0,
   },
+  'administration.printDesignerGuide': {
+    title: { bn: 'ডিজাইনারের গাইড', en: "Designer's guide" },
+    summary: {
+      bn: 'ডিজাইন কিট নিন, ডিজাইনারকে পাঠান, আঁকা SVG ইমপোর্ট করুন, ঘরগুলো দেখে নিন আর প্রকাশ করুন।',
+      en: 'Get the design kit, send it to a designer, import the drawn SVG, check the fields and publish.',
+    },
+    path: 'administration/print-templates/designer-guide',
+    anchor: '',
+    knownIssues: 0,
+  },
+  'administration.printPrinters': {
+    title: { bn: 'প্রিন্টার ও ক্যালিব্রেশন', en: 'Printers and calibration' },
+    summary: {
+      bn: 'প্রিন্টার আর কাগজের মাপ যোগ করুন, মাপার পাতা ছাপুন, আর সরানো ঠিক করুন যেন ছাপা ঠিক কার্ডের ওপর পড়ে।',
+      en: 'Add a printer and its paper size, print the measuring page and fix the offset so the print lands exactly on the card.',
+    },
+    path: 'administration/print-templates/printers-and-calibration',
+    anchor: '',
+    knownIssues: 0,
+  },
+  'administration.printIdCards': {
+    title: { bn: 'আইডি কার্ড ছাপা', en: 'Printing ID cards' },
+    summary: {
+      bn: 'একজন, কয়েকজন বা পুরো শাখার আইডি কার্ড ছাপুন; হারানো কার্ড বাতিল করলে তার কিউআর আর বৈধ দেখায় না।',
+      en: 'Print ID cards for one student or staff member, a few people or a whole section; revoke a lost card so its QR no longer shows as valid.',
+    },
+    path: 'administration/print-templates/id-cards',
+    anchor: '',
+    knownIssues: 0,
+  },
+  'administration.printExamDocuments': {
+    title: { bn: 'পরীক্ষার কাগজপত্র ছাপা', en: 'Printing exam documents' },
+    summary: {
+      bn: 'পরীক্ষার প্রবেশপত্র, সিট স্লিপ, নম্বরপত্র ও ফলাফলের কাগজ এক এক করে বা ব্যাচে ছাপুন।',
+      en: 'Print admit cards, seat slips, mark sheets and result documents for an exam, one at a time or in batches.',
+    },
+    path: 'administration/print-templates/exam-documents',
+    anchor: '',
+    knownIssues: 0,
+  },
+  'administration.printCertificates': {
+    title: { bn: 'সনদ দেওয়া', en: 'Issuing certificates' },
+    summary: {
+      bn: 'ক্রমিক নম্বরসহ শিক্ষার্থীর সনদ দিন, ডুপ্লিকেট হিসেবে আবার ছাপুন, আর বাতিল করলে কিউআর চেকে বাতিল দেখায়।',
+      en: 'Issue a student certificate with its own serial number, reprint it as a duplicate, and revoke it so the QR check shows revoked.',
+    },
+    path: 'administration/print-templates/certificates',
+    anchor: '',
+    knownIssues: 0,
+  },
   'help.glossary': {
     title: { bn: 'শব্দের তালিকা', en: 'Glossary' },
     summary: {
@@ -4778,32 +4766,6 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'portal/notifications',
     anchor: '',
-    knownIssues: 0,
-  },
-  'portal.notifications.action.close': {
-    title: {
-      bn: 'সতর্কতা ও বিজ্ঞপ্তি (অভিভাবক ও শিক্ষার্থী)',
-      en: 'Alerts and notifications (parent and student)',
-    },
-    summary: {
-      bn: 'সন্তানের অনুপস্থিতি, বকেয়া ফি, কালকের পরীক্ষা, ফল প্রকাশ, বাড়ির কাজ আর জরিপের খবর এক জায়গায় দেখুন। কাজ হয়ে গেলে সতর্কতা নিজে থেকে সরে যায়।',
-      en: "See news about your child in one place: absence, unpaid fees, tomorrow's exam, published results, homework and surveys. An alert goes away by itself once the work is done.",
-    },
-    path: 'portal/notifications',
-    anchor: 'task-main',
-    knownIssues: 0,
-  },
-  'portal.notifications.action.snooze': {
-    title: {
-      bn: 'সতর্কতা ও বিজ্ঞপ্তি (অভিভাবক ও শিক্ষার্থী)',
-      en: 'Alerts and notifications (parent and student)',
-    },
-    summary: {
-      bn: 'সন্তানের অনুপস্থিতি, বকেয়া ফি, কালকের পরীক্ষা, ফল প্রকাশ, বাড়ির কাজ আর জরিপের খবর এক জায়গায় দেখুন। কাজ হয়ে গেলে সতর্কতা নিজে থেকে সরে যায়।',
-      en: "See news about your child in one place: absence, unpaid fees, tomorrow's exam, published results, homework and surveys. An alert goes away by itself once the work is done.",
-    },
-    path: 'portal/notifications',
-    anchor: 'task-main',
     knownIssues: 0,
   },
 } as const;
@@ -4941,19 +4903,4 @@ export const HELP_ROUTES = {
 } as const;
 
 /** Declared in the guide but not indexable yet (guide gaps, #3017). */
-export const HELP_GAPS: readonly string[] = [
-  'helpId "administration.printTemplates.action.publish" is declared twice (administration/print-templates/designer-guide)',
-  'helpId "administration.printTemplates.action.makeDefault" is declared twice (administration/print-templates/designer-guide)',
-  'helpId "administration.printTemplates.field.printer" is declared twice (administration/print-templates/printers-and-calibration)',
-  'helpId "administration.printTemplates.field.batchSize" is declared twice (administration/print-templates/printers-and-calibration)',
-  'helpId "administration.printTemplates.action.print" is declared twice (administration/print-templates/id-cards)',
-  'helpId "administration.printTemplates.action.confirmRound" is declared twice (administration/print-templates/id-cards)',
-  'helpId "administration.printTemplates.action.revoke" is declared twice (administration/print-templates/id-cards)',
-  'helpId "administration.printTemplates.field.batchSize" is declared twice (administration/print-templates/id-cards)',
-  'helpId "administration.printTemplates.action.print" is declared twice (administration/print-templates/exam-documents)',
-  'helpId "administration.printTemplates.field.kind" is declared twice (administration/print-templates/exam-documents)',
-  'helpId "administration.printTemplates.field.design" is declared twice (administration/print-templates/exam-documents)',
-  'helpId "administration.printTemplates.action.print" is declared twice (administration/print-templates/certificates)',
-  'helpId "administration.printTemplates.action.revoke" is declared twice (administration/print-templates/certificates)',
-  'helpId "administration.printTemplates.field.kind" is declared twice (administration/print-templates/certificates)',
-];
+export const HELP_GAPS: readonly string[] = [];

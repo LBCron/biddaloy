@@ -221,7 +221,7 @@ export class ArrivalNoticeService {
 
   // ---- copies of AbsenceNoticeService's private helpers (D41) ----
 
-  /** [#2403] Stored locale only; a school with none gets English. Also the tz and SMS switch. */
+  /** Resolved locale (no stored locale means the bn-BD default, #3136), the tz and the SMS switch. */
   private async loadSchool(tenantId: string): Promise<['en' | 'bn', string, boolean]> {
     const settings = await this.schoolsService.getResolvedSettings(tenantId);
     return [

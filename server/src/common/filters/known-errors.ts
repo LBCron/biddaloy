@@ -16,6 +16,7 @@ import { ImportFileError } from '../errors/import-file.error';
 export function mapKnownError(exception: unknown): HttpException | null {
   return (
     mapBodyParserError(exception) ??
+    mapHomeworkActiveUnique(exception) ??
     mapUniqueViolation(exception) ??
     mapStudentFeeCheckViolation(exception) ??
     mapInvalidDate(exception) ??
@@ -31,6 +32,28 @@ const DUPLICATE_MESSAGE_BY_TABLE: Record<string, string> = {
   class_sections: 'A section with this name already exists in this class',
   academic_years: 'An academic year with this name already exists',
 };
+
+// [#3172] One ACTIVE homework assignment per (homework, target). The service checks first and
+// throws this same 409; the two partial unique indexes are the race backstop. The code is what
+// the homework screen branches on.
+const HOMEWORK_ACTIVE_INDEXES = new Set([
+  'IDX_homework_assignments_active_section',
+  'IDX_homework_assignments_active_student',
+]);
+
+export function homeworkTargetTaken(): ConflictException {
+  return new ConflictException({
+    message: 'This homework is already assigned to that target',
+    details: { code: 'HOMEWORK_TARGET_TAKEN' },
+  });
+}
+
+function mapHomeworkActiveUnique(exception: unknown): HttpException | null {
+  if (!(exception instanceof QueryFailedError)) return null;
+  const { code, constraint } = exception.driverError as { code?: string; constraint?: string };
+  if (code !== '23505' || !HOMEWORK_ACTIVE_INDEXES.has(constraint ?? '')) return null;
+  return homeworkTargetTaken();
+}
 
 // `academic_years` has a second unique index, (is_current, tenant_id): a set-current
 // race there is not a name clash, so the name text is only for the name index.

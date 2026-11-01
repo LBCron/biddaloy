@@ -179,6 +179,51 @@ describe('/academics/homework/$homeworkId', () => {
     expect(screen.queryByText('internal backend detail')).toBeNull();
   });
 
+  it('#3172 a 409 HOMEWORK_TARGET_TAKEN on assign shows its own sentence', async () => {
+    const klass = classFactory({ id: 'class-1', name: 'Class 6' });
+    const section = classSectionFactory({ id: 'section-1', section_name: 'A', class: klass });
+
+    server.use(
+      http.get('/api/v1/homework/:id', () => HttpResponse.json(homework)),
+      assignmentsHandler(),
+      http.get('/api/v1/classes/:id', () => HttpResponse.json(klass)),
+      http.get('/api/v1/classes/:classId/sections', () => HttpResponse.json([section])),
+      http.get('/api/v1/subjects', () =>
+        HttpResponse.json({ data: [], total: 0, page: 1, limit: 100, totalPages: 1 }),
+      ),
+      http.post('/api/v1/homework/:id/assign', () =>
+        HttpResponse.json(
+          {
+            ...apiErrorBody(409, 'This homework is already assigned to that target', '/x'),
+            details: { code: 'HOMEWORK_TARGET_TAKEN' },
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+
+    renderWithRouter(routeTree, {
+      initialEntries: ['/academics/homework/hw-1'],
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+      locale: 'en',
+    });
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Assign to section or student' }));
+    await screen.findByRole('dialog');
+    await user.click(screen.getByRole('combobox', { name: /^Section/ }));
+    await user.click(await screen.findByRole('option', { name: section.section_name }));
+    await user.click(screen.getByRole('button', { name: 'Assign' }));
+
+    expect(
+      await screen.findByText(
+        'This homework is already assigned to that section or student. Pick another one, or change the row that is already there.',
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText('Something went wrong. Please try again.')).toBeNull();
+  });
+
   const renderAdmin = () =>
     renderWithRouter(routeTree, {
       initialEntries: ['/academics/homework/hw-1'],
@@ -369,6 +414,37 @@ describe('/academics/homework/$homeworkId', () => {
     );
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     await waitFor(() => expect(counter.calls).toBeGreaterThan(1));
+  });
+
+  // #3173: Deactivate is undoable (Reactivate), so its confirm must not be drawn as a delete.
+  it('the Deactivate confirm shows no trash icon', async () => {
+    serveDialogs([sectionRow]);
+    renderAdmin();
+
+    const user = userEvent.setup();
+    await openDeactivate(user);
+    const dialog = await screen.findByRole('alertdialog', {
+      name: 'Deactivate this homework for Section A?',
+    });
+    expect(dialog.querySelector('svg.lucide-trash-2')).toBeNull();
+  });
+
+  // #3173: the server lists at most 100 rows, so a full page says that more may be missing.
+  it('a full page of 100 rows says older rows are not listed; fewer rows say nothing', async () => {
+    const many = Array.from({ length: 100 }, (_, i) => ({ ...sectionRow, id: `a${i}` }));
+    serveDialogs(many);
+    const { unmount } = renderAdmin();
+    expect(
+      await screen.findByText(
+        'Only the first 100 rows are shown, active ones first. Older rows are not listed.',
+      ),
+    ).toBeTruthy();
+    unmount();
+
+    serveDialogs(many.slice(0, 99));
+    renderAdmin();
+    await screen.findAllByText('Section A');
+    expect(screen.queryByText(/Only the first 100 rows/)).toBeNull();
   });
 
   it('Reactivate sends ACTIVE', async () => {
@@ -616,6 +692,39 @@ describe('/academics/homework/$homeworkId', () => {
 
     await waitFor(() => expect(body).toBeDefined());
     expect(body).toMatchObject({ student_id: 'st-1' });
+  });
+
+  // #3173: a section over one page (100) must not leave students past the first page out.
+  it('the student picker loads every page of the section, not just the first', async () => {
+    const pages: string[] = [];
+    serveDialogs([
+      {
+        ...sectionRow,
+        section_id: null,
+        student_id: 'st-1',
+        student_name: 'Rahim Uddin',
+        section_name: 'A',
+      },
+    ]);
+    server.use(
+      http.get('/api/v1/students', ({ request }) => {
+        const page = new URL(request.url).searchParams.get('page') ?? '1';
+        pages.push(page);
+        return HttpResponse.json({
+          data: [],
+          total: 150,
+          page: Number(page),
+          limit: 100,
+          totalPages: 2,
+        });
+      }),
+    );
+    renderAdmin();
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Change Rahim Uddin · Section A' }));
+    await screen.findByRole('dialog');
+    await waitFor(() => expect(pages.sort()).toEqual(['1', '2']));
   });
 
   it('an empty list says nobody has the homework yet', async () => {

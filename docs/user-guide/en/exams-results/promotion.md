@@ -318,13 +318,13 @@ One list's page:
 
 <!-- guide:generated:fields:promotions -->
 
-| Field                               | What to enter                                                                                                                                   | Required?                           |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| Next class                          | The class the students move to. It fills in by itself when you pick the current class; you can change it, or choose Graduate for no next class. | No, if one is suggested             |
-| Exams to average                    | Tick the published exams to average. The merit order comes from their average GPA. Pick at least one.                                           | Yes, at least one                   |
-| How students are placed in sections | Block fills section A in merit order first, then B. Snake takes turns across sections in merit order, so all sections stay even.                | Yes                                 |
-| Outcome                             | Promote, Retain, Graduate or Promote on condition for each student. It starts as the system’s suggestion; if you change it, a note is required. | Yes                                 |
-| Why changed                         | Why you changed the system’s suggestion for this student. Needed whenever the outcome differs from the suggestion.                              | Yes, when you change the suggestion |
+| Field                               | What to enter                                                                                                                                                                                             | Required?                           |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Next class                          | The class the students move to. It fills in by itself when you pick the current class; you can change it. When the system suggests graduation, this shows Graduate (no next class) and cannot be changed. | No, if one is suggested             |
+| Exams to average                    | Tick the published exams to average. The merit order comes from their average GPA. Pick at least one.                                                                                                     | Yes, at least one                   |
+| How students are placed in sections | Block fills section A in merit order first, then B. Snake takes turns across sections in merit order, so all sections stay even.                                                                          | Yes                                 |
+| Outcome                             | Promote, Retain, Graduate or Promote on condition for each student. It starts as the system’s suggestion; if you change it, a note is required.                                                           | Yes                                 |
+| Why changed                         | Why you changed the system’s suggestion for this student. Needed whenever the outcome differs from the suggestion.                                                                                        | Yes, when you change the suggestion |
 
 <!-- /guide:generated -->
 

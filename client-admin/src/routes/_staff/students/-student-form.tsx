@@ -307,7 +307,10 @@ export function StudentForm<TInput>({
               name="blood_group"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor={fieldId('blood_group')}>
+                  <FormLabel
+                    htmlFor={fieldId('blood_group')}
+                    helpId="people.students.field.bloodGroup"
+                  >
                     {t('form.fields.bloodGroup')}
                   </FormLabel>
                   <FormControl>
@@ -477,7 +480,10 @@ export function StudentForm<TInput>({
               name="roll_number"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor={fieldId('roll_number')}>
+                  <FormLabel
+                    htmlFor={fieldId('roll_number')}
+                    helpId="people.students.field.rollNumber"
+                  >
                     {t('form.fields.rollNumber')}
                   </FormLabel>
                   <FormControl>
@@ -521,7 +527,10 @@ export function StudentForm<TInput>({
               name="preferred_communication"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor={fieldId('preferred_communication')}>
+                  <FormLabel
+                    htmlFor={fieldId('preferred_communication')}
+                    helpId="people.students.field.preferredCommunication"
+                  >
                     {t('form.fields.preferredCommunication')}
                   </FormLabel>
                   <FormControl>

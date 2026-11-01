@@ -333,7 +333,13 @@ function HomeworkDetailPage() {
         onError: (err) => {
           // ConfirmDialog has no error slot: close it and toast a fixed text.
           setStatusRow(null);
-          notifyError(rowGone(err) ? t('detail.assignments.rowChanged') : t('form.genericError'));
+          notifyError(
+            rowGone(err)
+              ? t('detail.assignments.rowChanged')
+              : targetTaken(err)
+                ? t('detail.assignments.targetTaken')
+                : t('form.genericError'),
+          );
         },
       },
     );
@@ -458,7 +464,13 @@ function HomeworkDetailPage() {
                 mode="assign"
                 initial={{ classId: homework.class_id }}
                 isPending={assignHomework.isPending}
-                {...(assignHomework.isError ? { error: t('form.genericError') } : {})}
+                {...(assignHomework.isError
+                  ? {
+                      error: targetTaken(assignHomework.error)
+                        ? t('detail.assignments.targetTaken')
+                        : t('form.genericError'),
+                    }
+                  : {})}
                 onSubmit={handleAssign}
               />
             </DialogContent>
@@ -492,7 +504,13 @@ function HomeworkDetailPage() {
                     dueDate: reassignRow.due_date,
                   }}
                   isPending={reassign.isPending}
-                  {...(reassign.isError ? { error: t('form.genericError') } : {})}
+                  {...(reassign.isError
+                    ? {
+                        error: targetTaken(reassign.error)
+                          ? t('detail.assignments.targetTaken')
+                          : t('form.genericError'),
+                      }
+                    : {})}
                   onSubmit={handleReassign}
                 />
               )}
@@ -540,7 +558,8 @@ function HomeworkDetailPage() {
             onOpenChange={(open) => {
               if (!open && !update.isPending) setStatusRow(null);
             }}
-            tone={statusRow.status === 'ACTIVE' ? 'danger' : 'default'}
+            // Both ways are undoable: the danger tone would draw a trash icon for Deactivate.
+            tone="default"
             title={t(
               statusRow.status === 'ACTIVE'
                 ? 'detail.assignments.deactivateTitle'
@@ -625,6 +644,12 @@ function HomeworkDetailPage() {
 /** 400/404 on a row action means the row was superseded, removed or taken out of scope. */
 const rowGone = (err: unknown) =>
   err instanceof ApiError && (err.statusCode === 400 || err.statusCode === 404);
+
+/** #3172: 409 `HOMEWORK_TARGET_TAKEN` = that section or student already has an ACTIVE row. */
+const targetTaken = (err: unknown) =>
+  err instanceof ApiError &&
+  err.statusCode === 409 &&
+  err.details?.['code'] === 'HOMEWORK_TARGET_TAKEN';
 
 function DueDateForm({
   row,

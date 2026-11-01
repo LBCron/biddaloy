@@ -45,6 +45,7 @@
       "emptyTitle": "Not given to anyone yet",
       "emptyExplanation": "Give this homework to a section or a student.",
       "loadError": "Could not load who has this homework.",
+      "capped": "Only the first {{count}} rows are shown, active ones first. Older rows are not listed.",
       "reassign": "Change {{target}}",
       "reassignShort": "Change",
       "reassignTitle": "Change this assignment",
@@ -65,7 +66,8 @@
       "reactivateTitle": "Reactivate this homework for {{target}}?",
       "reactivateDescription": "Students and parents will see it again, and can hand it in until the due date.",
       "reactivated": "Active again.",
-      "rowChanged": "This row was already changed. The list is up to date now."
+      "rowChanged": "This row was already changed. The list is up to date now.",
+      "targetTaken": "This homework is already assigned to that section or student. Pick another one, or change the row that is already there."
     },
     "submissions": {
       "open": "Check work for {{target}}",

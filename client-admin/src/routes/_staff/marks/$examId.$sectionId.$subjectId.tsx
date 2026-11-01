@@ -332,21 +332,26 @@ function MarksEntryPage() {
       )}
 
       {isMobile ? (
-        <MarksStepper
-          students={grid.students}
-          components={grid.components}
-          cells={grid.cells}
-          derived={grid.derived}
-          readOnly={readOnly}
-          onStage={stage}
-          pendingKeys={autosave.pendingKeys}
-          failedKeys={autosave.failedKeys}
-        />
+        <div className="space-y-3">
+          {/* One (?) for the page, not one per mark input. */}
+          {!readOnly && <HelpHint helpId="examsResults.marksEntry.field.mark" />}
+          <MarksStepper
+            students={grid.students}
+            components={grid.components}
+            cells={grid.cells}
+            derived={grid.derived}
+            readOnly={readOnly}
+            onStage={stage}
+            pendingKeys={autosave.pendingKeys}
+            failedKeys={autosave.failedKeys}
+          />
+        </div>
       ) : (
         <div className="space-y-3">
           {!readOnly && (
             <p className="text-caption text-text-secondary">
-              <KeyboardHelp text={tg('marksSheet.keyboardHelp')} />
+              <KeyboardHelp text={tg('marksSheet.keyboardHelp')} />{' '}
+              <HelpHint helpId="examsResults.marksEntry.field.mark" />
             </p>
           )}
           <div className="overflow-hidden rounded-lg border border-border-subtle bg-surface shadow-e1">

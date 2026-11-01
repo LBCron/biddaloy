@@ -36,6 +36,7 @@ describe('attention messages', () => {
   it('resolveLocale', () => {
     expect(resolveLocale('bn-BD')).toBe('bn');
     expect(resolveLocale('en-BD')).toBe('en');
-    expect(resolveLocale(undefined)).toBe('en');
+    // #3136: no stored locale means the bn-BD default.
+    expect(resolveLocale(undefined)).toBe('bn');
   });
 });

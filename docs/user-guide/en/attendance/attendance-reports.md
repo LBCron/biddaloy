@@ -18,8 +18,10 @@ labels:
 helpIds:
   [
     attendance.attendanceReports,
-    attendance.attendanceReports.action.sendReminder,
     attendance.attendanceReports.field.threshold,
+    attendance.attendanceReports.section.summary#task-main,
+    attendance.attendanceReports.section.flags#task-low,
+    attendance.attendanceReports.section.subjects#task-subjects,
   ]
 devices: [desktop]
 entry: [sidebar, palette]
@@ -85,11 +87,11 @@ A report never writes anything itself. Teachers take attendance every day, and t
 
 ## How to know the figures are right <a href="#confirm" id="confirm"></a>
 
-| What you see                          | What it means                                                                                                   |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **—** where the percentage should be  | Not one day was marked for that student this month. This is not 0%.                                             |
-| **Low** next to the percentage        | The percentage is below the number in the **Minimum attendance (%)** box. If the box is empty, the tag does not appear. |
-| **No attendance records for this filter.** | The section has no attendance this month. Check that you picked the right month.                           |
+| What you see                               | What it means                                                                                                           |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| **—** where the percentage should be       | Not one day was marked for that student this month. This is not 0%.                                                     |
+| **Low** next to the percentage             | The percentage is below the number in the **Minimum attendance (%)** box. If the box is empty, the tag does not appear. |
+| **No attendance records for this filter.** | The section has no attendance this month. Check that you picked the right month.                                        |
 
 To cross-check the numbers, open the same section and month in the [Attendance register](attendance-register.md). Both pages read the same records.
 
@@ -127,25 +129,25 @@ When the school turns on per-period attendance under **Settings › Attendance p
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                                          | What to do                                                                                              | Who can help                          |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| **Pick a section**                                    | Choose both **Class** and **Section**. The month summary shows one section at a time.                   | —                                     |
-| **Could not load the attendance report.** (teacher)   | You can only see sections assigned to you. Choosing another section gives this message. Pick your own.  | Admin (**Teacher assignments**)       |
-| **No attendance records for this filter.**            | Attendance was not taken that month. Ask the teacher to [take it](attendance.md), or pick another month. | Teacher                               |
-| The percentage looks wrong                            | A day's mark is wrong. Correct it in the [Attendance register](attendance-register.md#task-edit).       | Teacher or admin                      |
+| What you see                                        | What to do                                                                                               | Who can help                    |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| **Pick a section**                                  | Choose both **Class** and **Section**. The month summary shows one section at a time.                    | —                               |
+| **Could not load the attendance report.** (teacher) | You can only see sections assigned to you. Choosing another section gives this message. Pick your own.   | Admin (**Teacher assignments**) |
+| **No attendance records for this filter.**          | Attendance was not taken that month. Ask the teacher to [take it](attendance.md), or pick another month. | Teacher                         |
+| The percentage looks wrong                          | A day's mark is wrong. Correct it in the [Attendance register](attendance-register.md#task-edit).        | Teacher or admin                |
 
 ---
 
 ## Who can do what <a href="#roles" id="roles"></a>
 
-| Role                 | Month summary and by subject | Low attendance | Send reminder |
-| -------------------- | ---------------------------- | -------------- | ------------- |
-| Admin                | All sections                 | Yes            | Yes           |
-| Accountant           | All sections                 | Yes            | Yes           |
-| Office staff         | All sections                 | Yes            | Yes           |
-| Academic coordinator | All sections                 | Yes            | No            |
-| Exam controller      | All sections                 | Yes            | No            |
-| Teacher              | Only sections assigned to them | No           | No            |
+| Role                 | Month summary and by subject   | Low attendance | Send reminder |
+| -------------------- | ------------------------------ | -------------- | ------------- |
+| Admin                | All sections                   | Yes            | Yes           |
+| Accountant           | All sections                   | Yes            | Yes           |
+| Office staff         | All sections                   | Yes            | Yes           |
+| Academic coordinator | All sections                   | Yes            | No            |
+| Exam controller      | All sections                   | Yes            | No            |
+| Teacher              | Only sections assigned to them | No             | No            |
 
 This page is view-only. Nobody can change attendance here, and there is no download or print button. If you need paper, print the [Attendance register](attendance-register.md#task-print).
 

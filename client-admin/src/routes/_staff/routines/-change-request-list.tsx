@@ -17,6 +17,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  HelpHint,
   Label,
   Textarea,
   toast,
@@ -155,11 +156,14 @@ export function ChangeRequestList({
       <Dialog open={resolving !== null} onOpenChange={(next) => !next && close()}>
         <DialogContent size="sm">
           <DialogHeader>
-            <DialogTitle>
-              {resolving?.state === 'REJECTED'
-                ? t('changeRequestList.rejectTitle')
-                : t('changeRequestList.acceptTitle')}
-            </DialogTitle>
+            <div className="flex items-center gap-1">
+              <DialogTitle>
+                {resolving?.state === 'REJECTED'
+                  ? t('changeRequestList.rejectTitle')
+                  : t('changeRequestList.acceptTitle')}
+              </DialogTitle>
+              <HelpHint helpId="academics.routineReview.action.resolveRequest" />
+            </div>
             <DialogDescription>
               {resolving && resolvingSlot
                 ? t('changeRequestList.resolveDescription', {

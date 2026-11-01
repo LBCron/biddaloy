@@ -64,20 +64,14 @@ function FieldLabel({
   ...props
 }: React.ComponentProps<typeof Label> & { required?: boolean; helpId?: string }) {
   // Asterisk via CSS content: visual only, so the label text stays exactly the field name.
-  const label = (
+  return (
     <Label
       {...props}
+      helpId={helpId}
       className={required ? "after:ms-0.5 after:text-destructive after:content-['*']" : undefined}
     >
       {children}
     </Label>
-  );
-  if (!helpId) return label;
-  return (
-    <span className="inline-flex items-center gap-1">
-      {label}
-      <HelpHint helpId={helpId} />
-    </span>
   );
 }
 
@@ -214,7 +208,7 @@ export function ExamFormDialog({
           </DialogHeader>
 
           <div className="flex flex-col gap-1.5">
-            <FieldLabel htmlFor="exam-form-name" required>
+            <FieldLabel htmlFor="exam-form-name" required helpId="examsResults.exams.field.name">
               {t('examForm.nameLabel')}
             </FieldLabel>
             <Input
@@ -227,7 +221,9 @@ export function ExamFormDialog({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <FieldLabel htmlFor="exam-form-kind">{t('examForm.kindLabel')}</FieldLabel>
+            <FieldLabel htmlFor="exam-form-kind" helpId="examsResults.exams.field.kind">
+              {t('examForm.kindLabel')}
+            </FieldLabel>
             <Select value={kind} onValueChange={(value) => setKind(value as ExamKind)}>
               <SelectTrigger id="exam-form-kind" className="w-full">
                 <SelectValue />

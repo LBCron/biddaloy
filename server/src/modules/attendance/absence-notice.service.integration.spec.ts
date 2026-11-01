@@ -419,8 +419,8 @@ describe('AbsenceNoticeService (integration)', () => {
       const logs = await allLogs();
       expect(logs).toHaveLength(2);
       expect(logs[1].guardian_id).toBe(guardianId);
-      // [#2403] The seeded school stores no locale, so it gets English.
-      expect(logs[1].message_body).toContain('Correction:');
+      // [#3136] The seeded school stores no locale, so it gets the bn-BD default (Bangla).
+      expect(logs[1].message_body).toContain('সংশোধন:');
       expect(logs[1].message_body).toContain('Student One');
 
       // Same correction replayed (e.g. a retried request): the reference key stops a second send.
@@ -441,6 +441,7 @@ describe('AbsenceNoticeService (integration)', () => {
     });
 
     it("PRESENT -> ABSENT after the notice sends that child's absence notice once, to his guardian only", async () => {
+      await setEnglish(); // the seeded school has no locale (Bangla default); pin English to read the text
       await correct(studentId2, AttendanceStatus.ABSENT);
 
       const logs = await allLogs();

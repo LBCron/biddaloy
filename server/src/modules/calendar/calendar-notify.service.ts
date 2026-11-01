@@ -25,10 +25,8 @@ import { SmsCreditService } from '../communications/credits/sms-credit.service';
 import { recordBatchOutcome } from '../communications/reminder-batch-counters';
 import { resolveReminderAudience } from '../communications/reminder-recipients.util';
 import { School } from '../schools/entities/school.entity';
-import {
-  formatFeeNotificationDueDate,
-  resolveFeeNotificationLocale,
-} from '../communications/fee-notification-template.util';
+import { formatFeeNotificationDueDate } from '../communications/fee-notification-template.util';
+import { resolveTemplateLocale } from '../account-access/account-access-templates';
 import { PushService } from '../push/push.service';
 
 export interface CalendarNotifyOpts {
@@ -305,8 +303,8 @@ export class CalendarNotifyService {
       where: { id: tenantId },
       select: { id: true, settings: true },
     });
-    // [#2403] The stored locale only: no locale means English, not the bn-BD region default.
-    const locale = resolveFeeNotificationLocale(school?.settings?.region?.locale);
+    // No stored locale resolves to the bn-BD default (#3136).
+    const locale = resolveTemplateLocale(school?.settings?.region?.locale);
     const message =
       locale === 'bn'
         ? `${event.name} — ${formatFeeNotificationDueDate('bn', event.start_date)}। বিস্তারিত স্কুলের ক্যালেন্ডারে দেখুন।`

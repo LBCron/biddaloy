@@ -152,9 +152,13 @@ describe('resolveFeeNotificationLocale', () => {
     expect(resolveFeeNotificationLocale('bn-BD')).toBe('bn');
   });
 
-  it('falls back to en for anything else, including undefined/null', () => {
+  it('is en for a non-bn locale', () => {
     expect(resolveFeeNotificationLocale('en-US')).toBe('en');
-    expect(resolveFeeNotificationLocale(undefined)).toBe('en');
-    expect(resolveFeeNotificationLocale(null)).toBe('en');
+  });
+
+  it('falls back to the bn-BD default for undefined/null/empty (#3136)', () => {
+    expect(resolveFeeNotificationLocale(undefined)).toBe('bn');
+    expect(resolveFeeNotificationLocale(null)).toBe('bn');
+    expect(resolveFeeNotificationLocale('')).toBe('bn');
   });
 });

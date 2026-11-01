@@ -256,4 +256,59 @@ describe('Homework Submission E2E', () => {
       // on purpose — same contract every other family route uses.
       .expect(401);
   });
+
+  it('#3171: an upload after the teacher bulk-graded the student keeps the grade and stores the file', async () => {
+    // The bulk grade creates the (assignment, student) row first; upload must not collide on it.
+    await supertest(app.getHttpServer())
+      .patch(`${API}/homework-assignments/${assignmentId}/submissions`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('X-Tenant-ID', TENANT_ID)
+      .set('X-Role', UserRole.ADMIN)
+      .send({ items: [{ student_id: studentId, status: 'DONE' }] })
+      .expect(200);
+
+    const res = await supertest(app.getHttpServer())
+      .post(`${API}/homework-assignments/${assignmentId}/submissions`)
+      .set('Authorization', `Bearer ${parentToken}`)
+      .set('X-Tenant-ID', TENANT_ID)
+      .set('X-Role', UserRole.PARENT)
+      .field('student_id', studentId)
+      .attach('files', Buffer.from('%PDF-1.4 test'), {
+        filename: 'answer.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+    // D9: the teacher's DONE wins over the upload.
+    expect(res.body.status).toBe('DONE');
+    expect(res.body.attachments).toHaveLength(1);
+
+    const rows = await dataSource.query(
+      `SELECT count(*)::int AS n FROM homework_submissions WHERE assignment_id = $1 AND student_id = $2`,
+      [assignmentId, studentId],
+    );
+    expect(rows[0].n).toBe(1);
+  });
+
+  describe('PATCH /homework-submissions/:id', () => {
+    const patchSubmission = (id: string, body: object) =>
+      supertest(app.getHttpServer())
+        .patch(`${API}/homework-submissions/${id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set('X-Tenant-ID', TENANT_ID)
+        .set('X-Role', UserRole.ADMIN)
+        .send(body);
+
+    it('rejects marks above the 9999 bound and below 0 with 400', async () => {
+      // Validation runs before any lookup, so a random id is enough.
+      for (const bad of [10000, -1, 1.5]) {
+        expect((await patchSubmission(randomUUID(), { marks: bad })).status).toBe(400);
+      }
+    });
+
+    it('Rule 23: an unknown submission answers one fixed 404 text', async () => {
+      const res = await patchSubmission(randomUUID(), { status: 'DONE' });
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Homework submission not found');
+    });
+  });
 });

@@ -17,17 +17,14 @@ import {
   INSUFFICIENT_SMS_CREDIT,
 } from '../communications/credits/insufficient-sms-credit.constants';
 import { School } from '../schools/entities/school.entity';
-import {
-  FeeNotificationLocale,
-  resolveFeeNotificationLocale,
-} from '../communications/fee-notification-template.util';
+import { resolveTemplateLocale, TemplateLocale } from '../account-access/account-access-templates';
 import { AdmissionApplicant } from './entities/admission-applicant.entity';
 
 type AdmissionTemplate = (applicantName: string, intakeTitle: string) => string;
 
 // [#2265] Typed values (name, intake title) are inserted as typed (D15).
 const TEMPLATE_BY_STATUS: Record<
-  FeeNotificationLocale,
+  TemplateLocale,
   Partial<Record<AdmissionApplicantStatus, AdmissionTemplate>>
 > = {
   en: {
@@ -88,8 +85,8 @@ export class AdmissionNotificationService {
       where: { id: applicant.tenant_id },
       select: { id: true, settings: true },
     });
-    // [#2403] The stored locale only: no locale means English, not the bn-BD region default.
-    const locale = resolveFeeNotificationLocale(school?.settings?.region?.locale);
+    // No stored locale resolves to the bn-BD default (#3136).
+    const locale = resolveTemplateLocale(school?.settings?.region?.locale);
     const template = TEMPLATE_BY_STATUS[locale][applicant.status]!;
 
     const log = await this.logRepo.save(

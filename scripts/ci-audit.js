@@ -85,6 +85,28 @@ const ALLOWLIST = {
       'Added 2026-10-27.',
     recheckBy: '2027-01-24',
   },
+  1244012: {
+    module: 'minimatch',
+    reason:
+      'DoS via globparts amplification. Patched only in minimatch >=11.0.1, a new ' +
+      'major the consumers do not support: typeorm>glob>minimatch 9, ' +
+      'exceljs>archiver>archiver-utils>glob 7>minimatch 3, archiver>readdir-glob>' +
+      'minimatch 5 (production); eslint, @nestjs/cli, workbox (dev/build). Patterns ' +
+      'come from our own config and tooling (entity/migration globs, build globs), ' +
+      'never from user input. Forcing majors risks runtime breakage; tracked in ' +
+      '#3341. Added 2026-10-31.',
+    recheckBy: '2026-11-30',
+  },
+  1244013: {
+    module: 'glob',
+    reason:
+      'AbortSignal cancellation bypass after timeout (vulnerable >=9 <=14.0.1, patched ' +
+      '>=14.0.2). Reached via typeorm>glob 10.5.0 (production) and dev/build glob ' +
+      '11/13. Nothing here passes an AbortSignal or an untrusted pattern. typeorm ' +
+      'pins glob ^10.5.0, so the fix needs a major bump upstream; tracked in ' +
+      '#3341. Added 2026-10-31.',
+    recheckBy: '2026-11-30',
+  },
 };
 
 const SEVERITY_ORDER = ['info', 'low', 'moderate', 'high', 'critical'];

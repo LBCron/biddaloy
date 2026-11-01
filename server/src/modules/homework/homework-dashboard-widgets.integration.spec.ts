@@ -111,6 +111,12 @@ describe('homework dashboard widgets (integration)', () => {
     ]) {
       await dataSource.query(`DELETE FROM ${t} WHERE tenant_id IN ($1, $2)`, [TENANT, TENANT_B]);
     }
+    // Completion rates count the section roster, so students left by an earlier test would
+    // add to every denominator too.
+    await dataSource.query(
+      `DELETE FROM students WHERE tenant_id IN ($1, $2) AND registration_number LIKE 'WID-%'`,
+      [TENANT, TENANT_B],
+    );
     const yearRepo = dataSource.getRepository(AcademicYear);
     await yearRepo.update({ tenant_id: TENANT }, { is_current: false });
     const year =
@@ -376,20 +382,22 @@ describe('homework dashboard widgets (integration)', () => {
       await submissions(in2.id, sec7A, S.SUBMITTED, 1);
       await submissions(in2.id, sec7A, S.PARTIAL, 1);
       await submissions(in2.id, sec7A, S.NOT_SUBMITTED, 1);
+      // One section per assignment: the card counts the section roster, so the students of one
+      // assignment must not also sit on the others.
       const in5 = await mkAssignment(
         class7,
         math,
-        { section_id: sec7A },
+        { section_id: sec7B },
         { due_date: addDays(today(), -5) },
       );
-      await submissions(in5.id, sec7A, S.DONE, 1);
+      await submissions(in5.id, sec7B, S.DONE, 1);
       const out9 = await mkAssignment(
         class7,
         math,
-        { section_id: sec7A },
+        { section_id: sec8A },
         { due_date: addDays(today(), -9) },
       );
-      await submissions(out9.id, sec7A, S.DONE, 5);
+      await submissions(out9.id, sec8A, S.DONE, 5);
 
       const res = await analytics.getSubmissionRateByClass(TENANT);
       expect(res.window).toEqual({ from: addDays(today(), -6), to: today() });
@@ -415,10 +423,10 @@ describe('homework dashboard widgets (integration)', () => {
       const dead = await mkAssignment(
         class7,
         math,
-        { section_id: sec7A },
+        { section_id: sec7B },
         { due_date: today(), status: A.DEACTIVATED },
       );
-      await submissions(dead.id, sec7A, S.DONE, 9);
+      await submissions(dead.id, sec7B, S.DONE, 9);
 
       const res = await analytics.getSubmissionRateByClass(TENANT);
       expect(res.classes.map((c) => [c.class_name, c.assigned])).toEqual([
@@ -451,6 +459,87 @@ describe('homework dashboard widgets (integration)', () => {
       const b = await analytics.getSubmissionRateByClass(TENANT_B);
       expect(b.classes).toEqual([]);
       expect(b.overall).toEqual({ assigned: 0, submitted: 0, percentage: 0 });
+    });
+  });
+
+  // #3171: the denominator is the roster (students on the target), not the rows that exist.
+  describe('completion denominators come from the roster (#3171)', () => {
+    const today = () => localToday();
+
+    it('3 students on the section, 1 graded DONE: 33%, not 100%, in every rollup and the card', async () => {
+      const a = await mkAssignment(class7, math, { section_id: sec7A }, { due_date: today() });
+      const [done] = [await mkStudent(sec7A), await mkStudent(sec7A), await mkStudent(sec7A)];
+      await dataSource
+        .getRepository(HomeworkSubmission)
+        .save({ assignment_id: a.id, student_id: done.id, status: S.DONE, tenant_id: TENANT });
+
+      const section = await analytics.getSectionRollup(sec7A, TENANT);
+      expect([section.totalAssignments, section.completed, section.completionPercent]).toEqual([
+        3, 1, 33,
+      ]);
+      const cls = await analytics.getClassRollup(class7, TENANT);
+      expect([cls.totalAssignments, cls.completed, cls.completionPercent]).toEqual([3, 1, 33]);
+      const student = await analytics.getStudentRollup(done.id, TENANT);
+      expect([student.totalAssignments, student.completionPercent]).toEqual([1, 100]);
+      const card = (await analytics.getSubmissionRateByClass(TENANT)).classes[0];
+      expect([card.assigned, card.submitted, card.percentage]).toEqual([3, 1, 33]);
+    });
+
+    it('grading another student does not move the rate', async () => {
+      const a = await mkAssignment(class7, math, { section_id: sec7A }, { due_date: today() });
+      const s1 = await mkStudent(sec7A);
+      const s2 = await mkStudent(sec7A);
+      const save = (student_id: string, status: HomeworkSubmissionStatus) =>
+        dataSource
+          .getRepository(HomeworkSubmission)
+          .save({ assignment_id: a.id, student_id, status, tenant_id: TENANT });
+      await save(s1.id, S.DONE);
+      const before = (await analytics.getSectionRollup(sec7A, TENANT)).completionPercent;
+      // The teacher marks the second student "not submitted": a row appears, the rate stays.
+      await save(s2.id, S.NOT_SUBMITTED);
+      expect((await analytics.getSectionRollup(sec7A, TENANT)).completionPercent).toBe(before);
+    });
+
+    it('a student with no row is a defaulter once the assignment is past due', async () => {
+      const s = await mkStudent(sec7A);
+      await mkAssignment(class7, math, { section_id: sec7A }, { due_date: '2020-01-01' });
+      const r = await analytics.getStudentRollup(s.id, TENANT);
+      expect([r.totalAssignments, r.completed, r.defaulters]).toEqual([1, 0, 1]);
+    });
+
+    it('a DEACTIVATED assignment adds nobody; a single-student target adds that student', async () => {
+      const s = await mkStudent(sec7A);
+      await mkAssignment(
+        class7,
+        math,
+        { section_id: sec7A },
+        { due_date: '2020-01-01', status: A.DEACTIVATED },
+      );
+      await mkAssignment(class7, math, { student_id: s.id }, { due_date: '2020-01-01' });
+      const r = await analytics.getStudentRollup(s.id, TENANT);
+      expect(r.totalAssignments).toBe(1);
+    });
+
+    it('homework not yet due adds nobody missing; an early hand-in still counts', async () => {
+      // Without this, assigning new homework would drop every completion rate at once.
+      const [early] = [await mkStudent(sec7A), await mkStudent(sec7A)];
+      const a = await mkAssignment(class7, math, { section_id: sec7A }, { due_date: '2999-01-01' });
+      await dataSource
+        .getRepository(HomeworkSubmission)
+        .save({ assignment_id: a.id, student_id: early.id, status: S.DONE, tenant_id: TENANT });
+      const section = await analytics.getSectionRollup(sec7A, TENANT);
+      expect([section.totalAssignments, section.completed, section.defaulters]).toEqual([1, 1, 0]);
+      const cls = await analytics.getClassRollup(class7, TENANT);
+      expect([cls.totalAssignments, cls.completionPercent]).toEqual([1, 100]);
+    });
+
+    it('never counts a withdrawn student or one in another section', async () => {
+      await mkAssignment(class7, math, { section_id: sec7A }, { due_date: today() });
+      await mkStudent(sec7A);
+      await mkStudent(sec7B);
+      const gone = await mkStudent(sec7A);
+      await dataSource.getRepository(Student).update({ id: gone.id }, { deleted_at: new Date() });
+      expect((await analytics.getSectionRollup(sec7A, TENANT)).totalAssignments).toBe(1);
     });
   });
 

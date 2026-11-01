@@ -2,8 +2,9 @@ import { cleanupTestState, renderWithRouter, server } from '@biddaloy/ui/test';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../help/test-utils';
 import { routeTree } from '../../../routeTree.gen';
 
 /**
@@ -56,6 +57,7 @@ describe('/attendance/reports', () => {
   });
 
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await cleanupTestState();
   });
 
@@ -133,6 +135,59 @@ describe('/attendance/reports', () => {
     // Summary is one section, shown whole: a total, not a pager.
     expect(screen.getByText('Total 1')).toBeTruthy();
     expect(screen.queryByText(/Page \d+ of/)).toBeNull();
+  });
+
+  it('shows the threshold filter (?) [#3293]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    server.use(
+      http.get('/api/v1/attendance/sections/:sectionId/register-matrix', () =>
+        HttpResponse.json({ dates: [], rows: [registerMatrixRow()] }),
+      ),
+    );
+    renderWithRouter(routeTree, {
+      initialEntries: ['/attendance/reports?section_id=section-1'],
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+      locale: 'en',
+    });
+    await screen.findByText('Karim Rahman');
+    await expectHelp('attendance.attendanceReports.field.threshold');
+  });
+
+  it('shows one (?) for the open view, outside the tablist [#3317]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    server.use(
+      http.get('/api/v1/attendance/sections/:sectionId/register-matrix', () =>
+        HttpResponse.json({ dates: [], rows: [registerMatrixRow()] }),
+      ),
+    );
+    renderWithRouter(routeTree, {
+      initialEntries: ['/attendance/reports?section_id=section-1'],
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+      locale: 'en',
+    });
+    await screen.findByText('Karim Rahman');
+    await expectHelp('attendance.attendanceReports.section.summary');
+    expect(
+      document.querySelector('[data-help-id="attendance.attendanceReports.section.flags"]'),
+    ).toBeNull();
+    const tablist = screen.getByRole('tablist');
+    expect(tablist.querySelector('[data-help-id]')).toBeNull();
+    // A tablist may own only tabs: axe aria-required-children (critical) fails a button in it.
+    await expect(tablist.parentElement as HTMLElement).toHaveNoViolations();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Help: Month summary' }));
+    expect(screen.getByRole('tab', { name: 'Month summary' }).getAttribute('aria-selected')).toBe(
+      'true',
+    );
+
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('tab', { name: 'Low attendance' }));
+    await expectHelp('attendance.attendanceReports.section.flags');
+    expect(
+      document.querySelector('[data-help-id="attendance.attendanceReports.section.summary"]'),
+    ).toBeNull();
   });
 
   it('drops an unknown query param instead of showing a raw filter chip', async () => {
@@ -444,6 +499,7 @@ describe('/attendance/reports', () => {
     });
 
     it('shows the tab with the switch on, keeps view=subjects, and hides the minimum filter', async () => {
+      vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
       settingsWithPeriod(true);
       subjectSummary();
       entry('/attendance/reports?view=subjects&section_id=section-1');
@@ -451,6 +507,7 @@ describe('/attendance/reports', () => {
       await waitFor(() => expect(tab.getAttribute('aria-selected')).toBe('true'));
       await screen.findByText('Karim Rahman');
       expect(screen.queryByText('Minimum attendance (%)')).toBeNull();
+      await expectHelp('attendance.attendanceReports.section.subjects');
     });
   });
 });

@@ -23,6 +23,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../help/test-utils';
 import { routeTree } from '../../../routeTree.gen';
 
 /** Counts render in the tenant region's numerals (Bangla by default). */
@@ -148,6 +149,20 @@ describe('/communications/send', () => {
     expect(
       document.querySelector('[data-help-id="communications.sendMessage.action.send"]'),
     ).not.toBeNull();
+  });
+
+  it('shows the guardian, medium and message (?) [#3293]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    server.use(studentSearchHandler());
+    const user = userEvent.setup();
+    render();
+    await screen.findByRole('heading', { name: 'Send Message' });
+    await pickGuardian(user);
+    await expectHelp('communications.sendMessage.field.guardian');
+    await expectHelp('communications.sendMessage.field.medium');
+    await expectHelp('communications.sendMessage.field.message');
+    // [#3314] The (?) stays out of the guardian group's name.
+    expect(screen.getByRole('group', { name: 'Which guardian to send to' })).toBeTruthy();
   });
 
   it('keeps Send disabled until a guardian is picked', async () => {

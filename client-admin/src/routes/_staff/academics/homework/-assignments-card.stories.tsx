@@ -4,7 +4,7 @@ import type { HomeworkAssignmentListItem } from '@biddaloy/ui/hooks';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { CalendarClock } from 'lucide-react';
 
-import { AssignmentsCard } from './-assignments-card';
+import { AssignmentsCard, HOMEWORK_ASSIGNMENTS_LIST_CAP } from './-assignments-card';
 
 /** #1013's "Who has this homework" card: a section row, a student row, a superseded row, a deactivated row. */
 const row = (over: Partial<HomeworkAssignmentListItem>): HomeworkAssignmentListItem => ({
@@ -89,6 +89,18 @@ export const Mixed: Story = {
         status: HomeworkAssignmentStatus.DEACTIVATED,
       }),
     ],
+  },
+};
+
+/** #3173: the server lists at most 100 rows; a full page says older rows are not shown. */
+export const Capped: Story = {
+  args: {
+    assignments: Array.from({ length: HOMEWORK_ASSIGNMENTS_LIST_CAP }, (_, i) =>
+      row({
+        id: `00000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`,
+        section_name: `S${i}`,
+      }),
+    ),
   },
 };
 

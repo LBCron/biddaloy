@@ -49,7 +49,6 @@ helpIds:
     academics.syllabus.field.periods,
     academics.syllabus.action.addTemplate,
     academics.syllabus.action.addTemplateCsv,
-    academics.syllabus.action.copyToMine,
   ]
 devices: [desktop, phone]
 entry: [sidebar, palette]

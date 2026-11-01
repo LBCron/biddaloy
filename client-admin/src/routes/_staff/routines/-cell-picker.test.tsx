@@ -6,6 +6,8 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp, withHelp } from '../../../help/test-utils';
+
 import { CellPicker } from './-cell-picker';
 
 afterEach(async () => {
@@ -242,5 +244,18 @@ describe('CellPicker', () => {
         expect.objectContaining({ recurrence: 'BIWEEKLY', recurrenceOffset: 1 }),
       );
     });
+  });
+});
+
+describe('CellPicker (?) hints [#3293]', () => {
+  it('shows the teachers and recurrence (?)', async () => {
+    mockLookups();
+    renderWithProviders(withHelp(<CellPicker open onOpenChange={vi.fn()} onSave={vi.fn()} />), {
+      tenantId: 'tenant-1',
+      locale: 'en',
+    });
+    await waitFor(() => expect(screen.getByText('Math')).toBeTruthy());
+    await expectHelp('academics.routineBuilder.field.teachers');
+    await expectHelp('academics.routineBuilder.field.recurrence');
   });
 });

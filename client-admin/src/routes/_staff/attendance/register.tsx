@@ -26,6 +26,7 @@ import {
   DialogTitle,
   EmptyState,
   ErrorState,
+  HelpHint,
   Label,
   MonthPicker,
   Select,
@@ -487,10 +488,13 @@ function RegisterPageContent() {
                 <p className="text-caption text-text-secondary">{t('register.keysHint')}</p>
               </div>
               <div className="grid content-start gap-1.5">
-                <Label htmlFor="register-reason">
-                  {t('register.reasonLabel')}
-                  {reasonNeeded && <span aria-hidden="true"> *</span>}
-                </Label>
+                <span className="inline-flex items-center gap-1">
+                  <Label htmlFor="register-reason">
+                    {t('register.reasonLabel')}
+                    {reasonNeeded && <span aria-hidden="true"> *</span>}
+                  </Label>
+                  <HelpHint helpId="attendance.attendanceRegister.field.reason" />
+                </span>
                 <Textarea
                   id="register-reason"
                   rows={2}

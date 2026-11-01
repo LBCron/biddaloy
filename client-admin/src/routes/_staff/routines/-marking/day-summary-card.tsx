@@ -70,14 +70,18 @@ export function DaySummaryCard({
               <span key={i} className={`flex-1 rounded-full ${SEGMENT_TONE[s]}`} />
             ))}
           </div>
-          <p className="text-caption text-text-secondary">
-            {t('marking.counts', {
-              left,
-              reported: count('reported'),
-              cancelled: count('auto'),
-              noPlan: count('noPlan'),
-            })}
-          </p>
+          <div className="flex items-center gap-1">
+            <p className="text-caption text-text-secondary">
+              {t('marking.counts', {
+                left,
+                reported: count('reported'),
+                cancelled: count('auto'),
+                noPlan: count('noPlan'),
+              })}
+            </p>
+            {/* One (?) for every period card's status group, not one per card (D18). */}
+            <HelpHint helpId="academics.myRoutine.field.lessonStatus" />
+          </div>
         </>
       )}
       {isToday && left > 0 && (

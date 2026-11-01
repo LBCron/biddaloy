@@ -46,9 +46,12 @@ describe('AdmissionNotificationService', () => {
     logRepo = {
       create: vi.fn((dto) => dto),
       save: vi.fn(async (log) => ({ ...log, id: 'log-1' })),
-      // School lookup for region.locale; [#2403] no stored locale means English.
+      // School lookup for region.locale; English by default so the status tests read in English.
       manager: {
-        findOne: vi.fn(async () => ({ id: 'tenant-a', settings: {} })),
+        findOne: vi.fn(async () => ({
+          id: 'tenant-a',
+          settings: { region: { locale: 'en-US' } },
+        })),
       },
     };
     queue = { add: vi.fn(async () => undefined) };
@@ -193,15 +196,15 @@ describe('AdmissionNotificationService', () => {
     });
   });
 
-  // [#2403] A school with no settings at all gets English, not the bn-BD region default.
-  it('school with null settings gets the English body', async () => {
+  // [#3136] No stored locale resolves to the bn-BD default, like every other sender.
+  it('school with null settings gets the Bangla body', async () => {
     logRepo.manager.findOne.mockResolvedValue({ id: 'tenant-a', settings: null });
     await service.notifyStatusChange(
       { ...applicant, status: AdmissionApplicantStatus.REJECTED },
       'Class 1 Admission',
     );
     expect(logRepo.save.mock.calls[0][0].message_body).toBe(
-      "Thank you for applying. Rahim Uddin's application for Class 1 Admission was not successful this time.",
+      'আবেদন করার জন্য ধন্যবাদ। এবার Class 1 Admission-এ Rahim Uddin-এর আবেদন সফল হয়নি।',
     );
   });
 

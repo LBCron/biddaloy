@@ -51,6 +51,13 @@ describe('HomeworkSubmissionService', () => {
     find: ReturnType<typeof vi.fn>;
   };
   let studentRepo: { findOne: ReturnType<typeof vi.fn> };
+  // upload() runs insert-if-absent + FOR UPDATE read + save inside one transaction.
+  let tx: {
+    insertValues: ReturnType<typeof vi.fn>;
+    orIgnore: ReturnType<typeof vi.fn>;
+    findOneOrFail: ReturnType<typeof vi.fn>;
+    save: ReturnType<typeof vi.fn>;
+  };
   let access: {
     assertCanManageSection: ReturnType<typeof vi.fn>;
     assertCanManageStudent: ReturnType<typeof vi.fn>;
@@ -68,6 +75,41 @@ describe('HomeworkSubmissionService', () => {
       create: vi.fn((v) => ({ status: HomeworkSubmissionStatus.NOT_SUBMITTED, marks: null, ...v })),
       save: vi.fn(async (v) => ({ id: 'sub-1', ...v })),
       find: vi.fn(async () => []),
+    };
+    tx = {
+      insertValues: vi.fn(),
+      orIgnore: vi.fn(),
+      findOneOrFail: vi.fn(async () => ({
+        id: 'sub-1',
+        assignment_id: 'assign-1',
+        student_id: 'student-1',
+        status: HomeworkSubmissionStatus.NOT_SUBMITTED,
+        marks: null,
+        attachments: [],
+        tenant_id: TENANT_ID,
+      })),
+      save: vi.fn(async (v) => v),
+    };
+    const insertChain = {
+      insert: () => insertChain,
+      into: () => insertChain,
+      values: (v: unknown) => {
+        (tx.insertValues as (v: unknown) => void)(v);
+        return insertChain;
+      },
+      orIgnore: () => {
+        (tx.orIgnore as () => void)();
+        return insertChain;
+      },
+      execute: async () => undefined,
+    };
+    (submissionRepo as unknown as { manager: unknown }).manager = {
+      transaction: async (fn: (m: unknown) => unknown) =>
+        fn({
+          createQueryBuilder: () => insertChain,
+          findOneOrFail: tx.findOneOrFail,
+          save: tx.save,
+        }),
     };
     studentRepo = {
       findOne: vi.fn(async () => ({
@@ -146,8 +188,42 @@ describe('HomeworkSubmissionService', () => {
       expect(storage.put).not.toHaveBeenCalled();
     });
 
+    // The bulk teacher grade can create this row at any time: upload must insert-if-absent
+    // (ON CONFLICT DO NOTHING) and then lock the row, never find-then-create.
+    it('inserts the row with ON CONFLICT DO NOTHING before locking and saving it', async () => {
+      await service.upload('assign-1', 'student-1', [FILE], studentCtx);
+      expect(tx.insertValues).toHaveBeenCalledWith({
+        tenant_id: TENANT_ID,
+        assignment_id: 'assign-1',
+        student_id: 'student-1',
+      });
+      expect(tx.orIgnore).toHaveBeenCalledTimes(1);
+      expect(tx.findOneOrFail).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ lock: { mode: 'pessimistic_write' } }),
+      );
+      expect(submissionRepo.create).not.toHaveBeenCalled();
+    });
+
+    it('a row a teacher bulk-graded first keeps its status and gains the files', async () => {
+      tx.findOneOrFail.mockResolvedValue({
+        id: 'sub-1',
+        assignment_id: 'assign-1',
+        student_id: 'student-1',
+        status: HomeworkSubmissionStatus.PARTIAL,
+        marks: 4,
+        attachments: [],
+        tenant_id: TENANT_ID,
+      });
+      const result = await service.upload('assign-1', 'student-1', [FILE], studentCtx);
+      expect(result.status).toBe(HomeworkSubmissionStatus.PARTIAL);
+      expect(result.marks).toBe(4);
+      expect(result.attachments).toHaveLength(1);
+      expect(storage.deleteForTenant).not.toHaveBeenCalled();
+    });
+
     it('resubmission replaces attachments while still before the due date', async () => {
-      submissionRepo.findOne.mockResolvedValue({
+      tx.findOneOrFail.mockResolvedValue({
         id: 'sub-1',
         assignment_id: 'assign-1',
         student_id: 'student-1',
@@ -168,7 +244,7 @@ describe('HomeworkSubmissionService', () => {
     });
 
     it('deletes the newly-uploaded objects if the save fails', async () => {
-      submissionRepo.save.mockRejectedValueOnce(new Error('unique violation'));
+      tx.save.mockRejectedValueOnce(new Error('unique violation'));
       await expect(service.upload('assign-1', 'student-1', [FILE], studentCtx)).rejects.toThrow(
         'unique violation',
       );
@@ -176,7 +252,7 @@ describe('HomeworkSubmissionService', () => {
     });
 
     it('does not overwrite a teacher override status back to SUBMITTED (D9)', async () => {
-      submissionRepo.findOne.mockResolvedValue({
+      tx.findOneOrFail.mockResolvedValue({
         id: 'sub-1',
         assignment_id: 'assign-1',
         student_id: 'student-1',
@@ -266,11 +342,71 @@ describe('HomeworkSubmissionService', () => {
       );
     });
 
+    // #3172: the old PATCH shares the rule with the bulk grade.
+    it('rejects status PARTIAL when grading_mode is not PARTIAL, and saves nothing', async () => {
+      homeworkRepo.findOne.mockResolvedValue({
+        ...HOMEWORK,
+        grading_mode: HomeworkGradingMode.TICK,
+      });
+      await expect(
+        service.update('sub-1', { status: HomeworkSubmissionStatus.PARTIAL }, teacherCtx),
+      ).rejects.toThrow('Partial can only be set when the homework grading mode is PARTIAL');
+      expect(submissionRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('accepts status PARTIAL when grading_mode is PARTIAL', async () => {
+      homeworkRepo.findOne.mockResolvedValue({
+        ...HOMEWORK,
+        grading_mode: HomeworkGradingMode.PARTIAL,
+      });
+      const result = await service.update(
+        'sub-1',
+        { status: HomeworkSubmissionStatus.PARTIAL },
+        teacherCtx,
+      );
+      expect(result.status).toBe(HomeworkSubmissionStatus.PARTIAL);
+    });
+
     it('throws NotFoundException for an unknown submission', async () => {
       submissionRepo.findOne.mockResolvedValue(null);
       await expect(
         service.update('missing', { status: HomeworkSubmissionStatus.DONE }, teacherCtx),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    // Rule 23: every miss on the old PATCH answers the same single text, so a teacher
+    // cannot tell "no such submission" from "another section's submission".
+    describe('one 404 text for every miss', () => {
+      const SAME = new NotFoundException('Homework submission not found');
+      const run = () =>
+        service.update('sub-1', { status: HomeworkSubmissionStatus.DONE }, teacherCtx);
+
+      it('unknown submission', async () => {
+        submissionRepo.findOne.mockResolvedValue(null);
+        await expect(run()).rejects.toThrow(SAME);
+      });
+
+      it('missing assignment', async () => {
+        assignmentRepo.findOne.mockResolvedValue(null);
+        await expect(run()).rejects.toThrow(SAME);
+      });
+
+      it('missing homework', async () => {
+        homeworkRepo.findOne.mockResolvedValue(null);
+        await expect(run()).rejects.toThrow(SAME);
+      });
+
+      it('teacher outside the section', async () => {
+        access.assertCanManageSection.mockRejectedValueOnce(
+          new NotFoundException('You do not have access to this section'),
+        );
+        await expect(run()).rejects.toThrow(SAME);
+      });
+
+      it('a 403 passes through', async () => {
+        access.assertCanManageSection.mockRejectedValueOnce(new ForbiddenException('no'));
+        await expect(run()).rejects.toBeInstanceOf(ForbiddenException);
+      });
     });
   });
 
@@ -342,6 +478,37 @@ describe('HomeworkSubmissionService', () => {
         [{ student_id: SID_A, marks: 3 }],
         'Marks can only be set when the homework grading mode is MARKS',
       );
+    });
+
+    // #3172: PARTIAL is a PARTIAL-mode outcome; TICK and MARKS only ever send DONE / NOT_SUBMITTED.
+    const rejectsPartialOn = async (mode: HomeworkGradingMode) => {
+      homeworkRepo.findOne.mockResolvedValue({ ...HOMEWORK, grading_mode: mode });
+      await rejectsBeforeWrite(
+        [{ student_id: SID_A, status: 'PARTIAL' }],
+        'Partial can only be set when the homework grading mode is PARTIAL',
+      );
+    };
+
+    it('rejects status PARTIAL on a TICK homework before any write', async () => {
+      await rejectsPartialOn(HomeworkGradingMode.TICK);
+    });
+
+    it('rejects status PARTIAL on a MARKS homework before any write', async () => {
+      await rejectsPartialOn(HomeworkGradingMode.MARKS);
+    });
+
+    it('accepts status PARTIAL on a PARTIAL homework', async () => {
+      homeworkRepo.findOne.mockResolvedValue({
+        ...HOMEWORK,
+        grading_mode: HomeworkGradingMode.PARTIAL,
+      });
+      transaction.mockResolvedValue(undefined);
+      await service.grade(
+        'assign-1',
+        { items: [{ student_id: SID_A, status: 'PARTIAL' }] },
+        teacherCtx,
+      );
+      expect(transaction).toHaveBeenCalledTimes(1);
     });
 
     it('rejects a student not on the roster before any write', async () => {

@@ -9,8 +9,9 @@ import {
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../help/test-utils';
 import { routeTree } from '../../../routeTree.gen';
 
 /** [26.6.1] `/promotions/new` — see the `## Plan — #1003` GitHub comment
@@ -19,6 +20,7 @@ import { routeTree } from '../../../routeTree.gen';
  * published-only exam list, and D8's BLOCK/SNAKE choice. */
 describe('/promotions/new', () => {
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await cleanupTestState();
   });
 
@@ -150,6 +152,35 @@ describe('/promotions/new', () => {
 
     const targetClassSelect = await screen.findByRole('combobox', { name: 'Next class' });
     await within(targetClassSelect).findByText('Class 7');
+  });
+
+  it('shows the target class, exams and algorithm (?) [#3293]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    stubBase();
+    renderWithRouter(routeTree, {
+      initialEntries: ['/promotions/new?classId=00000000-0000-4000-8000-000000000006'],
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+      locale: 'en',
+    });
+    await screen.findByRole('combobox', { name: 'Next class' });
+    await expectHelp('examsResults.promotion.field.targetClass');
+    await expectHelp('examsResults.promotion.field.exams');
+    await expectHelp('examsResults.promotion.field.algorithm');
+  });
+
+  it('shows the target class (?) on the read-only graduate branch [#3314]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    stubBase({ suggestion: { target_class: null, retain_class: null, sections: [] } });
+    renderWithRouter(routeTree, {
+      initialEntries: ['/promotions/new?classId=00000000-0000-4000-8000-000000000006'],
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+      locale: 'en',
+    });
+    await screen.findByText('Graduate (no target class)');
+    expect(screen.queryByRole('combobox', { name: 'Next class' })).toBeNull();
+    await expectHelp('examsResults.promotion.field.targetClass');
   });
 
   it('only lists PUBLISHED exams, preselected', async () => {

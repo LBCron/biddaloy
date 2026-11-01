@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../help/test-utils';
 import { routeTree } from '../../../routeTree.gen';
 
 // The default test RegionConfig is Bangla; pin REGION_BD_EN for this page so assertions read
@@ -50,6 +51,7 @@ describe('/fees/dues', () => {
           document.querySelector('[data-help-id="finance.dues.action.collect"]'),
         ).not.toBeNull(),
       );
+      await expectHelp('finance.dues.field.flagged'); // [#3293]
     } finally {
       vi.unstubAllEnvs();
     }

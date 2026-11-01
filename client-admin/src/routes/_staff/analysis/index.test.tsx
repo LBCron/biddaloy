@@ -13,6 +13,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../help/test-utils';
 import { routeTree } from '../../../routeTree.gen';
 
 const MERIT_ROW = {
@@ -150,6 +151,13 @@ describe('/analysis', () => {
         document.querySelector('[data-help-id="examsResults.analysis.action.print"]'),
       ).not.toBeNull(),
     );
+  });
+
+  it('shows the by-part (?) on the pass/fail tab [#3293]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    const exam = mockExam();
+    render(`/analysis?examId=${exam.id}&tab=pass-fail`);
+    await expectHelp('examsResults.analysis.field.byPart');
   });
 
   it('switching tabs updates the URL', async () => {

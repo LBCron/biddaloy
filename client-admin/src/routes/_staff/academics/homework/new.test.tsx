@@ -11,13 +11,15 @@ import {
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../../help/test-utils';
 import { routeTree } from '../../../../routeTree.gen';
 import { pickDate } from '../../../../test/pick-date';
 
 describe('/academics/homework/new', () => {
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await cleanupTestState();
   });
 
@@ -50,6 +52,19 @@ describe('/academics/homework/new', () => {
     await user.click(await screen.findByRole('option', { name: 'Mathematics' }));
     await user.type(screen.getByRole('textbox', { name: /^Title/ }), 'Algebra worksheet');
   }
+
+  it('shows the target (?) [#3293]', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    setUpPickers();
+    renderWithRouter(routeTree, {
+      initialEntries: ['/academics/homework/new'],
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+      locale: 'en',
+    });
+    await screen.findByRole('textbox', { name: /^Title/ });
+    await expectHelp('academics.homework.field.target');
+  });
 
   it('happy path: section target creates then assigns with section_id only', async () => {
     const { klass, section } = setUpPickers();
