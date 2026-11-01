@@ -102,6 +102,15 @@ describe('AudienceBuilder', () => {
     );
   });
 
+  it('add all is off when chosen + matching would pass the cap', async () => {
+    // 1 chosen + 2 matching > max 2, though the matches alone fit
+    await setup(<AudienceBuilder {...props({ max: 2 })} />);
+    expect(screen.getByRole('button', { name: /Add all matching/ })).toHaveProperty(
+      'disabled',
+      true,
+    );
+  });
+
   it('a failed add keeps the selection', async () => {
     const p = props({ onAddSelected: vi.fn().mockRejectedValue(new Error('400')) });
     await setup(<AudienceBuilder {...p} />);

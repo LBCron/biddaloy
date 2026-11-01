@@ -131,6 +131,10 @@ export class Notices1791900002100 implements MigrationInterface {
     await queryRunner.query(
       `CREATE INDEX "IDX_notice_recipients_tenant_user" ON "notice_recipients" ("tenant_id", "user_id")`,
     );
+    // per-notice counts, report, Chosen list page, publish and the FK check on a draft delete
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notice_recipients_tenant_notice" ON "notice_recipients" ("tenant_id", "notice_id")`,
+    );
     // the reader claims rows by student / guardian (a login made after publish)
     await queryRunner.query(
       `CREATE INDEX "IDX_notice_recipients_tenant_student" ON "notice_recipients" ("tenant_id", "student_id")`,

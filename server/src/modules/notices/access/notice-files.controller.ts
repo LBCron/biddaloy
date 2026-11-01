@@ -31,6 +31,7 @@ import { RequirePermissions } from '../../auth/decorators/require-permissions.de
 import { CurrentTenant } from '../../auth/decorators/current-tenant.decorator';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { ApiTenantAuth } from '../../../common/decorators/api-tenant-auth.decorator';
+import { IdempotencyInterceptor } from '../../../common/idempotency/idempotency.interceptor';
 import { buildContentDisposition } from '../../staff-hr/staff-document.controller';
 import { NoticeFilesService } from './notice-files.service';
 import { NoticeFileDto } from './dto/notice-reader.dto';
@@ -48,7 +49,10 @@ export class NoticeFilesController {
   // NOTICE_POST: every role with NOTICE_MANAGE also has it; author-or-manager is checked in the service.
   @Post(':id/files')
   @RequirePermissions(Permission.NOTICE_POST)
+  // Rule 25: a double click or a lost reply must not store the files twice. Key check runs first,
+  // so a replay never parses the upload.
   @UseInterceptors(
+    IdempotencyInterceptor,
     FilesInterceptor('files', NOTICE_LIMITS.filesMax, {
       limits: { fileSize: NOTICE_LIMITS.fileBytesMax },
     }),

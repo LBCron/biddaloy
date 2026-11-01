@@ -120,7 +120,8 @@ export function AudienceBuilder<TRow extends RowData>({
   const full = max !== undefined && chosen.total >= max;
   // the server refuses past the cap (400); say so here instead
   const overSelected = max !== undefined && chosen.total + selected.size > max;
-  const overAll = max !== undefined && matches.total > max;
+  // overlap with the Chosen list makes this too strict, never too loose (the server says 400)
+  const overAll = max !== undefined && chosen.total + matches.total > max;
 
   const chosenList = (
     <ChosenList<TRow>

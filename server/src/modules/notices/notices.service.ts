@@ -82,8 +82,9 @@ export class NoticesService {
     limit: number,
     offset: number,
   ): Promise<{ items: NoticeDto[]; total: number }> {
-    // A raw `date` column comes back as a JS Date; the DTO wants the school-local 'YYYY-MM-DD'.
-    // (Keep comments out of the call: the Rule 4 guard reads `.query(` + backtick only.)
+    // A raw date column comes back as a JS Date; the DTO wants the school-local 'YYYY-MM-DD'.
+    // Keep comments out of the call below: the Rule 4 guard only scans a query whose first
+    // argument starts right after the open bracket.
     const rows = await this.ds.query(
       `SELECT n.*, to_char(n.expires_on, 'YYYY-MM-DD') AS expires_on_text, a.full_name AS author_name,
               (SELECT count(DISTINCT ${PERSON}) FROM notice_recipients r
@@ -523,8 +524,10 @@ export class NoticesService {
           patch.alert_id = null;
           alertTouched = true;
         }
-        // a flag with no token (an earlier link failure) also counts as "needs a link"
-        linkOn = next.is_public && !n.public_token_hash;
+        // every off->on flip mints a fresh token, so a hash a failed turn-off left behind never
+        // revives; a flag with no token (an earlier link failure) also counts as "needs a link"
+        linkOn = next.is_public && (!n.is_public || !n.public_token_hash);
+        if (linkOn && n.public_token_hash) patch.public_token_hash = null;
         linkOff = !next.is_public && (n.is_public || !!n.public_token_hash);
       }
       if (Object.keys(patch).length) await tx.update(Notice, { id, tenant_id: tenantId }, patch);
@@ -672,6 +675,12 @@ export class NoticesService {
         tx,
       );
     });
-    await this.links.turnOffPublicLink({ id, tenant_id: tenantId });
+    // is_public is already false, so resolve() refuses the old hash even if this clean-up fails,
+    // and the next turn-on mints a new token (update()).
+    try {
+      await this.links.turnOffPublicLink({ id, tenant_id: tenantId });
+    } catch (e) {
+      this.logger.error(`public link off failed: ${(e as Error).message}`);
+    }
   }
 }
