@@ -111,12 +111,13 @@ describe('ReportExportService', () => {
     await bytesOf(
       await service.export({ ...base, format: ExportFormat.CSV, rows: rowsOf([['a', 'b']]) }),
     );
-    // finish() is chained after the stream; let the microtask queue drain.
-    await new Promise((r) => setImmediate(r));
-    expect(runLog.finish).toHaveBeenCalledWith(
-      'tenant-a',
-      'run-1',
-      expect.objectContaining({ rowCount: 1 }),
+    // finish() is chained after the stream, so wait for it rather than a tick.
+    await vi.waitFor(() =>
+      expect(runLog.finish).toHaveBeenCalledWith(
+        'tenant-a',
+        'run-1',
+        expect.objectContaining({ rowCount: 1 }),
+      ),
     );
   });
 });

@@ -57,10 +57,14 @@ export class ReportCompiler {
       else masked.push(field.key);
     }
     for (const { measure, alias } of validated.measures) {
-      // A measure carries the sensitivity of the field it adds up; its registry entry is checked the same way.
-      const source = area.fields.find((f) => f.entity === measure.entity && f.sql === measure.sql);
-      if (!source || this.policy.fieldAllowed(ctx, source)) visible.add(alias);
+      if (this.policy.fieldAllowed(ctx, measure)) visible.add(alias);
       else masked.push(alias);
+    }
+    // A filter on a field the runner may not see would leak it through the row set; refuse, never drop it.
+    for (const { field } of validated.filters) {
+      if (!this.policy.fieldAllowed(ctx, field)) {
+        throw new ReportCompileError('NOT_FILTERABLE', `dataset.filters.${field.key}`);
+      }
     }
     if (visible.size === 0) throw new ReportCompileError('NOTHING_TO_SHOW', 'dataset');
 

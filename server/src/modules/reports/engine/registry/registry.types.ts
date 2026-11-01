@@ -69,6 +69,8 @@ export interface MeasureDef {
   sql: string;
   type: ReportFieldType;
   entity: string;
+  /** Checked directly by the policy, never inferred from a matching field's SQL. */
+  sensitivity: FieldSensitivity;
 }
 
 export interface SubjectAreaDef {

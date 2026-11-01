@@ -33,7 +33,17 @@ const measure = (
   sql: string,
   entity: string,
   type: ReportFieldType = ReportFieldType.NUMBER,
-): MeasureDef => ({ key, labelEn: key, labelBn: key, fn, sql, type, entity });
+  sensitivity: FieldSensitivity = FieldSensitivity.PUBLIC,
+): MeasureDef => ({
+  key,
+  labelEn: key,
+  labelBn: key,
+  fn,
+  sql,
+  type,
+  entity,
+  sensitivity,
+});
 
 const section = {
   alias: 'cs',
@@ -112,7 +122,14 @@ export const TEST_FEES_AREA: SubjectAreaDef = {
     }),
   ],
   measures: [
-    measure('billed', AggregateFn.SUM, 'sf.total_amount', 'sf', ReportFieldType.MONEY),
+    measure(
+      'billed',
+      AggregateFn.SUM,
+      'sf.total_amount',
+      'sf',
+      ReportFieldType.MONEY,
+      FieldSensitivity.FINANCIAL,
+    ),
     measure('bills', AggregateFn.COUNT, '*', 'sf'),
   ],
 };

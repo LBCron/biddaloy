@@ -410,6 +410,52 @@ describe('ReportCompiler', () => {
       expect(compiled.columns.map((c) => c.key)).toEqual(['name']);
     });
 
+    it('refuses a filter on a field the runner may not see, instead of dropping it', () => {
+      expect(() =>
+        sqlOf(
+          definition({
+            dimensions: [{ field: 'name' }],
+            filters: [{ field: 'guardian_phone', op: FilterOp.CONTAINS, value: '0171' }],
+          }),
+          {},
+          500,
+          makeCompiler(new HideSensitive()),
+        ),
+      ).toThrowError(expect.objectContaining({ code: 'NOT_FILTERABLE' }));
+    });
+
+    it('hides a measure by its own sensitivity, whatever its SQL expression is', () => {
+      class HideFinancial extends RoleScopePolicy {
+        override fieldAllowed(_c: ReportRunContext, f: Pick<FieldDef, 'sensitivity'>) {
+          return f.sensitivity !== 'FINANCIAL';
+        }
+      }
+      const { compiled } = sqlOf(
+        definition(
+          {
+            dimensions: [{ field: 'student' }],
+            measures: [
+              { field: 'billed', fn: AggregateFn.SUM },
+              { field: 'bills', fn: AggregateFn.COUNT },
+            ],
+          },
+          { subjectArea: ReportSubjectArea.FEES },
+        ),
+        {},
+        500,
+        makeCompiler(new HideFinancial()),
+      );
+      expect(compiled.masked).toEqual(['billed']);
+    });
+
+    it('refuses a sort on a field the list does not show', () => {
+      expect(() =>
+        sqlOf(
+          definition({ dimensions: [{ field: 'name' }], sort: [{ field: 'roll', dir: 'asc' }] }),
+        ),
+      ).toThrowError(expect.objectContaining({ code: 'NOT_SORTABLE' }));
+    });
+
     it('refuses a report where every column is hidden', () => {
       expect(() =>
         sqlOf(

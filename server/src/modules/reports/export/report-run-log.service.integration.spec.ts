@@ -37,11 +37,7 @@ describe('ReportRunLogService (integration)', () => {
   });
 
   afterAll(async () => {
-    for (const id of [tenantA, tenantB]) {
-      await ds.query(`DELETE FROM audit_logs WHERE tenant_id = $1`, [id]);
-      await ds.query(`DELETE FROM report_runs WHERE tenant_id = $1`, [id]);
-      await ds.query(`DELETE FROM schools WHERE id = $1`, [id]);
-    }
+    // audit_logs is append-only and blocks deleting its schools; the test-database reset clears them.
     await ds.destroy();
   });
 

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { UserRole } from '@biddaloy/shared';
-import type { FieldDef } from '../registry/registry.types';
+import type { FieldDef, MeasureDef } from '../registry/registry.types';
 
 /** Who is running a report: always the runner, never the author (D5). */
 export interface ReportRunContext {
@@ -27,7 +27,10 @@ export class RoleScopePolicy {
     return [];
   }
 
-  fieldAllowed(_ctx: ReportRunContext, _field: FieldDef): boolean {
+  fieldAllowed(
+    _ctx: ReportRunContext,
+    _field: Pick<FieldDef | MeasureDef, 'sensitivity'>,
+  ): boolean {
     return true;
   }
 }
