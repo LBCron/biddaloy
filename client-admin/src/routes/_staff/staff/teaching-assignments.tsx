@@ -22,7 +22,7 @@
  * meanwhile.
  *
  * [83.3.3] A second tab, Coordinators (`?tab=coordinators`), lists class and subject
- * coordinators with who assigned them; `?assign=1` opens "Assign coordinator" on mount
+ * coordinators with who assigned them; `?assign=1` opens "Assign coordinator" whenever it arrives
  * (palette action `coordinators.assign`, D33).
  */
 import { Permission } from '@biddaloy/shared';
@@ -113,6 +113,15 @@ function TeachingAssignmentsPage() {
   const canManage = useHasPermission(Permission.CLASS_MANAGE);
   const search = Route.useSearch();
   const navigate = useNavigate();
+  const clearAssign = React.useCallback(
+    () =>
+      void navigate({
+        to: '/staff/teaching-assignments',
+        search: (prev) => ({ ...prev, tab: search.tab, assign: undefined }),
+        replace: true,
+      }),
+    [navigate, search.tab],
+  );
 
   const academicYearsQuery = useAcademicYears();
   const currentYearId = academicYearsQuery.data?.data.find((y) => y.is_current)?.id;
@@ -207,7 +216,11 @@ function TeachingAssignmentsPage() {
           <TabsTrigger value="coordinators">{t('tabs.coordinators')}</TabsTrigger>
         </TabsList>
         <TabsContent value="coordinators" className="mt-4">
-          <CoordinatorsPanel canManage={canManage} openOnMount={search.assign === 1} />
+          <CoordinatorsPanel
+            canManage={canManage}
+            assignRequested={search.assign === 1}
+            onAssignOpened={clearAssign}
+          />
         </TabsContent>
         <TabsContent value="byClass" className="mt-4 space-y-6">
           {academicYearsQuery.isError ? (
@@ -400,14 +413,23 @@ function TeachingAssignmentsPage() {
 /** [83.3.3] Coordinators tab: every coordinator row of the school, with assign / remove. */
 function CoordinatorsPanel({
   canManage,
-  openOnMount,
+  assignRequested,
+  onAssignOpened,
 }: {
   canManage: boolean;
-  openOnMount: boolean;
+  assignRequested: boolean;
+  onAssignOpened: () => void;
 }) {
   const { t } = useTranslation('teacherAssignments');
   const query = useCoordinators();
-  const [assignOpen, setAssignOpen] = React.useState(openOnMount && canManage);
+  const [assignOpen, setAssignOpen] = React.useState(false);
+  // `?assign=1` (palette action) can arrive while the tab is already mounted; open, then clear it
+  // so a reload does not reopen the dialog.
+  React.useEffect(() => {
+    if (!assignRequested || !canManage) return;
+    setAssignOpen(true);
+    onAssignOpened();
+  }, [assignRequested, canManage, onAssignOpened]);
   const [removing, setRemoving] = React.useState<CoordinatorAssignment | null>(null);
   const open = () => setAssignOpen(true);
 

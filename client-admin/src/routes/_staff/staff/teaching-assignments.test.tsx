@@ -398,8 +398,24 @@ describe('/staff/teaching-assignments › Coordinators', () => {
     await waitFor(() => expect(deleted).toBe('c1'));
   });
 
-  it('?assign=1 opens the Assign coordinator dialog on arrival', async () => {
-    render('/staff/teaching-assignments?tab=coordinators&assign=1');
+  it('?assign=1 opens the Assign coordinator dialog on arrival, then drops the param', async () => {
+    const { router } = render('/staff/teaching-assignments?tab=coordinators&assign=1');
     expect(await screen.findByRole('dialog', { name: 'Assign coordinator' })).toBeTruthy();
+    // A reload must not reopen it.
+    await waitFor(() => expect(router.state.location.search).not.toHaveProperty('assign'));
+    expect(router.state.location.search).toMatchObject({ tab: 'coordinators' });
+  });
+
+  it('?assign=1 opens the dialog when it arrives after the tab is already mounted', async () => {
+    const { router } = render('/staff/teaching-assignments?tab=coordinators');
+    await screen.findByRole('button', { name: 'Assign coordinator' });
+    expect(screen.queryByRole('dialog', { name: 'Assign coordinator' })).toBeNull();
+    // The palette action navigates here while the panel is mounted.
+    await router.navigate({
+      to: '/staff/teaching-assignments',
+      search: { tab: 'coordinators', assign: 1 },
+    });
+    expect(await screen.findByRole('dialog', { name: 'Assign coordinator' })).toBeTruthy();
+    await waitFor(() => expect(router.state.location.search).not.toHaveProperty('assign'));
   });
 });
