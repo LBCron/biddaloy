@@ -52,4 +52,13 @@ describe('FIELD_CATALOG', () => {
     expect(n(DocumentKind.EXAM_ADMIT_CARD)).toBe(ADMIT_CARD_SITTING_SLOTS * 5);
     expect(n(DocumentKind.TRANSFER_CERTIFICATE)).toBe(0);
   });
+
+  it('puts FINAL_RESULT fields on result and merit certificates only', () => {
+    for (const kind of Object.values(DocumentKind)) {
+      const has = FIELD_CATALOG[kind].some((x) => x.key === 'final_result.gpa');
+      expect(has, kind).toBe(
+        kind === DocumentKind.RESULT_CERTIFICATE || kind === DocumentKind.MERIT_CERTIFICATE,
+      );
+    }
+  });
 });
