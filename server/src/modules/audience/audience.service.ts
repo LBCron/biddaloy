@@ -48,7 +48,9 @@ const BUILT_TABS: Record<AudienceTarget, AudienceTab[]> = {
  * Params: $1 tenant, $2 roles|null, $3 classIds|null, $4 sectionIds|null, $5 teacher sections|null,
  * $6 name pattern|null, $7 limit|null (null = all), $8 offset, $9 exam|null, $10 today|null (FEE_DUE),
  * $11 open fee statuses|null, $12 low-attendance student ids|null, $13 shift|null, $14 version|null,
- * $15 group|null. Fixed SQL; optional filters are `IS NULL OR` (Rule 4).
+ * $15 group|null. Fixed SQL; optional filters are `IS NULL OR` (Rule 4). A shift matches the class's
+ * `shift_id` row by name; the deprecated `classes.shift` text counts only when `shift_id` is unset,
+ * since a shift rename never rewrites it.
  */
 const STAFF_SQL = `
   SELECT 'STAFF' AS kind, u.id AS user_id, NULL::uuid AS student_id, NULL::uuid AS guardian_id,
@@ -92,8 +94,9 @@ const STUDENTS_SQL = `
              AND sf.due_date IS NOT NULL AND sf.due_date < $10::date
              AND (sf.total_amount - sf.paid_amount - sf.discount_amount) > 0))
      AND ($12::uuid[] IS NULL OR s.id = ANY($12::uuid[]))
-     AND ($13::text IS NULL OR c.shift = $13::text OR (c.shift IS NULL AND EXISTS (SELECT 1 FROM shifts sh
-           WHERE sh.id = c.shift_id AND sh.tenant_id = $1 AND sh.deleted_at IS NULL AND sh.name = $13::text)))
+     AND ($13::text IS NULL OR EXISTS (SELECT 1 FROM shifts sh
+           WHERE sh.id = c.shift_id AND sh.tenant_id = $1 AND sh.deleted_at IS NULL AND sh.name = $13::text)
+          OR (c.shift_id IS NULL AND c.shift = $13::text))
      AND ($14::text IS NULL OR c.version = $14::text)
      AND ($15::text IS NULL OR cs.group_name = $15::text)
    ORDER BY c.name, cs.section_name, s.roll_number NULLS LAST, s.full_name, s.id
@@ -126,8 +129,9 @@ const GUARDIANS_SQL = `
              AND sf.due_date IS NOT NULL AND sf.due_date < $10::date
              AND (sf.total_amount - sf.paid_amount - sf.discount_amount) > 0))
      AND ($12::uuid[] IS NULL OR s.id = ANY($12::uuid[]))
-     AND ($13::text IS NULL OR c.shift = $13::text OR (c.shift IS NULL AND EXISTS (SELECT 1 FROM shifts sh
-           WHERE sh.id = c.shift_id AND sh.tenant_id = $1 AND sh.deleted_at IS NULL AND sh.name = $13::text)))
+     AND ($13::text IS NULL OR EXISTS (SELECT 1 FROM shifts sh
+           WHERE sh.id = c.shift_id AND sh.tenant_id = $1 AND sh.deleted_at IS NULL AND sh.name = $13::text)
+          OR (c.shift_id IS NULL AND c.shift = $13::text))
      AND ($14::text IS NULL OR c.version = $14::text)
      AND ($15::text IS NULL OR cs.group_name = $15::text)
    ORDER BY c.name, cs.section_name, s.roll_number NULLS LAST, s.full_name, g.full_name, g.id

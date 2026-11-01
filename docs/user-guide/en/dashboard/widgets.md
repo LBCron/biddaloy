@@ -374,8 +374,8 @@ This list is generated from the app's own text, so it matches the app. Widgets t
 ### Latest notices <a href="#widget.latest-notices" id="widget.latest-notices"></a>
 
 - **What it means:** The latest three current notices addressed to you, pinned ones first.
-- **Where the number comes from:** It comes from the notice board: notices posted for your role.
-- **What to do:** Open a notice to read it. All notices opens the full list.
+- **Where the number comes from:** It comes from the notice board: notices the school sent to you.
+- **What to do:** This card is for reading; it has no link yet.
 
 <!-- /guide:generated -->
 

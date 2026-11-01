@@ -2,7 +2,10 @@
  * [53.3.03] "সাম্প্রতিক নোটিশ": the latest 3 current notices (the server lists pinned first).
  * Cloned from the portal homework card. `LatestNoticesCardView` is presentational (stories);
  * `LatestNoticesCard` owns the query and mounts the phone and desktop renderings.
- * ponytail: plain `<a>` to the list — `/portal/notices` joins the typed route tree with its route ticket.
+ * The list link comes from the caller (`listHref`): staff read at `/communications/notices`, guardians
+ * at `/portal/notices` (D16). Neither route is mounted yet (#3381), so the staff widget passes none
+ * and shows no link; a staff click on `/portal/notices` only bounced back to the dashboard.
+ * ponytail: plain `<a>`; switch to `<Link>` once the list route joins the typed route tree.
  */
 import { WidgetCard } from '@biddaloy/ui/components';
 import { useRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
@@ -12,7 +15,6 @@ import { BellIcon } from 'lucide-react';
 import { useMyNotices, type MyNoticeItem } from './use-my-notices';
 
 const ROWS = 3;
-const LIST_HREF = '/portal/notices';
 
 export interface LatestNoticesCardViewProps {
   variant: 'full' | 'compact';
@@ -20,6 +22,8 @@ export interface LatestNoticesCardViewProps {
   loading?: boolean;
   failed?: boolean;
   onRetry?: () => void;
+  /** The full list. Omitted: no link, until the reader's list route exists. */
+  listHref?: string | undefined;
 }
 
 export function LatestNoticesCardView({
@@ -28,14 +32,15 @@ export function LatestNoticesCardView({
   loading = false,
   failed = false,
   onRetry,
+  listHref,
 }: LatestNoticesCardViewProps) {
   const { t } = useTranslation('portalNotices');
   const config = useRegionConfig();
-  const link = (
-    <a href={LIST_HREF} className="text-primary underline">
+  const link = listHref ? (
+    <a href={listHref} className="text-primary underline">
       {t('card.link')}
     </a>
-  );
+  ) : undefined;
   const first = items[0];
   return (
     <WidgetCard
@@ -47,10 +52,10 @@ export function LatestNoticesCardView({
         ? { error: { message: t('error.message'), retryLabel: t('error.retry'), onRetry } }
         : {})}
       {...(!loading && !failed && items.length === 0
-        ? { empty: { reason: t('card.empty'), action: link } }
+        ? { empty: { reason: t('card.empty'), ...(link ? { action: link } : {}) } }
         : {})}
       {...(first && variant === 'compact' ? { summary: first.title } : {})}
-      {...(items.length > 0 ? { footer: link } : {})}
+      {...(link && items.length > 0 ? { footer: link } : {})}
     >
       <ul className="divide-y divide-border-subtle">
         {items.slice(0, ROWS).map((n) => (
@@ -73,9 +78,16 @@ export function LatestNoticesCardView({
 }
 
 /** `variant` pins one rendering (the dashboard grid already picks per breakpoint); omitted = both, for the portal page. */
-export function LatestNoticesCard({ variant }: { variant?: 'full' | 'compact' }) {
+export function LatestNoticesCard({
+  variant,
+  listHref,
+}: {
+  variant?: 'full' | 'compact';
+  listHref?: string;
+}) {
   const query = useMyNotices({ tab: 'current', page: 1, limit: ROWS });
   const props = {
+    listHref,
     items: query.data?.data ?? [],
     loading: query.isPending,
     failed: query.isError,

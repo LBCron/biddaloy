@@ -477,6 +477,23 @@ describe('Audience advanced filters (integration)', () => {
     );
   });
 
+  // #3430 finding 6: `classes.shift` is deprecated text that a shift rename never rewrites.
+  it('ORG_GROUP shift reads the shift row first; stale class text is ignored once shift_id is set', async () => {
+    await ds.query(`UPDATE classes SET shift_id = $1 WHERE id = $2`, [shiftId, c1]);
+    await ds.query(`UPDATE shifts SET name = 'Evening' WHERE id = $1`, [shiftId]);
+    try {
+      // c1 still carries the old text 'Morning', but its shift row is now 'Evening'.
+      expect(ids(await students(AudienceTab.ORG_GROUP, { shift: 'Evening' })).sort()).toEqual(
+        [s1, s2, s3, s4, s5].sort(),
+      );
+      expect(ids(await students(AudienceTab.ORG_GROUP, { shift: 'Morning' }))).toEqual([]);
+      expect(ids(await students(AudienceTab.ORG_GROUP, { shift: 'Day' }))).toEqual([]);
+    } finally {
+      await ds.query(`UPDATE shifts SET name = 'Day' WHERE id = $1`, [shiftId]);
+      await ds.query(`UPDATE classes SET shift_id = NULL WHERE id = $1`, [c1]);
+    }
+  });
+
   it('tenant A never returns a tenant B student on any advanced tab', async () => {
     const past = addDays(today, -3);
     await mkBill(B, cB, yearB, [

@@ -1,7 +1,7 @@
 /**
  * [53.3.g2.01] Queries and mutations for the notice compose page. No notice hooks exist in
  * `ui/src/hooks` yet, so they live here, next to their only caller. Writes never auto-retry
- * (Rule 25); publish carries an `Idempotency-Key` (D14).
+ * (Rule 25); create, upload and publish carry an `Idempotency-Key` (D14).
  */
 import type { components } from '@biddaloy/ui/api';
 import { apiClient } from '@biddaloy/ui/api';
@@ -44,27 +44,58 @@ export function useNotice(id: string | undefined) {
   });
 }
 
+/**
+ * One Idempotency-Key per attempt at the same request (Rule 25): a lost reply re-sends the same
+ * key, so the server answers with the first result instead of doing it twice. The server replays
+ * by key alone, so a changed request (`sig`) or a success gets a new key.
+ */
+function useAttemptKey() {
+  const ref = React.useRef<{ sig: string; value: string } | undefined>(undefined);
+  return {
+    get(sig: string) {
+      if (ref.current?.sig !== sig) ref.current = { sig, value: crypto.randomUUID() };
+      return ref.current.value;
+    },
+    done() {
+      ref.current = undefined;
+    },
+  };
+}
+
 /** Creates the draft on the first save, then patches it. */
 export function useSaveNotice() {
   const queryClient = useQueryClient();
+  const createKey = useAttemptKey();
   return useMutation({
     mutationFn: async ({ id, fields }: { id: string | undefined; fields: NoticeFields }) =>
       id === undefined
-        ? (await apiClient.post<NoticeDto>('/notices', fields)).data
+        ? (
+            await apiClient.post<NoticeDto>('/notices', fields, {
+              headers: { 'Idempotency-Key': createKey.get(JSON.stringify(fields)) },
+            })
+          ).data
         : (await apiClient.patch<NoticeDto>(`/notices/${id}`, fields)).data,
     onSuccess: (notice) => {
+      createKey.done();
       queryClient.setQueryData(keys.notice(notice.id), notice);
     },
   });
 }
 
 export function useUploadNoticeFiles() {
+  const uploadKey = useAttemptKey();
   return useMutation({
     mutationFn: async ({ id, files }: { id: string; files: File[] }) => {
       const form = new FormData();
       for (const file of files) form.append('files', file);
-      return (await apiClient.post<NoticeFileDto[]>(`/notices/${id}/files`, form)).data;
+      const sig = [id, ...files.map((f) => `${f.name}:${f.size}:${f.lastModified}`)].join('|');
+      return (
+        await apiClient.post<NoticeFileDto[]>(`/notices/${id}/files`, form, {
+          headers: { 'Idempotency-Key': uploadKey.get(sig) },
+        })
+      ).data;
     },
+    onSuccess: () => uploadKey.done(),
   });
 }
 
@@ -76,12 +107,23 @@ export function useRemoveNoticeFile() {
   });
 }
 
+/** Axios writes an array as `classIds[]=a`, which the server rejects (400). Send `classIds=a,b`,
+ * as `student_ids` does in `ui/src/hooks/communications.ts`. */
+const commaArrays = (query: object) =>
+  Object.fromEntries(
+    Object.entries(query).map(([k, v]) => [k, Array.isArray(v) ? v.join(',') : v]),
+  );
+
 export function useAudiencePeople(query: AudienceQueryDto, enabled: boolean) {
   return useQuery({
     queryKey: keys.people(query),
     queryFn: async ({ signal }) =>
-      (await apiClient.get<S['AudiencePageDto']>('/audience/people', { params: query, signal }))
-        .data,
+      (
+        await apiClient.get<S['AudiencePageDto']>('/audience/people', {
+          params: commaArrays(query),
+          signal,
+        })
+      ).data,
     enabled,
   });
 }

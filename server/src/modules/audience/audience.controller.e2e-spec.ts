@@ -167,6 +167,28 @@ describe('Audience API E2E', () => {
     ).expect(200);
   });
 
+  // #3430 finding 0: axios writes arrays as `classIds[]=a`, which the whitelist pipe rejects.
+  // The compose page sends `classIds=a,b`; repeated keys still work.
+  it('class and section ids work as one comma list or repeated keys; the bracket form is 400', async () => {
+    await people(`target=STUDENTS&tab=SECTION&sectionIds=${ownSection},${otherSection}`).expect(
+      200,
+    );
+    await people(
+      `target=STUDENTS&tab=SECTION&sectionIds=${ownSection}&sectionIds=${otherSection}`,
+    ).expect(200);
+    await people(`target=GUARDIANS&tab=CLASS&classIds=${classId}`).expect(200);
+    await people(`target=STAFF&tab=ROLE&roles=ADMIN,TEACHER`).expect(200);
+    await people(`target=STUDENTS&tab=CLASS&classIds%5B%5D=${classId}`).expect(400);
+    // a bad id inside the list is still a 400
+    await people(`target=STUDENTS&tab=SECTION&sectionIds=${ownSection},not-a-uuid`).expect(400);
+  });
+
+  it('a comma list with a missing or foreign X-Tenant-ID is rejected', async () => {
+    const qs = `target=STUDENTS&tab=SECTION&sectionIds=${ownSection},${otherSection}`;
+    await people(qs, UserRole.ADMIN, null).expect(401);
+    await people(qs, UserRole.ADMIN, '00000000-0000-4000-8000-00000000dead').expect(401);
+  });
+
   it('a teacher gets their own section (200), 404 for another, 403 for staff', async () => {
     await people(`target=STUDENTS&tab=SECTION&sectionIds=${ownSection}`, UserRole.TEACHER).expect(
       200,

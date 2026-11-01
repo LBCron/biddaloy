@@ -153,6 +153,27 @@ describe('NoticesService (integration)', () => {
     ).toBe('2099-12-31');
   });
 
+  // #3430 finding 5: the edit form needs the saved files to show them and count them.
+  it('get returns the saved files of this tenant only; the list carries none', async () => {
+    const n = await draft();
+    const file = (tenant: string, name: string, sort: number) =>
+      ds.query(
+        `INSERT INTO notice_attachments (tenant_id, notice_id, storage_key, original_name, mime_type, size_bytes, sort)
+         VALUES ($1,$2,$3,$4,'application/pdf',10,$5)`,
+        [tenant, n.id, `k-${randomUUID()}`, name, sort],
+      );
+    await file(T, 'b.pdf', 1);
+    await file(T, 'a.pdf', 0);
+    await file(TENANT_B, 'foreign.pdf', 0); // a row tagged with another tenant never shows
+    const got = await svc.get(T, admin, n.id);
+    expect(got.files?.map((f) => f.original_name)).toEqual(['a.pdf', 'b.pdf']);
+    const listed = (await svc.list(T, admin, { page: 1, limit: 100, q: sfx })).items.find(
+      (x) => x.id === n.id,
+    );
+    expect(listed?.files).toBeUndefined();
+    await ds.query(`DELETE FROM notice_attachments WHERE notice_id = $1`, [n.id]);
+  });
+
   it('PATCH with null on a NOT NULL field is a 400, never a DB error (m2)', async () => {
     const n = await draft();
     for (const k of ['title', 'body', 'important', 'pinned', 'isPublic'])

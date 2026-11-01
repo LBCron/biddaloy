@@ -26,7 +26,11 @@ const meta: Meta<typeof LatestNoticesCardView> = {
       </div>
     ),
   ],
-  args: { variant: 'full', items: [n(1, { important: true }), n(2, { seen: true }), n(3)] },
+  args: {
+    variant: 'full',
+    listHref: '/portal/notices',
+    items: [n(1, { important: true }), n(2, { seen: true }), n(3)],
+  },
 };
 export default meta;
 type Story = StoryObj<typeof LatestNoticesCardView>;

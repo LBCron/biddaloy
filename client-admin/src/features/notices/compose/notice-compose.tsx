@@ -31,6 +31,7 @@ import * as React from 'react';
 import {
   INITIAL_FILTERS,
   audienceQuery,
+  needsClass,
   personRow,
   recipientRow,
   tabKeys,
@@ -125,14 +126,18 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
     setIsPublic(n.isPublic);
     setExpires(parseDate(n.expiresOn));
     setStatus(n.status as NoticeStatus);
+    // Saved files show in the form and count against the file limit.
+    setSaved(n.files ?? []);
   }, [existing.data]);
 
   const saveNotice = useSaveNotice();
   const upload = useUploadNoticeFiles();
   const removeFile = useRemoveNoticeFile();
+  // Guardians and students wait for a class: without one the server answers 400.
+  const waitingForClass = needsClass(tab, filters);
   const people = useAudiencePeople(
     audienceQuery(tab, filters, matchPage, RECIPIENTS_PAGE),
-    step === 'audience' && id !== undefined,
+    step === 'audience' && id !== undefined && !waitingForClass,
   );
   const recipients = useRecipients(id, chosenPage);
   const allRecipients = useAllRecipients(id, step === 'review');
@@ -141,10 +146,16 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
   const addMatching = useAddMatching(id ?? '');
   const publish = usePublishNotice(id ?? '');
   const newLink = useNewPublicLink(id ?? '');
-  // The public link is shown once: hold the page here until the admin has seen it.
-  const [linkDone, setLinkDone] = React.useState<{ id: string; token: string } | undefined>();
+  // The public link is shown once: hold the page here until the admin has seen it. No token yet
+  // means it is being made, or making it failed (the notice is published either way).
+  const [linkDone, setLinkDone] = React.useState<{ id: string; token?: string } | undefined>();
   const finish = (noticeId: string, token?: string | null) =>
     token ? setLinkDone({ id: noticeId, token }) : onPublished(noticeId);
+  /** Only `POST :id/public-link`: a failure here never sends publish again (Rule 25). */
+  const mintLink = (noticeId: string) => {
+    setLinkDone({ id: noticeId });
+    newLink.mutate(undefined, { onSuccess: (l) => setLinkDone({ id: noticeId, token: l.token }) });
+  };
 
   const columns = useAudienceColumns();
   const setFilter = (next: Partial<AudienceFilterState>) => {
@@ -258,12 +269,15 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
 
   const publishNow = () =>
     guarded(async () => {
+      if (published) return;
       const saved2 = await persist();
       const notice = await publish.mutateAsync(sms);
-      // Publish never returns the token (its answer is cached); ask for it.
-      const link = notice.isPublic ? await newLink.mutateAsync() : undefined;
+      // Published from here on: nothing on this page may publish again.
+      setStatus(notice.status as NoticeStatus);
       setConfirmOpen(false);
-      finish(saved2, link?.token);
+      // Publish never returns the token (its answer is cached); ask for it in its own step.
+      if (notice.isPublic) mintLink(saved2);
+      else onPublished(saved2);
     }, 'errors.publishFailed');
 
   // Edit mode: never show (or overwrite) the form before the notice has loaded.
@@ -299,7 +313,7 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
         label: primaryLabel,
         busy: busy && !confirmOpen,
         disabled: !reviewReady,
-        onClick: () => (step === 'review' ? setConfirmOpen(true) : void next()),
+        onClick: () => (step === 'review' && !published ? setConfirmOpen(true) : void next()),
       }}
       {...(!published
         ? {
@@ -441,6 +455,7 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
         ) : (
           <div className="flex flex-col gap-3">
             <p className="text-text-secondary">{t('audience.intro')}</p>
+            {waitingForClass && <p role="status">{t('audience.pickClass')}</p>}
             <AudienceBuilder<AudienceRow>
               tabs={tabs}
               activeTab={tab}
@@ -448,10 +463,13 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
                 setTab(k as TabKey);
                 setMatchPage(1);
               }}
-              onClearFilters={() => setFilters(INITIAL_FILTERS)}
+              onClearFilters={() => {
+                setFilters(INITIAL_FILTERS);
+                setMatchPage(1);
+              }}
               matches={{
-                rows: (people.data?.items ?? []).map(personRow),
-                total: people.data?.total ?? 0,
+                rows: waitingForClass ? [] : (people.data?.items ?? []).map(personRow),
+                total: waitingForClass ? 0 : (people.data?.total ?? 0),
                 page: matchPage,
                 pageSize: RECIPIENTS_PAGE,
                 loading: people.isFetching,
@@ -490,6 +508,9 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
                   { onError: failed },
                 )
               }
+              // ponytail: compares Chosen rows (a guardian counts once per child), while the
+              // server caps distinct people, so a big guardian list is refused here a little
+              // early. Rows also drive the SMS fan-out. Feed a people count if schools hit it.
               max={NOTICE_LIMITS.recipientsMax}
             />
           </div>
@@ -543,14 +564,31 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
             <DialogTitle>{t('publicLink.title')}</DialogTitle>
             <DialogDescription>{t('publicLink.hint')}</DialogDescription>
           </DialogHeader>
-          <Input
-            readOnly
-            aria-label={t('publicLink.title')}
-            value={linkDone ? `${window.location.origin}/n/${linkDone.token}` : ''}
-            onFocus={(e) => e.currentTarget.select()}
-          />
+          {linkDone?.token ? (
+            <Input
+              readOnly
+              aria-label={t('publicLink.title')}
+              value={`${window.location.origin}/n/${linkDone.token}`}
+              onFocus={(e) => e.currentTarget.select()}
+            />
+          ) : newLink.isError ? (
+            <p role="alert" className="text-sm text-destructive">
+              {t('publicLink.failed')}
+            </p>
+          ) : (
+            <p role="status">{t('publicLink.creating')}</p>
+          )}
           <DialogFooter>
-            <Button type="button" onClick={() => linkDone && onPublished(linkDone.id)}>
+            {linkDone && !linkDone.token && newLink.isError && (
+              <Button type="button" variant="outline" onClick={() => mintLink(linkDone.id)}>
+                {t('publicLink.retry')}
+              </Button>
+            )}
+            <Button
+              type="button"
+              disabled={newLink.isPending}
+              onClick={() => linkDone && onPublished(linkDone.id)}
+            >
               {t('publicLink.done')}
             </Button>
           </DialogFooter>
