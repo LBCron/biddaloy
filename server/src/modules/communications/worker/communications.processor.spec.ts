@@ -708,6 +708,8 @@ describe('CommunicationsProcessor', () => {
       const send = vi
         .spyOn(onecodesoft, 'send')
         .mockImplementation(OnecodesoftProvider.prototype.send);
+      // spyOn on an already-spied method keeps the earlier tests' calls; count this test's only.
+      send.mockClear();
 
       await expect(
         processor.process(job({ batchId: 'batch-1', segments: 1, attemptsMade: 0, attempts: 3 })),

@@ -44,7 +44,7 @@ interface RenderedMessage {
   subject?: string;
 }
 
-const REDACTED = '••••••';
+export const REDACTED = '••••••';
 
 function fill(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => vars[key] ?? '');

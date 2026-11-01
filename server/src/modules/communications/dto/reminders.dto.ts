@@ -251,12 +251,10 @@ export class QueryReminderBatchLogsDto extends QueryReminderBatchesDto {
 }
 
 /**
- * One recipient's delivery record within a batch — the batch detail
- * page's per-recipient status table. `student_id` is what a retry
- * composes its fresh `POST /reminder/bulk` from; `error` is a fixed code
- * for the worker's failure reason (CommunicationLog.metadata.error) so
- * "FAILED" is never unexplained. Message bodies are deliberately
- * excluded — `GET /communications/:id` serves the single-log drill-down.
+ * One message-log row: the batch detail page's per-recipient table, the tenant-wide message log
+ * and the check-status answer. `student_id` is what a retry composes its fresh
+ * `POST /reminder/bulk` from; `error` is a fixed code for the worker's failure reason
+ * (CommunicationLog.metadata.error) so "FAILED" is never unexplained.
  */
 export class ReminderBatchLogDto {
   id: string;
@@ -278,10 +276,59 @@ export class ReminderBatchLogDto {
   @ApiProperty({ enum: DELIVERY_ERROR_CODES, nullable: true })
   error: DeliveryErrorCode | null;
   created_at: Date;
+  /**
+   * [97.4.02] D22 row detail, shaped at read time for the caller (`visibleLogBody`,
+   * reminders.service.ts): invoice share links show as `/i/••••••`, sign-in codes and links were
+   * redacted at write, and an exam result is null without RESULT_READ. Never what was sent.
+   */
+  message_body: string | null;
+  /** True when `message_body` is held back from this caller (an exam result without RESULT_READ). */
+  body_withheld: boolean;
+  subject: string | null;
+  /** SMS parts: what the send counted (`metadata.segments`), else counted from the stored text.
+   * Null for other channels, and for a sign-in SMS with no recorded count (its stored text is redacted). */
+  segments: number | null;
+  /** The reminder round this message belongs to, for the round's page link. */
+  batch_id: string | null;
+  /** A test message from Settings (`metadata.test`). */
+  is_test: boolean;
+  sent_by_user_id: string | null;
+  /** The staff member's name; null for an automatic send or a removed user. */
+  sent_by_name: string | null;
+  /**
+   * D23: whether Check status can ask about this row (SENT, a company message id, a company that
+   * declares `status`, not the test inbox). False-safe: the check-status route stays the authority.
+   */
+  can_check_status: boolean;
 }
 
 export class ReminderBatchLogListResponseDto extends ReminderPaginatedResponseDto {
   data: ReminderBatchLogDto[];
+}
+
+export class MessageLogCompanyLabelDto {
+  en: string;
+  bn: string;
+}
+
+export class MessageLogCompanyDto {
+  name: string;
+  @ApiProperty({ enum: CommunicationMedium })
+  medium: CommunicationMedium;
+  label: MessageLogCompanyLabelDto;
+}
+
+export class MessageLogSenderDto {
+  id: string;
+  full_name: string;
+}
+
+/** [97.4.02] `GET /communications/logs/filter-options`: the Company and Sent-by choices. */
+export class MessageLogFilterOptionsDto {
+  /** Every company the app can send through (static, no settings or secrets). */
+  companies: MessageLogCompanyDto[];
+  /** Staff who sent at least one message from this school, by name, at most 100. */
+  senders: MessageLogSenderDto[];
 }
 
 /**
@@ -299,6 +346,16 @@ export class QueryCommunicationLogsDto {
   @IsOptional()
   @IsEnum(CommunicationTrigger)
   trigger?: CommunicationTrigger;
+
+  /** [#3343] One student's messages (the student page's Messages link). */
+  @IsOptional()
+  @IsUUID()
+  student_id?: string;
+
+  /** [#3343] One guardian's messages (the guardian page's Messages link). */
+  @IsOptional()
+  @IsUUID()
+  guardian_id?: string;
 
   /** The staff user who sent it (`sent_by_user_id`). */
   @IsOptional()

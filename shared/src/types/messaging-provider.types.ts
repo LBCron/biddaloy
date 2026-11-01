@@ -26,6 +26,13 @@ export interface ProviderDescriptor {
   capabilities: ProviderCapability[];
   fields: ProviderConfigField[];
   supportsTestMessage: boolean;
+  /**
+   * SMS only. This company does not charge for an SMS it reports as FAILED, so when Check status
+   * learns a message failed, a school paying through the platform gets its credit back (one refund
+   * per message). Absent means the company may still bill the platform: no refund. Set it only
+   * once the company has confirmed how it bills failed messages.
+   */
+  refundsFailedSms?: boolean;
 }
 
 export type MessagingProvidersResponse = {

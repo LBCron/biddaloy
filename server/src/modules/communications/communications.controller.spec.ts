@@ -228,13 +228,13 @@ describe('CommunicationsController', () => {
   });
 
   describe('checkStatus', () => {
-    it('passes the log id and the caller tenant to DeliveryStatusService', async () => {
+    it('passes the log id, the caller tenant and role to DeliveryStatusService', async () => {
       const expected = { id: 'log-1', status: 'DELIVERED' };
       deliveryStatus.checkStatus.mockResolvedValue(expected);
 
       const result = await controller.checkStatus('log-1', TENANT);
 
-      expect(deliveryStatus.checkStatus).toHaveBeenCalledWith('log-1', TENANT.id);
+      expect(deliveryStatus.checkStatus).toHaveBeenCalledWith('log-1', TENANT.id, TENANT.role);
       expect(result).toBe(expected);
     });
 
@@ -250,27 +250,32 @@ describe('CommunicationsController', () => {
   });
 
   describe('findLogs', () => {
-    it('should call bulkReminderService.findLogs with query and tenant id', async () => {
+    it('should call bulkReminderService.findLogs with query, tenant id and role', async () => {
       const query = { status: 'FAILED', medium: 'SMS' };
       const expected = { data: [], total: 0, page: 1, limit: 25, totalPages: 0 };
       bulkReminderService.findLogs.mockResolvedValue(expected);
 
       const result = await controller.findLogs(query as any, TENANT);
 
-      expect(bulkReminderService.findLogs).toHaveBeenCalledWith(query, TENANT.id);
+      expect(bulkReminderService.findLogs).toHaveBeenCalledWith(query, TENANT.id, TENANT.role);
       expect(result).toEqual(expected);
     });
   });
 
   describe('findReminderBatchLogs', () => {
-    it('should call bulkReminderService.findBatchLogs with id, query, and tenant id', async () => {
+    it('should call bulkReminderService.findBatchLogs with id, query, tenant id and role', async () => {
       const query = { page: 1, limit: 50 };
       const expected = { data: [], total: 0, page: 1, limit: 50, totalPages: 0 };
       bulkReminderService.findBatchLogs.mockResolvedValue(expected);
 
       const result = await controller.findReminderBatchLogs('batch-1', query as any, TENANT);
 
-      expect(bulkReminderService.findBatchLogs).toHaveBeenCalledWith('batch-1', query, TENANT.id);
+      expect(bulkReminderService.findBatchLogs).toHaveBeenCalledWith(
+        'batch-1',
+        query,
+        TENANT.id,
+        TENANT.role,
+      );
       expect(result).toEqual(expected);
     });
 

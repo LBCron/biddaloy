@@ -138,25 +138,26 @@ export class MimsmsProvider extends MessagingProvider<ResolvedMimSmsConfig> {
    */
   async testConnection(config: ResolvedMimSmsConfig): Promise<ConnectionTestResult> {
     try {
+      // Check the bare address, then add the key: the guard and the pinned fetch put the URL they
+      // are given in their error text, which must never carry the school's key (Rule 13).
+      const destination = await assertSafeHttpDestination(BALANCE_URL);
       const params = new URLSearchParams({ api_key: config.apiKey });
-      // BALANCE_URL is a hardcoded constant, not tenant-controlled, so
-      // there's nothing to pin — routing it through the guard/dispatcher
-      // would just add a pointless extra DNS round-trip. `redirect: 'error'`
-      // still applies directly since plain `fetch` doesn't get it for free.
-      const response = await fetch(`${BALANCE_URL}?${params.toString()}`, {
+      const url = `${BALANCE_URL}?${params.toString()}`;
+      // Status first (#3342): a vendor 5xx with a JSON body is an outage, not a bad key. A 429
+      // (rate limited, RFC 6585) is temporary too, never "check the API key".
+      const { status, body } = await fetchPinnedJsonWithStatus(destination, url, {
         method: 'GET',
-        redirect: 'error',
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
-      const data = await response.json();
+      if (status >= 500 || status === 429) {
+        return { success: false, message: 'Could not reach the MimSMS API.' };
+      }
+      const data = body as Record<string, any>;
 
-      if (data?.status === 'success') {
+      if (status < 400 && data?.status === 'success') {
         return { success: true, message: 'Connected — MimSMS account credentials verified.' };
       }
-      return {
-        success: false,
-        message: 'Authentication rejected — check the API key.',
-      };
+      return { success: false, message: 'Authentication rejected — check the API key.' };
     } catch {
       return { success: false, message: 'Could not reach the MimSMS API.' };
     }

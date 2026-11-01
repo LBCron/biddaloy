@@ -130,6 +130,7 @@ GET /communications/:id | CommunicationsController | perm: COMMUNICATION_LOG_REA
 GET /communications/guardian/:guardianId | CommunicationsController | perm: COMMUNICATION_LOG_READ
 GET /communications/last-reminders | CommunicationsController | perm: COMMUNICATION_LOG_READ
 GET /communications/logs | CommunicationsController | perm: COMMUNICATION_BULK_SEND
+GET /communications/logs/filter-options | CommunicationsController | perm: COMMUNICATION_BULK_SEND
 GET /communications/reminder/bulk | CommunicationsController | perm: COMMUNICATION_BULK_SEND
 GET /communications/reminder/bulk/:id | CommunicationsController | perm: COMMUNICATION_BULK_SEND
 GET /communications/reminder/bulk/:id/logs | CommunicationsController | perm: COMMUNICATION_BULK_SEND

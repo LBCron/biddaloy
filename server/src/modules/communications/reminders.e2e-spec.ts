@@ -43,6 +43,8 @@ describe('Bulk Reminder Read/Preview E2E', () => {
   let teacherToken: string;
   // OFFICE_STAFF holds COMMUNICATION_SEND (#2259).
   let officeToken: string;
+  // ACCOUNTANT holds COMMUNICATION_BULK_SEND but not RESULT_READ (#3351 r2).
+  let accountantToken: string;
   // A real ADMIN of the *other* school, for the cross-tenant case.
   let otherTenantAdminToken: string;
 
@@ -51,6 +53,8 @@ describe('Bulk Reminder Read/Preview E2E', () => {
   const TEACHER_EMAIL = 'teacher@bulk-reminder-e2e.example';
   const OFFICE_USER_ID = '00000000-0000-4000-8000-00000000b0b3';
   const OFFICE_EMAIL = 'office@bulk-reminder-e2e.example';
+  const ACCOUNTANT_USER_ID = '00000000-0000-4000-8000-00000000b0b4';
+  const ACCOUNTANT_EMAIL = 'accountant@bulk-reminder-e2e.example';
   const OTHER_ADMIN_USER_ID = '00000000-0000-4000-8000-00000000b0b2';
   const OTHER_ADMIN_EMAIL = 'admin@bulk-reminder-e2e-other.example';
   const OTHER_TENANT_ID = '00000000-0000-4000-8000-00000000b0b0';
@@ -138,14 +142,30 @@ describe('Bulk Reminder Read/Preview E2E', () => {
   async function createBatchLog(
     batchId: string,
     tenantId: string,
-    overrides: { status?: string; metadata?: object | null } = {},
+    overrides: {
+      status?: string;
+      metadata?: object | null;
+      body?: string;
+      trigger?: string;
+      studentId?: string;
+      guardianId?: string;
+    } = {},
   ): Promise<string> {
     seq += 1;
     const res = await dataSource.query(
-      `INSERT INTO communication_logs (id, tenant_id, reminder_batch_id, medium, recipient_address, recipient_name, message_body, status, trigger, created_at, updated_at)
-       VALUES (DEFAULT, $1, $2, 'SMS', '01712345678', $3, 'Dear guardian', $4, 'BULK_REMINDER', NOW(), NOW())
+      `INSERT INTO communication_logs (id, tenant_id, reminder_batch_id, medium, recipient_address, recipient_name, message_body, status, trigger, student_id, guardian_id, created_at, updated_at)
+       VALUES (DEFAULT, $1, $2, 'SMS', '01712345678', $3, $4, $5, $6, $7, $8, NOW(), NOW())
        RETURNING id`,
-      [tenantId, batchId, `Log Recipient ${seq}`, overrides.status ?? 'SENT'],
+      [
+        tenantId,
+        batchId,
+        `Log Recipient ${seq}`,
+        overrides.body ?? 'Dear guardian',
+        overrides.status ?? 'SENT',
+        overrides.trigger ?? 'BULK_REMINDER',
+        overrides.studentId ?? null,
+        overrides.guardianId ?? null,
+      ],
     );
     if (overrides.metadata !== undefined) {
       await dataSource.query(`UPDATE communication_logs SET metadata = $1 WHERE id = $2`, [
@@ -212,6 +232,19 @@ describe('Bulk Reminder Read/Preview E2E', () => {
       [OFFICE_USER_ID, TENANT_ID, UserRole.OFFICE_STAFF],
     );
 
+    await dataSource.query(
+      `INSERT INTO users (id, email, password_hash, full_name, status, created_at, updated_at)
+       VALUES ($1, $2, $3, 'Reminder E2E Accountant', 'ACTIVE', NOW(), NOW())
+       ON CONFLICT DO NOTHING`,
+      [ACCOUNTANT_USER_ID, ACCOUNTANT_EMAIL, SEED_ADMIN_PASSWORD_HASH],
+    );
+    await dataSource.query(
+      `INSERT INTO user_tenants (user_id, tenant_id, role, created_at, updated_at)
+       VALUES ($1, $2, $3, NOW(), NOW())
+       ON CONFLICT DO NOTHING`,
+      [ACCOUNTANT_USER_ID, TENANT_ID, UserRole.ACCOUNTANT],
+    );
+
     // An ADMIN who belongs only to the other school — the right role, the
     // wrong tenant.
     await dataSource.query(
@@ -244,6 +277,12 @@ describe('Bulk Reminder Read/Preview E2E', () => {
       .send({ email: OFFICE_EMAIL, password: SEED_ADMIN_PASSWORD })
       .expect(200);
     officeToken = officeLoginRes.body.access_token;
+
+    const accountantLoginRes = await supertest(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: ACCOUNTANT_EMAIL, password: SEED_ADMIN_PASSWORD })
+      .expect(200);
+    accountantToken = accountantLoginRes.body.access_token;
 
     const otherAdminLoginRes = await supertest(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -444,8 +483,14 @@ describe('Bulk Reminder Read/Preview E2E', () => {
         .expect(200);
 
       expect(res.body.total).toBe(1);
-      expect(res.body.data[0]).toMatchObject({ status: 'FAILED' });
-      expect(res.body.data[0]).not.toHaveProperty('message_body');
+      // [97.4.02] D22: the row detail shows the message itself (the batch text, here).
+      expect(res.body.data[0]).toMatchObject({
+        status: 'FAILED',
+        message_body: 'Dear guardian',
+        batch_id: batchId,
+        is_test: false,
+        can_check_status: false,
+      });
 
       await supertest(app.getHttpServer())
         .get('/api/v1/communications/logs?limit=101')
@@ -492,6 +537,25 @@ describe('Bulk Reminder Read/Preview E2E', () => {
       expect(rows.find((r: { id: string }) => r.id === hit)).toMatchObject({
         trigger: 'MANUAL',
         provider: 'stub-sms',
+        sent_by_user_id: SEED_ADMIN_USER_ID,
+        sent_by_name: expect.any(String),
+        // stub-sms is no real company, so the flag is false, never a guess.
+        can_check_status: false,
+      });
+    });
+
+    it('can_check_status is true for a SENT row from a company that reports delivery', async () => {
+      const id = await createBatchLog(await createBatch(TENANT_ID), TENANT_ID, {
+        status: 'SENT',
+        metadata: { provider: 'onecodesoft' },
+      });
+      await dataSource.query(
+        `UPDATE communication_logs SET provider_message_id = 'vendor-9' WHERE id = $1`,
+        [id],
+      );
+      const rows = (await getLogs('provider=onecodesoft').expect(200)).body.data;
+      expect(rows.find((r: { id: string }) => r.id === id)).toMatchObject({
+        can_check_status: true,
       });
     });
 
@@ -504,6 +568,114 @@ describe('Bulk Reminder Read/Preview E2E', () => {
       await getLogs('trigger=NOPE').expect(400);
       await getLogs(`provider=${'x'.repeat(41)}`).expect(400);
       await getLogs(`search=${'x'.repeat(101)}`).expect(400);
+      await getLogs('student_id=not-a-uuid').expect(400);
+      await getLogs('guardian_id=not-a-uuid').expect(400);
+    });
+
+    // [#3343] The student and guardian pages' Messages link: one person's messages, every other
+    // filter still applies, PUSH rows stay out, and another school sees none of them.
+    it('student_id and guardian_id narrow to one person, combine with status, and skip PUSH', async () => {
+      const studentId = await createStudent();
+      const guardianId = await createGuardian(studentId);
+      const batchId = await createBatch(TENANT_ID);
+      const failed = await createBatchLog(batchId, TENANT_ID, {
+        status: 'FAILED',
+        studentId,
+        guardianId,
+      });
+      const sent = await createBatchLog(batchId, TENANT_ID, { studentId, guardianId });
+      const other = await createBatchLog(batchId, TENANT_ID);
+      const push = await createBatchLog(batchId, TENANT_ID, { studentId, guardianId });
+      await dataSource.query(
+        `UPDATE communication_logs SET medium = 'PUSH', recipient_address = 'push:x' WHERE id = $1`,
+        [push],
+      );
+      const ids = async (qs: string, t = token, tenant = TENANT_ID) =>
+        (
+          await supertest(app.getHttpServer())
+            .get(`/api/v1/communications/logs?${qs}`)
+            .set('Authorization', `Bearer ${t}`)
+            .set('X-Tenant-ID', tenant)
+            .expect(200)
+        ).body.data.map((r: { id: string }) => r.id);
+
+      expect((await ids(`student_id=${studentId}`)).sort()).toEqual([failed, sent].sort());
+      expect((await ids(`guardian_id=${guardianId}`)).sort()).toEqual([failed, sent].sort());
+      expect(await ids(`student_id=${studentId}&status=FAILED`)).toEqual([failed]);
+      expect(await ids(`guardian_id=${guardianId}&status=FAILED`)).toEqual([failed]);
+      expect(await ids(`student_id=${studentId}`)).not.toContain(other);
+      // Tenant isolation: the other school's admin, on their own school, gets nothing.
+      expect(await ids(`student_id=${studentId}`, otherTenantAdminToken, OTHER_TENANT_ID)).toEqual(
+        [],
+      );
+    });
+  });
+
+  // [#3351 r2] Finding 1: what a log row shows of the stored text, decided at read time. Rule 16:
+  // a live invoice share token never leaves the server; RESULT_READ: an exam result only for a
+  // role that may read results. The stored (and sent) text is unchanged.
+  describe('message body on log rows', () => {
+    // 32 random bytes, base64url: the invoice share token's real shape.
+    const TOKEN = 'Q2xhdWRlU2hhcmVUb2tlbl9vbmx5X2luX3RoZV9EQg_-';
+    const receipt = `Invoice INV-7 paid. See it: https://app.example/i/${TOKEN}`;
+    const resultText = 'Karim Uddin: GPA 4.50, position 3';
+
+    const read = (path: string, t: string) =>
+      supertest(app.getHttpServer())
+        .get(`/api/v1/communications/${path}`)
+        .set('Authorization', `Bearer ${t}`)
+        .set('X-Tenant-ID', TENANT_ID)
+        .expect(200);
+
+    it('masks the share token in the list and the batch logs for every role; the DB keeps it', async () => {
+      const batchId = await createBatch(TENANT_ID);
+      for (const trigger of ['AUTOMATED', 'MANUAL']) {
+        await createBatchLog(batchId, TENANT_ID, { body: receipt, trigger });
+      }
+
+      for (const t of [token, accountantToken, officeToken]) {
+        const list = await read('logs?search=Log%20Recipient&limit=100', t);
+        const batch = await read(`reminder/bulk/${batchId}/logs`, t);
+        for (const res of [list, batch]) {
+          expect(JSON.stringify(res.body)).not.toContain(TOKEN);
+        }
+        const rows = batch.body.data as { message_body: string; body_withheld: boolean }[];
+        expect(rows).toHaveLength(2);
+        for (const row of rows) {
+          expect(row.message_body).toBe('Invoice INV-7 paid. See it: https://app.example/i/••••••');
+          expect(row.body_withheld).toBe(false);
+        }
+      }
+      // What is stored, and what the worker sends, is the real link.
+      const stored = await dataSource.query(
+        `SELECT message_body FROM communication_logs WHERE reminder_batch_id = $1`,
+        [batchId],
+      );
+      expect(stored.map((r: { message_body: string }) => r.message_body)).toEqual([
+        receipt,
+        receipt,
+      ]);
+    });
+
+    it('withholds an exam result from ACCOUNTANT (no RESULT_READ); shows it to ADMIN and OFFICE_STAFF', async () => {
+      const batchId = await createBatch(TENANT_ID);
+      const id = await createBatchLog(batchId, TENANT_ID, {
+        body: resultText,
+        trigger: 'RESULT_SMS',
+      });
+      const rowFor = async (t: string) => {
+        const list = await read('logs?trigger=RESULT_SMS&limit=100', t);
+        const batch = await read(`reminder/bulk/${batchId}/logs`, t);
+        const fromList = list.body.data.find((r: { id: string }) => r.id === id);
+        expect(batch.body.data[0]).toEqual(fromList);
+        return fromList;
+      };
+
+      const accountant = await rowFor(accountantToken);
+      expect(accountant).toMatchObject({ message_body: null, body_withheld: true });
+      for (const t of [token, officeToken]) {
+        expect(await rowFor(t)).toMatchObject({ message_body: resultText, body_withheld: false });
+      }
     });
   });
 
@@ -570,6 +742,28 @@ describe('Bulk Reminder Read/Preview E2E', () => {
       const res = await check(id, officeToken).expect(200);
 
       expect(res.body.status).toBe('SENT');
+    });
+
+    // [#3351 r2] The answer is a log row too: same read-time rules as the list.
+    it('the answer masks a share token, and withholds an exam result from ACCOUNTANT', async () => {
+      stubProvider();
+      getStatus.mockResolvedValue({ status: 'PENDING' });
+      const shareToken = 'Q2xhdWRlU2hhcmVUb2tlbl9vbmx5X2luX3RoZV9EQg_-';
+      const receipt = await sentLog();
+      const result = await sentLog();
+      await dataSource.query(
+        `UPDATE communication_logs SET message_body = $1, trigger = 'AUTOMATED' WHERE id = $2`,
+        [`Paid. https://app.example/i/${shareToken}`, receipt],
+      );
+      await dataSource.query(
+        `UPDATE communication_logs SET message_body = 'GPA 4.50', trigger = 'RESULT_SMS' WHERE id = $1`,
+        [result],
+      );
+
+      const masked = await check(receipt, accountantToken).expect(200);
+      expect(masked.body.message_body).toBe('Paid. https://app.example/i/••••••');
+      const withheld = await check(result, accountantToken).expect(200);
+      expect(withheld.body).toMatchObject({ message_body: null, body_withheld: true });
     });
 
     it('the same Idempotency-Key replays the answer; the vendor is asked once', async () => {
@@ -658,6 +852,72 @@ describe('Bulk Reminder Read/Preview E2E', () => {
     });
   });
 
+  // [97.4.02] D22: the Company and Sent-by choices on the log's own permission.
+  describe('GET /communications/logs/filter-options', () => {
+    const getOptions = (t = token, tenant: string | null = TENANT_ID) => {
+      const req = supertest(app.getHttpServer())
+        .get('/api/v1/communications/logs/filter-options')
+        .set('Authorization', `Bearer ${t}`);
+      return tenant ? req.set('X-Tenant-ID', tenant) : req;
+    };
+
+    it('ADMIN: every company, and only this school senders', async () => {
+      const mine = await createBatchLog(await createBatch(TENANT_ID), TENANT_ID);
+      await dataSource.query(`UPDATE communication_logs SET sent_by_user_id = $1 WHERE id = $2`, [
+        OFFICE_USER_ID,
+        mine,
+      ]);
+      const foreign = await createBatchLog(await createBatch(OTHER_TENANT_ID), OTHER_TENANT_ID);
+      await dataSource.query(`UPDATE communication_logs SET sent_by_user_id = $1 WHERE id = $2`, [
+        OTHER_ADMIN_USER_ID,
+        foreign,
+      ]);
+
+      const res = await getOptions().expect(200);
+
+      expect(res.body.companies).toContainEqual({
+        name: 'onecodesoft',
+        medium: 'SMS',
+        label: expect.objectContaining({ en: expect.any(String), bn: expect.any(String) }),
+      });
+      const senderIds = res.body.senders.map((s: { id: string }) => s.id);
+      expect(senderIds).toContain(OFFICE_USER_ID);
+      // Tenant isolation: the other school's sender never shows here.
+      expect(senderIds).not.toContain(OTHER_ADMIN_USER_ID);
+      // One entry per sender, however many messages they sent.
+      expect(new Set(senderIds).size).toBe(senderIds.length);
+    });
+
+    it('leaves out a staff member whose only messages are app notifications (PUSH)', async () => {
+      const push = await createBatchLog(await createBatch(TENANT_ID), TENANT_ID);
+      await dataSource.query(
+        `UPDATE communication_logs SET medium = 'PUSH', recipient_address = 'push:x', sent_by_user_id = $1 WHERE id = $2`,
+        [TEACHER_USER_ID, push],
+      );
+
+      const res = await getOptions().expect(200);
+
+      expect(res.body.senders.map((s: { id: string }) => s.id)).not.toContain(TEACHER_USER_ID);
+    });
+
+    it('OFFICE_STAFF (holds COMMUNICATION_BULK_SEND, not SETTINGS_MANAGE or USER_READ) gets 200', async () => {
+      await getOptions(officeToken).expect(200);
+    });
+
+    it('403 for a TEACHER (no COMMUNICATION_BULK_SEND)', async () => {
+      await getOptions(teacherToken).expect(403);
+    });
+
+    it('401 without an X-Tenant-ID header', async () => {
+      await getOptions(token, null).expect(401);
+    });
+
+    it('401 for an X-Tenant-ID that matches no school, or one the caller is not a member of', async () => {
+      await getOptions(token, '00000000-0000-4000-8000-000000000fff').expect(401);
+      await getOptions(otherTenantAdminToken, TENANT_ID).expect(401);
+    });
+  });
+
   it('GET /communications/logs: 401 without an X-Tenant-ID header', async () => {
     await supertest(app.getHttpServer())
       .get('/api/v1/communications/logs')
@@ -687,8 +947,8 @@ describe('Bulk Reminder Read/Preview E2E', () => {
         status: 'FAILED',
         error: 'NO_PROVIDER',
       });
-      // Row list is a status table, not a message dump.
-      expect(res.body.data[0]).not.toHaveProperty('message_body');
+      // [97.4.02] Same row shape as the message log (D22 row detail), so the body is in it.
+      expect(res.body.data[0]).toMatchObject({ message_body: 'Dear guardian', batch_id: batchId });
     });
 
     it('paginates the logs', async () => {
@@ -755,6 +1015,16 @@ describe('Bulk Reminder Read/Preview E2E', () => {
         call: (t, tenant) =>
           supertest(app.getHttpServer())
             .get(`/api/v1/communications/reminder/bulk/${randomUUID()}/logs`)
+            .set('Authorization', `Bearer ${t}`)
+            .set('X-Tenant-ID', tenant),
+      },
+      // #3351 r2 (#3343): the per-person filters of the student and guardian Messages link.
+      {
+        name: 'GET /communications/logs (student_id / guardian_id)',
+        call: (t, tenant) =>
+          supertest(app.getHttpServer())
+            .get('/api/v1/communications/logs')
+            .query({ student_id: randomUUID(), guardian_id: randomUUID() })
             .set('Authorization', `Bearer ${t}`)
             .set('X-Tenant-ID', tenant),
       },

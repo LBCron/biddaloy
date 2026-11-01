@@ -207,6 +207,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/communications/logs/filter-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Message log — the Company and Sent-by filter choices. */
+        get: operations["CommunicationsController_findLogFilterOptions_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/communications/logs/{id}/check-status": {
         parameters: {
             query?: never;
@@ -9550,6 +9567,15 @@ export interface components {
             provider: string | null;
             /** Format: date-time */
             created_at: string;
+            message_body: string | null;
+            body_withheld: boolean;
+            subject: string | null;
+            segments: number | null;
+            batch_id: string | null;
+            is_test: boolean;
+            sent_by_user_id: string | null;
+            sent_by_name: string | null;
+            can_check_status: boolean;
         };
         ReminderBatchLogListResponseDto: {
             data: components["schemas"]["ReminderBatchLogDto"][];
@@ -9557,6 +9583,24 @@ export interface components {
             page: number;
             limit: number;
             totalPages: number;
+        };
+        MessageLogCompanyLabelDto: {
+            en: string;
+            bn: string;
+        };
+        MessageLogCompanyDto: {
+            /** @enum {string} */
+            medium: "SMS" | "WHATSAPP" | "EMAIL" | "PHONE_CALL" | "MESSENGER";
+            name: string;
+            label: components["schemas"]["MessageLogCompanyLabelDto"];
+        };
+        MessageLogSenderDto: {
+            id: string;
+            full_name: string;
+        };
+        MessageLogFilterOptionsDto: {
+            companies: components["schemas"]["MessageLogCompanyDto"][];
+            senders: components["schemas"]["MessageLogSenderDto"][];
         };
         SendGuardianMessageDto: {
             /** @enum {string} */
@@ -17414,6 +17458,8 @@ export interface operations {
             query?: {
                 search?: string;
                 trigger?: "MANUAL" | "AUTOMATED" | "BULK_REMINDER" | "SINGLE_REMINDER" | "ACCOUNT_ACCESS" | "RESULT_SMS" | "ARRIVAL_NOTICE";
+                student_id?: string;
+                guardian_id?: string;
                 sent_by?: string;
                 provider?: string;
                 status?: "QUEUED" | "SENT" | "DELIVERED" | "FAILED" | "READ";
@@ -17440,6 +17486,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReminderBatchLogListResponseDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CommunicationsController_findLogFilterOptions_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageLogFilterOptionsDto"];
                 };
             };
             /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */

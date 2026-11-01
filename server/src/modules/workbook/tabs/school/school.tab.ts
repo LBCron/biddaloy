@@ -159,6 +159,24 @@ export function deepMergePresent(
 }
 
 /**
+ * `communications.sms.metering` says who pays for the school's SMS, and only the platform sets it
+ * (#3346). A school ADMIN holds BACKUP_MANAGE, so an imported value must never reach the stored
+ * settings: the destination keeps its own, whatever the file says. A non-object `communications`
+ * or `communications.sms` (e.g. `null`) is dropped too: the merge would replace the stored object
+ * with it, wiping the stored metering and every saved credential under it.
+ */
+function withoutPlatformOnlyPaths(settings: Record<string, unknown>): Record<string, unknown> {
+  if (!('communications' in settings)) return settings;
+  const { communications, ...rest } = settings;
+  if (!isPlainObject(communications)) return rest;
+  if (!('sms' in communications)) return settings;
+  const { sms, ...otherMedia } = communications;
+  if (!isPlainObject(sms)) return { ...rest, communications: otherMedia };
+  const { metering: _dropped, ...smsKept } = sms;
+  return { ...rest, communications: { ...otherMedia, sms: smsKept } };
+}
+
+/**
  * What an import does to the stored settings: secrets stripped, then a present-keys merge. A
  * messaging medium stored flat (pre-D6) but imported nested (or the reverse) is lifted to one shape
  * first, or the merge would keep both and strand the stored secret (the send then fails).
@@ -167,7 +185,7 @@ export function mergeImportedSettings(
   existing: Record<string, unknown> | null,
   imported: Record<string, unknown> | null,
 ): Record<string, unknown> | null {
-  const incoming = imported ? stripSecretPaths(imported) : null;
+  const incoming = imported ? withoutPlatformOnlyPaths(stripSecretPaths(imported)) : null;
   if (!existing || !incoming || !isPlainObject(incoming.communications)) {
     return deepMergePresent(existing, incoming);
   }

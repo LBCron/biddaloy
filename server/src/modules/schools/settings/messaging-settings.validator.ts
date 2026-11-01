@@ -79,7 +79,7 @@ export function problemWith(value: unknown, medium: CommunicationMedium): string
   }
   // #3338: "remove saved details": provider null (or the sole company's block null) with every
   // other sent key null too. The merge deletes them. A `metering` sent alongside is still saved:
-  // a school setting its own metering is a known gap, #3346.
+  // the caller check (platform-only) lives in SchoolsService.updateSettings, #3346.
   // Review round 2 on #3347: every company block must be sent as null. `{provider: null}` alone
   // would delete only the name and leave a saved block that the resolver can still send on.
   if (provider === null || (sole && value[sole.name] === null)) {

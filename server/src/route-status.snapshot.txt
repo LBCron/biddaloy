@@ -193,6 +193,7 @@ GET    /api/v1/communications/guardian/:guardianId                              
 GET    /api/v1/communications/last-reminders                                     401 PASS PASS PASS PASS PASS 403 403 PASS PASS 403 403
 GET    /api/v1/communications/logs                                               401 PASS PASS PASS PASS 403 403 403 403 PASS 403 403
 POST   /api/v1/communications/logs/:id/check-status                              401 PASS PASS PASS PASS 403 403 403 403 PASS 403 403
+GET    /api/v1/communications/logs/filter-options                                401 PASS PASS PASS PASS 403 403 403 403 PASS 403 403
 GET    /api/v1/communications/reminder/bulk                                      401 PASS PASS PASS PASS 403 403 403 403 PASS 403 403
 POST   /api/v1/communications/reminder/bulk                                      401 PASS PASS PASS PASS 403 403 403 403 PASS 403 403
 GET    /api/v1/communications/reminder/bulk/:id                                  401 PASS PASS PASS PASS 403 403 403 403 PASS 403 403

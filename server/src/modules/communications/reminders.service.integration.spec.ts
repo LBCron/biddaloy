@@ -97,7 +97,7 @@ describe('BulkReminderService.findLogs (integration)', () => {
     const own = await addLog(tenantA, { name: 'Karim', provider: 'stub-sms' });
     await addLog(tenantB, { name: 'Karim', provider: 'stub-sms' });
 
-    const res = await service.findLogs({ search: 'Karim', provider: 'stub-sms' }, tenantA);
+    const res = await service.findLogs({ search: 'Karim', provider: 'stub-sms' }, tenantA, 'ADMIN');
 
     expect(ids(res)).toEqual([own]);
   });
@@ -107,8 +107,8 @@ describe('BulkReminderService.findLogs (integration)', () => {
     const newer = await addLog(tenantA, { createdAt: '2026-10-02T04:00:00Z' });
     await addLog(tenantA, { medium: 'PUSH', address: 'push:user' });
 
-    const page1 = await service.findLogs({ page: 1, limit: 1 }, tenantA);
-    const page2 = await service.findLogs({ page: 2, limit: 1 }, tenantA);
+    const page1 = await service.findLogs({ page: 1, limit: 1 }, tenantA, 'ADMIN');
+    const page2 = await service.findLogs({ page: 2, limit: 1 }, tenantA, 'ADMIN');
 
     expect(page1).toMatchObject({ total: 2, totalPages: 2, data: [{ id: newer }] });
     expect(page2.data.map((r) => r.id)).toEqual([older]);
@@ -118,9 +118,9 @@ describe('BulkReminderService.findLogs (integration)', () => {
     it('status', async () => {
       const failed = await addLog(tenantA, { status: CommunicationStatus.FAILED });
       await addLog(tenantA, { status: CommunicationStatus.SENT });
-      expect(ids(await service.findLogs({ status: CommunicationStatus.FAILED }, tenantA))).toEqual([
-        failed,
-      ]);
+      expect(
+        ids(await service.findLogs({ status: CommunicationStatus.FAILED }, tenantA, 'ADMIN')),
+      ).toEqual([failed]);
     });
 
     it('medium', async () => {
@@ -129,30 +129,32 @@ describe('BulkReminderService.findLogs (integration)', () => {
         address: 'a@b.test',
       });
       await addLog(tenantA, { medium: CommunicationMedium.SMS });
-      expect(ids(await service.findLogs({ medium: CommunicationMedium.EMAIL }, tenantA))).toEqual([
-        email,
-      ]);
+      expect(
+        ids(await service.findLogs({ medium: CommunicationMedium.EMAIL }, tenantA, 'ADMIN')),
+      ).toEqual([email]);
     });
 
     it('trigger', async () => {
       const auto = await addLog(tenantA, { trigger: CommunicationTrigger.AUTOMATED });
       await addLog(tenantA, { trigger: CommunicationTrigger.MANUAL });
       expect(
-        ids(await service.findLogs({ trigger: CommunicationTrigger.AUTOMATED }, tenantA)),
+        ids(await service.findLogs({ trigger: CommunicationTrigger.AUTOMATED }, tenantA, 'ADMIN')),
       ).toEqual([auto]);
     });
 
     it('sent_by', async () => {
       const mine = await addLog(tenantA, { sentBy: SEED_ADMIN_USER_ID });
       await addLog(tenantA, { sentBy: null });
-      expect(ids(await service.findLogs({ sent_by: SEED_ADMIN_USER_ID }, tenantA))).toEqual([mine]);
+      expect(
+        ids(await service.findLogs({ sent_by: SEED_ADMIN_USER_ID }, tenantA, 'ADMIN')),
+      ).toEqual([mine]);
     });
 
     it('provider (metadata.provider)', async () => {
       const a = await addLog(tenantA, { provider: 'stub-a' });
       await addLog(tenantA, { provider: 'stub-b' });
       await addLog(tenantA, {});
-      expect(ids(await service.findLogs({ provider: 'stub-a' }, tenantA))).toEqual([a]);
+      expect(ids(await service.findLogs({ provider: 'stub-a' }, tenantA, 'ADMIN'))).toEqual([a]);
     });
 
     it('date from/to are school (Asia/Dhaka) days, not UTC days', async () => {
@@ -165,6 +167,7 @@ describe('BulkReminderService.findLogs (integration)', () => {
       const res = await service.findLogs(
         { from_date: '2026-10-07', to_date: '2026-10-07' },
         tenantA,
+        'ADMIN',
       );
 
       expect(ids(res)).toEqual([startOfDay, endOfDay].sort());
@@ -173,9 +176,9 @@ describe('BulkReminderService.findLogs (integration)', () => {
     it('search by recipient name, case-insensitive, with LIKE wildcards treated literally', async () => {
       const karim = await addLog(tenantA, { name: 'Karim Uddin' });
       await addLog(tenantA, { name: 'Rahim' });
-      expect(ids(await service.findLogs({ search: 'karim' }, tenantA))).toEqual([karim]);
+      expect(ids(await service.findLogs({ search: 'karim' }, tenantA, 'ADMIN'))).toEqual([karim]);
       // `%` would match everything if it were not escaped (normalizeSearchTerm).
-      expect((await service.findLogs({ search: '%' }, tenantA)).total).toBe(0);
+      expect((await service.findLogs({ search: '%' }, tenantA, 'ADMIN')).total).toBe(0);
     });
 
     it('search by email address', async () => {
@@ -184,7 +187,9 @@ describe('BulkReminderService.findLogs (integration)', () => {
         address: 'guardian@school.test',
       });
       await addLog(tenantA, {});
-      expect(ids(await service.findLogs({ search: 'guardian@school' }, tenantA))).toEqual([mail]);
+      expect(ids(await service.findLogs({ search: 'guardian@school' }, tenantA, 'ADMIN'))).toEqual([
+        mail,
+      ]);
     });
   });
 
@@ -197,33 +202,39 @@ describe('BulkReminderService.findLogs (integration)', () => {
     });
 
     it('finds the stored 01… number from a +880 form with spaces and a dash', async () => {
-      expect(ids(await service.findLogs({ search: '+880 1712-345678' }, tenantA))).toEqual([
+      expect(ids(await service.findLogs({ search: '+880 1712-345678' }, tenantA, 'ADMIN'))).toEqual(
+        [target],
+      );
+    });
+
+    it('finds it from the 8801… form', async () => {
+      expect(ids(await service.findLogs({ search: '8801712345678' }, tenantA, 'ADMIN'))).toEqual([
         target,
       ]);
     });
 
-    it('finds it from the 8801… form', async () => {
-      expect(ids(await service.findLogs({ search: '8801712345678' }, tenantA))).toEqual([target]);
-    });
-
     it('finds it from the 01… form with spaces', async () => {
-      expect(ids(await service.findLogs({ search: '01712 345678' }, tenantA))).toEqual([target]);
+      expect(ids(await service.findLogs({ search: '01712 345678' }, tenantA, 'ADMIN'))).toEqual([
+        target,
+      ]);
     });
 
     it('finds it from Bengali digits', async () => {
-      expect(ids(await service.findLogs({ search: '০১৭১২৩৪৫৬৭৮' }, tenantA))).toEqual([target]);
+      expect(ids(await service.findLogs({ search: '০১৭১২৩৪৫৬৭৮' }, tenantA, 'ADMIN'))).toEqual([
+        target,
+      ]);
     });
 
     // Review round 1 on #3347: `880` alone would become `0` and match nearly every number.
     it('a phone term under 4 digits after the country code is not a phone search', async () => {
-      expect(ids(await service.findLogs({ search: '880' }, tenantA))).toEqual([]);
-      expect(ids(await service.findLogs({ search: '+880 1' }, tenantA))).toEqual([]);
+      expect(ids(await service.findLogs({ search: '880' }, tenantA, 'ADMIN'))).toEqual([]);
+      expect(ids(await service.findLogs({ search: '+880 1' }, tenantA, 'ADMIN'))).toEqual([]);
     });
 
     // Review round 2 on #3347: only the real country code `880` is dropped. `8812345678` is not a
     // `+880` number, so it must not turn into `12345678` (which is inside 01712345678).
     it('drops only the 880 country code, not any leading 88', async () => {
-      expect(ids(await service.findLogs({ search: '8812345678' }, tenantA))).toEqual([]);
+      expect(ids(await service.findLogs({ search: '8812345678' }, tenantA, 'ADMIN'))).toEqual([]);
     });
 
     // Review round 2 on #3347: a writer may store the number formatted.
@@ -237,7 +248,9 @@ describe('BulkReminderService.findLogs (integration)', () => {
 
     it('finds a +880-stored number from the 01… form', async () => {
       const plus = await addLog(tenantA, { address: '+8801999888777' });
-      expect(ids(await service.findLogs({ search: '01999888777' }, tenantA))).toEqual([plus]);
+      expect(ids(await service.findLogs({ search: '01999888777' }, tenantA, 'ADMIN'))).toEqual([
+        plus,
+      ]);
     });
   });
 
@@ -267,6 +280,7 @@ describe('BulkReminderService.findLogs (integration)', () => {
         provider: 'stub-a',
       },
       tenantA,
+      'ADMIN',
     );
 
     expect(ids(res)).toEqual([hit]);
