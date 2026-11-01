@@ -405,7 +405,7 @@
   },
   "audienceBuilder": {
     "addSelected": "নির্বাচিত তালিকায় নিন",
-    "addAll": "সব নির্বাচন",
+    "addAll": "মিল পাওয়া সবাইকে যোগ করুন ({{count}})",
     "max": "সর্বোচ্চ {{max}} জন",
     "matchesTitle": "মিলে যাওয়া মানুষ",
     "emptyTitle": "এই ফিল্টারে কেউ নেই",

@@ -87,26 +87,28 @@ The full list is on the cards. Here are the main points.
 
 **Data access.** Every role sees only its own school's data. Nobody can ever see another school's data.
 
-| Role                                                                                                     | How much data they see |
-| -------------------------------------------------------------------------------------------------------- | ---------------------- |
-| Admin, Accountant, Academic coordinator, Office staff, Exam controller, Committee member                 | Whole school           |
-| Teacher                                                                                                  | Assigned sections only |
+| Role                                                                                     | How much data they see |
+| ---------------------------------------------------------------------------------------- | ---------------------- |
+| Admin, Accountant, Academic coordinator, Office staff, Exam controller, Committee member | Whole school           |
+| Teacher                                                                                  | Assigned sections only |
 
 A teacher sees the students, attendance and marks of only the sections given to them ([**Teacher assignments**](../people/teaching-assignments.md)). If no section is given, the list is empty. If they open the page of someone outside their sections, they get "not found".
 
 **What each role mainly does**
 
-| Role                  | What they can do                                                                                                                                                                                                                                                             | What they cannot do                                                                  |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Admin                 | Everything in the school: staff, students, guardians, fees, payments, exams, results, routines, printing, settings, backups, the activity log. Only the Admin can approve money-risk actions and cancel payments.                                                              | —                                                                                    |
-| Accountant            | Create and change fee structures, generate fee bills, take payments, invoices, discount rules, automatic billing, finance reports, send messages. Add and edit students and guardians, import students from a file, print ID cards.                                          | Approve fee actions, cancel payments, delete students or fee structures, exams, settings |
-| Academic coordinator  | View students, results, marks and reports; import students from a file; approve staff leave; view applications and decide on them; run programs; change a student's status (for example left school); issue certificates; send alerts.                                                                    | Take money or generate bills, enter marks, settings                                  |
-| Teacher               | In their own sections: take attendance, enter marks, give and view homework, arrange the syllabus, write student notes, write program progress. View their sections' students, guardians and fees.                                                                           | Anything outside their sections, take money, publish results                         |
-| Exam controller       | Arrange exams for the whole school, seat plans, view marks, generate and publish results, print documents.                                                                                                                                                                  | Enter marks, money, add students                                                     |
-| Office staff          | View admission applicants, add and edit students and guardians, import from a file, student records, send messages, printing and certificates, view applications and decide at their own step. Only view fees and invoices.                                                  | Take money, delete students, settings                                                |
-| Committee member      | View only: dashboard, committee reports, staff evaluations, calendar.                                                                                                                                                                                                        | See student details, change anything                                                 |
+| Role                 | What they can do                                                                                                                                                                                                                       | What they cannot do                                                                      |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Admin                | Everything in the school: staff, students, guardians, fees, payments, exams, results, routines, printing, settings, backups, the activity log. Only the Admin can approve money-risk actions and cancel payments.                      | —                                                                                        |
+| Accountant           | Create and change fee structures, generate fee bills, take payments, invoices, discount rules, automatic billing, finance reports, send messages. Add and edit students and guardians, import students from a file, print ID cards.    | Approve fee actions, cancel payments, delete students or fee structures, exams, settings |
+| Academic coordinator | View students, results, marks and reports; import students from a file; approve staff leave; view applications and decide on them; run programs; change a student's status (for example left school); issue certificates; send alerts. | Take money or generate bills, enter marks, settings                                      |
+| Teacher              | In their own sections: take attendance, enter marks, give and view homework, arrange the syllabus, write student notes, write program progress. View their sections' students, guardians and fees.                                     | Anything outside their sections, take money, publish results                             |
+| Exam controller      | Arrange exams for the whole school, seat plans, view marks, generate and publish results, print documents.                                                                                                                             | Enter marks, money, add students                                                         |
+| Office staff         | View admission applicants, add and edit students and guardians, import from a file, student records, send messages, printing and certificates, view applications and decide at their own step. Only view fees and invoices.            | Take money, delete students, settings                                                    |
+| Committee member     | View only: dashboard, committee reports, staff evaluations, calendar.                                                                                                                                                                  | See student details, change anything                                                     |
 
 Every staff role except Committee member can mark and view their own attendance, and can apply for themselves ([**Applications**](../applications/applications.md)).
+
+**Notices** (in the **Communication** group): every role can read the notices sent to them. Admin, Academic coordinator, Teacher and Office staff can post notices; a teacher posts only to their own sections. Only the Admin and the Academic coordinator can manage everyone's notices and approve a notice's SMS.
 
 ---
 
@@ -119,13 +121,13 @@ Every staff role except Committee member can mark and view their own attendance,
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                                      | What to do                                                                                                     | Who can help |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------ |
-| **Roles & access** is not in the menu             | This page is for the Admin only. If you are not the Admin, ask the Admin to show you your role's card.         | Admin        |
-| A staff member does not see a button              | Check whether their role's card has the permission for that action. If it does not, this is correct behaviour. | Admin        |
-| You want to change someone's role                 | You cannot do it from this page. See the [**Staff**](../people/staff.md) page.                                 | Admin        |
-| A teacher says their list is empty                | Check whether any section is given to them: [**Teacher assignments**](../people/teaching-assignments.md).      | Admin        |
-| You want a new role or permissions of your own    | Not possible. The school has these seven roles, and the permissions of each are fixed.                         | —            |
+| What you see                                   | What to do                                                                                                     | Who can help |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------ |
+| **Roles & access** is not in the menu          | This page is for the Admin only. If you are not the Admin, ask the Admin to show you your role's card.         | Admin        |
+| A staff member does not see a button           | Check whether their role's card has the permission for that action. If it does not, this is correct behaviour. | Admin        |
+| You want to change someone's role              | You cannot do it from this page. See the [**Staff**](../people/staff.md) page.                                 | Admin        |
+| A teacher says their list is empty             | Check whether any section is given to them: [**Teacher assignments**](../people/teaching-assignments.md).      | Admin        |
+| You want a new role or permissions of your own | Not possible. The school has these seven roles, and the permissions of each are fixed.                         | —            |
 
 If a page or button is missing, see [Why can't I see this?](../help/cant-see-this.md).
 
@@ -133,10 +135,10 @@ If a page or button is missing, see [Why can't I see this?](../help/cant-see-thi
 
 ## Who can do what <a href="#roles" id="roles"></a>
 
-| Role                                                                                                       | See this page | Change anything          |
-| ---------------------------------------------------------------------------------------------------------- | ------------- | ------------------------ |
-| Admin                                                                                                      | Yes           | Nothing changes here     |
-| Accountant, Academic coordinator, Teacher, Exam controller, Office staff, Committee member                 | No            | No                       |
+| Role                                                                                       | See this page | Change anything      |
+| ------------------------------------------------------------------------------------------ | ------------- | -------------------- |
+| Admin                                                                                      | Yes           | Nothing changes here |
+| Accountant, Academic coordinator, Teacher, Exam controller, Office staff, Committee member | No            | No                   |
 
 Opening this page needs the permission to view the staff list, which only the Admin has. If another role opens the address directly, the page does not open; a message appears instead.
 

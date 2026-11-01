@@ -155,7 +155,10 @@ export class NoticesController {
   }
 
   @Post(':id/recipients/matching')
-  @ApiOperation({ summary: 'Add everyone an audience filter matches (max 5,000)' })
+  @ApiOperation({
+    summary:
+      'Add everyone an audience filter matches (max 5,000 rows; a guardian counts once per child)',
+  })
   @ApiCreatedResponse({ type: AddRecipientsResultDto })
   addMatching(
     @Param('id', ParseUUIDPipe) id: string,
