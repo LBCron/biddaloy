@@ -51,7 +51,7 @@ export function buildPinoOptions(nodeEnv: string | undefined): PinoHttpOptions {
       req: (req: IncomingMessage & { url?: string; route?: { path?: string } }) => ({
         method: req.method,
         // [666]/PUB-07 `redactPii` masks secret path tokens
-        // (`/public/invoices/:token`, `/public/verify/:token`,
+        // (`/public/invoices/:token`, `/public/verify/:token`, `/public/notices/:token`,
         // `/calendar/feed/:token.ics`) as well as `?token=`-style params.
         url: req.url ? redactPii(req.url) : req.url,
         route: req.route?.path ?? null,

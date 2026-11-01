@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
-import { AuditAction, AuditEntityType, NoticeSmsStatus, NoticeStatus } from '@biddaloy/shared';
+import { AuditAction, NoticeSmsStatus, NoticeStatus } from '@biddaloy/shared';
 import { normalizeSearchTerm } from '../../common/utils/normalize-search-term.util';
 import { localToday } from '../../common/time';
 import { AlertWriterService } from '../attention/engine/alert-writer.service';
@@ -37,9 +37,6 @@ import {
   NoticeReportQueryDto,
   UpdateNoticeDto,
 } from './dto/notice.dto';
-
-// `Notice` is the audit catalog's entity type; shared/src/audit/entity-types.ts needs 'Notice' (wave close).
-const NOTICE_AUDIT = 'Notice' as AuditEntityType;
 
 const M = {
   expiry: 'শেষ তারিখ আজ বা তার পরে হতে হবে',
@@ -407,7 +404,7 @@ export class NoticesService {
       await this.audit.record(
         {
           action: AuditAction.UPDATE,
-          entity_type: NOTICE_AUDIT,
+          entity_type: 'Notice',
           entity_id: id,
           tenant_id: tenantId,
           performed_by_user_id: actor.userId,
@@ -528,7 +525,7 @@ export class NoticesService {
         await this.audit.record(
           {
             action: AuditAction.UPDATE,
-            entity_type: NOTICE_AUDIT,
+            entity_type: 'Notice',
             entity_id: id,
             tenant_id: tenantId,
             performed_by_user_id: actor.userId,
@@ -575,7 +572,7 @@ export class NoticesService {
       await this.audit.record(
         {
           action: AuditAction.UPDATE,
-          entity_type: NOTICE_AUDIT,
+          entity_type: 'Notice',
           entity_id: id,
           tenant_id: tenantId,
           performed_by_user_id: actor.userId,
@@ -639,7 +636,7 @@ export class NoticesService {
       await this.audit.record(
         {
           action: AuditAction.UPDATE,
-          entity_type: NOTICE_AUDIT,
+          entity_type: 'Notice',
           entity_id: id,
           tenant_id: tenantId,
           performed_by_user_id: actor.userId,

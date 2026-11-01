@@ -234,6 +234,27 @@ export const ALLOWLIST: AllowlistEntry[] = [
       '[#666] the share token itself is the credential and carries its own tenant scope (InvoiceShareService.validatePublicToken) — there is no JWT, no user, and no X-Tenant-ID on this path at all, same no-guards rationale as /auth/activate*. Throttled instead via PUBLIC_INVOICE_RATE_LIMIT.',
   },
   {
+    controller: 'PublicNoticeController',
+    method: 'GET',
+    path: '/public/notices/:token',
+    reason:
+      '[53.2] D17 — the 256-bit link token is the credential; the tenant comes from the token row (hashed lookup), so there is no JWT, user or X-Tenant-ID. Unknown, expired or revoked tokens answer one 404. Throttled via the public notice rate limit.',
+  },
+  {
+    controller: 'PublicNoticeController',
+    method: 'GET',
+    path: '/public/notices/:token/files/:fileId',
+    reason:
+      '[53.2] D17 — same token credential as GET /public/notices/:token; the file must belong to the token’s notice, else 404.',
+  },
+  {
+    controller: 'PublicNoticeController',
+    method: 'POST',
+    path: '/public/notices/:token/opened',
+    reason:
+      '[53.2] D17 — same token credential; stamps link_opened_at on the matching recipient only, never changes notice state.',
+  },
+  {
     controller: 'PublicVerifyController',
     method: 'GET',
     path: '/public/verify/:token',

@@ -402,5 +402,22 @@
     "tooManyRows": "This file has too many rows. Split the file into smaller files.",
     "noRows": "This file has no rows in it. Add at least one row.",
     "tooLarge": "This file is too large. Split the file into smaller files."
+  },
+  "audienceBuilder": {
+    "addSelected": "Add to chosen list",
+    "addAll": "Select all",
+    "max": "Maximum {{max}}",
+    "matchesTitle": "Matching people",
+    "emptyTitle": "No one matches this filter",
+    "emptyExplanation": "Change the filter to see people.",
+    "filters": "Filters",
+    "chosenBar": "Chosen ({{count}})",
+    "backToMatches": "Back to the list",
+    "chosenTitle": "Chosen list",
+    "chosenCaption": "Chosen people",
+    "chosenTotal": "Total {{total}}",
+    "chosenEmptyTitle": "No one chosen yet",
+    "chosenEmptyExplanation": "Add people from the list.",
+    "remove": "Remove from chosen list"
   }
 }

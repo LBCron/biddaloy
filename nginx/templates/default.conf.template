@@ -6,8 +6,8 @@
 map $uri $log_uri {
     default $uri;
     # API paths, plus the SPA share/verify pages people actually open:
-    # /i/<token> (invoice share) and /v/<token> (certificate verify); Kuma /api/push/<token>.
-    "~^(?<lg_keep>/[iv]/|.*/(?:public/invoices|public/verify|calendar/feed|api/push)/)" "${lg_keep}[REDACTED]";
+    # /i/<token> (invoice share) and /v/<token> (certificate verify), /n/<token> (notice link); Kuma /api/push/<token>.
+    "~^(?<lg_keep>/[ivn]/|.*/(?:public/invoices|public/verify|public/notices|calendar/feed|api/push)/)" "${lg_keep}[REDACTED]";
 }
 log_format redacted '$remote_addr - [$time_local] "$request_method $log_uri" '
                     '$status $body_bytes_sent "$http_user_agent" $request_time';

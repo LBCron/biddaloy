@@ -16,6 +16,7 @@ const NON_UUID_PARAMS = new Map<string, number>([
   ['modules/auth/social/social-auth.controller.ts:provider', 4], // google / facebook
   ['modules/calendar/calendar-feed.controller.ts:token', 1], // opaque feed token
   ['modules/invoices/public-invoice.controller.ts:token', 1], // share-link token
+  ['modules/notices/links/public-notice.controller.ts:token', 3], // notice link token (256-bit), not a UUID
   ['modules/print/verify/public-verify.controller.ts:token', 1], // verify token
   ['modules/presets/presets.controller.ts:id', 1], // preset key such as bd/nctb
   ['modules/print/templates/print-templates.controller.ts:key', 1], // artwork key
