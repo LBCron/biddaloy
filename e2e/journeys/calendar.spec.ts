@@ -201,7 +201,9 @@ test.describe.serial('calendar: create -> grid, past-lock, teacher read-only, fe
         .uncheck();
 
       // A day that has passed asks for a reason.
-      await page.getByLabel(t('calendar.eventForm.lateReason')).fill('Hartal, school shut');
+      await page
+        .getByRole('textbox', { name: t('calendar.eventForm.lateReason') })
+        .fill('Hartal, school shut');
       await page.getByRole('button', { name: t('calendar.eventForm.save') }).click();
 
       await expect(page.getByTestId(`day-cell-${pastDay}`).getByText(name)).toBeVisible();

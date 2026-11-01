@@ -41,19 +41,37 @@ const desc = description ?? t('site.description');
     <link rel="alternate" hreflang="x-default" href={alt('bn')} />
     <link rel="canonical" href={alt(lang)} />
     <script is:inline>
-      // Web fonts (font-display: optional) are fetched only after the first paint, so they never delay it on a slow phone.
+      // Web fonts (font-display: optional). A first-ever visit keeps the system font for the whole page, so
+      // nothing paints, then re-wraps. After first paint we only prefetch the files and set a flag; the next
+      // page (flag set, files cached) links fonts.css right here in the head, so the font is there at first paint.
       (function () {
-        function go() {
+        function css() {
           var l = document.createElement('link');
           l.rel = 'stylesheet';
           l.href = '/fonts/fonts.css';
+          l.setAttribute('blocking', 'render');
           document.head.appendChild(l);
         }
+        function prefetch() {
+          [400, 500, 600, 700].forEach(function (w) {
+            ['bengali', 'latin'].forEach(function (s) {
+              var l = document.createElement('link');
+              l.rel = 'prefetch';
+              l.as = 'font';
+              l.type = 'font/woff2';
+              l.crossOrigin = 'anonymous';
+              l.href = '/fonts/hind-siliguri-' + w + '-' + s + '.woff2';
+              document.head.appendChild(l);
+            });
+          });
+          try { localStorage.setItem('sm:wf', '1'); } catch (e) {}
+        }
         try {
+          if (localStorage.getItem('sm:wf')) { css(); return; }
           new PerformanceObserver(function (list, o) {
-            if (list.getEntriesByName('first-contentful-paint').length) { o.disconnect(); go(); }
+            if (list.getEntriesByName('first-contentful-paint').length) { o.disconnect(); prefetch(); }
           }).observe({ type: 'paint', buffered: true });
-        } catch (e) { addEventListener('load', go); }
+        } catch (e) { addEventListener('load', prefetch); }
       })();
     </script>
     <Analytics />

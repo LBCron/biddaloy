@@ -360,7 +360,7 @@ the old `DEMO_RESET_SCHEDULE`, `DEMO_SWAP_AT`, `DEMO_APP_CONTAINER` and
 **Never set `SMS_*`, `SMTP_*` or `VAPID_*`** in the demo file. `reset.sh` refuses to run if any variable with one
 of those prefixes is set (D2).
 One hole remains: platform alerts text operators straight through the SMS gateway, outside the `DEMO_MODE`
-log-only switch. So leave `PLATFORM_SMS_API_KEY` and `PLATFORM_ALERT_PHONES` unset in the demo file.
+log-only switch. So leave `SMS_PROVIDER`, the provider keys (`GREENWEB_*`, `MIMSMS_*`, `ONECODESOFT_*`), `PLATFORM_SMS_API_KEY` and `PLATFORM_ALERT_PHONES` unset in the demo file.
 
 ### The nightly sweep
 
@@ -595,7 +595,7 @@ Rule 8 in practice: a bill's `paid_amount` must equal its allocations from live 
 
 `seed-data/public-holidays-bd.ts` (`BD_PUBLIC_HOLIDAYS_BY_YEAR`) ends at **2027**. Add **2028** before **2027-07-01**: that day College's 2027-2028 year starts, and the seed then needs 2028. A year missing from the table does not stop the reset. The org slice logs `BD_PUBLIC_HOLIDAYS_BY_YEAR has no 2028 …` and seeds that year with no public holidays, so the calendar looks thin until someone adds it. Each later year has the same deadline: add year N+1 before 1 July of year N.
 
-Rule 6 has one exception: platform alerts (`platform-alerts.service.ts`) text the verified phones of platform SUPER_ADMINs straight through the gateway, outside the `DEMO_MODE` log-only swap. So the demo host leaves `PLATFORM_SMS_API_KEY` unset, and the demo seed never gives a platform SUPER_ADMIN a verified phone.
+Rule 6 has one exception: platform alerts (`platform-alerts.service.ts`) text the verified phones of platform SUPER_ADMINs straight through the registered provider, outside the `DEMO_MODE` log-only swap. So the demo host leaves `SMS_PROVIDER`, the provider keys and `PLATFORM_SMS_API_KEY` unset, and the demo seed never gives a platform SUPER_ADMIN a verified phone.
 
 ## What the CI guard checks
 

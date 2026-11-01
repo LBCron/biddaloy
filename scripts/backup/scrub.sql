@@ -141,15 +141,23 @@ UPDATE print_assets SET original_name = 'file-' || left(id::text, 8);
 
 -- School provider secrets (paths from TenantSettingsDto @Secret()) and SMTP identity -------------
 
-UPDATE schools SET settings = jsonb_set(jsonb_set(
+-- Secrets live in the flat shape (legacy) and in the nested <medium>.<provider>.<field> shape (Epic 97).
+UPDATE schools SET settings = jsonb_set(jsonb_set(jsonb_set(jsonb_set(
     settings
+      #- '{communications,sms,onecodesoft,apiKey}'
+      #- '{communications,whatsapp,meta-cloud,accessToken}'
+      #- '{communications,email,smtp,password}'
+      #- '{communications,messenger,meta-page,accessToken}'
+      #- '{communications,sms,apiKey}'
       #- '{communications,sms,greenweb,apiKey}'
       #- '{communications,sms,mimsms,apiKey}'
       #- '{communications,whatsapp,accessToken}'
       #- '{communications,email,password}'
       #- '{communications,messenger,accessToken}',
     '{communications,email,user}', '"scrubbed@staging.invalid"'::jsonb, false),
-    '{communications,email,from}', '"scrubbed@staging.invalid"'::jsonb, false)
+    '{communications,email,from}', '"scrubbed@staging.invalid"'::jsonb, false),
+    '{communications,email,smtp,user}', '"scrubbed@staging.invalid"'::jsonb, false),
+    '{communications,email,smtp,from}', '"scrubbed@staging.invalid"'::jsonb, false)
 WHERE settings IS NOT NULL;
 
 -- Tokens, sessions, devices -----------------------------------------------------------------

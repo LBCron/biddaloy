@@ -29,7 +29,7 @@ export {
   RateLimitedError,
   type ApiErrorBody,
 } from './errors';
-export { createAppQueryClient } from './query-client';
+export { createAppQueryClient, isUnknownOutcomeError } from './query-client';
 export {
   clearAuthState,
   getAccessToken,

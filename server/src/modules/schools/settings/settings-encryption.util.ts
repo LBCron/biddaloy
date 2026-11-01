@@ -85,7 +85,7 @@ export function encryptSecretFields(
  * `reencryptSecretFields`) does not take down every other, unrelated
  * secret in `settings`: that field is dropped from the result instead of
  * the whole call throwing, so e.g. one bad WhatsApp token doesn't also
- * disable a school's otherwise-working SMS or SMTP settings. `onError`,
+ * disable a school's otherwise-working messaging settings. `onError`,
  * if given, is called with the failing path so a caller can log which
  * school/field needs attention — the thrown error itself never
  * identifies either. */

@@ -174,6 +174,7 @@ describe('ArrivalNoticeService', () => {
 
   it('teacher text says উপস্থিত; device text says পৌঁছেছে with the device name; bn <= 2 segments', async () => {
     await call();
+    expect(saved[0].message_body).toContain('রহিম'); // student name (bn school uses full_name_bn)
     expect(saved[0].message_body).toContain('উপস্থিত');
     expect(saved[0].message_body).toContain('Karim');
     expect(saved[0].message_body).toMatch(/[০-৯]/);

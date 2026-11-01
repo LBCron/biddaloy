@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { CommunicationsProcessor } from './communications.processor';
 import { CommunicationProviderRegistryService } from '../providers/communication-provider.registry';
+import { MessagingConfigResolver } from '../config/messaging-config.resolver';
+import { OnecodesoftProvider } from '../providers/sms/onecodesoft.provider';
 import { CommunicationMedium, CommunicationStatus, CommunicationTrigger } from '@biddaloy/shared';
 
 // [15.1.4] captureException/captureMessage/withScope are spied so onFailed/
@@ -10,6 +12,20 @@ const sentryCaptureMessage = vi.fn();
 const sentrySetTags = vi.fn();
 vi.mock('nodemailer', () => ({
   createTransport: () => ({ sendMail: async () => ({ messageId: 'm' }) }),
+}));
+
+// The OneCodeSoft 5xx case below goes through the real provider's HTTP-status mapping; only the
+// network edge is stubbed (no DNS, no socket).
+vi.mock('../providers/shared/outbound-destination-guard', async (orig) => ({
+  ...(await orig<typeof import('../providers/shared/outbound-destination-guard')>()),
+  assertSafeHttpDestination: vi.fn(async (rawUrl: string) => ({
+    url: new URL(rawUrl),
+    addresses: [{ address: '203.0.113.5', family: 4 }],
+  })),
+}));
+vi.mock('../providers/shared/pinned-http', () => ({
+  fetchPinnedJson: vi.fn(),
+  fetchPinnedJsonWithStatus: vi.fn(),
 }));
 
 vi.mock('@sentry/node', () => ({
@@ -139,12 +155,7 @@ describe('CommunicationsProcessor', () => {
   // mailpit-sink. Wires the real registry + MailpitSinkProvider, so no gateway can be reached.
   it('in MESSAGE_SINK=mailpit settles the log SENT through the mailpit-sink provider', async () => {
     vi.stubEnv('MESSAGE_SINK', 'mailpit');
-    const registry = new CommunicationProviderRegistryService(
-      {} as any,
-      {} as any,
-      {} as any,
-      {} as any,
-    );
+    const registry = new CommunicationProviderRegistryService({} as any);
     processor = new CommunicationsProcessor(
       repo as any,
       guardianRepo as any,
@@ -180,6 +191,64 @@ describe('CommunicationsProcessor', () => {
 
     expect(txManager.save).toHaveBeenCalledWith(
       expect.objectContaining({ metadata: expect.objectContaining({ segments: 1 }) }),
+    );
+  });
+
+  // [97.4.01] D23: check-status asks the company that sent the message, by this name.
+  it('writes the sending provider name onto metadata.provider on success', async () => {
+    provider.send.mockResolvedValue({
+      success: true,
+      providerMessageId: 'p-3',
+      provider: 'stub-sms',
+      segments: 1,
+    });
+
+    await processor.process(job());
+
+    expect(txManager.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ provider: 'stub-sms', segments: 1 }),
+      }),
+    );
+  });
+
+  // #3350: and whose account sent it, so check-status asks that same account.
+  it('writes metadata.source next to metadata.provider', async () => {
+    provider.send.mockResolvedValue({
+      success: true,
+      providerMessageId: 'p-4',
+      provider: 'stub-sms',
+      source: 'platform',
+    });
+
+    await processor.process(job());
+
+    expect(txManager.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ provider: 'stub-sms', source: 'platform' }),
+      }),
+    );
+  });
+
+  it('writes metadata.provider on a failure too, for every medium', async () => {
+    repo.findOneOrFail.mockResolvedValue({ ...baseLog, medium: CommunicationMedium.EMAIL });
+    repo.findOne.mockResolvedValue({ ...baseLog, medium: CommunicationMedium.EMAIL });
+    provider.send.mockResolvedValue({
+      success: false,
+      providerMessageId: null,
+      error: 'refused',
+      retryable: false,
+      provider: 'stub-email',
+      outcome: 'REJECTED',
+    });
+
+    await processor.process(job());
+
+    expect(txManager.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: CommunicationStatus.FAILED,
+        metadata: expect.objectContaining({ provider: 'stub-email' }),
+      }),
     );
   });
 
@@ -414,6 +483,26 @@ describe('CommunicationsProcessor', () => {
       expect(repo.manager.transaction).not.toHaveBeenCalled();
     });
 
+    // Review round 2 on #3347: Check status moves SENT to DELIVERED or READ. A stalled job
+    // replayed after that must not send the SMS a second time.
+    it('does not resend a log that Check status already moved to DELIVERED', async () => {
+      repo.findOneOrFail.mockResolvedValue({ ...baseLog, status: CommunicationStatus.DELIVERED });
+
+      await processor.process(job());
+
+      expect(provider.send).not.toHaveBeenCalled();
+      expect(repo.manager.transaction).not.toHaveBeenCalled();
+    });
+
+    it('does not resend a log that Check status already moved to READ', async () => {
+      repo.findOneOrFail.mockResolvedValue({ ...baseLog, status: CommunicationStatus.READ });
+
+      await processor.process(job());
+
+      expect(provider.send).not.toHaveBeenCalled();
+      expect(repo.manager.transaction).not.toHaveBeenCalled();
+    });
+
     it('does not double-count a batch when a settled log is replayed', async () => {
       repo.findOneOrFail.mockResolvedValue({
         ...baseLog,
@@ -467,6 +556,43 @@ describe('CommunicationsProcessor', () => {
       );
     });
 
+    // The vendor accepted it, so the credit is spent: DEBIT, the same as a SENT log.
+    it('resumes a DEBIT settlement for a DELIVERED log replayed with no recorded credit', async () => {
+      repo.findOneOrFail.mockResolvedValue({ ...baseLog, status: CommunicationStatus.DELIVERED });
+
+      await processor.process(job({ batchId: 'batch-1', segments: 2 }));
+
+      expect(provider.send).not.toHaveBeenCalled();
+      expect(smsCredits.settlePart).toHaveBeenCalledWith(
+        'tenant-1',
+        'batch:batch-1',
+        'log:log-1',
+        2,
+        'DEBIT',
+      );
+    });
+
+    // A FAILED written by Check status ("undelivered") still has the vendor id of an accepted
+    // send. The vendor billed it, so releasing the credit would give the school a free SMS.
+    it('resumes a DEBIT, not a RELEASE, for a FAILED log that carries a vendor message id', async () => {
+      repo.findOneOrFail.mockResolvedValue({
+        ...baseLog,
+        status: CommunicationStatus.FAILED,
+        provider_message_id: 'vendor-1',
+      });
+
+      await processor.process(job({ batchId: 'batch-1', segments: 2 }));
+
+      expect(provider.send).not.toHaveBeenCalled();
+      expect(smsCredits.settlePart).toHaveBeenCalledWith(
+        'tenant-1',
+        'batch:batch-1',
+        'log:log-1',
+        2,
+        'DEBIT',
+      );
+    });
+
     it('does not resume settlement for a terminal log that already recorded a credit disposition', async () => {
       repo.findOneOrFail.mockResolvedValue({
         ...baseLog,
@@ -512,6 +638,115 @@ describe('CommunicationsProcessor', () => {
       expect(repo.manager.transaction).not.toHaveBeenCalled();
       expect(txManager.save).not.toHaveBeenCalled();
       expect(txManager.query).not.toHaveBeenCalled();
+    });
+  });
+
+  // Epic 97 (#3301): a tenant on OneCodeSoft goes real registry -> real resolver -> provider, and the
+  // provider's outcome drives the credit settlement exactly as for the other SMS gateways.
+  describe('OneCodeSoft credit settlement', () => {
+    const onecodesoft = new OnecodesoftProvider();
+
+    beforeEach(() => {
+      const settings = {
+        version: 1,
+        communications: {
+          sms: {
+            provider: 'onecodesoft',
+            onecodesoft: { apiKey: 'k', senderId: 'S', apiUrl: 'https://sms.example.com/api' },
+          },
+        },
+      };
+      const resolver = new MessagingConfigResolver(
+        { getDecryptedSettings: async () => settings } as any,
+        { getOrLoad: (_id: string, load: () => Promise<unknown>) => load() } as any,
+        { get: () => undefined } as any,
+        [onecodesoft],
+      );
+      processor = new CommunicationsProcessor(
+        repo as any,
+        guardianRepo as any,
+        new CommunicationProviderRegistryService(resolver),
+        tenantStatus as any,
+        smsCredits as any,
+        pushService as any,
+      );
+    });
+
+    it('ACCEPTED debits the reservation', async () => {
+      vi.spyOn(onecodesoft, 'send').mockResolvedValue({
+        success: true,
+        providerMessageId: 'm-1',
+        outcome: 'ACCEPTED',
+        segments: 2,
+      });
+
+      await processor.process(job({ batchId: 'batch-1', segments: 2 }));
+
+      expect(onecodesoft.send).toHaveBeenCalledWith(
+        expect.objectContaining({ to: '01712345678' }),
+        expect.objectContaining({ apiKey: 'k', senderId: 'S' }),
+      );
+      expect(smsCredits.settlePart).toHaveBeenCalledWith(
+        'tenant-1',
+        'batch:batch-1',
+        'log:log-1',
+        2,
+        'DEBIT',
+      );
+    });
+
+    // Review round 1 on #3347: a 5xx may come after the vendor sent the SMS. A retry would send it
+    // again (double SMS, double vendor charge), so it ends FAILED on the first attempt with the
+    // credit held for reconciliation, never released and never re-sent.
+    it('a 5xx on a non-final attempt is not retried: FAILED, flagged, credit held, sent once', async () => {
+      const { fetchPinnedJsonWithStatus } = await import('../providers/shared/pinned-http');
+      vi.mocked(fetchPinnedJsonWithStatus).mockResolvedValueOnce({
+        status: 502,
+        body: { status: 'error' },
+      });
+      // The real send (earlier tests left a mocked spy on this shared instance).
+      const send = vi
+        .spyOn(onecodesoft, 'send')
+        .mockImplementation(OnecodesoftProvider.prototype.send);
+      // spyOn on an already-spied method keeps the earlier tests' calls; count this test's only.
+      send.mockClear();
+
+      await expect(
+        processor.process(job({ batchId: 'batch-1', segments: 1, attemptsMade: 0, attempts: 3 })),
+      ).resolves.toBeUndefined();
+
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(txManager.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: CommunicationStatus.FAILED,
+          metadata: expect.objectContaining({ credit: 'UNSETTLED' }),
+        }),
+      );
+      expect(smsCredits.settlePart).not.toHaveBeenCalled();
+      expect(sentrySetTags).toHaveBeenCalledWith(
+        expect.objectContaining({ needs_reconciliation: 'true' }),
+      );
+    });
+
+    it('REJECTED releases the reservation', async () => {
+      vi.spyOn(onecodesoft, 'send').mockResolvedValue({
+        success: false,
+        providerMessageId: null,
+        error: 'invalid number',
+        outcome: 'REJECTED',
+        retryable: false,
+        segments: 2,
+      });
+
+      await processor.process(job({ batchId: 'batch-1', segments: 2 }));
+
+      expect(smsCredits.settlePart).toHaveBeenCalledWith(
+        'tenant-1',
+        'batch:batch-1',
+        'log:log-1',
+        2,
+        'RELEASE',
+      );
     });
   });
 

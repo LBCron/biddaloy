@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp, withHelp } from '../../../help/test-utils';
+
 import { ChangeRequestDialog } from './-change-request-dialog';
 
 afterEach(async () => {
@@ -133,5 +135,22 @@ describe('ChangeRequestDialog', () => {
     expect(screen.getByRole('button', { name: 'Cancel' }).getAttribute('data-variant')).toBe(
       'outline',
     );
+  });
+
+  it('draws a (?) beside the dialog title', async () => {
+    const { localeReady } = renderWithProviders(
+      withHelp(
+        <ChangeRequestDialog
+          open
+          onOpenChange={vi.fn()}
+          routineId="routine-1"
+          slotId="slot-1"
+          onDone={vi.fn()}
+        />,
+      ),
+      { tenantId: 'tenant-1', locale: 'en' },
+    );
+    await localeReady;
+    await expectHelp('academics.routineReview.action.requestChange');
   });
 });

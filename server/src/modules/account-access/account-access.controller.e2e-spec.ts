@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import supertest = require('supertest');
 import cookieParser = require('cookie-parser');
 import { Test, TestingModule } from '@nestjs/testing';
@@ -12,6 +12,7 @@ import { AuthTokenService, INVITE_TTL_MS } from './auth-token.service';
 import { OTP_REDIS } from './otp.service';
 import { SEED_TENANT_ID, SEED_ADMIN_PASSWORD, SEED_ADMIN_PASSWORD_HASH } from '@test/constants';
 import { AuthTokenPurpose } from '@biddaloy/shared';
+import { OnecodesoftProvider } from '../communications/providers/sms/onecodesoft.provider';
 
 function extractRefreshCookie(res: supertest.Response): string {
   const headers = (res.headers['set-cookie'] as unknown as string[] | undefined) ?? [];
@@ -372,6 +373,43 @@ describe('AccountAccessController (e2e)', () => {
       }
     });
   });
+  // Epic 97 (#3301): the platform sender resolves OneCodeSoft from env alone (allowPlatformSms), no school keys.
+  describe('OTP through the platform OneCodeSoft keys', () => {
+    it('SMS_PROVIDER=onecodesoft + ONECODESOFT_* env sends the OTP through OneCodeSoft', async () => {
+      vi.stubEnv('SMS_PROVIDER', 'onecodesoft');
+      vi.stubEnv('ONECODESOFT_API_KEY', 'platform-key');
+      vi.stubEnv('ONECODESOFT_SENDER_ID', 'Platform');
+      vi.stubEnv('ONECODESOFT_API_URL', 'https://sms.example.com/api');
+      const send = vi.spyOn(OnecodesoftProvider.prototype, 'send').mockResolvedValue({
+        success: true,
+        providerMessageId: 'm-1',
+        outcome: 'ACCEPTED',
+        segments: 1,
+      });
+      const redis = app.get(OTP_REDIS, { strict: false });
+      try {
+        await redis.del(`otp-cooldown:LOGIN:${PHONE_NUMBER}`, 'otp-cap:LOGIN:8801799990000');
+        const res = await supertest(app.getHttpServer())
+          .post('/api/v1/auth/otp/request')
+          .send({ phone: PHONE_NUMBER })
+          .expect(202);
+
+        expect(send).toHaveBeenCalledTimes(1);
+        const [params, config] = send.mock.calls[0];
+        expect(params.body).toContain(res.body.debug.otp);
+        expect(config).toMatchObject({
+          apiKey: 'platform-key',
+          senderId: 'Platform',
+          apiUrl: 'https://sms.example.com/api',
+        });
+      } finally {
+        send.mockRestore();
+        vi.unstubAllEnvs();
+        await redis.del(`otp-cooldown:LOGIN:${PHONE_NUMBER}`);
+      }
+    });
+  });
+
   describe('email code sign-in and first password [13.2.2]', () => {
     it('emailed code signs in; first password follows the staff rules and can be set once', async () => {
       const requestRes = await supertest(app.getHttpServer())

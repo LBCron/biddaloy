@@ -1,22 +1,13 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { WhatsAppCloudProvider } from './whatsapp-cloud.provider';
-import { ProviderNotConfiguredError } from '../../config/provider-not-configured.error';
+import { MetaCloudProvider } from './meta-cloud.provider';
 
-describe('WhatsAppCloudProvider', () => {
-  const tenantId = 'tenant-1';
-  let configResolver: Record<string, ReturnType<typeof vi.fn>>;
-  let provider: WhatsAppCloudProvider;
+describe('MetaCloudProvider', () => {
+  const sendConfig = { phoneNumberId: '1234567890', accessToken: 'token-abc', apiVersion: 'v21.0' };
+  let provider: MetaCloudProvider;
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    configResolver = {
-      resolveWhatsApp: vi.fn().mockResolvedValue({
-        phoneNumberId: 'phone-id-123',
-        accessToken: 'token-abc',
-        apiVersion: 'v21.0',
-      }),
-    };
-    provider = new WhatsAppCloudProvider(configResolver as any);
+    provider = new MetaCloudProvider();
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
   });
@@ -31,18 +22,28 @@ describe('WhatsAppCloudProvider', () => {
       json: async () => ({ messages: [{ id: 'wamid.1' }] }),
     });
 
-    const result = await provider.send({ to: '01712345678', body: 'Your fee is due' }, tenantId);
+    const result = await provider.send({ to: '01712345678', body: 'Your fee is due' }, sendConfig);
 
-    expect(configResolver.resolveWhatsApp).toHaveBeenCalledWith(tenantId);
     const [url, init] = fetchMock.mock.calls[0];
     const body = JSON.parse(init.body);
 
-    expect(url).toContain('/phone-id-123/messages');
+    expect(url).toBe('https://graph.facebook.com/v21.0/1234567890/messages');
     expect(body.type).toBe('text');
     expect(body.text.body).toBe('Your fee is due');
     expect(body.to).toBe('8801712345678');
     expect(result.success).toBe(true);
     expect(result.providerMessageId).toBe('wamid.1');
+  });
+
+  it('defaults the API version when the config carries none', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ messages: [{ id: 'w' }] }) });
+
+    await provider.send(
+      { to: '01712345678', body: 'hi' },
+      { phoneNumberId: '1234567890', accessToken: 't' },
+    );
+
+    expect(fetchMock.mock.calls[0][0]).toContain('/v21.0/1234567890/messages');
   });
 
   it('sends a template payload when template_name is given', async () => {
@@ -59,7 +60,7 @@ describe('WhatsAppCloudProvider', () => {
         templateLanguage: 'bn',
         templateParams: ['500', 'August'],
       },
-      tenantId,
+      sendConfig,
     );
 
     const [, init] = fetchMock.mock.calls[0];
@@ -80,7 +81,7 @@ describe('WhatsAppCloudProvider', () => {
       json: async () => ({ error: { message: 'Recipient outside the 24-hour window' } }),
     });
 
-    const result = await provider.send({ to: '01712345678', body: 'hi' }, tenantId);
+    const result = await provider.send({ to: '01712345678', body: 'hi' }, sendConfig);
 
     expect(result.success).toBe(false);
     expect(result.error).toBe('Recipient outside the 24-hour window');
@@ -89,22 +90,31 @@ describe('WhatsAppCloudProvider', () => {
   it('returns success: false instead of throwing on a network error', async () => {
     fetchMock.mockRejectedValue(new Error('network down'));
 
-    const result = await provider.send({ to: '01712345678', body: 'hi' }, tenantId);
+    const result = await provider.send({ to: '01712345678', body: 'hi' }, sendConfig);
 
     expect(result.success).toBe(false);
-    expect(result.error).toBe('network down');
+    // Rules 23/24: a fixed sentence, never the thrown text; still AMBIGUOUS (it may have reached Meta).
+    expect(result.error).toBe(
+      'Could not reach the WhatsApp Cloud API; the message may or may not have been sent.',
+    );
+    expect(result.error).not.toContain('network down');
+    expect(result.outcome).toBe('AMBIGUOUS');
   });
 
-  it('returns success: false instead of throwing when the tenant is unconfigured', async () => {
-    configResolver.resolveWhatsApp.mockRejectedValue(
-      new ProviderNotConfiguredError('WhatsApp', 'configure it'),
-    );
-
-    const result = await provider.send({ to: '01712345678', body: 'hi' }, tenantId);
+  // #3315: both values go into the request path, so a stored or overridden bad value must never reach fetch.
+  it.each([
+    ['a path-traversal phone number id', { ...sendConfig, phoneNumberId: '../me?x=' }],
+    ['a non-numeric phone number id', { ...sendConfig, phoneNumberId: 'phone-id-123' }],
+    ['a malformed api version', { ...sendConfig, apiVersion: 'v21' }],
+    ['an api version with a path', { ...sendConfig, apiVersion: 'v21.0/../x' }],
+  ])('rejects %s without calling Meta', async (_label, config) => {
+    const result = await provider.send({ to: '01712345678', body: 'hi' }, config);
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/configure it/);
+    expect(result.outcome).toBe('REJECTED');
     expect(result.retryable).toBe(false);
+    // Rule 23: the bad value is not echoed.
+    expect(result.error).not.toContain('..');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

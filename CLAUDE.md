@@ -14,6 +14,15 @@ task, not the whole set.
 Package-specific conventions live in that package's own `CLAUDE.md` (e.g.
 `server/CLAUDE.md` for NestJS testing standards) rather than here.
 
+## Issue rule (always, for every issue you create)
+
+Every issue created, by hand or by a skill, goes in the **Biddaloy Development**
+project (`gh project item-add 2 --owner tareq89 --url <issue-url>`) and carries
+at least one fitting label and one milestone (`Product — before first release`,
+`SaaS launch readiness — before first paying school` or `After first release`).
+Pass `--label` and `--milestone` to `gh issue create`; never leave an issue bare.
+Issues about AI work use the `AI Integration` project instead, with its milestone.
+
 ## Seed data rule (always, for any change that touches the database)
 
 Any epic, ticket or bug fix that adds or changes a table or column also

@@ -35,7 +35,7 @@ describe('PlatformAlertsService (two instances, real DB)', () => {
     let release!: () => void;
     let gate = new Promise<void>((r) => (release = r));
     let result: 'ok' | 'fail' = 'fail';
-    const sendSms = vi.fn().mockResolvedValue({ success: true });
+    const send = vi.fn().mockResolvedValue({ success: true });
     const make = () =>
       new PlatformAlertsService(
         dataSource,
@@ -46,11 +46,9 @@ describe('PlatformAlertsService (two instances, real DB)', () => {
           },
         } as never,
         {
-          get: (k: string) =>
-            ({ PLATFORM_SMS_API_KEY: 'key', PLATFORM_ALERT_PHONES: '01700000000' })[k],
+          get: (k: string) => ({ SMS_PROVIDER: 'p', PLATFORM_ALERT_PHONES: '01700000000' })[k],
         } as never,
-        { sendSms } as never,
-        { sendSms: vi.fn() } as never,
+        { resolve: async () => ({ provider: { send }, config: {} }) } as never,
         { platformTenantId: async () => undefined } as never,
       );
     const a = make();
@@ -63,14 +61,14 @@ describe('PlatformAlertsService (two instances, real DB)', () => {
       release();
       await ticks;
     };
-    return { round, sendSms };
+    return { round, send };
   }
 
   const openRows = () =>
     dataSource.query(`SELECT sms_count FROM platform_alerts WHERE cleared_at IS NULL`);
 
   it('a Redis outage on both instances opens one row and sends one SMS', async () => {
-    const { round, sendSms } = twoInstances();
+    const { round, send } = twoInstances();
     await round('fail');
     await round('fail');
     expect(await openRows()).toHaveLength(0); // 2 fails each: not yet open
@@ -78,22 +76,22 @@ describe('PlatformAlertsService (two instances, real DB)', () => {
     const rows = await openRows();
     expect(rows).toHaveLength(1);
     expect(rows[0].sms_count).toBe(1);
-    expect(sendSms).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(1);
 
     // Still down inside the hour: neither instance texts again.
     await round('fail');
-    expect(sendSms).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(1);
   });
 
   it('recovery on both instances closes the row and sends one "recovered" SMS', async () => {
-    const { round, sendSms } = twoInstances();
+    const { round, send } = twoInstances();
     await round('fail');
     await round('fail');
     await round('fail');
-    expect(sendSms).toHaveBeenCalledTimes(1); // the "down" text
+    expect(send).toHaveBeenCalledTimes(1); // the "down" text
     await round('ok');
     expect(await openRows()).toHaveLength(0);
-    expect(sendSms).toHaveBeenCalledTimes(2); // + one "recovered", not two
-    expect(sendSms.mock.calls[1][1]).toContain('RECOVERED');
+    expect(send).toHaveBeenCalledTimes(2); // + one "recovered", not two
+    expect(send.mock.calls[1][0].body).toContain('RECOVERED');
   });
 });

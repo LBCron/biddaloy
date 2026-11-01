@@ -7,21 +7,21 @@ import { Guardian } from '../students/entities/guardian.entity';
 import { StudentModule } from '../students/students.module';
 import { FeeModule } from '../fees/fees.module';
 import { AuditModule } from '../audit/audit.module';
+import { School } from '../schools/entities/school.entity';
 import { SchoolsModule } from '../schools/schools.module';
 import { PushModule } from '../push/push.module';
 import { CommunicationsService } from './communications.service';
 import { BulkReminderService } from './reminders.service';
 import { SingleReminderService } from './single-reminder.service';
+import { DeliveryStatusService } from './delivery-status.service';
 import { CommunicationsController } from './communications.controller';
 import { CommunicationsProcessor } from './worker/communications.processor';
 import { CommunicationProviderRegistryService } from './providers/communication-provider.registry';
-import { SmsProviderFactory } from './providers/sms/sms-provider.factory';
-import { GreenwebSmsGateway } from './providers/sms/greenweb-sms.gateway';
-import { MimSmsGateway } from './providers/sms/mim-sms.gateway';
-import { WhatsAppCloudProvider } from './providers/whatsapp/whatsapp-cloud.provider';
-import { SmtpEmailProvider } from './providers/email/smtp-email.provider';
-import { MessengerProvider } from './providers/messenger/messenger.provider';
-import { TenantProviderConfigResolver } from './config/tenant-provider-config.resolver';
+import { MESSAGING_PROVIDERS } from './providers/messaging-providers';
+import {
+  MessagingConfigResolver,
+  MESSAGING_PROVIDER_INSTANCES,
+} from './config/messaging-config.resolver';
 import { ConnectionTestService } from './testing/connection-test.service';
 import { ProviderConnectionTestController } from './testing/provider-connection-test.controller';
 import {
@@ -41,7 +41,7 @@ import { CommunicationsDashboardService } from './communications-dashboard.servi
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CommunicationLog, ReminderBatch, Guardian]),
+    TypeOrmModule.forFeature([CommunicationLog, ReminderBatch, Guardian, School]),
     StudentModule,
     DashboardModule,
     // [CodeRabbit review, PR #801] The last of the four edges in the
@@ -89,15 +89,16 @@ import { CommunicationsDashboardService } from './communications-dashboard.servi
     CommunicationsService,
     BulkReminderService,
     SingleReminderService,
+    DeliveryStatusService,
     CommunicationsProcessor,
     CommunicationProviderRegistryService,
-    TenantProviderConfigResolver,
-    SmsProviderFactory,
-    GreenwebSmsGateway,
-    MimSmsGateway,
-    WhatsAppCloudProvider,
-    SmtpEmailProvider,
-    MessengerProvider,
+    MessagingConfigResolver,
+    ...MESSAGING_PROVIDERS,
+    {
+      provide: MESSAGING_PROVIDER_INSTANCES,
+      useFactory: (...providers: unknown[]) => providers,
+      inject: [...MESSAGING_PROVIDERS],
+    },
     ConnectionTestService,
     FeeNotificationsListener,
     InvoiceNotificationsListener,
@@ -119,6 +120,8 @@ import { CommunicationsDashboardService } from './communications-dashboard.servi
     BulkReminderService,
     SingleReminderService,
     CommunicationProviderRegistryService,
+    MessagingConfigResolver,
+    ...MESSAGING_PROVIDERS,
   ],
 })
 export class CommunicationsModule {}

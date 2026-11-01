@@ -409,6 +409,14 @@ export const STAFF_NAV_ITEMS = {
     permission: Permission.COMMUNICATION_BULK_SEND,
     label: { key: 'reminderHistory' },
   },
+  // [97.4.02] D21: tenant-wide list, same gate as Reminder history.
+  'communications.messageLog': {
+    id: 'communications.messageLog',
+    to: '/communications/message-log',
+    permission: Permission.COMMUNICATION_BULK_SEND,
+    label: { key: 'messageLog' },
+    synonyms: ['SMS', 'delivery', 'sent', 'বার্তা'],
+  },
   // [32.4.1] Template design + the library. `PRINT_TEMPLATE_MANAGE` is the templates controller's gate.
   'administration.printTemplates': {
     id: 'administration.printTemplates',
@@ -595,6 +603,7 @@ export const STAFF_NAV_GROUPS: readonly StaffNavGroupDef[] = [
       STAFF_NAV_ITEMS['communications.sendAlert'],
       STAFF_NAV_ITEMS['communications.feeReminders'],
       STAFF_NAV_ITEMS['communications.reminderHistory'],
+      STAFF_NAV_ITEMS['communications.messageLog'],
     ],
   },
   {

@@ -17,7 +17,15 @@
  * itself uses (`route-permissions.ts`).
  */
 import { Permission } from '@biddaloy/shared';
-import { Button, Card, ConfirmDialog, Input, Skeleton, toast } from '@biddaloy/ui/components';
+import {
+  Button,
+  Card,
+  ConfirmDialog,
+  HelpHint,
+  Input,
+  Skeleton,
+  toast,
+} from '@biddaloy/ui/components';
 import { useCalendarFeed, useHasPermission, useRegenerateCalendarFeed } from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
 import * as React from 'react';
@@ -115,14 +123,12 @@ export function CalendarFeedCard() {
             </p>
           )}
 
-          <Button
-            type="button"
-            variant="ghost"
-            className="self-start"
-            onClick={() => setConfirmOpen(true)}
-          >
-            {t('regenerate.action')}
-          </Button>
+          <div className="flex items-center gap-1 self-start">
+            <Button type="button" variant="ghost" onClick={() => setConfirmOpen(true)}>
+              {t('regenerate.action')}
+            </Button>
+            <HelpHint helpId="people.calendar.action.regenerateFeed" />
+          </div>
           <ConfirmDialog
             open={confirmOpen}
             onOpenChange={(next) => {

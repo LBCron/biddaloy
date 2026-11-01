@@ -1,6 +1,6 @@
 /**
  * Maps a Meta Graph API error response to an actionable message, shared by
- * `WhatsAppCloudProvider` and `MessengerProvider`'s connection tests — both
+ * `MetaCloudProvider` and `MetaPageProvider`'s connection tests — both
  * ride the same Graph API and use the same error-code shape. Never returns
  * `data.error.message` verbatim: Meta's own error text can echo back
  * request details, and #8.7.12's contract is "never a raw provider

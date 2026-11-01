@@ -154,7 +154,7 @@ describe('/attendance/reports', () => {
     await expectHelp('attendance.attendanceReports.field.threshold');
   });
 
-  it('shows a (?) beside each view tab, outside the trigger [#3317]', async () => {
+  it('shows one (?) for the open view, outside the tablist [#3317]', async () => {
     vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
     server.use(
       http.get('/api/v1/attendance/sections/:sectionId/register-matrix', () =>
@@ -169,13 +169,25 @@ describe('/attendance/reports', () => {
     });
     await screen.findByText('Karim Rahman');
     await expectHelp('attendance.attendanceReports.section.summary');
-    await expectHelp('attendance.attendanceReports.section.flags');
-    const tab = screen.getByRole('tab', { name: 'Month summary' });
-    expect(tab.querySelector('[data-help-id]')).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: 'Help: Low attendance' }));
+    expect(
+      document.querySelector('[data-help-id="attendance.attendanceReports.section.flags"]'),
+    ).toBeNull();
+    const tablist = screen.getByRole('tablist');
+    expect(tablist.querySelector('[data-help-id]')).toBeNull();
+    // A tablist may own only tabs: axe aria-required-children (critical) fails a button in it.
+    await expect(tablist.parentElement as HTMLElement).toHaveNoViolations();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Help: Month summary' }));
     expect(screen.getByRole('tab', { name: 'Month summary' }).getAttribute('aria-selected')).toBe(
       'true',
     );
+
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('tab', { name: 'Low attendance' }));
+    await expectHelp('attendance.attendanceReports.section.flags');
+    expect(
+      document.querySelector('[data-help-id="attendance.attendanceReports.section.summary"]'),
+    ).toBeNull();
   });
 
   it('drops an unknown query param instead of showing a raw filter chip', async () => {

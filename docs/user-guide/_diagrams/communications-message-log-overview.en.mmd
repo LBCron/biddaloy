@@ -1,0 +1,11 @@
+%% title: The status of one message
+%% desc: A message is Queued, then Sent when the company takes it, or Failed. For a Sent message from a company that reports delivery, Check status asks the company: delivered makes it Delivered, not delivered makes it Failed, not known yet keeps it Sent. One check per message per minute.
+flowchart LR
+  Q["Queued"]:::note --> S["Sent"]
+  Q --> F["Failed"]
+  S -->|"Check status<br/>(once a minute)"| A{"Company says"}:::admin
+  A -->|"delivered"| D["Delivered"]
+  A -->|"not delivered"| F
+  A -->|"not known yet"| S
+  classDef admin fill:#fff4e6,stroke:#e8590c,color:#7a2e05
+  classDef note fill:#f1f3f5,stroke:#868e96,color:#343a40

@@ -12,7 +12,7 @@ import { RegionConfigProvider, useTenantRegionConfig, useTranslation } from '@bi
 import { DetailShell, useCloseFullPage, useDetailShellTab } from '@biddaloy/ui/shells';
 import { formatNumber, formatPhone } from '@biddaloy/ui/utils';
 import { createFileRoute } from '@tanstack/react-router';
-import { HandCoinsIcon, PencilIcon } from 'lucide-react';
+import { HandCoinsIcon, MessageSquareTextIcon, PencilIcon } from 'lucide-react';
 import * as React from 'react';
 import { z } from 'zod';
 
@@ -74,6 +74,7 @@ function GuardianDetailPage() {
   );
 
   const canUpdate = useHasPermission(Permission.GUARDIAN_UPDATE);
+  const canSeeMessages = useHasPermission(Permission.COMMUNICATION_BULK_SEND);
   const canRecord = useHasPermission(Permission.PAYMENT_RECORD);
   // Payment/Communication tabs format currency and dates against the
   // active tenant's own region — same reasoning as `students/$studentId
@@ -156,6 +157,15 @@ function GuardianDetailPage() {
                       to: '/payments',
                       search: { record: '1', guardian_id: guardianId },
                     }),
+                },
+                {
+                  id: 'messages',
+                  label: t('detail.actions.messages'),
+                  icon: <MessageSquareTextIcon aria-hidden="true" />,
+                  allowed: canSeeMessages,
+                  priority: 'secondary',
+                  to: '/communications/message-log',
+                  search: { guardian: guardianId },
                 },
               ]}
               activeTab={activeTab}
