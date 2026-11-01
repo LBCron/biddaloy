@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   Tabs,
+  TabsContent,
   TabsList,
   TabsTrigger,
   type DataTableColumn,
@@ -115,6 +116,8 @@ export function MyNoticesList() {
               <TabsTrigger value="current">{t('tabs.current')}</TabsTrigger>
               <TabsTrigger value="archive">{t('tabs.archive')}</TabsTrigger>
             </TabsList>
+            {/* The table sits outside the tab row; this empty panel is what each tab's aria-controls points at. */}
+            <TabsContent value={tab} className="hidden" />
           </Tabs>
         }
         filters={{

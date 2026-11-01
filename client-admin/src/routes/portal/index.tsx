@@ -386,7 +386,7 @@ function PortalPage({
     <PageContainer>
       <PageHeader title={tNav('items.portalOverview')} subtitle={subtitle} />
       <div className="space-y-6">
-        <LatestNoticesCard />
+        <LatestNoticesCard listHref="/portal/notices" />
         <ConnectHintCard />
         <PortalSurveysCard />
         {family && (
