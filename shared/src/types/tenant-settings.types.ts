@@ -1,5 +1,6 @@
 import type { ApprovalMode, TermLabel } from '../enums';
 import type { AttentionSettings } from './attention';
+import type { ConductItem } from './report-card-note.types';
 
 /**
  * Shape of the JSON blob stored on `schools.settings`. `version` is a
@@ -351,4 +352,5 @@ export interface TenantSettings {
   studyPlans?: StudyPlansSettings;
   attention?: AttentionSettings;
   dashboard?: DashboardSettings;
+  exams?: { conductItems: ConductItem[] };
 }
