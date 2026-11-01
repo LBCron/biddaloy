@@ -15,11 +15,11 @@ export const Route = createFileRoute('/portal/notices/$noticeId')({
 
 function PortalNoticePage() {
   const { noticeId } = Route.useParams();
-  const { t } = useTranslation('portalNotices');
+  const { t } = useTranslation('nav');
   // The page's h1: the detail's own heading is the notice title (an h2, it is also shown in a dialog).
   return (
     <PageContainer>
-      <PageHeader title={t('title')} />
+      <PageHeader title={t('items.portalNotices')} />
       <MyNoticeDetail id={noticeId} />
     </PageContainer>
   );
