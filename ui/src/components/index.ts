@@ -471,6 +471,14 @@ export { NoticeBar, type NoticeBarProps, type NoticeBarTone } from './notice-bar
 export { AttentionBar, type AttentionBarProps } from './attention/attention-bar';
 export { AttentionModal, type AttentionModalProps } from './attention/attention-modal';
 export { AlertItemCard, type AlertItemCardProps } from './attention/alert-item-card';
+export {
+  AttentionNoticeItem,
+  NOTICE_IMPORTANT,
+  NOTICE_SMS_APPROVAL,
+  isNoticeAlert,
+  noticeIdOf,
+  type AttentionNoticeItemProps,
+} from './attention/attention-notice-item';
 export { AlertSnoozeMenu, type AlertSnoozeMenuProps } from './attention/alert-snooze-menu';
 export { AlertSeverityBadge, type AlertSeverityBadgeProps } from './attention/alert-severity-badge';
 export { StudentAlertStrip, type StudentAlertStripProps } from './attention/student-alert-strip';

@@ -1,4 +1,4 @@
-import { AlertCategory, AlertRecipientState, AlertSeverity } from '@biddaloy/shared';
+import { AlertCategory, AlertRecipientState, AlertSeverity, AlertSource } from '@biddaloy/shared';
 import { clearNotifications, pushNotification, setActiveTenant } from '@biddaloy/ui/api';
 import {
   alertItemFactory,
@@ -207,5 +207,40 @@ describe('AttentionWorklist (portal)', () => {
 
     await waitFor(() => expect(seen.at(-1)?.get('studentId')).toBe(kids[1]?.id));
     expect(await screen.findByText('Child')).toBeTruthy();
+  });
+
+  it('notice rows: acknowledge posts once and the row leaves; SMS task only links', async () => {
+    const user = userEvent.setup();
+    const acked: string[] = [];
+    const base = { source: AlertSource.NOTICE, category: AlertCategory.NOTICE };
+    const imp = alertItemFactory({
+      ...base,
+      ruleKey: 'notice.important',
+      title: 'Exam routine',
+      actionUrl: '/communications/notices/n-1',
+    });
+    const task = alertItemFactory({
+      ...base,
+      ruleKey: 'notice.sms-approval',
+      title: 'Fee notice',
+      actionUrl: '/communications/notices/n-2?sms=1',
+    });
+    let items = [imp, task];
+    server.use(
+      http.get('*/attention/items', () => HttpResponse.json({ items, total: items.length })),
+      http.post('*/notices/mine/:id/acknowledge', ({ params }) => {
+        acked.push(String(params.id));
+        items = [task];
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    renderStaff();
+
+    expect(await screen.findByText('SMS approval pending: Fee notice')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Close: Exam routine' })).toBeNull();
+    await user.click(await screen.findByRole('button', { name: 'Mark as read: Exam routine' }));
+    await waitFor(() => expect(acked).toEqual(['n-1']));
+    await waitFor(() => expect(screen.queryByText('Exam routine')).toBeNull());
+    expect(screen.queryAllByRole('button', { name: /Mark as read/ })).toHaveLength(0);
   });
 });

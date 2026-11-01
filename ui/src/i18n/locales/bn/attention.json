@@ -658,5 +658,12 @@
     "failedMessagesThreshold": "না, শুরুতে একটি মান দেওয়া থাকে",
     "guardianSmsFallback": "না, শুরুতে বন্ধ থাকে",
     "guardianSmsDailyCap": "না, শুরুতে একটি মান দেওয়া থাকে"
+  },
+  "notice": {
+    "open": "নোটিশ খুলুন",
+    "view": "দেখুন",
+    "acknowledge": "পড়েছি",
+    "acknowledgeNamed": "পড়েছি: {{title}}",
+    "smsPending": "SMS অনুমোদন বাকি: {{title}}"
   }
 }
