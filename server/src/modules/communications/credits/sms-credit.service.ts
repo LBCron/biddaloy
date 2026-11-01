@@ -471,6 +471,42 @@ export class SmsCreditService {
     }
   }
 
+  /**
+   * Gives the credit of one message back to `available`, inside the caller's transaction so it
+   * commits or rolls back with the status change that earned it (Check status, a vendor that does
+   * not bill failed SMS). Once per message: the idempotency key is the log id, so a repeat is a
+   * no-op. Whole units only (Rule 26).
+   */
+  async refundForLog(
+    manager: EntityManager,
+    tenantId: string,
+    logId: string,
+    units: number,
+  ): Promise<void> {
+    if (!Number.isInteger(units) || units <= 0) return;
+    const key = `log:${logId}:refund`;
+    const done = await manager.findOne(SmsCreditLedger, {
+      where: { tenant_id: tenantId, idempotency_key: key },
+    });
+    if (done) return;
+    await manager.insert(SmsCreditLedger, {
+      tenant_id: tenantId,
+      kind: SmsCreditLedgerKind.GRANT,
+      units,
+      reference_type: SmsCreditLedgerReferenceType.LOG,
+      reference_id: logId,
+      idempotency_key: key,
+      reason: 'Vendor reported the SMS failed; credit given back',
+    });
+    await manager.query(
+      `INSERT INTO "sms_credit_balance" (tenant_id, available, reserved, updated_at)
+       VALUES ($1, $2, 0, now())
+       ON CONFLICT (tenant_id) DO UPDATE
+         SET available = "sms_credit_balance".available + $2, updated_at = now()`,
+      [tenantId, units],
+    );
+  }
+
   private async moveReservedUnits(
     manager: EntityManager,
     tenantId: string,

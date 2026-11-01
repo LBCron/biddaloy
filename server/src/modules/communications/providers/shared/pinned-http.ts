@@ -37,7 +37,7 @@ export function createPinnedLookup(addresses: readonly PinnedAddress[]): LookupF
  * can influence goes through `assertSafeHttpDestination` + this function.
  * `server/src/outbound-http.contract.spec.ts` fails CI on any other outbound
  * call that is not on its reviewed list of constant-host / operator-config
- * files. Returns JSON only; add a `Response` variant the day a caller needs one.
+ * files. Returns the JSON body only; `fetchPinnedJsonWithStatus` adds the HTTP status.
  *
  * Fetches JSON from `requestUrl` with the connection pinned to
  * `destination`'s already-validated addresses — the DNS-rebinding fix.
@@ -49,6 +49,23 @@ export async function fetchPinnedJson(
   requestUrl: string,
   init?: RequestInit,
 ): Promise<unknown> {
+  const { body } = await fetchPinnedJsonWithStatus(destination, requestUrl, init);
+  // Only a non-2xx answer can come back without a body; this caller cannot see the status.
+  if (body === undefined) throw new Error('The response was not JSON.');
+  return body;
+}
+
+/**
+ * #3320: `fetchPinnedJson` plus the HTTP status, for callers whose meaning depends on it (an SMS
+ * provider: 401 releases the credit, 5xx keeps it held). Same origin check, pinning and
+ * `redirect: 'error'`. A non-2xx answer that is not JSON (a 404 or 502 HTML page) returns
+ * `body: undefined`; a 2xx that is not JSON still throws, as before.
+ */
+export async function fetchPinnedJsonWithStatus(
+  destination: SafeHttpDestination,
+  requestUrl: string,
+  init?: RequestInit,
+): Promise<{ status: number; body: unknown }> {
   if (new URL(requestUrl).origin !== destination.url.origin) {
     throw new Error(
       `Refusing to fetch "${requestUrl}": origin does not match the validated destination "${destination.url.origin}".`,
@@ -60,7 +77,10 @@ export async function fetchPinnedJson(
   });
   try {
     const response = await fetch(requestUrl, { ...init, redirect: 'error', dispatcher: client });
-    return await response.json();
+    const body: unknown = response.ok
+      ? await response.json()
+      : await response.json().catch(() => undefined);
+    return { status: response.status, body };
   } finally {
     await client.destroy();
   }

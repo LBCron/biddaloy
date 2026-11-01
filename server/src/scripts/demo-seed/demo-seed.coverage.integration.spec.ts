@@ -143,12 +143,16 @@ async function fingerprint(ds: DataSource, tables: Table[]): Promise<Record<stri
       `regexp_replace(${e}, 'T[0-9]{2}:[0-9]{2}:[0-9]{2}[0-9.]*(Z|[+-][0-9:]+)?', 'T', 'g')`;
     const whole = (e: string) =>
       `regexp_replace(${e}, '[0-9]{4}-[0-9]{2}-[0-9]{2}([ T][0-9]{2}:[0-9]{2}:[0-9]{2}[0-9.]*(Z|[+-][0-9:]+)?)?', 'T', 'g')`;
+    // Settings secrets are AES-GCM envelopes `gcmv1:<iv>:<tag>:<ct>` with a random IV (EncryptionService),
+    // so their text differs every run even for the same secret: each envelope becomes `E`.
+    const sealed = (c: string) =>
+      `regexp_replace(${uuid(c)}, 'gcmv1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+', 'E', 'g')`;
     const row =
       cols
         .map((c) => {
-          const plain = iso(uuid(c));
+          const plain = iso(sealed(c));
           if (!CLOCK_COLS[t.table]?.includes(c)) return plain;
-          const stripped = whole(uuid(c));
+          const stripped = whole(sealed(c));
           const when = CLOCK_ONLY_WHEN[t.table];
           return when ? `CASE WHEN ${when} THEN ${stripped} ELSE ${plain} END` : stripped;
         })

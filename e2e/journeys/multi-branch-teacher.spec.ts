@@ -59,7 +59,7 @@ test.describe('same teacher in several branches', () => {
         const dialog = page.getByRole('dialog');
         await dialog.getByLabel(t('staff.addUser.nameLabel')).fill('Rahim Shared');
         await dialog.getByLabel(t('staff.addUser.emailLabel')).fill(teacher.email);
-        await dialog.getByLabel(t('staff.addUser.roleLabel')).click();
+        await dialog.getByRole('combobox', { name: t('staff.addUser.roleLabel') }).click();
         await page.getByRole('option', { name: t('staff.roles.TEACHER') }).click();
         await dialog.getByRole('button', { name: t('staff.addUser.save') }).click();
         await dialog.getByRole('button', { name: t('staff.addUser.sendJoinRequest') }).click();

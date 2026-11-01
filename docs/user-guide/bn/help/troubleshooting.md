@@ -244,6 +244,8 @@ knownIssues: []
 
 কে বার্তা পেলেন আর কে পেলেন না, তা দেখা যায়: ফি রিমাইন্ডারের বেলায় [রিমাইন্ডার ইতিহাস](../communications/reminder-history.md) পাতায়, প্রতিটি না-পৌঁছানো বার্তার পাশে **কেন পৌঁছায়নি** লেখা থাকে। <!-- source: docs/user-guide/bn/communications/reminder-history.md#trouble -->
 
+যেকোনো একটি বার্তা নাম বা ফোন দিয়ে [বার্তার তালিকা](../communications/message-log.md)-য় খুঁজুন। সেখানে **অবস্থা যাচাই করুন** দেখালে চাপুন; কোম্পানি জানায় বার্তাটি পৌঁছাল কি না। <!-- source: docs/user-guide/bn/communications/message-log.md#task-check -->
+
 ### "এই স্কুলের SMS ক্রেডিট শেষ, …"
 
 - **কেন:** স্কুলের এসএমএস ক্রেডিট ফুরিয়ে গেছে। ফলাফলের এসএমএসে ক্রেডিট যথেষ্ট না থাকলে একটি বার্তাও যায় না। <!-- source: ui/src/i18n/locales/bn/communications.json send.smsNotReady.NO_CREDIT; docs/user-guide/bn/exams-results/results.md#trouble -->

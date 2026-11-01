@@ -44,6 +44,9 @@ export function buildFieldTable(
   const required = (ns.helpRequired ?? {}) as Json;
   const fields = (ns.fields ?? {}) as Json;
   const rows = Object.entries(help as Json)
+    // A nested object (`help.messaging.<company>.<field>`) is looked up by key at run time,
+    // not a field row.
+    .filter(([, text]) => typeof text !== 'object' || text === null)
     .filter(([key]) => !only || only.includes(key))
     .map(([key, text]) => {
       const label = str(fields[key]) ?? str(ns[key]);

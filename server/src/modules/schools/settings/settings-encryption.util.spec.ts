@@ -7,6 +7,11 @@ import {
   reencryptSecretFields,
 } from './settings-encryption.util';
 
+vi.mock(
+  '../../communications/providers/messaging-providers',
+  () => import('./testing/messaging-stubs.fixture'),
+);
+
 function service(): EncryptionService {
   return new EncryptionService(randomBytes(32));
 }
@@ -17,21 +22,18 @@ describe('encryptSecretFields', () => {
     const settings = {
       version: 1,
       communications: {
-        sms: { provider: 'greenweb', greenweb: { apiKey: 'sms-key' } },
+        sms: { provider: 'alpha', alpha: { apiKey: 'sms-key' } },
         whatsapp: { phoneNumberId: '123', accessToken: 'wa-token' },
-        email: { host: 'smtp.example.com', port: 587, user: 'a', from: 'a@x.com', password: 'pw' },
       },
     };
 
     const encrypted = encryptSecretFields(settings, encryption);
     const communications = encrypted.communications as any;
 
-    expect(communications.sms.provider).toBe('greenweb');
-    expect(communications.sms.greenweb.apiKey).toMatch(/^gcmv1:/);
+    expect(communications.sms.provider).toBe('alpha');
+    expect(communications.sms.alpha.apiKey).toMatch(/^gcmv1:/);
     expect(communications.whatsapp.phoneNumberId).toBe('123');
     expect(communications.whatsapp.accessToken).toMatch(/^gcmv1:/);
-    expect(communications.email.host).toBe('smtp.example.com');
-    expect(communications.email.password).toMatch(/^gcmv1:/);
   });
 
   it('does not mutate the object it was given', () => {
@@ -45,7 +47,7 @@ describe('encryptSecretFields', () => {
 
   it('skips a secret path that is absent, rather than throwing', () => {
     const encryption = service();
-    const settings = { version: 1, communications: { sms: { provider: 'greenweb' } } };
+    const settings = { version: 1, communications: { sms: { provider: 'alpha' } } };
 
     expect(() => encryptSecretFields(settings, encryption)).not.toThrow();
   });
@@ -60,6 +62,30 @@ describe('encryptSecretFields', () => {
   });
 });
 
+describe('schema-declared secrets (D31)', () => {
+  it('encrypts a secret that exists only in a provider descriptor and round-trips it', () => {
+    const encryption = service();
+    const original = {
+      version: 1,
+      communications: { sms: { provider: 'beta', beta: { token: 'tok-1' } } },
+    };
+
+    const encrypted = encryptSecretFields(original, encryption);
+
+    expect((encrypted.communications as any).sms.beta.token).toMatch(/^gcmv1:/);
+    expect(decryptSecretFields(encrypted, encryption)).toEqual(original);
+  });
+
+  it('still encrypts the flat sole-provider secret', () => {
+    const encrypted = encryptSecretFields(
+      { communications: { whatsapp: { phoneNumberId: '1', accessToken: 'flat-token' } } },
+      service(),
+    );
+
+    expect((encrypted.communications as any).whatsapp.accessToken).toMatch(/^gcmv1:/);
+  });
+});
+
 describe('decryptSecretFields', () => {
   it('reverses encryptSecretFields exactly', () => {
     const encryption = service();
@@ -67,7 +93,6 @@ describe('decryptSecretFields', () => {
       version: 1,
       communications: {
         whatsapp: { phoneNumberId: '123', accessToken: 'wa-token' },
-        messenger: { pageId: 'p1', accessToken: 'msg-token' },
       },
     };
 
@@ -83,7 +108,7 @@ describe('decryptSecretFields', () => {
       communications: {
         // Never encrypted at all — a legacy plaintext row.
         whatsapp: { phoneNumberId: '123', accessToken: 'legacy-plaintext-token' },
-        sms: { provider: 'greenweb', greenweb: { apiKey: encryption.encrypt('sms-key') } },
+        sms: { provider: 'alpha', alpha: { apiKey: encryption.encrypt('sms-key') } },
       },
     };
 
@@ -91,7 +116,7 @@ describe('decryptSecretFields', () => {
     const communications = decrypted.communications as any;
 
     expect(communications.whatsapp.accessToken).toBeUndefined();
-    expect(communications.sms.greenweb.apiKey).toBe('sms-key');
+    expect(communications.sms.alpha.apiKey).toBe('sms-key');
   });
 
   it('reports the failing path via onError rather than only through the thrown message', () => {

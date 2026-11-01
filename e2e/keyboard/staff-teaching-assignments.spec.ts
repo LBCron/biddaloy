@@ -76,16 +76,10 @@ test('keyboard-only: assign a class/section from the staff detail Teaching assig
   await expect(page.getByText(t('staff.detail.teachingAssignments.emptyMessage'))).toBeVisible();
 
   await test.step('tab to Assign, keyboard only', async () => {
-    await page.evaluate(() => {
-      document.body.setAttribute('tabindex', '-1');
-      document.body.focus();
-      document.body.removeAttribute('tabindex');
-    });
-    await page.keyboard.press('Tab');
-    // Budget bumped past the original 60 — Epic 27.0's two new sidebar nav
-    // entries (Admission intakes/applicants) push every tab-index target
-    // further down the page.
-    await tabUntilFocused(page, t('staff.detail.teachingAssignments.assign'), 80, {
+    // Tab from the tab trigger, not from <body>: the Assign button is the panel's first control,
+    // and walking the sidebar and header first grows with every nav entry and (?) button.
+    await page.getByRole('tab', { name: t('staff.detail.tabs.teachingAssignments') }).focus();
+    await tabUntilFocused(page, t('staff.detail.teachingAssignments.assign'), 10, {
       tag: 'BUTTON',
     });
     await page.keyboard.press('Enter');

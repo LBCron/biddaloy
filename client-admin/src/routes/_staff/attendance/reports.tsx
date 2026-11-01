@@ -139,17 +139,6 @@ export const Route = createFileRoute('/_staff/attendance/reports')({
   component: ReportsPage,
 });
 
-/** A view tab with its (?) beside it, never inside the trigger: the tab keeps its label as its
- * name and clicking the (?) does not switch tabs. */
-function ViewTab({ value, label, helpId }: { value: string; label: string; helpId: string }) {
-  return (
-    <span role="presentation" className="inline-flex items-center">
-      <TabsTrigger value={value}>{label}</TabsTrigger>
-      <HelpHint helpId={helpId} label={label} />
-    </span>
-  );
-}
-
 function ReportsPage() {
   // `useRegionConfig()` has no ambient provider above the route tree —
   // same wrap `academic-years/index.tsx` documents for itself.
@@ -443,27 +432,35 @@ function ReportsPageContent() {
         value={view}
         onValueChange={(next) => actions.setFilters({ view: next === 'summary' ? null : next })}
       >
-        <TabsList variant="line" aria-label={t('reports.viewLabel')}>
-          <ViewTab
-            value="summary"
-            label={t('reports.viewSummary')}
-            helpId="attendance.attendanceReports.section.summary"
-          />
-          {canSeeFlags && (
-            <ViewTab
-              value="flags"
-              label={t('reports.viewFlags')}
+        {/* One (?) for the open view, beside the tablist, not in it: a tablist may own only
+            tabs (axe aria-required-children), and one icon keeps the row narrow on phones. */}
+        <div className="flex flex-wrap items-center gap-1">
+          <TabsList variant="line" aria-label={t('reports.viewLabel')}>
+            <TabsTrigger value="summary">{t('reports.viewSummary')}</TabsTrigger>
+            {canSeeFlags && <TabsTrigger value="flags">{t('reports.viewFlags')}</TabsTrigger>}
+            {periodEnabled && (
+              <TabsTrigger value="subjects">{t('reports.viewSubjects')}</TabsTrigger>
+            )}
+          </TabsList>
+          {view === 'summary' && (
+            <HelpHint
+              helpId="attendance.attendanceReports.section.summary"
+              label={t('reports.viewSummary')}
+            />
+          )}
+          {view === 'flags' && (
+            <HelpHint
               helpId="attendance.attendanceReports.section.flags"
+              label={t('reports.viewFlags')}
             />
           )}
-          {periodEnabled && (
-            <ViewTab
-              value="subjects"
-              label={t('reports.viewSubjects')}
+          {view === 'subjects' && (
+            <HelpHint
               helpId="attendance.attendanceReports.section.subjects"
+              label={t('reports.viewSubjects')}
             />
           )}
-        </TabsList>
+        </div>
         {/* The selected view's report is its tab's panel. mt-4 + the Tabs gap-2 = the page's space-y-6. */}
         <TabsContent value={view} className="mt-4 space-y-6">
           <FilterBar

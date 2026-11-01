@@ -65,11 +65,13 @@ export class ReportExportProcessor extends WorkerHost {
     const extension = format === ExportFormat.XLSX ? 'xlsx' : 'csv';
     const tempPath = join(tmpdir(), `report-export-${runId}.${extension}`);
 
+    let uploadedKey: string | undefined;
     try {
       const rowCount = await this.writeFile(tempPath, format, rowSource, tenantId, userId, query);
       const key = tenantObjectKey(tenantId, 'reports', extension);
       const { size } = await stat(tempPath);
       await this.storage.putStream(key, createReadStream(tempPath), size, CONTENT_TYPE[format]);
+      uploadedKey = key;
       await this.runLog.finish(tenantId, runId, {
         rowCount,
         durationMs: Date.now() - startedAt,
@@ -82,7 +84,24 @@ export class ReportExportProcessor extends WorkerHost {
       this.logger.error(
         `Queued export ${runId} failed: ${err instanceof Error ? err.message : err}`,
       );
-      await this.runLog.fail(tenantId, runId, code);
+      // The cleanup job only sweeps DONE runs, so an object uploaded before the failure would stay forever.
+      if (uploadedKey) {
+        await this.storage
+          .deleteForTenant(uploadedKey, tenantId)
+          .catch((e: unknown) =>
+            this.logger.warn(
+              `Orphaned export ${uploadedKey} not deleted: ${e instanceof Error ? e.message : e}`,
+            ),
+          );
+      }
+      // Best effort: with the DB down `fail` throws too, and a worker has no global handler to catch it.
+      await this.runLog
+        .fail(tenantId, runId, code)
+        .catch((e: unknown) =>
+          this.logger.error(
+            `Export ${runId} not marked failed: ${e instanceof Error ? e.message : e}`,
+          ),
+        );
     } finally {
       await rm(tempPath, { force: true });
     }
@@ -107,6 +126,8 @@ export class ReportExportProcessor extends WorkerHost {
           file.once('error', reject);
         })
       : undefined;
+    // Nothing awaits csvDone until the loop ends; without this a stream error is an unhandled rejection.
+    csvDone?.catch(() => undefined);
     csv?.pipe(file);
     csv?.write([header]);
 
@@ -118,18 +139,25 @@ export class ReportExportProcessor extends WorkerHost {
       else csv?.write(chunk);
       chunk = [];
     };
-    for await (const row of source.rows(tenantId, userId, query)) {
-      if (++count > QUEUED_EXPORT_MAX_ROWS) throw new TooManyRowsError();
-      chunk.push(row as unknown[]);
-      if (chunk.length >= CHUNK_ROWS) flush();
+    try {
+      for await (const row of source.rows(tenantId, userId, query)) {
+        if (++count > QUEUED_EXPORT_MAX_ROWS) throw new TooManyRowsError();
+        chunk.push(row as unknown[]);
+        if (chunk.length >= CHUNK_ROWS) flush();
+      }
+      flush();
+      if (xlsx) await xlsx.finish();
+      else {
+        csv?.end();
+        await csvDone;
+      }
+      return count;
+    } catch (err) {
+      // Release the descriptor; the caller removes the file itself.
+      csv?.unpipe(file);
+      file.destroy();
+      throw err;
     }
-    flush();
-    if (xlsx) await xlsx.finish();
-    else {
-      csv?.end();
-      await csvDone;
-    }
-    return count;
   }
 
   private async notify(userId: string, tenantId: string): Promise<void> {

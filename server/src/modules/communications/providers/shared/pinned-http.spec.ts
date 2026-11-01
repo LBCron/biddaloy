@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { lookup as dnsLookup } from 'node:dns/promises';
-import { createPinnedLookup, fetchPinnedJson } from './pinned-http';
+import { createPinnedLookup, fetchPinnedJson, fetchPinnedJsonWithStatus } from './pinned-http';
 import type { SafeHttpDestination } from './outbound-destination-guard';
 
 vi.mock('node:dns/promises', () => ({ lookup: vi.fn() }));
@@ -97,7 +97,11 @@ describe('fetchPinnedJson', () => {
   }
 
   it('builds a Client pinned to the destination origin and fetches with it as the dispatcher', async () => {
-    fetchMock.mockResolvedValue({ json: vi.fn().mockResolvedValue({ ok: true }) });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({ ok: true }),
+    });
 
     const result = await fetchPinnedJson(destination(), 'https://api.example.com/v1?token=abc', {
       method: 'GET',
@@ -117,7 +121,7 @@ describe('fetchPinnedJson', () => {
   });
 
   it('wires the constructed lookup to answer from the destination addresses', async () => {
-    fetchMock.mockResolvedValue({ json: vi.fn().mockResolvedValue({}) });
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: vi.fn().mockResolvedValue({}) });
 
     await fetchPinnedJson(destination(), 'https://api.example.com/v1');
 
@@ -128,7 +132,7 @@ describe('fetchPinnedJson', () => {
   });
 
   it('destroys the client after a successful fetch', async () => {
-    fetchMock.mockResolvedValue({ json: vi.fn().mockResolvedValue({}) });
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: vi.fn().mockResolvedValue({}) });
     await fetchPinnedJson(destination(), 'https://api.example.com/v1');
     expect(destroy).toHaveBeenCalledTimes(1);
   });
@@ -142,7 +146,11 @@ describe('fetchPinnedJson', () => {
   });
 
   it('destroys the client even when .json() rejects', async () => {
-    fetchMock.mockResolvedValue({ json: vi.fn().mockRejectedValue(new Error('bad json')) });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockRejectedValue(new Error('bad json')),
+    });
     await expect(fetchPinnedJson(destination(), 'https://api.example.com/v1')).rejects.toThrow(
       'bad json',
     );
@@ -155,5 +163,70 @@ describe('fetchPinnedJson', () => {
     );
     expect(ClientMock).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('still throws when an error page (non-2xx) is not JSON', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 502,
+      json: vi.fn().mockRejectedValue(new SyntaxError('Unexpected token <')),
+    });
+    await expect(fetchPinnedJson(destination(), 'https://api.example.com/v1')).rejects.toThrow();
+  });
+});
+
+// #3320: the SMS providers decide on the HTTP status before the body (401 vs 5xx move credit).
+describe('fetchPinnedJsonWithStatus', () => {
+  const destination: SafeHttpDestination = {
+    url: new URL('https://api.example.com/v1'),
+    addresses: [{ address: '203.0.113.5', family: 4 }],
+  };
+
+  it('returns the status with the parsed body', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: vi.fn().mockResolvedValue({ message: 'Unauthenticated.' }),
+    });
+    await expect(
+      fetchPinnedJsonWithStatus(destination, 'https://api.example.com/v1'),
+    ).resolves.toEqual({ status: 401, body: { message: 'Unauthenticated.' } });
+  });
+
+  it('an error page that is not JSON (404 HTML) still returns its status, body undefined', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: vi.fn().mockRejectedValue(new SyntaxError('Unexpected token <')),
+    });
+    await expect(
+      fetchPinnedJsonWithStatus(destination, 'https://api.example.com/v1'),
+    ).resolves.toEqual({ status: 404, body: undefined });
+    expect(destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it('a 2xx whose body is not JSON still throws (the send may have gone out: never read as a refusal)', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockRejectedValue(new SyntaxError('bad json')),
+    });
+    await expect(
+      fetchPinnedJsonWithStatus(destination, 'https://api.example.com/v1'),
+    ).rejects.toThrow('bad json');
+    expect(destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the same origin check and pinning as fetchPinnedJson', async () => {
+    await expect(
+      fetchPinnedJsonWithStatus(destination, 'https://attacker.example.com/v1'),
+    ).rejects.toThrow(/origin/);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: vi.fn().mockResolvedValue({}) });
+    await fetchPinnedJsonWithStatus(destination, 'https://api.example.com/v1', { method: 'GET' });
+    const [, init] = fetchMock.mock.calls[0]!;
+    expect(init).toMatchObject({ method: 'GET', redirect: 'error' });
+    expect(init.dispatcher).toEqual({ destroy });
   });
 });

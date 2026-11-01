@@ -53,7 +53,7 @@ export class SendCommunicationDto {
   @IsUUID()
   guardian_id?: string;
 
-  // WhatsApp template sends only — see WhatsAppCloudProvider for the
+  // WhatsApp template sends only — see MetaCloudProvider for the
   // 24-hour freeform-window constraint this exists to work around.
   @IsOptional()
   @IsString()

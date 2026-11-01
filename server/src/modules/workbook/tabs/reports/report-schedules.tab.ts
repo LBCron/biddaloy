@@ -1,4 +1,4 @@
-import type { EntityManager } from 'typeorm';
+import { IsNull, type EntityManager } from 'typeorm';
 import { ExportFormat, ReportScheduleFrequency } from '@biddaloy/shared';
 import { ReportSchedule } from '../../../reports/entities/report-schedule.entity';
 import { fromCell } from '../../codec/cell-format';
@@ -98,11 +98,14 @@ export const reportSchedulesTab: TabSpec<ReportSchedule, ReportScheduleRow> = {
   columns,
   // The cells that identify a schedule: which report, how often, when.
   naturalKey: ['report', 'frequency', 'day_of_week', 'day_of_month', 'local_time'],
+  // The table has no unique constraint: two schedules can differ only in params, format or recipients.
+  allowDuplicateKeys: true,
   deleteByAbsence: true,
 
   load(tenantId: string, m: EntityManager): Promise<ReportSchedule[]> {
     return m.find(ReportSchedule, {
-      where: { tenant_id: tenantId },
+      // Schedules of a soft-deleted report are absent from the report_definitions export.
+      where: { tenant_id: tenantId, report_definition: { deleted_at: IsNull() } },
       relations: ['report_definition'],
     });
   },
@@ -146,6 +149,24 @@ export const reportSchedulesTab: TabSpec<ReportSchedule, ReportScheduleRow> = {
     }
     if (!LOCAL_TIME.test(v.local_time as string)) {
       return fail('local_time', 'Column "local_time": expected a time like 08:30.');
+    }
+    const dow = v.day_of_week as number | null;
+    const dom = v.day_of_month as number | null;
+    if (dow !== null && (dow < 0 || dow > 6)) {
+      return fail('day_of_week', 'Column "day_of_week": expected a number from 0 to 6.');
+    }
+    if (dom !== null && (dom < 1 || dom > 31)) {
+      return fail('day_of_month', 'Column "day_of_month": expected a number from 1 to 31.');
+    }
+    const frequency = v.frequency as string;
+    if (frequency === ReportScheduleFrequency.WEEKLY && (dow === null || dom !== null)) {
+      return fail('day_of_week', 'A weekly schedule needs "day_of_week" and no "day_of_month".');
+    }
+    if (frequency === ReportScheduleFrequency.MONTHLY && (dom === null || dow !== null)) {
+      return fail('day_of_month', 'A monthly schedule needs "day_of_month" and no "day_of_week".');
+    }
+    if (frequency === ReportScheduleFrequency.DAILY && (dow !== null || dom !== null)) {
+      return fail('frequency', 'A daily schedule takes neither "day_of_week" nor "day_of_month".');
     }
     const roles = v.recipient_roles;
     if (!Array.isArray(roles) || roles.some((r) => typeof r !== 'string')) {

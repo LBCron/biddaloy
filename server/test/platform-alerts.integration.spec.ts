@@ -15,10 +15,10 @@ describe('platform_alerts (integration)', () => {
   let dataSource: DataSource;
   const userIds: string[] = [];
   let probe: 'ok' | 'fail';
-  const greenweb = { sendSms: vi.fn().mockResolvedValue({ success: true }) };
+  const greenweb = { send: vi.fn().mockResolvedValue({ success: true }) };
   let service: PlatformAlertsService;
   let platformTenantId: string | undefined = SEED_TENANT_ID;
-  const env: Record<string, string | undefined> = { PLATFORM_SMS_API_KEY: 'key' };
+  const env: Record<string, string | undefined> = { SMS_PROVIDER: 'p' };
   const otherTenantId = randomUUID();
 
   beforeAll(async () => {
@@ -28,8 +28,7 @@ describe('platform_alerts (integration)', () => {
       dataSource,
       { probeRedis: async () => probe } as never,
       { get: (k: string) => env[k] } as never,
-      greenweb as never,
-      { sendSms: vi.fn() } as never,
+      { resolve: async () => ({ provider: greenweb, config: {} }) } as never,
       { platformTenantId: async () => platformTenantId } as never,
     );
     await dataSource.query(
@@ -41,7 +40,7 @@ describe('platform_alerts (integration)', () => {
 
   beforeEach(async () => {
     await dataSource.query(`DELETE FROM platform_alerts`);
-    greenweb.sendSms.mockClear();
+    greenweb.send.mockClear();
   });
 
   afterAll(async () => {
@@ -191,12 +190,12 @@ describe('platform_alerts (integration)', () => {
     for (let i = 0; i < 3; i++) await service.tick();
     expect(await openRows()).toHaveLength(1);
     expect((await openRows())[0].sms_count).toBe(1);
-    const sentWhileOpen = greenweb.sendSms.mock.calls.length;
+    const sentWhileOpen = greenweb.send.mock.calls.length;
 
     // Still failing within the hour: no second text, still one row.
     await service.tick();
     expect(await openRows()).toHaveLength(1);
-    expect(greenweb.sendSms.mock.calls.length).toBe(sentWhileOpen);
+    expect(greenweb.send.mock.calls.length).toBe(sentWhileOpen);
 
     probe = 'ok';
     await service.tick();

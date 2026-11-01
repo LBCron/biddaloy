@@ -243,6 +243,7 @@ For the other roles, **Send Message** is not in the left menu.
 
 - [**Fee reminders**](fee-reminders.md) — remind one or many guardians about dues.
 - [**Reminder history**](reminder-history.md) — the rounds of reminders sent together.
+- [**Message log**](message-log.md) — find the message you sent and whether it arrived.
 - [**Viewing, fixing and inviting guardians**](../people/guardians.md) — numbers and emails are fixed here.
 
 - [**Send an alert**](send-alert.md) — a short notice to many people at once, in their app.

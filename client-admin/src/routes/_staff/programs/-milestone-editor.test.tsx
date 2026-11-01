@@ -13,6 +13,8 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { expectHelp, withHelp } from '../../../help/test-utils';
+
 import { MilestoneEditor, type MilestoneEditorProps } from './-milestone-editor';
 
 afterEach(async () => {
@@ -40,7 +42,9 @@ async function renderEditor(props: Partial<MilestoneEditorProps> = {}) {
   const view = render(
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
-        <MilestoneEditor programId="p-1" milestones={MILESTONES} canManage {...props} />
+        {withHelp(
+          <MilestoneEditor programId="p-1" milestones={MILESTONES} canManage {...props} />,
+        )}
       </I18nProvider>
     </QueryClientProvider>,
   );
@@ -106,6 +110,7 @@ describe('MilestoneEditor', () => {
     const removeButtons = await screen.findAllByRole('button', { name: 'Remove milestone' });
     await user.click(removeButtons[1]!); // m-2 has achievement_count: 3
     const confirm = await screen.findByRole('alertdialog');
+    await expectHelp('people.programs.action.removeMilestone');
     await within(confirm).findByText(
       /This milestone has (3|৩) recorded achievements. Removing them will delete those records too./,
     );

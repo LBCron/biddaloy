@@ -31,8 +31,8 @@ interface FormValues {
 interface HomeworkSectionProps {
   schoolId: string;
   homework: MaskedTenantSettings['homework'] | undefined;
-  /** Same test the server uses before sending (`communications.sms.provider` is set). */
-  smsConfigured?: boolean;
+  /** The server's "SMS is set up" (D32). `null` = not known yet (loading or failed): no warning. */
+  smsConfigured?: boolean | null;
 }
 
 const SWITCHES = ['notifyOnAssign', 'notifyDefaulters'] as const;
@@ -106,24 +106,26 @@ export function HomeworkSection({
               )}
             />
           ))}
-          <div className="flex flex-col gap-2 rounded-md bg-muted p-3 md:flex-row md:items-center md:justify-between">
-            <StatusBadge
-              tone={smsConfigured ? 'success' : 'warning'}
-              label={t(
-                smsConfigured ? 'evaluations.providerReady' : 'evaluations.providerNotConfigured',
+          {smsConfigured !== null && (
+            <div className="flex flex-col gap-2 rounded-md bg-muted p-3 md:flex-row md:items-center md:justify-between">
+              <StatusBadge
+                tone={smsConfigured ? 'success' : 'warning'}
+                label={t(
+                  smsConfigured ? 'evaluations.providerReady' : 'evaluations.providerNotConfigured',
+                )}
+              />
+              {!smsConfigured && (
+                <Link
+                  to="/settings"
+                  search={{ section: 'communication' }}
+                  className="inline-flex h-11 items-center gap-1 rounded-md px-2 font-medium text-primary hover:bg-surface md:h-8"
+                >
+                  <ArrowRightIcon aria-hidden="true" className="size-4" />
+                  {t('evaluations.openSmsSettings')}
+                </Link>
               )}
-            />
-            {!smsConfigured && (
-              <Link
-                to="/settings"
-                search={{ section: 'communication' }}
-                className="inline-flex h-11 items-center gap-1 rounded-md px-2 font-medium text-primary hover:bg-surface md:h-8"
-              >
-                <ArrowRightIcon aria-hidden="true" className="size-4" />
-                {t('evaluations.openSmsSettings')}
-              </Link>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </SettingsSection>
     </Form>

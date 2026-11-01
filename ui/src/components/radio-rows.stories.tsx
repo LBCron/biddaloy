@@ -42,9 +42,8 @@ export const Default: Story = { render: () => <Controlled /> };
 export const LegendHidden: Story = { render: () => <Controlled legendHidden /> };
 export const Bangla: Story = { render: () => <Controlled bangla /> };
 
-/** A (?) beside the legend, outside it: the group's name stays the legend alone. */
-export const WithHelp: Story = {
-  render: () => (
+function WithHelpRows() {
+  return (
     <HelpProvider
       index={{
         'story.field.template': {
@@ -67,5 +66,14 @@ export const WithHelp: Story = {
         helpId="story.field.template"
       />
     </HelpProvider>
-  ),
+  );
+}
+
+/** A (?) beside the legend, outside it: the group's name stays the legend alone. */
+export const WithHelp: Story = { render: () => <WithHelpRows /> };
+
+/** Phone width: the 44px (?) and the legend text share one centre line. */
+export const WithHelpPhone: Story = {
+  render: () => <WithHelpRows />,
+  parameters: { viewport: { defaultViewport: 'mobile1' } },
 };

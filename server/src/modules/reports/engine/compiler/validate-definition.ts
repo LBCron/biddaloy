@@ -146,7 +146,7 @@ function sortTarget(
   const measure = area.measures.find((m) => m.key === sort.field);
   if (!field && !measure) throw new ReportCompileError('UNKNOWN_FIELD', path);
   if (field && !field.sortable) throw new ReportCompileError('NOT_SORTABLE', path);
-  // A measure can only be sorted when it is on the report; so can a field when rows are grouped.
+  // A measure can only be sorted when it is on the report.
   if (measure && !selected.has(measure.key)) throw new ReportCompileError('NOT_SORTABLE', path);
   return { key: sort.field, dir: sort.dir, field };
 }
@@ -231,11 +231,10 @@ export function validateDefinition(
     ...dimensions.map((d) => d.field.key),
     ...measures.map((m) => m.alias),
   ]);
-  const grouped = measures.length > 0;
   const sorts = dataset.sort.map((s, i) => {
     const target = sortTarget(s, area, selected, `dataset.sort[${i}]`);
-    // With grouping, only a selected dimension may be sorted: any other column is not in the GROUP BY.
-    if (grouped && target.field && !selected.has(target.key)) {
+    // Only an output column can be sorted: the builder skips any other, and a grouped query has no such column.
+    if (target.field && !selected.has(target.key)) {
       throw new ReportCompileError('NOT_SORTABLE', `dataset.sort[${i}]`);
     }
     return target;

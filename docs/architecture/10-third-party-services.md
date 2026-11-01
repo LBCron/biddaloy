@@ -79,7 +79,7 @@ unset. None are required to boot the app.
 | SMTP (any provider)          | operator-supplied host | Email, via `nodemailer`              | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`              |
 | Sentry                       | `*.ingest.sentry.io`   | Frontend error tracking + Web Vitals | `SENTRY_DSN_WEB`, served at runtime (see [`07-deployment.md`](07-deployment.md)) |
 
-`SMS_PROVIDER` selects `greenweb` or `mimsms`. All calls go through `undici`
+`SMS_PROVIDER` selects `greenweb`, `mimsms` or `onecodesoft`; each reads its own `<PREFIX>_<FIELD>` keys (e.g. `ONECODESOFT_API_KEY`). The old `PLATFORM_SMS_*` keys are deprecated. All calls go through `undici`
 directly — no vendor SDK is installed for any of these. See
 [`05-communications.md`](05-communications.md) for how the communications
 module dispatches to them.
@@ -181,6 +181,15 @@ Worked example (checked by `webhook-signature.util.spec.ts`):
 Not present in the running application — only used to build, test, and ship
 it: GitHub Actions, CodeQL, Lighthouse CI (`@lhci/cli`), CodeRabbit,
 Playwright, Storybook.
+
+CodeRabbit only auto-reviews PRs into `main`, `develop`, `feature-*` and
+`epic-*`, and it has a review limit. Stacked PRs (base `epic/97/accum-3`,
+`claude/...-pr2`) and rate-limited PRs need someone to comment
+`@coderabbitai full review`. `scripts/coderabbit-review-queue.sh` does that one
+PR at a time: it waits for CodeRabbit's "Next included review available in N
+minutes", and 60 minutes after the last review, before it asks again. It runs
+on a developer's Mac, not in CI, because CodeRabbit ignores commands from bot
+accounts. Run it with `--help` for the settings.
 
 ## Deliberately not used
 
