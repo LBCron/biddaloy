@@ -125,5 +125,11 @@
   "drill": {
     "open": "See the list: {{what}} ({{value}})"
   },
-  "back": "Go back"
+  "back": "Go back",
+  "fields": {
+    "whoCanSee": "Who can see it"
+  },
+  "help": {
+    "whoCanSee": "Tick each role that may open this report. Admins always see every report."
+  }
 }

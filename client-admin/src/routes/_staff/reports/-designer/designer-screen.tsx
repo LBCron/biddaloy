@@ -29,6 +29,7 @@ import {
   FilterBuilder,
   FilterSheet,
   FormatRulesEditor,
+  HelpHint,
   LayoutSwitcher,
   ReportChart,
   ReportCrosstab,
@@ -41,6 +42,7 @@ import {
   SelectValue,
   toast,
   useDesignerLabels,
+  useHelp,
   type EnumLabel,
 } from '@biddaloy/ui/components';
 import {
@@ -147,6 +149,7 @@ function Designer({ meta, initial, report }: DesignerScreenProps) {
   const { locale } = useLocale();
   const router = useRouter();
   const labels = useDesignerLabels();
+  const { resolve } = useHelp();
   const enumLabel = useEnumLabel();
   const role = useActiveRole();
   const phone = useIsPhone();
@@ -382,6 +385,22 @@ function Designer({ meta, initial, report }: DesignerScreenProps) {
     );
 
   // ---- the controls -----------------------------------------------------------------------------
+  const moreDetails = (
+    <details className="rounded-lg border border-border bg-surface p-3">
+      <summary className="min-h-11 cursor-pointer text-h3 text-text-primary md:min-h-8">
+        {t('more.title')}
+      </summary>
+      <div className="pt-3">
+        <FormatRulesEditor
+          rules={draft.format}
+          fields={info.fields}
+          onChange={(format) => setDraft((d) => ({ ...d, format }))}
+          labels={labels.format}
+          enumLabel={enumLabel}
+        />
+      </div>
+    </details>
+  );
   const areas = meta.areas.map((a) => a.key);
   const controls = (
     // The keydown only reads Alt+arrows bubbling up from a picked field's own button.
@@ -425,6 +444,7 @@ function Designer({ meta, initial, report }: DesignerScreenProps) {
           value={draft.picks}
           onChange={(picks) => setDraft((d) => ({ ...d, picks }))}
           labels={labels.picker}
+          helpId="reports.hub.section.designTrays"
         />
         <p className="text-caption text-text-secondary">{t('keyboard.hint')}</p>
         {zoneError('picks', 'designer-picks-error')}
@@ -438,6 +458,7 @@ function Designer({ meta, initial, report }: DesignerScreenProps) {
           onChange={({ filters, parameters }) => setDraft((d) => ({ ...d, filters, parameters }))}
           labels={labels.filter}
           enumLabel={enumLabel}
+          helpId="reports.hub.section.designFilters"
         />
         {zoneError('filter', 'designer-filter-error')}
       </section>
@@ -450,24 +471,20 @@ function Designer({ meta, initial, report }: DesignerScreenProps) {
             setDraft((d) => ({ ...d, layout: next === suggestion.layout ? null : next }))
           }
           labels={labels.layout}
+          helpId="reports.hub.section.designLayout"
         />
         {zoneError('layout', 'designer-layout-error')}
       </section>
 
-      <details className="rounded-lg border border-border bg-surface p-3">
-        <summary className="min-h-11 cursor-pointer text-h3 text-text-primary md:min-h-8">
-          {t('more.title')}
-        </summary>
-        <div className="pt-3">
-          <FormatRulesEditor
-            rules={draft.format}
-            fields={info.fields}
-            onChange={(format) => setDraft((d) => ({ ...d, format }))}
-            labels={labels.format}
-            enumLabel={enumLabel}
-          />
+      {resolve('reports.hub.section.designMore') ? (
+        // The row wrapper exists only when the (?) renders, so a screen without help keeps its DOM.
+        <div className="flex items-start gap-1">
+          <div className="min-w-0 flex-1">{moreDetails}</div>
+          <HelpHint helpId="reports.hub.section.designMore" />
         </div>
-      </details>
+      ) : (
+        moreDetails
+      )}
     </div>
   );
 

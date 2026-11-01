@@ -491,6 +491,7 @@ POST   /api/v1/public/admission/:slug/status                                    
 GET    /api/v1/public/invoices/:token                                            PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 GET    /api/v1/public/verify/:token                                              PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 GET    /api/v1/reports/catalogue                                                 401 PASS PASS PASS PASS PASS 403 403 PASS 403 403 PASS
+GET    /api/v1/reports/catalogue/:id/definition                                  401 PASS PASS PASS PASS PASS 403 403 PASS 403 403 PASS
 GET    /api/v1/reports/collections                                               401 PASS PASS PASS PASS 403 403 403 PASS 403 403 403
 GET    /api/v1/reports/collections.csv                                           401 PASS PASS PASS PASS 403 403 403 PASS 403 403 403
 GET    /api/v1/reports/definitions                                               401 PASS PASS PASS 403 403 403 403 403 403 403 403
@@ -513,8 +514,6 @@ POST   /api/v1/reports/runs/:id/snapshot                                        
 POST   /api/v1/reports/runs/export                                               401 PASS PASS PASS PASS 403 403 403 403 403 403 403
 GET    /api/v1/reports/snapshots                                                 401 PASS PASS PASS PASS PASS 403 403 PASS 403 403 PASS
 GET    /api/v1/reports/snapshots/:id/download                                    401 PASS PASS PASS PASS 403 403 403 403 403 403 403
-GET    /api/v1/reports/student-count                                             401 PASS PASS PASS PASS PASS 403 403 PASS 403 403 PASS
-GET    /api/v1/reports/student-count/export                                      401 PASS PASS PASS PASS 403 403 403 403 403 403 403
 GET    /api/v1/routines                                                          401 PASS PASS PASS 403 PASS PASS PASS PASS PASS PASS 403
 POST   /api/v1/routines                                                          401 PASS PASS PASS 403 403 403 403 403 403 403 403
 GET    /api/v1/routines/:id                                                      401 PASS PASS PASS 403 PASS PASS PASS PASS PASS PASS 403

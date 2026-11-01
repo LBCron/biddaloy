@@ -15,6 +15,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { expectHelp } from '../../../../help/test-utils';
 import { routeTree } from '../../../../routeTree.gen';
 
 import {
@@ -473,5 +474,45 @@ describe('words on the designer', () => {
     expect(bn['start.question.title']).toBe('একটি প্রশ্ন দিয়ে শুরু করুন');
     expect(bn['start.blank']).toBe('ফাঁকা থেকে শুরু');
     expect(bn['back']).toBe('ফিরে যান');
+  });
+});
+
+/** [8.15.49] The (?) on the designer: the three trays, "only those who…", the layout, "more" and who can see. */
+describe('(?) help ids [8.15.49]', () => {
+  afterEach(async () => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+    await cleanupTestState();
+  });
+
+  it('puts a (?) on the title, each part of the designer and the save step', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    serve();
+    renderAt('/reports/new');
+    const user = userEvent.setup();
+    const card = within(await screen.findByRole('group', { name: 'How many …, by …?' }));
+    await user.click(card.getByRole('button', { name: 'Start' }));
+    await page().findByRole('heading', { level: 1, name: 'New report' });
+
+    await expectHelp('reports.hub'); // the page title
+    await expectHelp('reports.hub.section.designTrays');
+    await expectHelp('reports.hub.section.designFilters');
+    await expectHelp('reports.hub.section.designLayout');
+    await expectHelp('reports.hub.section.designMore');
+    // The (?) sits outside the legend's text, so the layout group keeps its plain name.
+    expect(page().getByRole('group', { name: 'How it looks' })).toBeTruthy();
+
+    await user.keyboard('{Control>}s{/Control}');
+    const dialog = await screen.findByRole('dialog', { name: 'Save this report' });
+    await expectHelp('reports.hub.field.whoCanSee');
+    expect(within(dialog).getByRole('group', { name: 'Who can see it' })).toBeTruthy();
+  });
+
+  it('adds no (?) without a handbook address', async () => {
+    serve();
+    renderAt(`/reports/${COPY_ID}/edit`);
+    await screen.findByRole('main');
+    await page().findByRole('heading', { level: 1, name: 'Change report' });
+    expect(document.querySelector('[data-help-id]')).toBeNull();
   });
 });

@@ -257,6 +257,7 @@ function ReportsHubPage() {
               label: tDesigner('title.new'),
               icon: <PlusIcon aria-hidden className="size-4" />,
               priority: 'primary',
+              helpId: 'reports.hub.action.newReport',
               // Only a person who may design reports (admin) is offered it; the route says the same.
               allowed: canDesign,
               to: '/reports/new',
@@ -274,7 +275,9 @@ function ReportsHubPage() {
 
         {!nothingAtAll && (
           <div className="flex w-full flex-col gap-1.5 md:w-96">
-            <Label htmlFor="reports-search">{t('hub.searchLabel')}</Label>
+            <Label htmlFor="reports-search" helpId="reports.hub.field.search">
+              {t('hub.searchLabel')}
+            </Label>
             <Input
               id="reports-search"
               type="search"

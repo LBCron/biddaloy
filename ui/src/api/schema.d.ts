@@ -5247,6 +5247,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/catalogue/{id}/definition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How one report looks (questions, layout, page, colours, links), from its published version. Same visibility as the catalogue; no dataset. */
+        get: operations["ReportDefinitionsController_presentation_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/definitions": {
         parameters: {
             query?: never;
@@ -5506,40 +5523,6 @@ export interface paths {
         };
         /** Which reports are used and found useful, counts only. Platform SUPER_ADMIN only. */
         get: operations["PlatformReportUsageController_usage_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/student-count": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Active students by class, gender and religion, and staff by type. */
-        get: operations["StudentCountController_getCount_v1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/student-count/export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The student count (or the staff count) as one Excel or CSV file. */
-        get: operations["StudentCountController_export_v1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -14452,6 +14435,29 @@ export interface components {
             folder: string | null;
             reports: components["schemas"]["CatalogueEntryDto"][];
         };
+        ReportPresentationDto: {
+            /** @description The published version a run uses. */
+            version_id: string;
+            /** @example 1 */
+            schema: number;
+            /** @enum {string} */
+            subjectArea: "STUDENTS" | "STAFF" | "PUBLIC_EXAMS" | "FEES" | "PAYMENTS" | "ATTENDANCE";
+            parameters: {
+                [key: string]: unknown;
+            }[];
+            layout: {
+                [key: string]: unknown;
+            };
+            page: {
+                [key: string]: unknown;
+            };
+            format: {
+                [key: string]: unknown;
+            }[];
+            drill: {
+                [key: string]: unknown;
+            }[];
+        };
         ReportDefinitionDto: {
             id: string;
             key: string;
@@ -14662,41 +14668,6 @@ export interface components {
             from: string;
             to: string;
             reports: components["schemas"]["PlatformReportUsageRowDto"][];
-        };
-        StudentCountRowDto: {
-            class_name: string;
-            /** @description The class number, for ordering. */
-            class_order: number;
-            /** @description Recorded gender, or the "not given" label. */
-            gender: string;
-            /** @description Recorded religion, or the "not given" label. */
-            religion: string;
-            /** @description null when hidden (small-cell rule). */
-            count: number | null;
-            suppressed: boolean;
-        };
-        StudentCountTotalsDto: {
-            /** @description True total of active students. Never hidden (D14). */
-            students: number;
-        };
-        StaffCountRowDto: {
-            /** @enum {string} */
-            staff_type: "TEACHING" | "NON_TEACHING" | "UNASSIGNED";
-            count: number | null;
-            suppressed: boolean;
-        };
-        StaffCountDto: {
-            rows: components["schemas"]["StaffCountRowDto"][];
-            /** @description True total of staff. Never hidden (D14). */
-            total: number;
-        };
-        StudentCountDto: {
-            /** Format: uuid */
-            academic_year_id: string | null;
-            academic_year_name: string | null;
-            rows: components["schemas"]["StudentCountRowDto"][];
-            totals: components["schemas"]["StudentCountTotalsDto"];
-            staff: components["schemas"]["StaffCountDto"];
         };
         AtRiskThresholdsDto: {
             absentStreakDays: number;
@@ -31036,6 +31007,39 @@ export interface operations {
             };
         };
     };
+    ReportDefinitionsController_presentation_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportPresentationDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ReportDefinitionsController_list_v1: {
         parameters: {
             query?: {
@@ -31720,74 +31724,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PlatformReportUsageDto"];
                 };
-            };
-            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    StudentCountController_getCount_v1: {
-        parameters: {
-            query?: {
-                /** @description Defaults to the current academic year. */
-                academic_year_id?: string;
-            };
-            header: {
-                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
-                "X-Tenant-ID": string;
-                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
-                "X-Role"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StudentCountDto"];
-                };
-            };
-            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    StudentCountController_export_v1: {
-        parameters: {
-            query?: {
-                /** @description Defaults to the current academic year. */
-                academic_year_id?: string;
-                format?: "CSV" | "XLSX";
-                table?: "students" | "staff";
-            };
-            header: {
-                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
-                "X-Tenant-ID": string;
-                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
-                "X-Role"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
             401: {

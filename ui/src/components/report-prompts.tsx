@@ -47,6 +47,7 @@ import { formatDate, formatDateRange, parseDate, renderDigits, toIsoDate } from 
 import { Button } from './button';
 import { DatePicker } from './date-picker';
 import { FilterSheet } from './filter-sheet';
+import { HelpHint } from './help-hint';
 import { Input } from './input';
 import { Label } from './label';
 import { MultiCombobox } from './multi-combobox';
@@ -289,6 +290,8 @@ export interface ReportPromptsProps {
   /** Whether the prompts are showing. Closed, they render nothing: the summary line stands in. */
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** A (?) after the Show report button (Epic 44). Desktop only: the phone sheet has no such button. */
+  runHelpId?: string | undefined;
   className?: string;
 }
 
@@ -301,6 +304,7 @@ export function ReportPrompts({
   running = false,
   open,
   onOpenChange,
+  runHelpId,
   className,
 }: ReportPromptsProps) {
   const { t } = useTranslation('reports');
@@ -556,6 +560,7 @@ export function ReportPrompts({
       <Button type="submit" loading={running}>
         {t('prompts.run')}
       </Button>
+      {runHelpId !== undefined && <HelpHint helpId={runHelpId} />}
       <Button type="button" variant="ghost" onClick={reset}>
         {t('prompts.reset')}
       </Button>

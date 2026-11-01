@@ -26,6 +26,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  HelpHint,
   Input,
   Label,
   toast,
@@ -85,7 +86,10 @@ function KeepCopyForm({ runId, onClose }: { runId: string; onClose: () => void }
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{t('copies.keep.title')}</DialogTitle>
+        <div className="flex items-center gap-1">
+          <DialogTitle>{t('copies.keep.title')}</DialogTitle>
+          <HelpHint helpId="reports.hub.action.keepCopy" />
+        </div>
         <DialogDescription>{t('copies.keep.description')}</DialogDescription>
       </DialogHeader>
       <form onSubmit={save} className="flex flex-col gap-4">

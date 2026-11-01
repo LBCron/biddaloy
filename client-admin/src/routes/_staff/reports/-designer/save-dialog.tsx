@@ -28,8 +28,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  HelpHint,
   Input,
   Label,
+  useHelp,
 } from '@biddaloy/ui/components';
 import { useTranslation } from '@biddaloy/ui/i18n';
 import * as React from 'react';
@@ -78,6 +80,8 @@ function SaveForm({ initial, onSubmit, error }: Omit<SaveDialogProps, 'open' | '
   const { t } = useTranslation('reportDesigner');
   const { t: tStaff } = useTranslation('staff');
   const { t: tCommon } = useTranslation('common');
+  const { resolve } = useHelp();
+  const whoId = React.useId();
   const [name, setName] = React.useState(initial.name);
   const [folder, setFolder] = React.useState(initial.folder);
   const [roles, setRoles] = React.useState<ReadonlySet<string>>(() => new Set(initial.roles));
@@ -142,9 +146,20 @@ function SaveForm({ initial, onSubmit, error }: Omit<SaveDialogProps, 'open' | '
         )}
       </div>
 
-      <fieldset className="flex flex-col gap-1">
+      {/* With a (?) in the legend, the group is named by the label text alone, not "Help: …". */}
+      <fieldset
+        className="flex flex-col gap-1"
+        aria-labelledby={resolve('reports.hub.field.whoCanSee') ? whoId : undefined}
+      >
         <legend className="mb-1 text-label font-medium text-text-primary">
-          {t('save.whoLabel')}
+          {resolve('reports.hub.field.whoCanSee') ? (
+            <span className="inline-flex items-center gap-1">
+              <span id={whoId}>{t('save.whoLabel')}</span>
+              <HelpHint helpId="reports.hub.field.whoCanSee" />
+            </span>
+          ) : (
+            t('save.whoLabel')
+          )}
         </legend>
         <div className="grid gap-x-4 sm:grid-cols-2">
           {VISIBLE_ROLES.map((role) => (

@@ -22,7 +22,7 @@
  * the duration, so only this section and the school header print (`features/statement/statement-print.css`).
  */
 import { Permission } from '@biddaloy/shared';
-import { Button, DatePicker, EmptyState, Skeleton } from '@biddaloy/ui/components';
+import { Button, DatePicker, EmptyState, HelpHint, Skeleton } from '@biddaloy/ui/components';
 import {
   academicYearsQueryOptions,
   useHasPermission,
@@ -108,6 +108,7 @@ export function StatementSection({ studentId }: StatementSectionProps) {
             min={from}
           />
         </div>
+        <HelpHint helpId="people.students.section.statement" />
         <Button
           type="button"
           variant="outline"

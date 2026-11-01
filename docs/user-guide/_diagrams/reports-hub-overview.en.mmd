@@ -1,10 +1,10 @@
 %% title: Who can do what from All reports
-%% desc: From the All reports page you open a ready report or another report. After the result, Download to Excel and Print are for the admin and the accountant, changing the choices is for the admin, and saying whether it helped is for everyone. From the students, dues or payments list the admin can keep the list as a report, and the admin can also make a new report in the designer; both join the ready reports. A number in a report can open a list or another report, and Go back returns.
+%% desc: From the All reports page you open a ready report or another report. After the result, Download to Excel and Print are for the admin and the accountant, and changing the choices and saying whether it helped are for everyone who opens the report. From the students, dues or payments list the admin can keep the list as a report, and the admin can also make a new report in the designer; both join the ready reports. A number in a report can open a list or another report, and Go back returns.
 flowchart TD
   H["All reports<br/>find · star"]:::note --> D["Ready report<br/>result at once"]
   H --> C["Other report<br/>own page"]
   D --> X["Download to Excel<br/>Print<br/>Admin, Accountant"]:::admin
-  D --> Q["Change choices<br/>Admin"]:::admin
+  D --> Q["Change choices<br/>Everyone who may open it"]:::viewer
   D --> F["Was it useful?<br/>Everyone"]:::viewer
   D --> G["Number opens a list<br/>or a report · Go back<br/>Everyone who may open it"]:::viewer
   L["List<br/>Students · Dues · Payments"]:::admin -.->|"Keep as report"| D

@@ -16,10 +16,12 @@
  * runs again. The answers are kept in the address bar (`?p=`), so a link reopens the same view.
  *
  * Where the layout and the questions come from: the catalogue (`GET /reports/catalogue`) names the
- * report, but the definition itself (`GET /reports/definitions/:id`) is open only to someone who may
- * design reports. So a designer gets the report's own layout and questions; everyone else gets a
- * plain table, and the server still applies the report's default answers. A server follow-up would
- * let every viewer read the layout (see the 8.15.29 notes).
+ * report. Its look comes from one of two places. A designer (REPORTS_DESIGN) reads the definition
+ * (`GET /reports/definitions/:id`), which also feeds the Change button. Everyone else reads the
+ * presentation (`GET /reports/catalogue/:id/definition`, REPORTS_VIEW): the published version's
+ * questions, layout, colour rules and links, under the catalogue's own visibility, with no dataset.
+ * If the presentation is refused (a 404: the report is hidden or gone) the page shows a plain table
+ * and the server still applies the report's default answers.
  *
  * Failures are said in place, in plain words: a report that is too slow asks the person to narrow
  * the choices (and opens the form), a missing answer says so, a report that is gone says so.
@@ -28,8 +30,8 @@
  * icon and a word go with it) and a legend under the report says what each colour means, in the
  * sentence the designer wrote. Its `drill` rules turn counts into links that open another report or
  * the student list with the same choices; the page it opens shows "ফিরে যান", which comes back here
- * with the choices kept (`?from=`, accepted only when it is a path inside this app). Only a designer
- * reads the definition, so only a designer sees colours and links for now (see above).
+ * with the choices kept (`?from=`, accepted only when it is a path inside this app). The rules
+ * comes with the layout (see above), so every viewer sees the colours and links.
  *
  * [8.15.47] The More menu: "Email this regularly" (an admin; `-delivery/schedule-dialog.tsx`), "Keep today's
  * copy" (whoever may take files out; `-delivery/snapshots-panel.tsx`, which also lists the kept copies under the
@@ -52,6 +54,7 @@ import {
   EmptyState,
   ErrorState,
   ExportMenu,
+  HelpHint,
   PromptSummary,
   ReportChart,
   ReportCrosstab,
@@ -88,6 +91,7 @@ import {
   useReportCatalogue,
   useReportDefinition,
   useReportFeedback,
+  useReportPresentation,
   useRunReport,
   type ReportRunResponse,
 } from '@biddaloy/ui/hooks';
@@ -123,6 +127,9 @@ import { isSameAppRedirect } from '../../../same-app-redirect';
 
 import { ScheduleDialog } from './-delivery/schedule-dialog';
 import { KeepCopyDialog, SnapshotsPanel } from './-delivery/snapshots-panel';
+
+/** The parts of a definition the runner reads: what a presentation carries, and a draft has too. */
+type ReportLook = Pick<ReportDefinitionJson, 'parameters' | 'layout' | 'format' | 'drill'>;
 
 const runnerSearchSchema = z.object({
   // The answers to the report's questions. Anything wrong in them is dropped when they are read.
@@ -202,9 +209,15 @@ function ReportRunner({ reportId }: { reportId: string }) {
     markOpened(reportId);
   }, [isKnown, markOpened, reportId]);
 
-  // The layout and the questions: only a designer may read the definition (see the file header).
+  // The layout and the questions: a designer reads the definition, everyone else the presentation
+  // of the published version (see the file header). Only the one in use is fetched.
   const definition = useReportDefinition(reportId, { enabled: canDesign && entry !== undefined });
-  const body = (definition.data?.draft ?? null) as ReportDefinitionJson | null;
+  const presentation = useReportPresentation(reportId, {
+    enabled: !canDesign && entry !== undefined,
+  });
+  const body: ReportLook | null = canDesign
+    ? ((definition.data?.draft ?? null) as ReportDefinitionJson | null)
+    : (presentation.data ?? null);
   const parameters: PromptParameter[] = body?.parameters ?? [];
   const layout: ReportLayout | undefined = body?.layout;
 
@@ -279,7 +292,10 @@ function ReportRunner({ reportId }: { reportId: string }) {
   // Run once, as soon as everything the first run needs has settled (D22). A ref, not state, so
   // React's double effect in development and a remount never write two run-log rows.
   const started = React.useRef(false);
-  const definitionSettled = entry !== undefined && (!canDesign || !definition.isPending);
+  // Whichever of the two is in use must have answered (or failed: then the table is plain), or the
+  // first run would go out with no questions and the form would never open.
+  const definitionSettled =
+    entry !== undefined && !(canDesign ? definition.isPending : presentation.isPending);
   const yearsSettled = !(needsYears && canReadStructure) || !years.isPending;
   React.useEffect(() => {
     if (started.current || !definitionSettled || !yearsSettled) return;
@@ -463,13 +479,16 @@ function ReportRunner({ reportId }: { reportId: string }) {
 
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between print:hidden">
           {values !== null && parameters.length > 0 ? (
-            <div className="min-w-0 flex-1">
-              <PromptSummary
-                parameters={parameters}
-                value={values}
-                expanded={promptsOpen}
-                onToggle={() => setPromptsOpen((open) => !open)}
-              />
+            <div className="flex min-w-0 flex-1 items-center gap-1">
+              <div className="min-w-0 flex-1">
+                <PromptSummary
+                  parameters={parameters}
+                  value={values}
+                  expanded={promptsOpen}
+                  onToggle={() => setPromptsOpen((open) => !open)}
+                />
+              </div>
+              <HelpHint helpId="reports.hub.section.questions" />
             </div>
           ) : (
             <div className="flex-1" />
@@ -488,10 +507,12 @@ function ReportRunner({ reportId }: { reportId: string }) {
                 {t('runner.print')}
               </Button>
             )}
+            {canPrint && <HelpHint helpId="reports.hub.action.print" />}
             <ExportMenu
               totalCount={result?.total_rows ?? 0}
               canExportAll={canExport && result !== undefined}
               unit="items"
+              helpId="reports.hub.action.downloadExcel"
               onExportAll={async (format) => {
                 const outcome = await exportReport.mutateAsync({
                   definitionId: reportId,
@@ -516,6 +537,7 @@ function ReportRunner({ reportId }: { reportId: string }) {
               running={run.isPending}
               open={promptsOpen}
               onOpenChange={setPromptsOpen}
+              runHelpId="reports.hub.action.showReport"
             />
           </div>
         )}
@@ -760,6 +782,7 @@ function UsefulLine({ reportId, runId }: { reportId: string; runId: string }) {
         >
           <ThumbsDownIcon aria-hidden="true" />
         </Button>
+        <HelpHint helpId="reports.hub.section.feedback" />
       </div>
       {phase === 'comment' && (
         <form

@@ -295,6 +295,7 @@ GET /public/admission/:slug | PublicAdmissionController | allowlist: none
 GET /public/invoices/:token | PublicInvoiceController | allowlist: none
 GET /public/verify/:token | PublicVerifyController | allowlist: none
 GET /reports/catalogue | ReportDefinitionsController | perm: REPORTS_VIEW
+GET /reports/catalogue/:id/definition | ReportDefinitionsController | perm: REPORTS_VIEW
 GET /reports/collections | ReportsController | perm: REPORT_COLLECTIONS_READ
 GET /reports/collections.csv | ReportsController | perm: REPORT_COLLECTIONS_READ
 GET /reports/definitions | ReportDefinitionsController | perm: REPORTS_DESIGN
@@ -305,8 +306,6 @@ GET /reports/runs/:id | ReportRunsController | perm: REPORTS_VIEW
 GET /reports/runs/:id/download | ReportRunsController | perm: REPORTS_EXPORT
 GET /reports/snapshots | ReportDeliveryController | perm: REPORTS_VIEW
 GET /reports/snapshots/:id/download | ReportDeliveryController | perm: REPORTS_EXPORT
-GET /reports/student-count | StudentCountController | perm: REPORTS_VIEW
-GET /reports/student-count/export | StudentCountController | perm: REPORTS_EXPORT,REPORTS_VIEW
 GET /routines | RoutineSlotsController | perm: ROUTINE_READ
 GET /routines/:id | RoutineSlotsController | perm: ROUTINE_READ
 GET /routines/:id/change-requests | ChangeRequestsController | perm: ROUTINE_MANAGE
