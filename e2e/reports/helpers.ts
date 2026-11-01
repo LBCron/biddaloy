@@ -146,15 +146,17 @@ export interface ClassWithStudents {
 
 /**
  * A new class and section in the school's current academic year, with one student per entry of
- * `genders`. The current year is what the BANBEIS report asks about by default.
+ * `genders`. The current year is what the BANBEIS report asks about by default; pass `yearOverride`
+ * to use another one.
  */
 export async function createClassWithStudents(
   request: APIRequestContext,
   session: ApiSession,
   label: string,
   genders: ('MALE' | 'FEMALE')[],
+  yearOverride?: { id: string; start_date: string; end_date: string },
 ): Promise<ClassWithStudents> {
-  const year = await currentAcademicYear(request, session);
+  const year = yearOverride ?? (await currentAcademicYear(request, session));
   const chain = await createClassSection(request, session, year);
   const students: ClassWithStudents['students'] = [];
   for (const [index, gender] of genders.entries()) {

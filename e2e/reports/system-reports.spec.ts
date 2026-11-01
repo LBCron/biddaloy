@@ -1,4 +1,4 @@
-import { adminApiSession } from '../api';
+import { adminApiSession, currentAcademicYear, post } from '../api';
 import { expect, loggedIn, test } from '../fixtures/test';
 import { t } from '../i18n';
 import { AppShellPage } from '../pages';
@@ -36,13 +36,29 @@ test.describe('system reports', () => {
     const suffix = runSuffix();
     const banbeis = await catalogueEntry(request, session, 'student-count-banbeis');
     const studentList = await catalogueEntry(request, session, 'student-list');
-    const own = await createClassWithStudents(request, session, `E2E Count ${suffix}`, [
-      'MALE',
-      'FEMALE',
-    ]);
-    const other = await createClassWithStudents(request, session, `E2E Other ${suffix}`, [
-      'FEMALE',
-    ]);
+    // A year of its own: a retry gets a new name, so its result is never served from the cache.
+    const current = await currentAcademicYear(request, session);
+    const yearName = `E2E BANBEIS ${suffix}`;
+    const created = await post<{ id: string }>(request, session, '/academic-years', {
+      name: yearName,
+      start_date: current.start_date,
+      end_date: current.end_date,
+    });
+    const year = { ...current, id: created.id };
+    const own = await createClassWithStudents(
+      request,
+      session,
+      `E2E Count ${suffix}`,
+      ['MALE', 'FEMALE'],
+      year,
+    );
+    const other = await createClassWithStudents(
+      request,
+      session,
+      `E2E Other ${suffix}`,
+      ['FEMALE'],
+      year,
+    );
 
     const result = page.getByRole('region', { name: t('reports.runner.resultLabel') });
     const banbeisTitle = page.getByRole('heading', { level: 1, name: banbeis.name_bn });
@@ -62,6 +78,9 @@ test.describe('system reports', () => {
     });
 
     await test.step('class by gender with totals that add up', async () => {
+      await page.goto(
+        `/reports/${banbeis.id}?p=${encodeURIComponent(JSON.stringify({ academic_year: yearName }))}`,
+      );
       const table = result.getByRole('table');
       await expect(table).toBeVisible();
       await expect(

@@ -77,7 +77,14 @@ test.describe('report designer', () => {
           name: t('reportDesigner.preview.title'),
           exact: true,
         });
-        await expect(preview.getByRole('table')).toBeVisible();
+        await expect(async () => {
+          const asTable = preview.getByRole('button', {
+            name: t('reportView.crosstab.seeAsTable'),
+            exact: true,
+          });
+          if (await asTable.isVisible()) await asTable.click();
+          await expect(preview.getByRole('table')).toBeVisible({ timeout: 1_000 });
+        }).toPass();
         await expect(
           preview.getByRole('columnheader', { name: t('reportView.total'), exact: true }),
         ).toBeVisible();
