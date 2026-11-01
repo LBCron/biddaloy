@@ -4658,6 +4658,16 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'widget.my-lessons-to-mark',
     knownIssues: 0,
   },
+  'widget.latest-notices': {
+    title: { bn: 'উইজেটগুলোর মানে বোঝা', en: 'What the widgets mean' },
+    summary: {
+      bn: 'ড্যাশবোর্ডের প্রতিটি উইজেট কী বলে, সংখ্যাটি কোথা থেকে আসে, আর দেখে কী করবেন।',
+      en: 'What each dashboard widget says, where its number comes from, and what to do after you read it.',
+    },
+    path: 'dashboard/widgets',
+    anchor: 'widget.latest-notices',
+    knownIssues: 0,
+  },
   'dashboard.customise': {
     title: { bn: 'ড্যাশবোর্ড নিজের মতো সাজানো', en: 'Customising your dashboard' },
     summary: {

@@ -51,6 +51,7 @@ helpIds:
     widget.setup-checklist,
     widget.syllabus-vs-plan,
     widget.my-lessons-to-mark,
+    widget.latest-notices,
   ]
 devices: [desktop, phone]
 entry: [sidebar, palette, page:dashboard]
@@ -369,6 +370,12 @@ This list is generated from the app's own text, so it matches the app. Widgets t
 - **What it means:** Your past routine periods in a study plan that you have not yet marked as taught or not taught. Today does not count.
 - **Where the number comes from:** It comes from your study plans, the class routine and periods you covered for others.
 - **What to do:** Mark each lesson's status. Mark lessons opens My routine.
+
+### Latest notices <a href="#widget.latest-notices" id="widget.latest-notices"></a>
+
+- **What it means:** The latest three current notices addressed to you, pinned ones first.
+- **Where the number comes from:** It comes from the notice board: notices posted for your role.
+- **What to do:** Open a notice to read it. All notices opens the full list.
 
 <!-- /guide:generated -->
 

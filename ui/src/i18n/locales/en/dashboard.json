@@ -607,6 +607,10 @@
       "BKASH": "bKash",
       "NAGAD": "Nagad",
       "ROCKET": "Rocket"
+    },
+    "latest-notices": {
+      "title": "Latest notices",
+      "description": "The newest notices addressed to you"
     }
   },
   "committeeSummary": {
@@ -838,6 +842,11 @@
         "means": "Your past routine periods in a study plan that you have not yet marked as taught or not taught. Today does not count.",
         "source": "It comes from your study plans, the class routine and periods you covered for others.",
         "action": "Mark each lesson's status. Mark lessons opens My routine."
+      },
+      "latest-notices": {
+        "means": "The latest three current notices addressed to you, pinned ones first.",
+        "source": "It comes from the notice board: notices posted for your role.",
+        "action": "Open a notice to read it. All notices opens the full list."
       }
     }
   }
