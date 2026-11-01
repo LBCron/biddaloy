@@ -217,13 +217,13 @@ describe('AttentionWorklist (portal)', () => {
       ...base,
       ruleKey: 'notice.important',
       title: 'Exam routine',
-      actionUrl: '/communications/notices/n-1',
+      actionUrl: '/communications/notices/11111111-1111-4111-8111-111111111111',
     });
     const task = alertItemFactory({
       ...base,
       ruleKey: 'notice.sms-approval',
       title: 'Fee notice',
-      actionUrl: '/communications/notices/n-2?sms=1',
+      actionUrl: '/communications/notices/22222222-2222-4222-8222-222222222222?sms=1',
     });
     let items = [imp, task];
     server.use(
@@ -239,7 +239,7 @@ describe('AttentionWorklist (portal)', () => {
     expect(await screen.findByText('SMS approval pending: Fee notice')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Close: Exam routine' })).toBeNull();
     await user.click(await screen.findByRole('button', { name: 'Mark as read: Exam routine' }));
-    await waitFor(() => expect(acked).toEqual(['n-1']));
+    await waitFor(() => expect(acked).toEqual(['11111111-1111-4111-8111-111111111111']));
     await waitFor(() => expect(screen.queryByText('Exam routine')).toBeNull());
     expect(screen.queryAllByRole('button', { name: /Mark as read/ })).toHaveLength(0);
   });
