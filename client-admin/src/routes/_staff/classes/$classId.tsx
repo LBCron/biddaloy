@@ -33,7 +33,15 @@ export const Route = createFileRoute('/_staff/classes/$classId')({
       // whole page (i18n's useSuspense: true) instead of just that tab,
       // taking keyboard focus with it — same failure mode
       // `students/$studentId.tsx`'s loader comment documents.
-      loadRouteNamespaces('classes', 'common', 'feeStructures', 'staff', 'performance'),
+      loadRouteNamespaces(
+        'classes',
+        'common',
+        'feeStructures',
+        'staff',
+        'performance',
+        // [83.3.3] Teachers tab › Coordinators block.
+        'teacherAssignments',
+      ),
     ]),
   pendingComponent: ClassDetailPending,
   component: ClassDetailPage,

@@ -84,6 +84,7 @@ import { Route as StaffInvoicesInvoiceIdRouteImport } from './routes/_staff/invo
 import { Route as StaffMarksIndexRouteImport } from './routes/_staff/marks/index'
 import { Route as StaffMyClassIndexRouteImport } from './routes/_staff/my-class/index'
 import { Route as StaffMyClassSectionIdRouteImport } from './routes/_staff/my-class/$sectionId'
+import { Route as StaffMyCoordinationIndexRouteImport } from './routes/_staff/my-coordination/index'
 import { Route as StaffPaymentsIndexRouteImport } from './routes/_staff/payments/index'
 import { Route as StaffPaymentsIdRouteImport } from './routes/_staff/payments/$id'
 import { Route as StaffPaymentsRecordRouteImport } from './routes/_staff/payments/record'
@@ -543,6 +544,12 @@ const StaffMyClassSectionIdRoute = StaffMyClassSectionIdRouteImport.update({
   path: '/my-class/$sectionId',
   getParentRoute: () => StaffRoute,
 } as any)
+const StaffMyCoordinationIndexRoute =
+  StaffMyCoordinationIndexRouteImport.update({
+    id: '/my-coordination/',
+    path: '/my-coordination/',
+    getParentRoute: () => StaffRoute,
+  } as any)
 const StaffPaymentsIndexRoute = StaffPaymentsIndexRouteImport.update({
   id: '/payments/',
   path: '/payments/',
@@ -1051,6 +1058,7 @@ export interface FileRoutesByFullPath {
   '/invoices/': typeof StaffInvoicesIndexRoute
   '/marks/': typeof StaffMarksIndexRoute
   '/my-class/': typeof StaffMyClassIndexRoute
+  '/my-coordination/': typeof StaffMyCoordinationIndexRoute
   '/payments/': typeof StaffPaymentsIndexRoute
   '/print-templates/': typeof StaffPrintTemplatesIndexRoute
   '/programs/': typeof StaffProgramsIndexRoute
@@ -1198,6 +1206,7 @@ export interface FileRoutesByTo {
   '/invoices': typeof StaffInvoicesIndexRoute
   '/marks': typeof StaffMarksIndexRoute
   '/my-class': typeof StaffMyClassIndexRoute
+  '/my-coordination': typeof StaffMyCoordinationIndexRoute
   '/payments': typeof StaffPaymentsIndexRoute
   '/print-templates': typeof StaffPrintTemplatesIndexRoute
   '/programs': typeof StaffProgramsIndexRoute
@@ -1350,6 +1359,7 @@ export interface FileRoutesById {
   '/_staff/invoices/': typeof StaffInvoicesIndexRoute
   '/_staff/marks/': typeof StaffMarksIndexRoute
   '/_staff/my-class/': typeof StaffMyClassIndexRoute
+  '/_staff/my-coordination/': typeof StaffMyCoordinationIndexRoute
   '/_staff/payments/': typeof StaffPaymentsIndexRoute
   '/_staff/print-templates/': typeof StaffPrintTemplatesIndexRoute
   '/_staff/programs/': typeof StaffProgramsIndexRoute
@@ -1501,6 +1511,7 @@ export interface FileRouteTypes {
     | '/invoices/'
     | '/marks/'
     | '/my-class/'
+    | '/my-coordination/'
     | '/payments/'
     | '/print-templates/'
     | '/programs/'
@@ -1648,6 +1659,7 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/marks'
     | '/my-class'
+    | '/my-coordination'
     | '/payments'
     | '/print-templates'
     | '/programs'
@@ -1799,6 +1811,7 @@ export interface FileRouteTypes {
     | '/_staff/invoices/'
     | '/_staff/marks/'
     | '/_staff/my-class/'
+    | '/_staff/my-coordination/'
     | '/_staff/payments/'
     | '/_staff/print-templates/'
     | '/_staff/programs/'
@@ -2389,6 +2402,13 @@ declare module '@tanstack/react-router' {
       path: '/my-class/$sectionId'
       fullPath: '/my-class/$sectionId'
       preLoaderRoute: typeof StaffMyClassSectionIdRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/_staff/my-coordination/': {
+      id: '/_staff/my-coordination/'
+      path: '/my-coordination'
+      fullPath: '/my-coordination/'
+      preLoaderRoute: typeof StaffMyCoordinationIndexRouteImport
       parentRoute: typeof StaffRoute
     }
     '/_staff/payments/': {
@@ -3025,6 +3045,7 @@ interface StaffRouteChildren {
   StaffInvoicesIndexRoute: typeof StaffInvoicesIndexRoute
   StaffMarksIndexRoute: typeof StaffMarksIndexRoute
   StaffMyClassIndexRoute: typeof StaffMyClassIndexRoute
+  StaffMyCoordinationIndexRoute: typeof StaffMyCoordinationIndexRoute
   StaffPaymentsIndexRoute: typeof StaffPaymentsIndexRoute
   StaffPrintTemplatesIndexRoute: typeof StaffPrintTemplatesIndexRoute
   StaffProgramsIndexRoute: typeof StaffProgramsIndexRoute
@@ -3130,6 +3151,7 @@ const StaffRouteChildren: StaffRouteChildren = {
   StaffInvoicesIndexRoute: StaffInvoicesIndexRoute,
   StaffMarksIndexRoute: StaffMarksIndexRoute,
   StaffMyClassIndexRoute: StaffMyClassIndexRoute,
+  StaffMyCoordinationIndexRoute: StaffMyCoordinationIndexRoute,
   StaffPaymentsIndexRoute: StaffPaymentsIndexRoute,
   StaffPrintTemplatesIndexRoute: StaffPrintTemplatesIndexRoute,
   StaffProgramsIndexRoute: StaffProgramsIndexRoute,

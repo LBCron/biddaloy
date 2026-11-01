@@ -57,8 +57,10 @@ test('keyboard-only: filter by class, then unassign a teacher', async ({ page, r
       document.body.removeAttribute('tabindex');
     });
     await page.keyboard.press('Tab');
+    // `exact`: the "By class" tab trigger also contains the class label and comes first in Tab order.
     await tabUntilFocused(page, t('teacherAssignments.list.classLabel'), 90, {
       tag: 'BUTTON',
+      exact: true,
     });
     // `selectByTypeahead` opens the trigger itself (presses Enter), then
     // types and waits for the exact option before picking it — typing

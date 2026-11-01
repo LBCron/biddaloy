@@ -107,12 +107,15 @@ const REVIEWED_INTERPOLATIONS: Record<string, string[]> = {
   ],
   // column typed 'class_id' | 'section_id'
   'modules/classes/classes.service.ts': ['column'],
-  // priorYearStartSql helper with a fixed placeholder; [75.6] TEACHER_ROWS_FROM_SQL is a
-  // module constant FROM/WHERE fragment, tenant and user bound as $1/$2
+  // priorYearStartSql helper with a fixed placeholder; [75.6] TEACHER_ROWS_FROM_SQL and
+  // [83.2.1] COORDINATOR_ROWS_FROM_SQL are module constant FROM/WHERE fragments, tenant and
+  // user bound as $1/$2; visibleSectionIdsSql(flag) only picks between those two constants
   'modules/classes/teacher-scope.service.ts': [
     'TEACHER_ROWS_FROM_SQL',
-    'TEACHER_ROWS_FROM_SQL',
-    'TEACHER_ROWS_FROM_SQL',
+    'visibleSectionIdsSql(includeCoordinated)',
+    'COORDINATOR_ROWS_FROM_SQL',
+    'COORDINATOR_ROWS_FROM_SQL',
+    'COORDINATOR_ROWS_FROM_SQL',
     "priorYearStartSql(':tenantId')",
   ],
   // guarded 10k load seed (throwaway DB only): t is a table name from a module-local constant list

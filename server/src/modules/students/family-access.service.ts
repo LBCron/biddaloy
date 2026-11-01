@@ -128,6 +128,9 @@ export class FamilyAccessService {
     userId: string,
     studentId: string,
     tenantId: string,
+    /** [83.3.1] D18 — read call sites only (`GET /students/:id`). Fees, payments, invoices and
+     * communications callers never pass it (D5). */
+    opts: { includeCoordinated?: boolean } = {},
   ): Promise<void> {
     const qb = this.linkedStudentsQuery(role, userId, tenantId);
     if (!qb) {
@@ -136,7 +139,12 @@ export class FamilyAccessService {
       if (scope === RoleScope.TENANT) return;
       if (
         scope !== RoleScope.ASSIGNED_SECTIONS ||
-        !(await teacherCanSeeStudent(this.studentRepo.manager, { userId, tenantId, studentId }))
+        !(await teacherCanSeeStudent(this.studentRepo.manager, {
+          userId,
+          tenantId,
+          studentId,
+          includeCoordinated: opts.includeCoordinated,
+        }))
       ) {
         throw new NotFoundException('Student not found');
       }

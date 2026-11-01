@@ -166,7 +166,16 @@ export const classHandlers = {
   vocabularyPopulated,
 };
 
+// [83.3.3] No coordinator rows by default; specs that need rows override it.
+const listCoordinators = http.get('/api/v1/coordinators', () => HttpResponse.json([]));
+// [83.4.1] A teacher who coordinates nothing: My coordination's empty state.
+const coordinationOverview = http.get('/api/v1/coordination/overview', () =>
+  HttpResponse.json({ date: '2026-10-20', classes: [] }),
+);
+
 export const classDefaultHandlers = [
+  listCoordinators,
+  coordinationOverview,
   list,
   getOne,
   create,

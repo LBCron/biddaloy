@@ -186,6 +186,7 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
   '/_staff/routines/substitutions': [{ label: { key: 'routineSubstitutions' } }],
   '/_staff/routines/my': [{ label: { key: 'myRoutine' } }],
   '/_staff/my-class/': [{ label: { key: 'myClass' } }],
+  '/_staff/my-coordination/': [{ label: { key: 'myCoordination' } }],
   '/_staff/my-class/$sectionId': [
     { label: { key: 'myClass' } },
     { label: { key: 'myClassSection' }, dynamic: 'entity' },

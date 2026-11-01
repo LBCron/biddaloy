@@ -2,11 +2,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ForbiddenException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { UserRole } from '@biddaloy/shared';
 import { HomeworkAccessService } from './homework-access.service';
-import { teacherAssignments } from '../classes/teacher-scope.service';
+import {
+  teacherAssignments,
+  teacherCoordinatedClassIds,
+  teacherSectionIds,
+} from '../classes/teacher-scope.service';
 
 // The current-year scope query is covered by teacher-scope.service.integration.spec.ts;
 // here it is just the rows the gate reasons over.
-vi.mock('../classes/teacher-scope.service', () => ({ teacherAssignments: vi.fn() }));
+// [83.3.1] The coordinator lookups default to "no coordinator rows" (today's answer).
+vi.mock('../classes/teacher-scope.service', () => ({
+  teacherAssignments: vi.fn(),
+  teacherSectionIds: vi.fn(async () => []),
+  teacherCoordinatedClassIds: vi.fn(async () => []),
+}));
 
 /**
  * Unit tests for `HomeworkAccessService` with mocked repositories — the
@@ -243,6 +252,19 @@ describe('HomeworkAccessService', () => {
       await expect(
         service.assertCanViewSection(UserRole.TEACHER, 'unrelated-teacher', SECTION_ID, TENANT_ID),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    // [83.3.1] D4 read: a coordinator of the section's class views the rollup.
+    it('lets a coordinator of the section view it, and of the class view the class', async () => {
+      rows = [];
+      vi.mocked(teacherSectionIds).mockResolvedValueOnce([SECTION_ID]);
+      await expect(
+        service.assertCanViewSection(UserRole.TEACHER, USER_ID, SECTION_ID, TENANT_ID),
+      ).resolves.toBeUndefined();
+      vi.mocked(teacherCoordinatedClassIds).mockResolvedValueOnce([CLASS_ID]);
+      await expect(
+        service.assertCanViewClass(UserRole.TEACHER, USER_ID, CLASS_ID, TENANT_ID),
+      ).resolves.toBeUndefined();
     });
 
     it('lets a subject-row TEACHER view the section', async () => {

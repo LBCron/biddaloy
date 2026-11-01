@@ -41,20 +41,79 @@
     "section": "Section",
     "teacher": "Teacher",
     "assignmentType": "Assignment type",
-    "subject": "Subject"
+    "subject": "Subject",
+    "coordinatorKind": "Kind",
+    "coordinatorClasses": "Classes",
+    "coordinatorSubject": "Subject"
   },
   "help": {
     "class": "Which class's sections you will look at. You also choose it when giving from the teacher's page.",
     "section": "Which section, when giving from the teacher's page. You can choose it after choosing the class.",
     "teacher": "The person you will give the duty to. The employee ID is beside the name. Only staff who have a teacher profile.",
     "assignmentType": "**Class teacher** (only one per section; a new one replaces the earlier), **Assistant class teacher**, or **Subject teacher** (for one subject).",
-    "subject": "Only for a **Subject teacher**: which subject. From the active subjects."
+    "subject": "Only for a **Subject teacher**: which subject. From the active subjects.",
+    "coordinatorKind": "**Class coordinator** sees every subject of the class. **Subject coordinator** sees only one subject. Both only read; they never change marks or attendance.",
+    "coordinatorClasses": "One or more classes of this year. A coordinator sees every section of each class.",
+    "coordinatorSubject": "Leave empty for a **Class coordinator**. Choose a subject for a **Subject coordinator**."
   },
   "helpRequired": {
     "class": "Yes (when giving from the teacher's page)",
     "section": "Yes (when giving from the teacher's page)",
     "teacher": "Yes",
     "assignmentType": "Yes, **Class teacher** is chosen to begin with",
-    "subject": "Yes, for **Subject teacher**"
+    "subject": "Yes, for **Subject teacher**",
+    "coordinatorKind": "Set by the subject choice",
+    "coordinatorClasses": "Yes",
+    "coordinatorSubject": "No"
+  },
+  "tabs": {
+    "byClass": "By class",
+    "coordinators": "Coordinators"
+  },
+  "coordinators": {
+    "caption": "Class and subject coordinators",
+    "assign": "Assign coordinator",
+    "remove": "Remove coordinator",
+    "columnTeacher": "Teacher",
+    "columnKind": "Kind",
+    "columnClass": "Class",
+    "columnSubject": "Subject",
+    "columnAssignedBy": "Assigned",
+    "columnActions": "Actions",
+    "allSubjects": "All subjects",
+    "assignedBy": "assigned by {{name}} on {{date}}",
+    "assignedOn": "assigned on {{date}}",
+    "emptyTitle": "No coordinator yet",
+    "emptyMessage": "No coordinator has been assigned yet",
+    "errorMessage": "Couldn't load the coordinators.",
+    "announceResults": "{{count}} coordinators",
+    "blockTitle": "Coordination",
+    "blockEmpty": "Not a coordinator of any class."
+  },
+  "coordinatorKinds": {
+    "classCoordinator": "Class coordinator",
+    "subjectCoordinator": "Subject coordinator"
+  },
+  "assignCoordinatorDialog": {
+    "title": "Assign coordinator",
+    "description": "Choose a teacher and the classes they coordinate. Leave the subject empty for a class coordinator.",
+    "teacherPlaceholder": "Choose a teacher",
+    "classesPlaceholder": "Choose classes",
+    "subjectNone": "All subjects (class coordinator)",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "savedToast": "Coordinator assigned.",
+    "errorDuplicate": "This coordinator assignment already exists.",
+    "errorGeneric": "Couldn't save. Try again.",
+    "errorTeacherRequired": "Choose a teacher.",
+    "errorClassesRequired": "Choose at least one class."
+  },
+  "removeCoordinatorDialog": {
+    "title": "Remove coordinator?",
+    "description": "{{teacherName}} will no longer coordinate {{className}}.",
+    "confirm": "Remove",
+    "cancel": "Cancel",
+    "errorMessage": "Couldn't remove. Try again."
   }
 }

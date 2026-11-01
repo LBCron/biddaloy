@@ -369,7 +369,12 @@ export class AttentionQueryService {
     // Epic 75 D2/D13: the shared current-year teacher scope, and a miss looks like a missing student.
     if (
       !hasTenantDataScope(caller.role) &&
-      !(await this.teacherScope.canSeeStudent({ userId: caller.userId, tenantId, studentId }))
+      !(await this.teacherScope.canSeeStudent({
+        userId: caller.userId,
+        tenantId,
+        studentId,
+        includeCoordinated: true, // [83.3.1] D4 read
+      }))
     ) {
       throw new NotFoundException('Student not found');
     }

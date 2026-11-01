@@ -16,6 +16,7 @@ function buildService(roles: Partial<Roles> = {}) {
     homeroom: null,
     subjectIds: [],
     inYearWindow: true,
+    coordinated: { allSubjects: false, subjectIds: [] },
     ...roles,
   }));
   const service = new MarksAuthorizationService({
@@ -209,5 +210,33 @@ describe('MarksAuthorizationService.writableSubjects (D33/D44)', () => {
       none: [],
       old: [],
     });
+  });
+});
+
+/** [83.3.1] D4/D19: coordinator rows open reads, never writes. */
+describe('MarksAuthorizationService: coordinators (83.3.1)', () => {
+  it('a class coordinator reads every subject of the section', async () => {
+    const { service } = buildService({ coordinated: { allSubjects: true, subjectIds: [] } });
+    await expect(service.assertCanRead(input(UserRole.TEACHER))).resolves.toBeUndefined();
+  });
+
+  it('a subject coordinator reads their subject only', async () => {
+    const { service } = buildService({
+      coordinated: { allSubjects: false, subjectIds: ['subj1'] },
+    });
+    await expect(service.assertCanRead(input(UserRole.TEACHER))).resolves.toBeUndefined();
+    await expect(
+      service.assertCanRead(input(UserRole.TEACHER, { subjectId: 'bangla' })),
+    ).rejects.toThrow();
+  });
+
+  it('no coordinator grant ever opens a write', async () => {
+    const { service } = buildService({ coordinated: { allSubjects: true, subjectIds: ['subj1'] } });
+    await expect(service.assertCanWrite(input(UserRole.TEACHER))).rejects.toThrow();
+    const writable = await service.writableSubjects(
+      { role: UserRole.TEACHER, userId: 'u1', tenantId: TENANT_ID },
+      ['s1'],
+    );
+    expect([...(writable?.get('s1') ?? [])]).toEqual([]);
   });
 });

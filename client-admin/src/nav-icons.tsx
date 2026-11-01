@@ -42,6 +42,7 @@ import {
   LayoutDashboardIcon,
   MessageSquareTextIcon,
   MilestoneIcon,
+  NetworkIcon,
   NotebookPenIcon,
   PenLineIcon,
   PresentationIcon,
@@ -97,6 +98,8 @@ export const STAFF_NAV_ICONS: Record<StaffNavItemId, LucideIcon> = {
   'academics.routineSubstitutions': ReplaceIcon,
   'academics.myRoutine': CalendarClockIcon,
   'academics.myClass': BookUserIcon,
+  // [83.4.1] Coordinators oversee several classes: a network of nodes.
+  'academics.myCoordination': NetworkIcon,
   'academics.homework': NotebookPenIcon,
   'academics.syllabus': BookOpenIcon,
   'attendance.attendance': CalendarCheck2Icon,

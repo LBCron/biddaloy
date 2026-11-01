@@ -85,6 +85,7 @@ The layers diagram above shows where most of these rules sit on a request's way 
 - **Why.** A 403 tells the caller the record exists; a raw `teacher_class_sections` query missed the year window (D2, D13, D31, #2314).
 - **Example.** `GET /api/v1/students/<other section's student>` as TEACHER → `404`.
 - **Test.** `server/src/teacher-section-scope.e2e-spec.ts`, `teacher-scope-finance.e2e-spec.ts`, `teacher-scope-exams-search.e2e-spec.ts`.
+- **Coordinators (Epic 83).** A coordinator row widens **reads only**, and only where the call site passes `includeCoordinated: true` to `TeacherScopeService`. Writes, fees, fines, checkout and communications never pass it (D4, D5). A teacher with no coordinator row gets exactly today's answers. Enforcing test: `server/src/coordinator-scope.e2e-spec.ts`. Call-site table: [03-backend-modules.md](03-backend-modules.md#coordinators-widen-reads-never-writes-epic-83).
 
 ### Rule 3: Every id path param goes through ParseUUIDPipe
 

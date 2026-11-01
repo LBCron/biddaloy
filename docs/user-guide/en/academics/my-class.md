@@ -244,6 +244,7 @@ Only sections of the current academic year appear. Last year's sections are not 
 - [**Classes**](classes.md) — an admin gives a section its class teacher here.
 - [**Students**](../people/students.md) — all students of the section.
 - [**Syllabus and study plans**](syllabus.md) — your section's study plans and who is behind.
+- [**My coordination**](my-coordination.md) — if you also coordinate classes, what is still not done in them.
 
 ---
 

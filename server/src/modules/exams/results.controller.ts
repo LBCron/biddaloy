@@ -71,6 +71,8 @@ export class ResultsController {
       role: tenant.role,
       userId: user.sub,
       tenantId: tenant.id,
+      // [83.3.1] D4: these rows show every subject, so class coordinators only.
+      includeCoordinated: 'classLevel',
     });
     return scope ? rows.filter((r) => r.section_id && scope.includes(r.section_id)) : rows;
   }
@@ -94,7 +96,15 @@ export class ResultsController {
     @CurrentUser() user: JwtPayload,
   ) {
     // D13: a student outside the teacher's current-year sections is a 404, never a 403.
-    const input = { role: tenant.role, userId: user.sub, tenantId: tenant.id };
+    // [83.3.1] D4 read: class coordinators of the student's class may read the result too. The
+    // result carries every subject, so a subject coordinator does not (they read their subject's
+    // marks on the grid instead).
+    const input = {
+      role: tenant.role,
+      userId: user.sub,
+      tenantId: tenant.id,
+      includeCoordinated: 'classLevel' as const,
+    };
     if (
       (await this.teacherScope.sectionScope(input)) &&
       !(await this.teacherScope.canSeeStudent({ ...input, studentId }))

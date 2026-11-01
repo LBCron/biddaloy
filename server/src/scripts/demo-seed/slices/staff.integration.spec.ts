@@ -150,6 +150,36 @@ describe('staff slice (integration, 2 years)', () => {
     expect(Number(rows[0].n)).toBe(2);
   });
 
+  // [83.1.3] D36: 3 class-coordinator rows (the 8-A card's teacher) + 2 Mathematics rows,
+  // all in High, all on current-year classes, assigned by the demo admin.
+  it('High has one class coordinator (3 classes, the 8-A card) and one Mathematics coordinator (2 classes)', async () => {
+    const card = DEMO_CARDS.find((c) => c.key === 'class-teacher-8a')!;
+    const rows = await q<{
+      email: string;
+      subject: string | null;
+      slug: string;
+      is_current: boolean;
+      assigned_by: string | null;
+    }>(
+      `SELECT u.email, s.name_en AS subject, sc.slug, ay.is_current, ca.assigned_by_user_id AS assigned_by
+         FROM coordinator_assignments ca
+         JOIN teachers t ON t.id = ca.teacher_id JOIN users u ON u.id = t.user_id
+         JOIN schools sc ON sc.id = ca.tenant_id
+         JOIN classes c ON c.id = ca.class_id JOIN academic_years ay ON ay.id = c.academic_year_id
+         LEFT JOIN subjects s ON s.id = ca.subject_id`,
+    );
+    expect(rows).toHaveLength(5);
+    const classLevel = rows.filter((r) => r.subject === null);
+    const maths = rows.filter((r) => r.subject === 'Mathematics');
+    expect(classLevel).toHaveLength(3);
+    expect(classLevel.every((r) => r.email === card.email)).toBe(true);
+    expect(maths).toHaveLength(2);
+    expect(new Set(maths.map((r) => r.email)).size).toBe(1);
+    expect(maths[0].email).not.toBe(card.email);
+    expect(new Set(rows.map((r) => r.slug)).size).toBe(1);
+    expect(rows.every((r) => r.is_current && r.assigned_by)).toBe(true);
+  });
+
   it('every section of the current and previous year has a class teacher', async () => {
     const missing = await q(
       `SELECT s.slug, c.name AS class, cs.section_name FROM class_sections cs

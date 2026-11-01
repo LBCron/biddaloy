@@ -610,6 +610,16 @@ export const ALLOWED: Allowed[] = [
       'Teacher assignments are config: SubjectService.remove deletes them in the same transaction (subjects.service.ts).',
   },
   {
+    key: 'CoordinatorAssignment.class -> Class',
+    reason:
+      "[83.1.2] D15: a coordinator row is an assignment, not a record. A soft-deleted class keeps its rows, but every reader (TeacherScopeService's COORDINATOR_ROWS_FROM_SQL, coordinatorRecipients, CoordinatorsService.list, the workbook tab) skips a deleted class; a hard delete cascades.",
+  },
+  {
+    key: 'CoordinatorAssignment.subject -> Subject',
+    reason:
+      "[83.1.2] D15: same as the class link: a soft-deleted subject's rows are skipped by every reader; a hard delete cascades.",
+  },
+  {
     key: 'AcademicTerm.academic_year -> AcademicYear',
     reason:
       'Terms are year config: AcademicYearService.remove soft-deletes them in the same transaction.',

@@ -123,6 +123,9 @@ const NAV_PATH_TO_ROUTE_ID: Record<string, string> = {
   '/promotions/new': '/_staff/promotions/new',
   '/staff': '/_staff/staff/',
   '/staff/teaching-assignments': '/_staff/staff/teaching-assignments',
+  '/staff/teaching-assignments?tab=coordinators&assign=1': '/_staff/staff/teaching-assignments',
+  '/my-coordination': '/_staff/my-coordination/',
+  '/my-coordination?then=notify': '/_staff/my-coordination/',
 };
 
 /**
@@ -180,6 +183,9 @@ const REGISTERED_ACTION_FILES: Record<string, string> = {
   'account.sign-in-methods': 'client-admin/src/routes/_staff/security.tsx',
   'grading.copyScale': 'client-admin/src/routes/_staff/grading-scales/-copy-scale-dialog.tsx',
   'my-class.open': 'client-admin/src/routes/_staff/my-class/index.tsx',
+  'coordinators.assign': `${R}_staff/staff/-assign-coordinator-dialog.tsx`,
+  'coordination.open': 'client-admin/src/routes/_staff/my-coordination/index.tsx',
+  'coordination.notify-teachers': `${R}_staff/my-coordination/-notify-dialog.tsx`,
   'my-class.take-attendance': 'client-admin/src/routes/_staff/my-class/index.tsx',
   'arrival-notice.requests': 'client-admin/src/routes/_staff/my-class/index.tsx',
   'routines.openMyRoutine': 'client-admin/src/routes/_staff/routines/my.tsx',

@@ -162,6 +162,8 @@ import {
     ExamTemplatesService,
     ExamResultRecomputer,
     ExamsDashboardService,
+    // [83.3.2] My coordination's pending grids use `progress()` (D22).
+    MarkGridService,
   ],
 })
 export class ExamsModule {}

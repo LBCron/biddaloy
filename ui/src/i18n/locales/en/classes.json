@@ -213,7 +213,11 @@
       "removeError": "Failed to remove teacher",
       "removeConfirmTitle": "Remove this teacher?",
       "removeConfirmDescription": "{{name}} will be removed from section {{section}}. You can assign them again later.",
-      "emptyExplanation": "Add a section first, then assign teachers here."
+      "emptyExplanation": "Add a section first, then assign teachers here.",
+      "coordinators": {
+        "title": "Coordinators",
+        "caption": "Coordinators of this class"
+      }
     },
     "factGrade": "Grade",
     "factAcademicYear": "Academic year",

@@ -35,6 +35,43 @@ const TEACHER_ROWS_FROM_SQL = `
   WHERE tcs.tenant_id = $1 AND t.user_id = $2
     AND (tcs.assignment_type <> 'SUBJECT_TEACHER' OR s.id IS NOT NULL)`;
 
+/**
+ * [83.2.1] D18 — the coordinator half of "which sections may this teacher read": every live
+ * section of a live class of the **current** academic year (D3/D14) that the caller coordinates
+ * (`coordinator_assignments`), whole-class or for one live subject. Read paths only: it joins the
+ * teaching rows through a UNION when a caller passes `includeCoordinated: true`.
+ * `$1` = tenant id, `$2` = user id, same convention as `TEACHER_ROWS_FROM_SQL`.
+ */
+const COORDINATOR_ROWS_FROM_SQL = `
+  FROM coordinator_assignments ca
+  JOIN teachers t ON t.id = ca.teacher_id AND t.tenant_id = $1 AND t.deleted_at IS NULL
+  JOIN classes c ON c.id = ca.class_id AND c.tenant_id = $1 AND c.deleted_at IS NULL
+  JOIN academic_years ay ON ay.id = c.academic_year_id AND ay.tenant_id = $1
+    AND ay.is_current = true AND ay.deleted_at IS NULL
+  JOIN class_sections cs ON cs.class_id = c.id AND cs.tenant_id = $1 AND cs.deleted_at IS NULL
+  LEFT JOIN subjects s ON s.id = ca.subject_id AND s.tenant_id = $1 AND s.deleted_at IS NULL
+  WHERE ca.tenant_id = $1 AND t.user_id = $2
+    AND (ca.subject_id IS NULL OR s.id IS NOT NULL)`;
+
+/**
+ * [83.3.1] Which coordinator rows widen a read. `true`: class and subject coordinators (reads that
+ * are not per subject: students, attendance…). `'classLevel'`: class coordinators only, for reads
+ * that show every subject at once (results, analysis), so a subject coordinator never sees
+ * another subject's marks there (D4). `false` / omitted: teaching rows only.
+ */
+export type CoordinatedScope = boolean | 'classLevel';
+
+/**
+ * The section-id subquery a scope check filters on: teaching rows, plus coordinator rows when
+ * `includeCoordinated` (D18). Exported for the unit spec only.
+ */
+export function visibleSectionIdsSql(includeCoordinated: CoordinatedScope | undefined): string {
+  const teaching = `SELECT tcs.section_id ${TEACHER_ROWS_FROM_SQL}`;
+  if (!includeCoordinated) return teaching;
+  const classLevelOnly = includeCoordinated === 'classLevel' ? ' AND ca.subject_id IS NULL' : '';
+  return `${teaching} UNION SELECT cs.id AS section_id ${COORDINATOR_ROWS_FROM_SQL}${classLevelOnly}`;
+}
+
 export interface TeacherAssignmentRow {
   section_id: string;
   class_id: string;
@@ -45,6 +82,29 @@ export interface TeacherAssignmentRow {
 interface TeacherScopeInput {
   userId: string;
   tenantId: string;
+  /**
+   * [83.2.1] D18 — also count the sections of classes the caller coordinates. Default false
+   * keeps today's answer. Only **read** call sites pass true; write gates and the fees, fines,
+   * checkout and communications routes never do (D5).
+   */
+  includeCoordinated?: CoordinatedScope;
+}
+
+/** One coordinated class (or class + subject) of the caller, current academic year (83.2.1). */
+export interface CoordinatedClassRow {
+  class_id: string;
+  class_name: string;
+  subject_id: string | null;
+  subject_name: string | null;
+  section_ids: string[];
+}
+
+/** [83.2.1] D19 — what the caller's coordinator rows grant in one section (reads only). */
+export interface CoordinatedGrant {
+  /** A class-level row: every subject of the section. */
+  allSubjects: boolean;
+  /** Live subjects of subject-level rows. */
+  subjectIds: string[];
 }
 
 export function teacherAssignments(
@@ -60,12 +120,13 @@ export function teacherAssignments(
 /** Distinct section ids of `teacherAssignments`. */
 export async function teacherSectionIds(
   manager: EntityManager,
-  { userId, tenantId }: TeacherScopeInput,
+  { userId, tenantId, includeCoordinated }: TeacherScopeInput,
 ): Promise<string[]> {
-  const rows: { section_id: string }[] = await manager.query(
-    `SELECT DISTINCT tcs.section_id ${TEACHER_ROWS_FROM_SQL}`,
-    [tenantId, userId],
-  );
+  // UNION de-duplicates; the teaching-only form keeps today's DISTINCT query unchanged.
+  const sql = includeCoordinated
+    ? visibleSectionIdsSql(includeCoordinated)
+    : `SELECT DISTINCT tcs.section_id ${TEACHER_ROWS_FROM_SQL}`;
+  const rows: { section_id: string }[] = await manager.query(sql, [tenantId, userId]);
   return rows.map((r) => r.section_id);
 }
 
@@ -73,17 +134,32 @@ export async function teacherSectionIds(
  * A non-UUID id is `false`, not a 500 (some routes have no `ParseUUIDPipe`). */
 export async function teacherCanSeeStudent(
   manager: EntityManager,
-  { userId, tenantId, studentId }: TeacherScopeInput & { studentId: string },
+  { userId, tenantId, studentId, includeCoordinated }: TeacherScopeInput & { studentId: string },
 ): Promise<boolean> {
   if (!isUUID(studentId)) return false;
   const rows: unknown[] = await manager.query(
     `SELECT 1 FROM students st
       WHERE st.id = $3 AND st.tenant_id = $1 AND st.deleted_at IS NULL
-        AND st.class_section_id IN (SELECT tcs.section_id ${TEACHER_ROWS_FROM_SQL})
+        AND st.class_section_id IN (${visibleSectionIdsSql(includeCoordinated)})
       LIMIT 1`,
     [tenantId, userId, studentId],
   );
   return rows.length > 0;
+}
+
+/**
+ * [83.3.1] Live classes of the current year the caller coordinates (class- or subject-level).
+ * For read gates that work per class (homework analytics). Never for writes (D4).
+ */
+export async function teacherCoordinatedClassIds(
+  manager: EntityManager,
+  { userId, tenantId }: TeacherScopeInput,
+): Promise<string[]> {
+  const rows: { class_id: string }[] = await manager.query(
+    `SELECT DISTINCT c.id AS class_id ${COORDINATOR_ROWS_FROM_SQL}`,
+    [tenantId, userId],
+  );
+  return rows.map((r) => r.class_id);
 }
 
 export type HomeroomType =
@@ -139,6 +215,7 @@ export class TeacherScopeService {
     role: string;
     userId: string;
     tenantId: string;
+    includeCoordinated?: CoordinatedScope;
   }): Promise<string[] | null> {
     const scope = roleScope(input.role);
     if (scope === null) return [];
@@ -152,6 +229,7 @@ export class TeacherScopeService {
     role: string;
     userId: string;
     tenantId: string;
+    includeCoordinated?: CoordinatedScope;
     scope?: string[] | null;
   }): Promise<string[] | null> {
     const scope = input.scope !== undefined ? input.scope : await this.sectionScope(input);
@@ -176,6 +254,7 @@ export class TeacherScopeService {
     userId: string;
     tenantId: string;
     guardianId: string;
+    includeCoordinated?: CoordinatedScope;
   }): Promise<string[] | null> {
     const scope = await this.sectionScope(input);
     if (scope === null) return null;
@@ -206,11 +285,12 @@ export class TeacherScopeService {
    * DRAFT only, on purpose (D45): last year's PROCESSED-but-unpublished exam
    * is admin-only to correct, and the window matches the marks-due alerts.
    */
-  async rolesInSection(input: {
-    userId: string;
-    tenantId: string;
-    sectionId: string;
-  }): Promise<{ homeroom: HomeroomType | null; subjectIds: string[]; inYearWindow: boolean }> {
+  async rolesInSection(input: { userId: string; tenantId: string; sectionId: string }): Promise<{
+    homeroom: HomeroomType | null;
+    subjectIds: string[];
+    inYearWindow: boolean;
+    coordinated: CoordinatedGrant;
+  }> {
     const { userId, tenantId, sectionId } = input;
     const rows = await this.tcsRepo
       .createQueryBuilder('tcs')
@@ -286,7 +366,53 @@ export class TeacherScopeService {
       )
       .map((r) => r.live_subject_id as string);
 
-    return { homeroom, subjectIds, inYearWindow: rows.some((r) => r.homeroom_year_id) };
+    return {
+      homeroom,
+      subjectIds,
+      inYearWindow: rows.some((r) => r.homeroom_year_id),
+      coordinated: await this.coordinatedGrant(input),
+    };
+  }
+
+  /**
+   * [83.2.1] D19 — the caller's coordinator rows on the section's class (current year only).
+   * Kept apart from `homeroom` / `subjectIds` so write gates, which read only those two, never
+   * widen. Read gates opt in by also checking `coordinated`.
+   */
+  private async coordinatedGrant(input: {
+    userId: string;
+    tenantId: string;
+    sectionId: string;
+  }): Promise<CoordinatedGrant> {
+    if (!isUUID(input.sectionId)) return { allSubjects: false, subjectIds: [] };
+    const rows: { subject_id: string | null }[] = await this.tcsRepo.manager.query(
+      `SELECT DISTINCT ca.subject_id ${COORDINATOR_ROWS_FROM_SQL} AND cs.id = $3`,
+      [input.tenantId, input.userId, input.sectionId],
+    );
+    return {
+      allSubjects: rows.some((r) => r.subject_id === null),
+      subjectIds: rows.filter((r) => r.subject_id !== null).map((r) => r.subject_id as string),
+    };
+  }
+
+  /**
+   * [83.2.1] The caller's coordinator rows, one per (class, subject), current academic year,
+   * with the live section ids of each class. Feeds My coordination and its overview (83.3.2).
+   * Ordered like `homeroomSections`: numeric grade, then name; class-level rows first.
+   */
+  async coordinatedClasses(input: {
+    userId: string;
+    tenantId: string;
+  }): Promise<CoordinatedClassRow[]> {
+    const rows: CoordinatedClassRow[] = await this.tcsRepo.manager.query(
+      `SELECT c.id AS class_id, c.name AS class_name, s.id AS subject_id, s.name_en AS subject_name,
+              array_agg(DISTINCT cs.id::text) AS section_ids
+         ${COORDINATOR_ROWS_FROM_SQL}
+        GROUP BY c.id, c.name, c.numeric_grade, s.id, s.name_en
+        ORDER BY c.numeric_grade ASC NULLS LAST, c.name ASC, s.name_en ASC NULLS FIRST`,
+      [input.tenantId, input.userId],
+    );
+    return rows.map((r) => ({ ...r, section_ids: [...r.section_ids].sort() }));
   }
 
   /** The caller's CLASS/ASSISTANT sections in the **current** academic year,

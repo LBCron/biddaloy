@@ -13,6 +13,7 @@ import { ClassSection } from '../academics/entities/class-section.entity';
 import { Subject } from '../academics/entities/subject.entity';
 import { Teacher } from '../academics/entities/teacher.entity';
 import { TeacherClassSection } from '../academics/entities/teacher-class-section.entity';
+import { CoordinatorAssignment } from '../academics/entities/coordinator-assignment.entity';
 import { User } from '../users/entities/user.entity';
 import { Student } from '../students/entities/student.entity';
 import { Guardian } from '../students/entities/guardian.entity';
@@ -30,6 +31,8 @@ import {
  * `test/setup.ts`) so they are re-created in `beforeEach`.
  */
 describe('TeacherScopeService (integration)', () => {
+  // [83.2.1] No coordinator rows: the D19 field is always present, empty.
+  const NO_COORD = { allSubjects: false, subjectIds: [] };
   let service: TeacherScopeService;
   let dataSource: DataSource;
 
@@ -169,6 +172,7 @@ describe('TeacherScopeService (integration)', () => {
         homeroom: TeacherAssignmentType.CLASS_TEACHER,
         subjectIds: [],
         inYearWindow: true,
+        coordinated: NO_COORD,
       });
     });
 
@@ -178,6 +182,7 @@ describe('TeacherScopeService (integration)', () => {
         homeroom: TeacherAssignmentType.ASSISTANT_CLASS_TEACHER,
         subjectIds: [],
         inYearWindow: true,
+        coordinated: NO_COORD,
       });
     });
 
@@ -192,14 +197,24 @@ describe('TeacherScopeService (integration)', () => {
 
     it('reports nothing for a section the teacher is not mapped to', async () => {
       await assign(TeacherAssignmentType.CLASS_TEACHER, sec6A);
-      expect(await ask(sec6B)).toEqual({ homeroom: null, subjectIds: [], inYearWindow: false });
+      expect(await ask(sec6B)).toEqual({
+        homeroom: null,
+        subjectIds: [],
+        inYearWindow: false,
+        coordinated: NO_COORD,
+      });
     });
 
     it('gives a soft-deleted teacher no roles', async () => {
       await assign(TeacherAssignmentType.CLASS_TEACHER, sec6A);
       await assign(TeacherAssignmentType.SUBJECT_TEACHER, sec6A, liveSubjectId);
       await dataSource.getRepository(Teacher).softDelete({ id: teacherId });
-      expect(await ask(sec6A)).toEqual({ homeroom: null, subjectIds: [], inYearWindow: false });
+      expect(await ask(sec6A)).toEqual({
+        homeroom: null,
+        subjectIds: [],
+        inYearWindow: false,
+        coordinated: NO_COORD,
+      });
     });
 
     it('excludes a soft-deleted subject (D16)', async () => {
@@ -210,7 +225,12 @@ describe('TeacherScopeService (integration)', () => {
 
     it('gives no homeroom role in a past-year section (it would read every subject)', async () => {
       await assign(TeacherAssignmentType.CLASS_TEACHER, secOld);
-      expect(await ask(secOld)).toEqual({ homeroom: null, subjectIds: [], inYearWindow: false });
+      expect(await ask(secOld)).toEqual({
+        homeroom: null,
+        subjectIds: [],
+        inYearWindow: false,
+        coordinated: NO_COORD,
+      });
     });
 
     describe('year switch with an unpublished exam [X-07]', () => {
@@ -249,6 +269,7 @@ describe('TeacherScopeService (integration)', () => {
           homeroom: null,
           subjectIds: [liveSubjectId],
           inYearWindow: true,
+          coordinated: NO_COORD,
         });
         await dataSource.query(`UPDATE exams SET status = 'PUBLISHED' WHERE id = $1`, [examId]);
         expect((await ask(sectionId)).inYearWindow).toBe(false);
@@ -301,6 +322,7 @@ describe('TeacherScopeService (integration)', () => {
         homeroom: null,
         subjectIds: [liveSubjectId],
         inYearWindow: false,
+        coordinated: NO_COORD,
       });
     });
 
@@ -317,7 +339,12 @@ describe('TeacherScopeService (integration)', () => {
       await assign(TeacherAssignmentType.CLASS_TEACHER, sec6A, null, {
         teacher_id: otherTeacher.id,
       });
-      expect(await ask(sec6A)).toEqual({ homeroom: null, subjectIds: [], inYearWindow: false });
+      expect(await ask(sec6A)).toEqual({
+        homeroom: null,
+        subjectIds: [],
+        inYearWindow: false,
+        coordinated: NO_COORD,
+      });
     });
 
     it("tenant isolation: tenant A's rows are invisible when asking as tenant B", async () => {
@@ -326,6 +353,7 @@ describe('TeacherScopeService (integration)', () => {
         homeroom: null,
         subjectIds: [],
         inYearWindow: false,
+        coordinated: NO_COORD,
       });
     });
   });
@@ -647,6 +675,181 @@ describe('TeacherScopeService (integration)', () => {
       await expect(ask(gB)).rejects.toThrow(NotFoundException);
       await expect(ask('not-a-uuid')).rejects.toThrow(NotFoundException);
       await expect(ask(gB, 'ADMIN')).resolves.toBeNull();
+    });
+  });
+
+  /**
+   * [83.2.1] Coordinator rows widen reads only when the caller passes `includeCoordinated: true`
+   * (D18). `homeroom` / `subjectIds` never change (D19), so write gates stay as on main.
+   */
+  describe('coordinator rows (83.2.1)', () => {
+    const coordinate = async (
+      sectionOfClass: string,
+      subjectId: string | null = null,
+      over: { tenant_id?: string; teacher_id?: string } = {},
+    ) => {
+      const classId = (
+        await dataSource.query(`SELECT class_id FROM class_sections WHERE id = $1`, [
+          sectionOfClass,
+        ])
+      )[0].class_id as string;
+      await dataSource.getRepository(CoordinatorAssignment).save({
+        tenant_id: over.tenant_id ?? TENANT_A,
+        teacher_id: over.teacher_id ?? teacherId,
+        class_id: classId,
+        subject_id: subjectId,
+      });
+      return classId;
+    };
+    const ids = (includeCoordinated?: boolean, tenantId = TENANT_A) =>
+      service.sectionIds({ userId, tenantId, includeCoordinated }).then((r) => r.sort());
+
+    it('a class-level row lists every live section of the class, only with the flag', async () => {
+      await assign(TeacherAssignmentType.SUBJECT_TEACHER, sec10A, liveSubjectId);
+      await coordinate(sec6A);
+      // Live sections of Class 6 are A and B; the soft-deleted Z never shows.
+      expect(await ids(true)).toEqual([sec6A, sec6B, sec10A].sort());
+      // Without the flag: today's answer, teaching rows only.
+      expect(await ids()).toEqual([sec10A]);
+      expect(await ids(false)).toEqual([sec10A]);
+    });
+
+    it('sectionScope passes the flag through; ADMIN stays null', async () => {
+      await coordinate(sec7A);
+      const base = { userId, tenantId: TENANT_A };
+      expect(await service.sectionScope({ ...base, role: 'TEACHER' })).toEqual([]);
+      expect(
+        await service.sectionScope({ ...base, role: 'TEACHER', includeCoordinated: true }),
+      ).toEqual([sec7A]);
+      expect(
+        await service.sectionScope({ ...base, role: 'ADMIN', includeCoordinated: true }),
+      ).toBeNull();
+    });
+
+    it('rolesInSection: class-level row → allSubjects; homeroom / subjectIds unchanged', async () => {
+      await assign(TeacherAssignmentType.SUBJECT_TEACHER, sec6A, otherSubjectId);
+      await coordinate(sec6A);
+      expect(
+        await service.rolesInSection({ userId, tenantId: TENANT_A, sectionId: sec6A }),
+      ).toEqual({
+        homeroom: null,
+        subjectIds: [otherSubjectId],
+        inYearWindow: true,
+        coordinated: { allSubjects: true, subjectIds: [] },
+      });
+      // Section B of the same class: coordinated, but no teaching role at all.
+      expect(
+        await service.rolesInSection({ userId, tenantId: TENANT_A, sectionId: sec6B }),
+      ).toEqual({
+        homeroom: null,
+        subjectIds: [],
+        inYearWindow: false,
+        coordinated: { allSubjects: true, subjectIds: [] },
+      });
+    });
+
+    it('rolesInSection: subject-level row → only that subject', async () => {
+      await coordinate(sec6A, liveSubjectId);
+      const roles = await service.rolesInSection({ userId, tenantId: TENANT_A, sectionId: sec6B });
+      expect(roles.coordinated).toEqual({ allSubjects: false, subjectIds: [liveSubjectId] });
+      expect(roles.homeroom).toBeNull();
+      expect(roles.subjectIds).toEqual([]);
+    });
+
+    it("'classLevel' widens for a class row but not for a subject row (results / analysis, D4)", async () => {
+      await coordinate(sec6A);
+      await coordinate(sec7A, liveSubjectId);
+      const scoped = await service.sectionIds({
+        userId,
+        tenantId: TENANT_A,
+        includeCoordinated: 'classLevel',
+      });
+      expect(scoped.sort()).toEqual([sec6A, sec6B].sort());
+      // A student of the subject-coordinated class stays out of the all-subject reads.
+      const st = await dataSource.getRepository(Student).save({
+        full_name: 'Subject Coord Student',
+        registration_number: `REG-SC-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+        roll_number: 2,
+        class_section_id: sec7A,
+        tenant_id: TENANT_A,
+      } as Partial<Student> as Student);
+      const base = { userId, tenantId: TENANT_A, studentId: st.id };
+      expect(await service.canSeeStudent({ ...base, includeCoordinated: 'classLevel' })).toBe(
+        false,
+      );
+      expect(await service.canSeeStudent({ ...base, includeCoordinated: true })).toBe(true);
+    });
+
+    it('a row on a past-year class is not listed (current year only, D14)', async () => {
+      await coordinate(secOld);
+      expect(await ids(true)).toEqual([]);
+      const roles = await service.rolesInSection({ userId, tenantId: TENANT_A, sectionId: secOld });
+      expect(roles.coordinated).toEqual(NO_COORD);
+    });
+
+    it('a subject-level row on a soft-deleted subject is not listed', async () => {
+      await coordinate(sec7A, deletedSubjectId);
+      expect(await ids(true)).toEqual([]);
+    });
+
+    it("tenant isolation: a tenant-B row never widens tenant A's scope", async () => {
+      await coordinate(secB, null, { tenant_id: TENANT_B });
+      expect(await ids(true)).toEqual([]);
+      expect(await ids(true, TENANT_B)).toEqual([]);
+    });
+
+    it('canSeeStudent: a student of a coordinated section only with the flag', async () => {
+      await coordinate(sec7A);
+      const st = await dataSource.getRepository(Student).save({
+        full_name: 'Coord Student',
+        registration_number: `REG-CO-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+        roll_number: 1,
+        class_section_id: sec7A,
+        tenant_id: TENANT_A,
+      } as Partial<Student> as Student);
+      const base = { userId, tenantId: TENANT_A, studentId: st.id };
+      expect(await service.canSeeStudent(base)).toBe(false);
+      expect(await service.canSeeStudent({ ...base, includeCoordinated: true })).toBe(true);
+      expect(
+        await service.scopedStudentIds({ userId, tenantId: TENANT_A, role: 'TEACHER' }),
+      ).toEqual([]);
+      expect(
+        await service.scopedStudentIds({
+          userId,
+          tenantId: TENANT_A,
+          role: 'TEACHER',
+          includeCoordinated: true,
+        }),
+      ).toEqual([st.id]);
+    });
+
+    it('coordinatedClasses: one row per (class, subject) with the live section ids', async () => {
+      const class6 = await coordinate(sec6A);
+      const class7 = await coordinate(sec7A, liveSubjectId);
+      await coordinate(secOld);
+      expect(await service.coordinatedClasses({ userId, tenantId: TENANT_A })).toEqual([
+        {
+          class_id: class6,
+          class_name: 'Class 6',
+          subject_id: null,
+          subject_name: null,
+          section_ids: [sec6A, sec6B].sort(),
+        },
+        {
+          class_id: class7,
+          class_name: 'Class 7',
+          subject_id: liveSubjectId,
+          subject_name: 'LIVE',
+          section_ids: [sec7A],
+        },
+      ]);
+      expect(await service.coordinatedClasses({ userId, tenantId: TENANT_B })).toEqual([]);
+    });
+
+    it('currentAssignments and homeroomSections ignore coordinator rows', async () => {
+      await coordinate(sec6A);
+      expect(await service.currentAssignments({ userId, tenantId: TENANT_A })).toEqual([]);
+      expect(await service.homeroomSections({ userId, tenantId: TENANT_A })).toEqual([]);
     });
   });
 });

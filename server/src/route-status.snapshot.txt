@@ -206,6 +206,11 @@ POST   /api/v1/communications/send                                              
 GET    /api/v1/communications/sms-credits                                        401 PASS PASS PASS PASS 403 403 403 403 403 403 403
 GET    /api/v1/communications/sms-credits/readiness                              401 PASS PASS PASS PASS 403 403 403 403 PASS 403 403
 GET    /api/v1/communications/student/:studentId                                 401 PASS PASS PASS PASS PASS 403 403 PASS PASS 403 403
+POST   /api/v1/coordination/alerts                                               401 PASS PASS 403 403 PASS 403 403 403 403 403 403
+GET    /api/v1/coordination/overview                                             401 PASS PASS 403 403 PASS 403 403 403 403 403 403
+GET    /api/v1/coordinators                                                      401 PASS PASS PASS 403 403 403 403 403 403 403 403
+POST   /api/v1/coordinators                                                      401 PASS PASS PASS 403 403 403 403 403 403 403 403
+DELETE /api/v1/coordinators/:id                                                  401 PASS PASS PASS 403 403 403 403 403 403 403 403
 GET    /api/v1/dashboard/widgets/admissions-today                                401 403 403 PASS 403 403 403 403 403 PASS 403 403
 GET    /api/v1/dashboard/widgets/approvals-pending                               401 403 403 PASS 403 403 403 403 PASS 403 403 403
 GET    /api/v1/dashboard/widgets/at-risk-students                                401 403 403 PASS 403 403 403 403 PASS 403 403 403

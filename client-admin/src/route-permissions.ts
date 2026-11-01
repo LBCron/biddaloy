@@ -211,6 +211,8 @@ export const STAFF_ROUTE_PERMISSIONS: Record<string, Permission> = {
   // the same way (`MY_CLASS_VIEW`).
   '/_staff/my-class/': Permission.MY_CLASS_VIEW,
   '/_staff/my-class/$sectionId': Permission.MY_CLASS_VIEW,
+  // [83.4.1] Coordinator's page — TEACHER only, server-gated the same way (`COORDINATION_VIEW`).
+  '/_staff/my-coordination/': Permission.COORDINATION_VIEW,
   '/_staff/attendance/': Permission.ATTENDANCE_READ,
   '/_staff/attendance/$sectionId': Permission.ATTENDANCE_READ,
   // [9.10] Same ATTENDANCE_READ gate — the reports/register/flags surfaces

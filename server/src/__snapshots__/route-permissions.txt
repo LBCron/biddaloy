@@ -11,6 +11,7 @@ DELETE /classes/:classId/sections/:sectionId | ClassController | perm: CLASS_MAN
 DELETE /classes/:classId/sections/:sectionId/teachers/:assignmentId | ClassController | perm: CLASS_MANAGE
 DELETE /classes/:classId/subjects/:subjectId | ClassSubjectController | perm: CLASS_MANAGE
 DELETE /classes/:id | ClassController | perm: CLASS_MANAGE
+DELETE /coordinators/:id | CoordinatorsController | perm: CLASS_MANAGE
 DELETE /designations/:id | DesignationController | perm: STAFF_HR_MANAGE
 DELETE /discount-rules/:id | DiscountRulesController | perm: DISCOUNT_RULE_MANAGE | approval: discount_rules.manage
 DELETE /exam-templates/:id | ExamTemplatesController | perm: EXAM_MANAGE
@@ -139,6 +140,8 @@ GET /communications/reminder/bulk/:id/logs | CommunicationsController | perm: CO
 GET /communications/sms-credits | CreditsController | perm: COMMUNICATION_CREDIT_READ
 GET /communications/sms-credits/readiness | CreditsController | perm: COMMUNICATION_SEND
 GET /communications/student/:studentId | CommunicationsController | perm: COMMUNICATION_LOG_READ
+GET /coordination/overview | CoordinationController | perm: COORDINATION_VIEW
+GET /coordinators | CoordinatorsController | perm: CLASS_MANAGE
 GET /dashboard/widgets/admissions-today | AdmissionDashboardController | perm: ADMISSION_REVIEW,DASHBOARD_VIEW
 GET /dashboard/widgets/approvals-pending | ApplicationsDashboardController | perm: APPLICATION_SUBMIT,DASHBOARD_VIEW
 GET /dashboard/widgets/at-risk-students | AtRiskStudentsDashboardController | perm: ATTENDANCE_READ,DASHBOARD_VIEW,FEE_READ,MARK_VIEW
@@ -546,6 +549,8 @@ POST /communications/reminder/bulk/preview | CommunicationsController | perm: CO
 POST /communications/reminder/single/:studentId | CommunicationsController | perm: COMMUNICATION_SEND
 POST /communications/reminder/single/:studentId/preview | CommunicationsController | perm: COMMUNICATION_SEND
 POST /communications/send | CommunicationsController | perm: COMMUNICATION_SEND
+POST /coordination/alerts | CoordinationController | perm: COORDINATION_VIEW
+POST /coordinators | CoordinatorsController | perm: CLASS_MANAGE
 POST /designations | DesignationController | perm: STAFF_HR_MANAGE
 POST /discount-rules | DiscountRulesController | perm: DISCOUNT_RULE_MANAGE | approval: discount_rules.manage
 POST /enrollments | EnrollmentController | perm: STUDENT_UPDATE

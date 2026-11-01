@@ -5,6 +5,7 @@ import { AttentionRule } from '../attention-rule.decorator';
 import type { AttentionRule as AttentionRuleShape, RuleContext, RuleFinding } from '../rule.types';
 import { addDaysIso } from '../rule-context.service';
 import { roleRecipients } from '../structure/role-recipients';
+import { coordinatorRecipients, coordinates } from '../structure/coordinator-recipients';
 import { priorYearStartSql } from '../../../classes/teacher-scope.service';
 
 // ponytail: constants until #1859 gives a real mark-entry deadline
@@ -14,6 +15,8 @@ export const MARKS_CRITICAL_DAYS = 14;
 export interface OutstandingGrid {
   examId: string;
   examName: string;
+  /** [83.2.4] The exam's class: coordinators are matched on it. */
+  classId: string;
   className: string;
   lastDate: string;
   sectionId: string;
@@ -48,7 +51,7 @@ export async function loadOutstandingGrids(
        WHERE e.tenant_id = $1 AND e.deleted_at IS NULL AND e.status = 'DRAFT'
        GROUP BY e.id, e.name, e.class_id, c.name
        HAVING MAX(es.date) <= $2)
-     SELECT ex.id AS "examId", ex.name AS "examName", ex.class_name AS "className",
+     SELECT ex.id AS "examId", ex.name AS "examName", ex.class_id AS "classId", ex.class_name AS "className",
             to_char(ex.last_date, 'YYYY-MM-DD') AS "lastDate",
             cs.id AS "sectionId", ex.class_name || '-' || cs.section_name AS "sectionLabel", comp.subject_id AS "subjectId"
      FROM ex
@@ -95,13 +98,25 @@ export class ExamsMarksOverdueRule implements AttentionRuleShape {
       addDaysIso(ctx.localDate, -MARKS_GRACE_DAYS),
     );
     if (!rows.length) return [];
-    const recipients = await roleRecipients(this.dataSource, ctx.tenantId, this.meta.roles);
-    if (!recipients.length) return [];
+    const roles = await roleRecipients(this.dataSource, ctx.tenantId, this.meta.roles);
+    // [83.2.4] D6: coordinators of the exam's class — class coordinators always, a subject
+    // coordinator only when one of the exam's open grids is their subject.
+    const coordinators = await coordinatorRecipients(this.dataSource, ctx.tenantId, [
+      ...new Set(rows.map((r) => r.classId)),
+    ]);
+    if (!roles.length && !coordinators.length) return [];
     const byExam = new Map<string, OutstandingGrid[]>();
     for (const r of rows) byExam.set(r.examId, [...(byExam.get(r.examId) ?? []), r]);
     return [...byExam.entries()].map(([examId, grids]) => {
       const days = daysBetween(grids[0].lastDate, ctx.localDate);
       const critical = days >= MARKS_CRITICAL_DAYS;
+      const recipients: { userId: string; role: (typeof roles)[number]['role'] }[] = [...roles];
+      for (const c of coordinators) {
+        const fits = grids.some((g) => coordinates(c, g.classId, g.subjectId));
+        if (fits && !recipients.some((r) => r.userId === c.userId)) {
+          recipients.push({ userId: c.userId, role: c.role });
+        }
+      }
       return {
         dedupeKey: `exam:${examId}`,
         subject: { type: 'exam', id: examId },

@@ -1,0 +1,55 @@
+{
+  "title": "আমার সমন্বয়",
+  "subtitle": "আপনার সমন্বয়ের শ্রেণিগুলোতে আজ কী কী বাকি",
+  "dateLabel": "তারিখ",
+  "notify": "শিক্ষকদের জানান",
+  "empty": "আপনি এখনো কোনো শ্রেণির সমন্বয়ক নন — অ্যাডমিনকে বলুন।",
+  "emptyTitle": "এখনো কোনো শ্রেণি নেই",
+  "loadError": "আপনার শ্রেণিগুলো আনা গেল না।",
+  "retry": "আবার চেষ্টা করুন",
+  "kinds": {
+    "classCoordinator": "শ্রেণি সমন্বয়ক",
+    "subjectCoordinator": "বিষয় সমন্বয়ক"
+  },
+  "cardSubject": "শুধু {{subject}}",
+  "seeStudents": "শিক্ষার্থী দেখুন",
+  "blocks": {
+    "todayAttendance": "আজকের হাজিরা",
+    "marksPending": "নম্বর বাকি",
+    "teachers": "শিক্ষক"
+  },
+  "rows": {
+    "taken": "নেওয়া হয়েছে",
+    "notTaken": "নেওয়া হয়নি",
+    "byWhom": "{{name}} নিয়েছেন",
+    "classTeacher": "শ্রেণি শিক্ষক: {{name}}",
+    "noClassTeacher": "শ্রেণি শিক্ষক নেই",
+    "pending": "বাকি",
+    "submitted": "জমা হয়েছে",
+    "noTeacher": "শিক্ষক নেই",
+    "gridLine": "{{exam}} · {{subject}} · {{section}}",
+    "teacherLine": "{{sections}} · {{subjects}}"
+  },
+  "blockEmpty": {
+    "todayAttendance": "এই শ্রেণিতে কোনো শাখা নেই।",
+    "marksPending": "কোনো নম্বর বাকি নেই।",
+    "teachers": "এখনো কোনো শিক্ষক নেই।"
+  },
+  "notifyDialog": {
+    "title": "শিক্ষকদের জানান",
+    "description": "তাঁরা অ্যাপে একটি মনে করিয়ে দেওয়া বার্তা পাবেন।",
+    "teachersLabel": "শিক্ষক",
+    "allPreChecked": "শ্রেণির সব শিক্ষক বাছাই করা আছে। যাঁদের চান না, তাঁদের টিক তুলে দিন।",
+    "messageLabel": "বার্তা",
+    "messagePlaceholder": "যেমন: বৃহস্পতিবারের মধ্যে প্রথম সাময়িকের নম্বর জমা দিন।",
+    "counter": "{{count}} / {{max}}",
+    "send": "পাঠান",
+    "sending": "পাঠানো হচ্ছে…",
+    "cancel": "বাতিল",
+    "sentToast": "{{count}} জন শিক্ষককে বার্তা পাঠানো হয়েছে।",
+    "errorNobody": "বাছাই করা কোনো শিক্ষক আপনার সমন্বয়ের শ্রেণিতে পড়ান না।",
+    "errorGeneric": "পাঠানো গেল না। আবার চেষ্টা করুন।",
+    "errorPickOne": "অন্তত একজন শিক্ষক বাছাই করুন।",
+    "errorMessage": "একটি বার্তা লিখুন।"
+  }
+}

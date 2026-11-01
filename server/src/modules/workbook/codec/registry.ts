@@ -64,6 +64,8 @@ export const EXPECTED_TABS = [
   'staff_profiles',
   'teachers',
   'teacher_assignments',
+  // [83.2.3] Class / subject coordinators (Epic 83).
+  'coordinator_assignments',
   'guardians',
   'students',
   'enrollments',

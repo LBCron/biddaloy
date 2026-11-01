@@ -10,6 +10,7 @@ import {
 } from '@biddaloy/ui/components';
 import {
   useClassSections,
+  useCoordinators,
   useHasPermission,
   useSectionTeachers,
   useUnassignTeacher,
@@ -21,6 +22,7 @@ import { UserPlusIcon, UsersIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { AssignTeacherDialog, sortByAssignmentType } from '../-assign-teacher-dialog';
+import { CoordinatorsTable } from '../../staff/-coordinators-table';
 
 import { TabQueryState } from './tab-query-state';
 
@@ -72,6 +74,8 @@ export function TeachersTab({ classId }: TeachersTabProps) {
         }
       </TabQueryState>
 
+      {canManage && <ClassCoordinatorsBlock classId={classId} />}
+
       {canManage && assigningSection && (
         <AssignDialogForSection
           classId={classId}
@@ -80,6 +84,36 @@ export function TeachersTab({ classId }: TeachersTabProps) {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * [83.3.3] D32: who coordinates this class. Read-only here (assign and remove live on
+ * Teaching assignments › Coordinators). Hidden when the class has none. `GET /coordinators`
+ * needs CLASS_MANAGE, so the caller renders it for that permission only.
+ */
+function ClassCoordinatorsBlock({ classId }: { classId: string }) {
+  const { t } = useTranslation('classes');
+  const query = useCoordinators({ classId });
+  if (!query.isError && (query.data?.length ?? 0) === 0) return null;
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className="text-h3">{t('detail.teachers.coordinators.title')}</h3>
+      <CoordinatorsTable
+        tableId={`class-coordinators-${classId}`}
+        caption={t('detail.teachers.coordinators.caption')}
+        rows={query.data}
+        loading={query.isLoading}
+        fetching={query.isFetching}
+        isError={query.isError}
+        onRetry={() => void query.refetch()}
+        hideClass
+        emptyState={{
+          title: t('detail.teachers.coordinators.title'),
+          explanation: t('detail.teachers.coordinators.caption'),
+        }}
+      />
+    </section>
   );
 }
 

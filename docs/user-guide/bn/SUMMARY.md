@@ -48,6 +48,7 @@
   - [শিক্ষাবর্ষ তৈরি ও পরিচালনা](academics/academic-years.md)
   - [শ্রেণি, শাখা ও বিষয় সাজানো](academics/classes.md)
   - [নিজের শ্রেণির খবর এক পাতায় দেখা](academics/my-class.md)
+  - [আপনার সমন্বয়ের শ্রেণিগুলোতে কী বাকি তা দেখা](academics/my-coordination.md)
   - [বাড়ির কাজ দেওয়া](academics/homework.md)
   - [সিলেবাস ও পাঠ পরিকল্পনা](academics/syllabus.md)
   - [রুটিনের শিফট, পিরিয়ড, কক্ষ ও নিয়ম ঠিক করা](academics/routine-setup.md)

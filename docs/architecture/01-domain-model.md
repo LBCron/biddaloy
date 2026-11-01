@@ -273,6 +273,56 @@ How the type gets set:
 Who reads what, including the marks read/write rules, is covered in
 [03-backend-modules.md](03-backend-modules.md) (`TeacherScopeService`) and [11-attendance.md](11-attendance.md) (streaks).
 
+#### Coordinators (`coordinator_assignments`, Epic 83)
+
+A **coordinator** is a teacher who oversees other teachers' work in some classes.
+It is an assignment on a teacher, not a role (D1). One row says "this teacher
+coordinates this class", optionally "for this subject only".
+
+| Row                      | Name in the app     | Reads (never writes)                                                                                     |
+| ------------------------ | ------------------- | -------------------------------------------------------------------------------------------------------- |
+| `subject_id` NULL        | Class coordinator   | Students, attendance, every subject's marks, homework rollups, study plans of every section of the class |
+| `subject_id` = a subject | Subject coordinator | The same students and attendance, but marks and study plans of that subject only                         |
+
+Example: Rahim is class coordinator of Class 6, 7 and 8 (three rows, subject
+NULL). Karim is Mathematics subject coordinator of Class 9 and 10 (two rows).
+
+```mermaid
+erDiagram
+    Teacher ||--o{ CoordinatorAssignment : "coordinates"
+    Class ||--o{ CoordinatorAssignment : "is coordinated"
+    Subject |o--o{ CoordinatorAssignment : "only subject coordinators"
+    User |o--o{ CoordinatorAssignment : "assigned_by"
+    CoordinatorAssignment {
+        uuid class_id "class level, no section"
+        uuid subject_id "NULL = whole class"
+        uuid assigned_by_user_id "SET NULL when the user goes"
+        timestamptz created_at
+    }
+```
+
+Why it is its own table and not a fourth `assignment_type` (D2): the teacher
+scope treats every non-subject tcs row as homeroom, and homeroom reads **and
+writes** every subject. A coordinator must only read. So coordinator rows live
+apart and count only where a read path asks for them (`includeCoordinated`, see
+[02-auth-and-multitenancy.md](02-auth-and-multitenancy.md)).
+
+| Rule                                                        | Enforced by                                                      |
+| ----------------------------------------------------------- | ---------------------------------------------------------------- |
+| One row per (tenant, teacher, class, subject), NULLs equal  | `UQ_coordinator_assignment ... NULLS NOT DISTINCT` (D11)         |
+| Class level only; the class's year is the row's year (D3)   | no `section_id`; scope SQL joins the current academic year (D14) |
+| Deleting a teacher, class or subject deletes its rows (D15) | FKs `ON DELETE CASCADE`; not in the delete-guard registry        |
+| A school's rows only                                        | every query filters `tenant_id`; cross-tenant ids are 404        |
+
+`TeacherDesignation.COORDINATOR` stays an HR label (D16); it grants nothing.
+
+**Learning (2026-10-31, 83.1).**
+
+- Surprise: TypeORM's `@Index` cannot express `NULLS NOT DISTINCT`, so the unique index lives in the migration only.
+  Cost: one schema-drift baseline line. Fix: the entity comment names the migration. Rule candidate: none (known pattern).
+- Surprise: FK and PK names written by hand drift from TypeORM's hashed names. Fix: the migration uses the hashed
+  names (`sha1('<table>_<column>')`), so only the NULLS NOT DISTINCT index is baselined.
+
 ### Grading (`modules/grading`)
 
 - **`GradingScale`** — a set of percent-to-grade bands for one

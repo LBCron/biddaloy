@@ -4,6 +4,7 @@ import { Class } from '../academics/entities/class.entity';
 import { ClassSection } from '../academics/entities/class-section.entity';
 import { Teacher } from '../academics/entities/teacher.entity';
 import { TeacherClassSection } from '../academics/entities/teacher-class-section.entity';
+import { CoordinatorAssignment } from '../academics/entities/coordinator-assignment.entity';
 import { Subject } from '../academics/entities/subject.entity';
 import { Student } from '../students/entities/student.entity';
 import { Enrollment } from '../students/entities/enrollment.entity';
@@ -13,6 +14,8 @@ import { ClassService, SectionService } from './classes.service';
 import { ClassController } from './classes.controller';
 import { TeacherScopeService } from './teacher-scope.service';
 import { MyClassController } from './my-class.controller';
+import { CoordinatorsService } from './coordinators.service';
+import { CoordinatorsController } from './coordinators.controller';
 
 @Module({
   // Teacher/TeacherClassSection/Student are registered entity-only (no
@@ -30,6 +33,8 @@ import { MyClassController } from './my-class.controller';
       ClassSection,
       Teacher,
       TeacherClassSection,
+      // [83.2.2] Coordinator rows: CRUD here, read by TeacherScopeService (D20).
+      CoordinatorAssignment,
       Subject,
       Student,
       Enrollment,
@@ -39,8 +44,8 @@ import { MyClassController } from './my-class.controller';
     // same reasoning as its other consumers (16.2.2's step-up flow).
     SchoolsModule,
   ],
-  providers: [ClassService, SectionService, TeacherScopeService],
-  controllers: [ClassController, MyClassController],
-  exports: [ClassService, SectionService, TeacherScopeService],
+  providers: [ClassService, SectionService, TeacherScopeService, CoordinatorsService],
+  controllers: [ClassController, MyClassController, CoordinatorsController],
+  exports: [ClassService, SectionService, TeacherScopeService, CoordinatorsService],
 })
 export class ClassModule {}

@@ -199,6 +199,14 @@
     "routes": ["/my-class", "/my-class/$sectionId"]
   },
   {
+    "id": "academics.myCoordination",
+    "kind": "nav",
+    "path": "academics/my-coordination",
+    "route": "/my-coordination",
+    "roles": ["TEACHER"],
+    "routes": ["/my-coordination"]
+  },
+  {
     "id": "academics.homework",
     "kind": "nav",
     "path": "academics/homework",

@@ -64,7 +64,7 @@ flowchart LR
 | `users`          | `User` + `Teacher` CRUD                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | `POST/GET/PATCH/DELETE users`, `POST/GET/PATCH teachers`                                                                                                                                                                                                                                                                                                                            |
 | `schools`        | `School` (tenant) entity + per-tenant settings (comms provider config, currency, etc.)                                                                                                                                                                                                                                                                                                                                                                                                        | Internal service only today — no public controller yet                                                                                                                                                                                                                                                                                                                              |
 | `academics`      | `AcademicYear` (no longer owns holidays — see `calendar`)                                                                                                                                                                                                                                                                                                                                                                                                                                     | `POST/GET/PATCH/DELETE academic-years`, `POST academic-years/:id/set-current`                                                                                                                                                                                                                                                                                                       |
-| `classes`        | `Class` + `ClassSection` + `TeacherScopeService` (teacher role in a section)                                                                                                                                                                                                                                                                                                                                                                                                                  | `POST/GET/PATCH/DELETE classes`, nested `.../sections` routes; `GET /my-class/sections`                                                                                                                                                                                                                                                                                             |
+| `classes`        | `Class` + `ClassSection` + `TeacherScopeService` (teacher role in a section)                                                                                                                                                                                                                                                                                                                                                                                                                  | `POST/GET/PATCH/DELETE classes`, nested `.../sections` routes; `GET /my-class/sections`; `GET/POST/DELETE /coordinators` (`CoordinatorsController`, `CLASS_MANAGE`); `GET /coordination/overview`, `POST /coordination/alerts` (`CoordinationController` in `CoordinationModule`, `COORDINATION_VIEW`)                                                                              |
 | `students`       | `Student`, `Guardian`, Excel bulk upload                                                                                                                                                                                                                                                                                                                                                                                                                                                      | `POST/GET/PATCH/DELETE students`, `POST students/bulk-upload`, `POST/GET/PATCH/DELETE guardians`                                                                                                                                                                                                                                                                                    |
 | `enrollments`    | `Enrollment` history                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | `POST enrollments`, `GET enrollments/student/:studentId`, `PATCH enrollments/:id`                                                                                                                                                                                                                                                                                                   |
 | `attendance`     | `AttendanceSession`/`Record`, corrections, summaries, auto-absent notices, device ingest                                                                                                                                                                                                                                                                                                                                                                                                      | `GET attendance/my-sections`, `PUT attendance/sections/:id/register`, `PATCH attendance/records/:id`, `GET attendance/flags/low`, `POST attendance/device-events` — see [11-attendance.md](11-attendance.md)                                                                                                                                                                        |
@@ -127,6 +127,51 @@ cannot import `ClassModule` (Student, Enrollment) still use it:
 `TeacherScopeService` has thin wrappers (`currentAssignments`, `sectionIds`,
 `canSeeStudent`). `rolesInSection` and `teachesSubjectInClass` are unchanged,
 so marks behave as before.
+
+#### Coordinators widen reads, never writes (Epic 83)
+
+A **coordinator** row (`coordinator_assignments`, see
+[01-domain-model.md](01-domain-model.md#coordinators-coordinator_assignments-epic-83))
+adds every section of a coordinated class to what a teacher may **read**. It
+counts only when the caller passes `includeCoordinated: true` (D18). The
+default is `false`, so a call site that does not pass it answers exactly as
+before.
+
+```mermaid
+flowchart LR
+  R["read route<br/>(students, register, results…)"] -- "includeCoordinated: true" --> T["TeacherScopeService"]
+  W["write route / fees / messages"] -- "no flag" --> T
+  T --> A["teaching rows<br/>(teacher_class_sections)"]
+  T -- "only with the flag" --> B["coordinator rows<br/>(coordinator_assignments, current year)"]
+  A --> U["section ids = A ∪ B"]
+  B --> U
+```
+
+`rolesInSection` also returns `coordinated: { allSubjects, subjectIds }` (D19).
+`homeroom` and `subjectIds` never include coordinator rows, so the marks write
+gate (`assertCanWrite`, `writableSubjects`) is unchanged. `coordinatedClasses()`
+lists the caller's rows for My coordination.
+The flag can also be `'classLevel'`: only class coordinators widen, for reads that show every
+subject at once (results, analysis), so a subject coordinator never sees another subject's marks
+there.
+
+| Call site                                                            | Passes the flag?    | Why                                                   |
+| -------------------------------------------------------------------- | ------------------- | ----------------------------------------------------- |
+| `students.controller` lists, `GET /students/:id`, guardians          | yes                 | D4 read                                               |
+| `results.controller`, `analysis.controller`                          | `'classLevel'`      | D4: every subject at once, so class coordinators only |
+| `MarksAuthorizationService.assertCanRead` (grid read)                | yes (`coordinated`) | subject coordinators read their subject only          |
+| attendance register view, record history, periods, section summaries | yes                 | D4 read; marking never passes it                      |
+| homework analytics (`assertCanViewSection` / `assertCanViewClass`)   | yes                 | D4 read                                               |
+| study plans `canRead`                                                | yes (`coordinated`) | D4 read; `canWrite` unchanged                         |
+| `search.service`, `attention-query.service` student alerts           | yes                 | D4 read                                               |
+| homework list / detail                                               | **no**              | the same `findOne` gates homework writes              |
+| marks write, attendance marking, finalize, corrections, matrix save  | **no**              | D4: coordinators never write                          |
+| fees, fines, checkout, payments, communications                      | **no**              | D5: oversight is academic                             |
+
+Example: Rahim teaches only 6-A but coordinates Class 7. `GET /students/<a 7-B
+student>` is 200; `PUT /attendance/sections/<7-B>/register` is still 404, and so is
+`GET /payments/student/<that student>`. The enforcing spec is
+`server/src/coordinator-scope.e2e-spec.ts`.
 
 **Teacher-reachable routes and where each is scoped (Epic 75 audit).** Scope for
 every row: the student sits in a section where the caller has any live row in the

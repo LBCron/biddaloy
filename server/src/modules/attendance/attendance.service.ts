@@ -282,7 +282,10 @@ export class AttendanceService {
     userId: string;
   }): Promise<RegisterResponseDto> {
     const { sectionId, date, periodNo, tenantId, role, userId } = params;
-    await this.assertRegisterAccess(role, userId, sectionId, tenantId, date, periodNo);
+    // [83.3.1] D4 read: a coordinator opens the register of their classes read-only.
+    await this.assertRegisterAccess(role, userId, sectionId, tenantId, date, periodNo, {
+      includeCoordinated: true,
+    });
     return this.loadRegister(this.dataSource.manager, {
       sectionId,
       date,
@@ -1432,6 +1435,7 @@ export class AttendanceService {
       tenantId,
       session.date,
       session.period_no,
+      { includeCoordinated: true }, // [83.3.1] D4 read
     );
 
     const result = await this.auditService.findByEntity(
@@ -1462,6 +1466,7 @@ export class AttendanceService {
       sectionId,
       tenantId,
       date,
+      { includeCoordinated: true }, // [83.3.1] D4 read
     );
     if (periods.length === 0) return [];
 
@@ -1523,9 +1528,17 @@ export class AttendanceService {
     tenantId: string,
     date: string,
     periodNo: number | null,
+    /** [83.3.1] D4 — true only for reads (register view, record history). */
+    opts: { includeCoordinated?: boolean } = {},
   ): Promise<void> {
     if (periodNo === null) {
-      await this.attendanceAccessService.assertCanAccessSection(role, userId, sectionId, tenantId);
+      await this.attendanceAccessService.assertCanAccessSection(
+        role,
+        userId,
+        sectionId,
+        tenantId,
+        opts,
+      );
       return;
     }
     if (!(await this.periodAttendanceEnabled(tenantId))) {
@@ -1541,6 +1554,7 @@ export class AttendanceService {
       tenantId,
       date,
       periodNo,
+      opts,
     );
   }
 

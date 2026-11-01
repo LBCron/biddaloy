@@ -129,6 +129,7 @@ export class FinesController {
   ) {
     if (!isGuardianRole(tenant.role)) {
       // [75.6-d] TEACHER: only current-year assigned sections (`null` = unrestricted staff).
+      // [83.0] D5 — teaching-only on purpose; no `includeCoordinated`.
       const scoped = await this.teacherScope.scopedStudentIds({
         role: tenant.role,
         userId: user.sub,

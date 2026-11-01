@@ -70,6 +70,8 @@ export const Route = createFileRoute('/_staff/staff/$userId')({
       queryClient.ensureQueryData(userQueryOptions(params.userId)).catch(swallowUnlessOffline),
       loadRouteNamespaces(
         'staff',
+        // [83.3.3] Teaching assignments tab › Coordination block.
+        'teacherAssignments',
         'staffAttendance',
         'leave',
         'evaluations',

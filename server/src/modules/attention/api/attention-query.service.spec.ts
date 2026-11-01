@@ -30,6 +30,8 @@ describe('AttentionQueryService.studentAlerts teacher scope', () => {
       userId: 'u1',
       tenantId: 't1',
       studentId: 's1',
+      // [83.3.1] D4 read: coordinators of the student's class see its alerts too.
+      includeCoordinated: true,
     });
   });
 

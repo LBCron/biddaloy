@@ -21,8 +21,10 @@ const ctx = (extra: Partial<RuleContext> = {}): RuleContext => ({
 });
 
 /** Routes each query by its SQL: recipients, teachers, or "the" rule query. */
-function ds(rows: unknown[], teachers: unknown[] = []) {
+function ds(rows: unknown[], teachers: unknown[] = [], coordinators: unknown[] = []) {
   const query = vi.fn().mockImplementation(async (sql: string) => {
+    // [83.2.4] First: the coordinator query also mentions user_tenants (in an EXISTS).
+    if (sql.includes('FROM coordinator_assignments')) return coordinators;
     if (sql.includes('FROM user_tenants')) return [EXEC];
     if (sql.includes('FROM teacher_class_sections')) return teachers;
     return rows;
@@ -33,6 +35,7 @@ function ds(rows: unknown[], teachers: unknown[] = []) {
 const grid = (over: Record<string, unknown> = {}) => ({
   examId: 'E',
   examName: 'Term 1',
+  classId: 'C7',
   className: 'Seven',
   lastDate: '2026-10-02',
   sectionId: 'S1',
@@ -92,6 +95,24 @@ describe('ExamsMarksOverdueRule', () => {
 
   it('nothing outstanding: silent', async () => {
     expect(await run([])).toEqual([]);
+  });
+
+  // [83.2.4] D6: the class coordinator and the matching subject coordinator join; a coordinator
+  // of another subject or another class does not.
+  it('adds coordinators of the exam class: class-level and the open subject only', async () => {
+    const coords = [
+      { userId: 'class-coord', classId: 'C7', subjectId: null },
+      { userId: 'maths-coord', classId: 'C7', subjectId: 'SUB' },
+      { userId: 'bangla-coord', classId: 'C7', subjectId: 'BAN' },
+      { userId: 'other-class', classId: 'C8', subjectId: null },
+    ];
+    const [f] = await new ExamsMarksOverdueRule(ds([grid()], [], coords) as never).evaluate(ctx());
+    const ids = f.recipients.map((r) => r.userId);
+    expect(ids).toContain('class-coord');
+    expect(ids).toContain('maths-coord');
+    expect(ids).not.toContain('bangla-coord');
+    expect(ids).not.toContain('other-class');
+    expect(f.dedupeKey).toBe('exam:E');
   });
 });
 

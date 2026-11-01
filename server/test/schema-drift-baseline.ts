@@ -1208,6 +1208,8 @@ export const DRIFT_BASELINE: DriftGroup[] = [
       'DROP INDEX "public"."IDX_user_tenants_user_tenant_role"',
       'DROP INDEX "public"."IDX_wallet_transactions_tenant_id"',
       'DROP INDEX "public"."IDX_wallet_transactions_wallet_id_created_at"',
+      // [83.1.2] UQ_coordinator_assignment is NULLS NOT DISTINCT (D11); @Index cannot express it.
+      'DROP INDEX "public"."UQ_coordinator_assignment"',
       'DROP INDEX "public"."UQ_calendar_feed_tokens_active_per_user"',
       'DROP INDEX "public"."UQ_designations_tenant_title_en"',
       'DROP INDEX "public"."UQ_exam_template_components_natural"',

@@ -1,0 +1,55 @@
+{
+  "title": "My coordination",
+  "subtitle": "What is still not done today in the classes you coordinate",
+  "dateLabel": "Date",
+  "notify": "Notify teachers",
+  "empty": "You are not a coordinator of any class yet — ask an admin.",
+  "emptyTitle": "No class yet",
+  "loadError": "Could not load your classes.",
+  "retry": "Try again",
+  "kinds": {
+    "classCoordinator": "Class coordinator",
+    "subjectCoordinator": "Subject coordinator"
+  },
+  "cardSubject": "{{subject}} only",
+  "seeStudents": "See students",
+  "blocks": {
+    "todayAttendance": "Today's attendance",
+    "marksPending": "Marks pending",
+    "teachers": "Teachers"
+  },
+  "rows": {
+    "taken": "Taken",
+    "notTaken": "Not taken",
+    "byWhom": "by {{name}}",
+    "classTeacher": "Class teacher: {{name}}",
+    "noClassTeacher": "No class teacher",
+    "pending": "Pending",
+    "submitted": "Submitted",
+    "noTeacher": "No teacher",
+    "gridLine": "{{exam}} · {{subject}} · {{section}}",
+    "teacherLine": "{{sections}} · {{subjects}}"
+  },
+  "blockEmpty": {
+    "todayAttendance": "No section in this class.",
+    "marksPending": "No marks pending.",
+    "teachers": "No teacher yet."
+  },
+  "notifyDialog": {
+    "title": "Notify teachers",
+    "description": "They get one reminder in the app.",
+    "teachersLabel": "Teachers",
+    "allPreChecked": "Every teacher of the class is chosen. Clear the ones you do not want.",
+    "messageLabel": "Message",
+    "messagePlaceholder": "For example: please submit Term 1 marks by Thursday.",
+    "counter": "{{count}} / {{max}}",
+    "send": "Send",
+    "sending": "Sending…",
+    "cancel": "Cancel",
+    "sentToast": "Reminder sent to {{count}} teachers.",
+    "errorNobody": "None of the chosen teachers teach the classes you coordinate.",
+    "errorGeneric": "Could not send. Try again.",
+    "errorPickOne": "Choose at least one teacher.",
+    "errorMessage": "Write a message."
+  }
+}

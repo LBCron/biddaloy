@@ -56,6 +56,8 @@ See the alerts you need to act on, finish the work or ask to be reminded later, 
 
 An **alert** is a to-do that the school's rules create by themselves. For example, if a section's attendance is not taken on time, the teacher gets an **Attendance not taken** alert. When the work is done, the alert turns **Fixed** by itself. Every alert has a level: **Urgent**, **Warning** or **Reminder**.
 
+**Coordinators get some alerts too.** A **Class coordinator** gets **Attendance not taken** for every section of their classes once it turns into a warning, before the admin does. A **Class coordinator** and a **Subject coordinator** both get **Marks overdue** for their classes; a subject coordinator only when their own subject is late. Who is a coordinator: [Teacher assignments](../people/teaching-assignments.md#task-coordinators).
+
 [Settle a to-do](#task-main) · [Remind me later](#task-snooze) · [Morning summary](#task-digest) · [What each alert means](#task-kinds) · [Problems and fixes](#trouble)
 
 **On this page**

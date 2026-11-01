@@ -1569,6 +1569,19 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'task-main',
     knownIssues: 0,
   },
+  'academics.myCoordination': {
+    title: {
+      bn: 'আপনার সমন্বয়ের শ্রেণিগুলোতে কী বাকি তা দেখা',
+      en: 'Seeing what is still not done in the classes you coordinate',
+    },
+    summary: {
+      bn: 'শ্রেণি বা বিষয় সমন্বয়ক হিসেবে দেখুন আজ কোন শাখায় হাজিরা হয়নি, কার নম্বর বাকি, কে কী পড়ান, আর সেই শিক্ষকদের একটি বার্তা পাঠান।',
+      en: 'As a class or subject coordinator, see which sections have no attendance today, whose marks are still pending and who teaches what, and send those teachers one reminder.',
+    },
+    path: 'academics/my-coordination',
+    anchor: '',
+    knownIssues: 0,
+  },
   'academics.homework': {
     title: { bn: 'বাড়ির কাজ দেওয়া', en: 'Giving homework' },
     summary: {
@@ -3029,7 +3042,7 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'reports/hub',
     anchor: '',
-    knownIssues: 1,
+    knownIssues: 2,
   },
   'reports.hub.action.newReport': {
     title: { bn: 'সব রিপোর্ট', en: 'All reports' },
@@ -3039,14 +3052,14 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'reports/hub',
     anchor: 'task-design',
-    knownIssues: 1,
+    knownIssues: 2,
   },
   'reports.hub.field.search': {
     title: { bn: 'সব রিপোর্ট', en: 'All reports' },
     summary: { bn: '', en: '' },
     path: 'reports/hub',
     anchor: 'task-main',
-    knownIssues: 1,
+    knownIssues: 2,
     field: { ns: 'reports', key: 'search' },
   },
   'reports.hub.section.questions': {
@@ -3057,7 +3070,7 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'reports/hub',
     anchor: 'task-answer',
-    knownIssues: 1,
+    knownIssues: 2,
   },
   'reports.hub.action.showReport': {
     title: { bn: 'সব রিপোর্ট', en: 'All reports' },
@@ -3067,7 +3080,7 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'reports/hub',
     anchor: 'task-answer',
-    knownIssues: 1,
+    knownIssues: 2,
   },
   'reports.hub.action.downloadExcel': {
     title: { bn: 'সব রিপোর্ট', en: 'All reports' },
@@ -3077,7 +3090,7 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'reports/hub',
     anchor: 'task-download',
-    knownIssues: 1,
+    knownIssues: 2,
   },
   'reports.hub.action.print': {
     title: { bn: 'সব রিপোর্ট', en: 'All reports' },
@@ -3087,7 +3100,7 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'reports/hub',
     anchor: 'task-print',
-    knownIssues: 1,
+    knownIssues: 2,
   },
   'reports.hub.action.emailRegularly': {
     title: { bn: 'সব রিপোর্ট', en: 'All reports' },
@@ -3097,7 +3110,7 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'reports/hub',
     anchor: 'task-email',
-    knownIssues: 1,
+    knownIssues: 2,
   },
   'reports.hub.action.keepCopy': {
     title: { bn: 'সব রিপোর্ট', en: 'All reports' },
@@ -3107,7 +3120,7 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'reports/hub',
     anchor: 'task-copy',
-    knownIssues: 1,
+    knownIssues: 2,
   },
   'reports.hub.action.showOnDashboard': {
     title: { bn: 'সব রিপোর্ট', en: 'All reports' },
@@ -3117,7 +3130,7 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'reports/hub',
     anchor: 'task-pin',
-    knownIssues: 1,
+    knownIssues: 2,
   },
   'reports.hub.section.feedback': {
     title: { bn: 'সব রিপোর্ট', en: 'All reports' },
@@ -3127,7 +3140,7 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'reports/hub',
     anchor: 'task-feedback',
-    knownIssues: 1,
+    knownIssues: 2,
   },
   'reports.hub.section.designTrays': {
     title: { bn: 'সব রিপোর্ট', en: 'All reports' },
@@ -3137,7 +3150,7 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'reports/hub',
     anchor: 'task-design',
-    knownIssues: 1,
+    knownIssues: 2,
   },
   'reports.hub.section.designFilters': {
     title: { bn: 'সব রিপোর্ট', en: 'All reports' },
@@ -3147,7 +3160,7 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'reports/hub',
     anchor: 'task-design',
-    knownIssues: 1,
+    knownIssues: 2,
   },
   'reports.hub.section.designLayout': {
     title: { bn: 'সব রিপোর্ট', en: 'All reports' },
@@ -3157,7 +3170,7 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'reports/hub',
     anchor: 'task-design',
-    knownIssues: 1,
+    knownIssues: 2,
   },
   'reports.hub.section.designMore': {
     title: { bn: 'সব রিপোর্ট', en: 'All reports' },
@@ -3167,14 +3180,14 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'reports/hub',
     anchor: 'task-design',
-    knownIssues: 1,
+    knownIssues: 2,
   },
   'reports.hub.field.whoCanSee': {
     title: { bn: 'সব রিপোর্ট', en: 'All reports' },
     summary: { bn: '', en: '' },
     path: 'reports/hub',
     anchor: 'task-design',
-    knownIssues: 1,
+    knownIssues: 2,
     field: { ns: 'reportDesigner', key: 'whoCanSee' },
   },
   'reports.collectionsReport': {
@@ -5012,6 +5025,7 @@ export const HELP_ROUTES = {
   '/routines/my': 'academics.myRoutine',
   '/my-class': 'academics.myClass',
   '/my-class/$sectionId': 'academics.myClass',
+  '/my-coordination': 'academics.myCoordination',
   '/academics/homework': 'academics.homework',
   '/academics/homework/$homeworkId': 'academics.homework',
   '/academics/homework/import': 'academics.homework',

@@ -58,6 +58,7 @@ describe('EXPECTED_TABS', () => {
       'staff_profiles',
       'teachers',
       'teacher_assignments',
+      'coordinator_assignments',
       'guardians',
       'students',
       'enrollments',
