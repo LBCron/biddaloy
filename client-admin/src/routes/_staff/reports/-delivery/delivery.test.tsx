@@ -276,9 +276,14 @@ describe('SnapshotsPanel: kept copies', () => {
   });
   const serveList = (items: unknown[]) =>
     server.use(
-      http.get('/api/v1/reports/snapshots', () =>
-        HttpResponse.json({ items, limit: 100, offset: 0, has_more: false }),
-      ),
+      http.get('/api/v1/reports/snapshots', ({ request }) => {
+        // The server does the filtering: ask for one report and only its copies come back.
+        const only = new URL(request.url).searchParams.get('definition_id');
+        const rows = (items as { definition_id: string }[]).filter(
+          (c) => !only || c.definition_id === only,
+        );
+        return HttpResponse.json({ items: rows, limit: 100, offset: 0, has_more: false });
+      }),
     );
 
   it('lists the copies of this report with date, what for and a download', async () => {

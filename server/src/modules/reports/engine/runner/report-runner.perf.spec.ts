@@ -12,6 +12,7 @@ import {
 } from '@biddaloy/shared';
 import { createTestModule } from '@test/helpers/module.helper';
 import { ALL_ENTITIES } from '@test/all-entities';
+import { buildReferenceResetSql, buildResetSql } from '@test/reset-order';
 import { seedLoadSchool } from '../../../../scripts/load/seed-load-10k';
 import { AuditService } from '../../../audit/audit.service';
 import { TeacherScopeService } from '../../../classes/teacher-scope.service';
@@ -151,6 +152,12 @@ describe.skipIf(!ENABLED)('report runner load test (3,000 students)', () => {
   }, 120_000);
 
   afterAll(async () => {
+    // Leave the worker database as every spec file starts it (same reset as test/setup.ts), so
+    // the 15,000-student fixture never slows the next file's setup.
+    if (ds?.isInitialized) {
+      await ds.query(buildResetSql());
+      await ds.query(buildReferenceResetSql());
+    }
     await ds?.destroy();
   });
 

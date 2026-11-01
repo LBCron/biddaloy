@@ -401,7 +401,7 @@ The admin, the accountant and the academic coordinator see this card on the **Da
 
 1. Open **Dashboard** and look for the card **Reports you may need**.
 
-   → It lists up to three ready reports you have not opened yet, each with one line about it. The BANBEIS student count comes first when you have not opened it this academic year; then it says **Not opened this academic year yet.**
+   → It lists up to three ready reports you have not opened yet, each with one line about it. The BANBEIS student count comes first when you have not opened it this academic year. It says **Not opened this academic year yet.** only if you opened it in an earlier academic year; someone who has never opened it does not see that line.
 
 2. Press a report's name.
 

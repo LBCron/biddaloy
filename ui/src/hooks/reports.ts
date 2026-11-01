@@ -615,7 +615,7 @@ export type ReportWidget = S['ReportWidgetDto'];
 export type ReportRunStatus = S['ReportRunStatusDto'];
 
 export const reportScheduleKeys = createEntityKeys<{ definitionId: string }>('report-schedules');
-export const reportSnapshotKeys = createEntityKeys<Record<string, never>>('report-snapshots');
+export const reportSnapshotKeys = createEntityKeys<{ definitionId: string }>('report-snapshots');
 export const reportRunStatusKeys = createEntityKeys<Record<string, never>>('report-run-status');
 export const reportWidgetKeys = createEntityKeys<{ definitionId: string }>('report-widget');
 
@@ -678,15 +678,20 @@ export function useDeleteReportSchedule(definitionId: string) {
 export const REPORT_SNAPSHOTS_LIMIT = 100;
 
 /**
- * `GET /reports/snapshots` — every kept copy the caller may download, newest first (not only one
- * report's: the screen filters by `definition_id`). Empty for a role that cannot take files out.
+ * `GET /reports/snapshots` — every kept copy the caller may download, newest first; pass
+ * `definitionId` to ask the server for one report's copies only. Empty for a role that cannot take files out.
  */
-export function useReportSnapshots(options: { enabled?: boolean } = {}) {
+export function useReportSnapshots(options: { enabled?: boolean; definitionId?: string } = {}) {
   return useQuery({
-    queryKey: reportSnapshotKeys.list(),
+    queryKey: reportSnapshotKeys.list(
+      options.definitionId ? { definitionId: options.definitionId } : undefined,
+    ),
     queryFn: async ({ signal }) => {
       const res = await apiClient.get<ReportSnapshotPage>('/reports/snapshots', {
-        params: { limit: REPORT_SNAPSHOTS_LIMIT },
+        params: {
+          limit: REPORT_SNAPSHOTS_LIMIT,
+          ...(options.definitionId ? { definition_id: options.definitionId } : {}),
+        },
         signal,
       });
       return res.data;

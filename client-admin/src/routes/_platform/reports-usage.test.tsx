@@ -88,7 +88,7 @@ describe('/reports-usage [8.15.55]', () => {
     serve(requests);
     render();
     const list = await screen.findByRole('list', {
-      name: 'How often each report is opened, and where people struggle',
+      name: 'How often each report is run (including regular emails and downloads), and where people struggle',
     });
     const names = within(list)
       .getAllByRole('heading', { level: 2 })
@@ -101,7 +101,7 @@ describe('/reports-usage [8.15.55]', () => {
       'Reports schools made themselves',
     ]);
     const first = within(list.querySelector('li')!);
-    expect(latin(first.getByText('Times opened').nextSibling?.textContent)).toBe('42');
+    expect(latin(first.getByText('Times run').nextSibling?.textContent)).toBe('42');
     expect(latin(first.getByText('Found useful').nextSibling?.textContent)).toBe('38%');
     expect(latin(first.getByText('Too slow').nextSibling?.textContent)).toBe('3');
     expect(latin(first.getByText('Nothing to show').nextSibling?.textContent)).toBe('9');

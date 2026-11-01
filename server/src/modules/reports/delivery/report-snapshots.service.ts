@@ -180,6 +180,8 @@ export class ReportSnapshotsService {
         'd.id = v.definition_id AND d.tenant_id = s.tenant_id AND d.deleted_at IS NULL',
       )
       .where('s.tenant_id = :tenantId', { tenantId: viewer.tenantId });
+    if (query.definition_id)
+      qb.andWhere('d.id = :definitionId', { definitionId: query.definition_id });
     if (!SEES_ALL.has(viewer.role)) {
       qb.andWhere('s.created_by = :userId', { userId: viewer.userId });
       qb.andWhere('(cardinality(d.visible_roles) = 0 OR :role = ANY(d.visible_roles))', {

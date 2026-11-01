@@ -31632,6 +31632,8 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
+                /** @description Only the kept copies of this report */
+                definition_id?: string;
             };
             header: {
                 /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */

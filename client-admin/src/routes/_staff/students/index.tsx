@@ -581,7 +581,12 @@ function StudentsListPage() {
               onExportSelected={exportSelectedToCsv}
               {...(canDesignReports ? { onKeepAsReport: openKeepAsReport } : {})}
             />
-            <ListReportHint list="students" filters={state.filters} onKeep={openKeepAsReport} />
+            <ListReportHint
+              list="students"
+              filters={state.filters}
+              ignore={['search', 'from']}
+              onKeep={openKeepAsReport}
+            />
           </div>
         }
         filters={{ fields: filterFields, values: state.filters, onChange: handleFiltersChange }}

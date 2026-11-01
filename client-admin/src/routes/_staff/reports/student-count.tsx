@@ -359,8 +359,10 @@ function CountBody({
   const canReadClasses = useHasPermission(Permission.ACADEMIC_STRUCTURE_READ);
   // The list filters by id; this screen only has the class name.
   const classList = useQuery({
-    ...allClassesQueryOptions(),
-    enabled: yearIsCurrent && canOpenStudents && canReadClasses,
+    ...allClassesQueryOptions(
+      data.academic_year_id !== null ? { academic_year_id: data.academic_year_id } : {},
+    ),
+    enabled: yearIsCurrent && canOpenStudents && canReadClasses && data.academic_year_id !== null,
   });
   const model = React.useMemo(() => buildModel(data.rows), [data.rows]);
 

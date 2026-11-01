@@ -7,7 +7,7 @@
  *  Counts only. No student, guardian or money rows, and no names.
  *
  *  Public exam results                       <- least helpful first; "nobody answered" last
- *   Times opened 42   Schools 6   People 11   Found useful 38%
+ *   Times run 42   Schools 6   People 11   Found useful 38%
  *   Too slow 3   Nothing to show 9   Large downloads 0
  *   What people said:  - "Needs the pass mark"  - "Wrong year"
  * ```

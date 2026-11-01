@@ -73,18 +73,26 @@ export function ListReportHint({
     .sort(([a], [b]) => a.localeCompare(b));
   const signature = JSON.stringify(active);
   const previous = React.useRef<string | null>(null);
+  const previousActive = React.useRef<string | null>(null);
   const [visible, setVisible] = React.useState(false);
 
   React.useEffect(() => {
     // The first render is where the person starts (maybe a bookmarked filter): not a change.
+    const before = previousActive.current;
+    previousActive.current = signature;
     if (previous.current === null) {
       previous.current = signature;
       return;
     }
     if (previous.current === signature) return;
     previous.current = signature;
-    // Clearing a filter is not applying one.
-    if (active.length === 0 || !canDesign) return;
+    // Clearing a filter is not applying one, even when other filters stay on: count only when
+    // some filter is new or changed, that is, not already in the previous set.
+    const was = new Set(
+      (JSON.parse(before ?? '[]') as [string, unknown][]).map((e) => JSON.stringify(e)),
+    );
+    const added = active.some((entry) => !was.has(JSON.stringify(entry)));
+    if (!added || !canDesign) return;
     const count = Number(safeGet('session', countKey) ?? '0') + 1;
     safeSet('session', countKey, String(count));
     if (count >= LIST_HINT_AFTER && safeGet('local', shownKey) === null) {

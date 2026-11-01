@@ -141,7 +141,7 @@ export function ReportCell({ value, column, suppressed, tone, link }: ReportCell
       </ToneMark>
     );
   }
-  if (link && text !== DASH) {
+  if (link && text !== DASH && !/^0(\.0+)?$/.test(String(value))) {
     content = (
       <DrillLink
         href={link.links.href(link.target)}

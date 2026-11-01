@@ -133,11 +133,9 @@ export function SnapshotsPanel({
 }) {
   const { t } = useTranslation('reports');
   const config = useRegionConfig();
-  const snapshots = useReportSnapshots({ enabled });
+  const snapshots = useReportSnapshots({ enabled, definitionId });
   const [busy, setBusy] = React.useState<string | null>(null);
-  const copies: ReportSnapshot[] = (snapshots.data?.items ?? []).filter(
-    (s) => s.definition_id === definitionId,
-  );
+  const copies: ReportSnapshot[] = snapshots.data?.items ?? [];
   if (copies.length === 0) return null;
 
   async function download(copy: ReportSnapshot) {

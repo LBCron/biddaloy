@@ -10,6 +10,7 @@ import {
   IsInt,
   IsObject,
   IsOptional,
+  IsUUID,
   IsString,
   Matches,
   Max,
@@ -181,6 +182,11 @@ export class ListReportSnapshotsQueryDto {
   @Min(0)
   @Max(100_000)
   offset?: number;
+
+  @ApiPropertyOptional({ format: 'uuid', description: 'Only the kept copies of this report' })
+  @IsOptional()
+  @IsUUID()
+  definition_id?: string;
 }
 
 export class ReportSnapshotDto {

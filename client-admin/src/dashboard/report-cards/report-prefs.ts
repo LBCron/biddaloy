@@ -26,10 +26,12 @@ const CHANGE_EVENT = 'biddaloy:report-prefs';
 const memory = new Map<string, string>();
 
 function readRaw(key: string): string | null {
+  // A refused write lives in memory and wins over the older value the store still holds.
+  if (memory.has(key)) return memory.get(key)!;
   try {
     return localStorage.getItem(key);
   } catch {
-    return memory.get(key) ?? null;
+    return null;
   }
 }
 
@@ -40,8 +42,8 @@ function writeRaw(key: string, value: string | null) {
     memory.delete(key);
   } catch {
     // A blocked store: the memory copy carries this visit.
-    if (value === null) memory.delete(key);
-    else memory.set(key, value);
+    // A refused removal is kept as an empty string so it still hides the old stored value.
+    memory.set(key, value ?? '');
   }
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }

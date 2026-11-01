@@ -81,6 +81,15 @@ describe('ListReportHint [8.15.55]', () => {
     expect(hint()).toBeNull();
   });
 
+  it('does not count removing one filter while others stay on', async () => {
+    const { user } = await render({ onKeep: vi.fn() });
+    await user.click(screen.getByText('pick class 1'));
+    await user.click(screen.getByText('pick girls'));
+    // class 2 + girls -> class 2 alone: the gender filter was removed, nothing was applied.
+    await user.click(screen.getByText('pick class 2'));
+    expect(hint()).toBeNull();
+  });
+
   it('shows once for that person on that list, even after a reload', async () => {
     const first = await render({ onKeep: vi.fn() });
     for (const label of ['pick class 1', 'pick class 2', 'pick girls']) {
