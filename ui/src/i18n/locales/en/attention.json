@@ -658,5 +658,12 @@
     "failedMessagesThreshold": "No, it has a starting value",
     "guardianSmsFallback": "No, it is off at the start",
     "guardianSmsDailyCap": "No, it has a starting value"
+  },
+  "notice": {
+    "open": "Open notice",
+    "view": "See",
+    "acknowledge": "Mark as read",
+    "acknowledgeNamed": "Mark as read: {{title}}",
+    "smsPending": "SMS approval pending: {{title}}"
   }
 }
