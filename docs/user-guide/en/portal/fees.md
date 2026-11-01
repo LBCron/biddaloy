@@ -204,6 +204,7 @@ The school's internal details (for example who took a payment) do not appear on 
 
 
 
+- [**Statement**](statement.md) — every bill and payment by date, with what is still owed after each, to print or save.
 - [**Overview**](overview.md) — total outstanding and what is due this month.
 - [**Attendance**](attendance.md) — every day of the month.
 - [**Routine**](routine.md) — classes today and over the coming days.

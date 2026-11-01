@@ -12,8 +12,15 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import type { ReportDefinitionJson } from '@biddaloy/shared';
-import { ReportDefinitionStatus, UserRole } from '@biddaloy/shared';
+import type {
+  ReportDefinitionJson,
+  ReportDrill,
+  ReportFormatRule,
+  ReportLayout,
+  ReportPage,
+  ReportParameter,
+} from '@biddaloy/shared';
+import { ReportDefinitionStatus, ReportSubjectArea, UserRole } from '@biddaloy/shared';
 
 /** The roles a report can be shown to. Guardians and students cannot run defined reports (D13). */
 export const REPORT_VISIBLE_ROLES = [
@@ -112,6 +119,44 @@ export class CatalogueEntryDto {
 export class CatalogueFolderDto {
   @ApiProperty({ nullable: true, type: String }) folder: string | null;
   @ApiProperty({ type: [CatalogueEntryDto] }) reports: CatalogueEntryDto[];
+}
+
+/**
+ * [8.15.50] The look of a published report, for every role that may run it. It carries no dataset
+ * (field keys, filters, sorts), no calculated fields and no draft.
+ */
+export class ReportPresentationDto {
+  @ApiProperty({ description: 'The published version a run uses.' })
+  @IsString()
+  @MaxLength(36)
+  version_id: string;
+
+  @ApiProperty({ type: Number, example: 1 }) schema: 1;
+
+  @ApiProperty({ enum: ReportSubjectArea })
+  @IsEnum(ReportSubjectArea)
+  @MaxLength(40)
+  subjectArea: ReportSubjectArea;
+
+  @ApiProperty({ type: 'array', items: { type: 'object', additionalProperties: true } })
+  @IsArray()
+  parameters: ReportParameter[];
+
+  @ApiProperty({ type: 'object', additionalProperties: true })
+  @IsObject()
+  layout: ReportLayout;
+
+  @ApiProperty({ type: 'object', additionalProperties: true })
+  @IsObject()
+  page: ReportPage;
+
+  @ApiProperty({ type: 'array', items: { type: 'object', additionalProperties: true } })
+  @IsArray()
+  format: ReportFormatRule[];
+
+  @ApiProperty({ type: 'array', items: { type: 'object', additionalProperties: true } })
+  @IsArray()
+  drill: ReportDrill[];
 }
 
 /** Query for the definitions list. */

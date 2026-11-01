@@ -113,7 +113,7 @@ export const feesArea: SubjectAreaDef = {
       's.full_name',
       's',
       { en: 'Student name', bn: 'শিক্ষার্থীর নাম' },
-      { sensitivity: S.PERSONAL, groupable: false },
+      { sensitivity: S.PERSONAL, groupable: true },
     ),
     field(
       'registration_number',
@@ -121,7 +121,7 @@ export const feesArea: SubjectAreaDef = {
       's.registration_number',
       's',
       { en: 'Registration no.', bn: 'রেজিস্ট্রেশন নম্বর' },
-      { sensitivity: S.PERSONAL, groupable: false },
+      { sensitivity: S.PERSONAL, groupable: true },
     ),
     field('class', T.TEXT, 'c.name', 'c', { en: 'Class', bn: 'শ্রেণি' }),
     field('section', T.TEXT, 'cs.section_name', 'cs', { en: 'Section', bn: 'শাখা' }),
@@ -131,7 +131,7 @@ export const feesArea: SubjectAreaDef = {
       'g.full_name',
       'g',
       { en: 'Guardian name', bn: 'অভিভাবকের নাম' },
-      { sensitivity: S.CONTACT, groupable: false },
+      { sensitivity: S.CONTACT, groupable: true },
     ),
     field(
       'guardian_phone',
@@ -139,7 +139,7 @@ export const feesArea: SubjectAreaDef = {
       'g.phone',
       'g',
       { en: 'Guardian phone', bn: 'অভিভাবকের ফোন' },
-      { sensitivity: S.CONTACT, groupable: false, sortable: false },
+      { sensitivity: S.CONTACT, groupable: true, sortable: false },
     ),
   ],
   measures: [

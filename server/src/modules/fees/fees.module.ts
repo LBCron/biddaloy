@@ -34,6 +34,8 @@ import { FeeGenerationsService } from './fee-generations.service';
 import { FeeGenerationBatchService } from './fee-generation-batch.service';
 import { RecurringSchedulesService } from './recurring-schedules.service';
 import { FeeController } from './fees.controller';
+import { StudentStatementController } from './statement/student-statement.controller';
+import { StudentStatementService } from './statement/student-statement.service';
 import { FeeGenerationsController } from './fee-generations.controller';
 import { RecurringSchedulesController } from './recurring-schedules.controller';
 import { WalletService } from './wallet.service';
@@ -59,6 +61,7 @@ import { FinesService } from './fines/fines.service';
 import { FinesController } from './fines/fines.controller';
 import { DashboardModule } from '../dashboard/dashboard.module';
 import { FeesDashboardController } from './fees-dashboard.controller';
+import { ReportExportModule } from '../reports/export/report-export.module';
 
 @Module({
   imports: [
@@ -93,6 +96,9 @@ import { FeesDashboardController } from './fees-dashboard.controller';
     DashboardModule,
     StudentModule,
     InvoicesModule,
+    // [8.15.35] StudentStatementService writes the report run log. The module is @Global in the
+    // app, but a spec that boots FeesModule alone does not load it, so import it here.
+    ReportExportModule,
     // [CI failure, PR #801] FeeModule -> SchoolsModule -> AccountAccessModule
     // -> CommunicationsModule -> FeeModule is a cycle — CommunicationsModule
     // already forwardRef()s its own edge to SchoolsModule for exactly this
@@ -104,6 +110,7 @@ import { FeesDashboardController } from './fees-dashboard.controller';
     forwardRef(() => SchoolsModule),
   ],
   providers: [
+    StudentStatementService,
     FeeStructureService,
     PaymentService,
     PaymentsQueryService,
@@ -156,6 +163,7 @@ import { FeesDashboardController } from './fees-dashboard.controller';
   // single segment, including "cart"/"checkout") if FeeController's routes
   // registered first.
   controllers: [
+    StudentStatementController,
     CheckoutController,
     FeeController,
     FeeGenerationsController,

@@ -94,7 +94,7 @@ describe('route coverage', () => {
   });
 
   it('covers every nav and portal item, with the spec examples', () => {
-    expect(features.filter((f) => f.kind === 'portal')).toHaveLength(14);
+    expect(features.filter((f) => f.kind === 'portal')).toHaveLength(15);
     expect(features.filter((f) => f.kind === 'nav' || f.id === 'dashboard').length).toBeGreaterThan(
       50,
     );

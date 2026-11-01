@@ -397,7 +397,8 @@
     "tooLargeClass": "Cannot download more than {{n}} people at once yet. Narrow it by class or section.",
     "tooLargePeople": "Cannot download more than {{n}} people at once yet. Narrow the filters.",
     "tooLargeItems": "Cannot download more than {{n}} items at once yet. Narrow the filters.",
-    "failed": "The file could not be downloaded. Try again."
+    "failed": "The file could not be downloaded. Try again.",
+    "keepAsReport": "Keep this as a report"
   },
   "noMatches": {
     "title": "No matches",
@@ -417,5 +418,71 @@
     "tooManyRows": "This file has too many rows. Split the file into smaller files.",
     "noRows": "This file has no rows in it. Add at least one row.",
     "tooLarge": "This file is too large. Split the file into smaller files."
+  },
+  "saveAsReport": {
+    "title": "Keep this as a report",
+    "description": "The choices and columns on this screen become a report. You will find it under Reports.",
+    "nameLabel": "Report name",
+    "nameRequired": "Give the report a name.",
+    "whoLabel": "Who can see it",
+    "whoHint": "Admins can always see it.",
+    "asksHeading": "Ask when running",
+    "asksSwitch": "{{name}}: ask when running",
+    "asksOn": "Starts as {{value}}. Whoever runs it can change it.",
+    "asksOff": "It stays {{value}}.",
+    "unmappedFilters_one": "This filter will not go into the report: {{list}}",
+    "unmappedFilters_other": "These filters will not go into the report: {{list}}",
+    "unmappedColumns_one": "This column will not go into the report: {{list}}",
+    "unmappedColumns_other": "These columns will not go into the report: {{list}}",
+    "save": "Keep as report",
+    "saving": "Keeping…",
+    "saved": "Kept as a report",
+    "open": "Open",
+    "error": "The report could not be kept. Nothing was saved. Try again.",
+    "publishError": "The report was saved but could not be switched on. Try again.",
+    "emptyList": "Nothing to keep yet.",
+    "defaultName": "{{scope}} — {{area}}",
+    "area": {
+      "students": "Students",
+      "dues": "Dues",
+      "duesLate": "Overdue dues",
+      "payments": "Payments"
+    },
+    "prompt": {
+      "academicYear": "Academic year",
+      "dateRange": "Dates"
+    },
+    "parts": {
+      "search": "What you typed in search",
+      "class": "Class",
+      "section": "Section",
+      "shift": "Shift",
+      "version": "Version",
+      "status": "Status",
+      "gender": "Gender",
+      "religion": "Religion",
+      "dateOfBirth": "Date of birth",
+      "month": "Month",
+      "year": "Year",
+      "feeType": "Fee type",
+      "method": "Paid by",
+      "address": "Address",
+      "preferredCommunication": "Preferred contact",
+      "wallet": "Credit balance",
+      "lastReminder": "Last reminder",
+      "student": "One row for each student",
+      "date": "Date",
+      "reference": "Reference",
+      "reversedHidden": "Hiding payments that were later reversed"
+    }
+  },
+  "reportPrint": {
+    "title": "Report",
+    "printedOn": "Printed: {{date}}",
+    "pageOf": "Page {{page}} of {{total}}",
+    "truncated": "This report is very long. Only the first {{n}} rows are printed.",
+    "noAccess": "You cannot print this report.",
+    "noAccessHint": "Ask your school admin for access to reports.",
+    "missingHint": "Open the report and press Print there."
   }
 }

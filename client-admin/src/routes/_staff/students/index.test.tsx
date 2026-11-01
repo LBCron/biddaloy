@@ -696,4 +696,82 @@ describe('/students', () => {
     // actually renders from, which settles last and must exclude it.
     await waitFor(() => expect(requestedShift.mock.calls.at(-1)?.[0] ?? null).toBeNull());
   });
+
+  // [8.15.33] Religion is free text on the student record, so the filter is a text box (not a
+  // select of guessed options); the server matches it exactly, in any letter case.
+  it('a religion filter is a text box and reaches the request and the URL', async () => {
+    let lastReligion: string | null = null;
+    server.use(
+      http.get('/api/v1/students', ({ request }) => {
+        lastReligion = new URL(request.url).searchParams.get('religion');
+        return HttpResponse.json({ data: [], total: 0, page: 1, limit: 25, totalPages: 1 });
+      }),
+    );
+
+    const { router } = renderWithRouter(routeTree, {
+      initialEntries: ['/students'],
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+      locale: 'en',
+    });
+
+    const user = userEvent.setup();
+    await user.type(await screen.findByRole('textbox', { name: 'Religion' }), 'Hinduism');
+
+    await waitFor(() => expect(lastReligion).toBe('Hinduism'));
+    expect(router.state.location.search).toMatchObject({ religion: 'Hinduism' });
+  });
+
+  it('reads the religion filter from the URL, in Bangla too', async () => {
+    renderWithRouter(routeTree, {
+      initialEntries: ['/students?religion=%E0%A6%87%E0%A6%B8%E0%A6%B2%E0%A6%BE%E0%A6%AE'],
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+      locale: 'bn',
+    });
+
+    const box = await screen.findByRole<HTMLInputElement>('textbox', { name: 'ধর্ম' });
+    expect(box.value).toBe('ইসলাম');
+  });
+
+  describe('keep this as a report [8.15.52]', () => {
+    it('offers it to an admin in the download menu, and opens the dialog named for the class', async () => {
+      const klass = classFactory({ id: 'class-8', name: 'Class 8' });
+      server.use(
+        http.get('/api/v1/classes', () =>
+          HttpResponse.json({ data: [klass], total: 1, page: 1, limit: 100, totalPages: 1 }),
+        ),
+        http.get('/api/v1/classes/:classId/sections', () => HttpResponse.json([])),
+      );
+      renderWithRouter(routeTree, {
+        initialEntries: ['/students?class_id=class-8'],
+        tenantId: 'tenant-1',
+        role: 'ADMIN',
+        locale: 'en',
+      });
+
+      const user = userEvent.setup();
+      await within(await screen.findByRole('combobox', { name: 'Class' })).findByText('Class 8');
+      await user.click(screen.getByRole('button', { name: 'More ways to download' }));
+      await user.click(await screen.findByRole('menuitem', { name: 'Keep this as a report' }));
+
+      expect(await screen.findByRole('dialog', { name: 'Keep this as a report' })).toBeTruthy();
+      const name = await screen.findByRole<HTMLInputElement>('textbox', { name: /Report name/ });
+      expect(name.value).toBe('Class 8 — Students');
+    });
+
+    it('is not offered without the design permission', async () => {
+      renderWithRouter(routeTree, {
+        initialEntries: ['/students'],
+        tenantId: 'tenant-1',
+        role: 'ACCOUNTANT',
+        locale: 'en',
+      });
+
+      const user = userEvent.setup();
+      await user.click(await screen.findByRole('button', { name: 'More ways to download' }));
+      await screen.findByRole('menuitem', { name: 'For other software (CSV)' });
+      expect(screen.queryByRole('menuitem', { name: 'Keep this as a report' })).toBeNull();
+    });
+  });
 });

@@ -19,6 +19,7 @@ export const COMPILE_ERROR_CODES = [
   'UNKNOWN_PARAM',
   'MISSING_PARAM',
   'NOTHING_TO_SHOW',
+  'BAD_CALCULATION',
 ] as const;
 
 export type CompileErrorCode = (typeof COMPILE_ERROR_CODES)[number];
@@ -36,6 +37,7 @@ const MESSAGES: Record<CompileErrorCode, string> = {
   UNKNOWN_PARAM: 'This report asks for an answer that it does not define.',
   MISSING_PARAM: 'Please answer every required question before running this report.',
   NOTHING_TO_SHOW: 'There is nothing to show: pick at least one field to show or add up.',
+  BAD_CALCULATION: 'A calculation in this report cannot be used.',
 };
 
 export class ReportCompileError extends UnprocessableEntityException {

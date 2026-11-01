@@ -27,6 +27,7 @@ import {
   ListReportDefinitionsQueryDto,
   ReportDefinitionDetailDto,
   ReportDefinitionDto,
+  ReportPresentationDto,
   UpdateReportDefinitionDto,
 } from './definitions/dto/report-definition.dto';
 import { ReportDefinitionsService } from './definitions/report-definitions.service';
@@ -63,6 +64,21 @@ export class ReportDefinitionsController {
   @ApiOkResponse({ type: [CatalogueFolderDto] })
   catalogue(@CurrentTenant() tenant: Tenant, @CurrentUser() user: JwtPayload) {
     return this.service.catalogue(viewer(tenant, user));
+  }
+
+  @Get('catalogue/:id/definition')
+  @RequirePermissions(Permission.REPORTS_VIEW)
+  @ApiOperation({
+    summary:
+      'How one report looks (questions, layout, page, colours, links), from its published version. Same visibility as the catalogue; no dataset.',
+  })
+  @ApiOkResponse({ type: ReportPresentationDto })
+  presentation(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentTenant() tenant: Tenant,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.presentation(viewer(tenant, user), id);
   }
 
   @Get('definitions')

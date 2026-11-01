@@ -631,4 +631,76 @@ describe('/fees/dues', () => {
 
     expect(await screen.findByText('5th March, 2026')).toBeTruthy();
   });
+
+  describe('keep this as a report [8.15.52]', () => {
+    it('offers it to an admin in the download menu, named for the class', async () => {
+      const klass = classFactory({ id: 'class-9', name: 'Class 9' });
+      server.use(
+        http.get('/api/v1/classes', () =>
+          HttpResponse.json({ data: [klass], total: 1, page: 1, limit: 100, totalPages: 1 }),
+        ),
+        http.get('/api/v1/fees/dues', () =>
+          HttpResponse.json({ data: [], total: 0, page: 1, limit: 10, totalPages: 0 }),
+        ),
+      );
+      renderEn({
+        initialEntries: ['/fees/dues?class_id=class-9'],
+        tenantId: 'tenant-1',
+        role: 'ADMIN',
+        locale: 'en',
+      });
+
+      const user = userEvent.setup();
+      await within(await screen.findByRole('combobox', { name: 'Class' })).findByText('Class 9');
+      await user.click(screen.getByRole('button', { name: 'More ways to download' }));
+      await user.click(await screen.findByRole('menuitem', { name: 'Keep this as a report' }));
+
+      expect(await screen.findByRole('dialog', { name: 'Keep this as a report' })).toBeTruthy();
+      const name = await screen.findByRole<HTMLInputElement>('textbox', { name: /Report name/ });
+      expect(name.value).toBe('Class 9 — Dues');
+    });
+
+    it('stays reachable in the overdue-only view, which has no download of everything', async () => {
+      server.use(
+        http.get('/api/v1/fees/dues', () =>
+          HttpResponse.json({ data: [], total: 0, page: 1, limit: 10, totalPages: 0 }),
+        ),
+        http.get('/api/v1/fees/dues/flagged', () =>
+          HttpResponse.json({ data: [], total: 0, page: 1, limit: 10, totalPages: 0 }),
+        ),
+      );
+      renderEn({
+        initialEntries: ['/fees/dues'],
+        tenantId: 'tenant-1',
+        role: 'ADMIN',
+        locale: 'en',
+      });
+
+      const user = userEvent.setup();
+      await user.click(await screen.findByRole('checkbox', { name: 'Overdue only' }));
+      expect(screen.queryByRole('button', { name: /Download to Excel/ })).toBeNull();
+      await user.click(await screen.findByRole('button', { name: 'Keep this as a report' }));
+      const name = await screen.findByRole<HTMLInputElement>('textbox', { name: /Report name/ });
+      expect(name.value).toBe('Overdue dues');
+    });
+
+    it('is not offered to an accountant, who cannot design reports', async () => {
+      server.use(
+        http.get('/api/v1/fees/dues', () =>
+          HttpResponse.json({ data: [], total: 0, page: 1, limit: 10, totalPages: 0 }),
+        ),
+      );
+      renderEn({
+        initialEntries: ['/fees/dues'],
+        tenantId: 'tenant-1',
+        role: 'ACCOUNTANT',
+        locale: 'en',
+      });
+
+      const user = userEvent.setup();
+      await user.click(await screen.findByRole('button', { name: 'More ways to download' }));
+      await screen.findByRole('menuitem', { name: 'For other software (CSV)' });
+      expect(screen.queryByRole('menuitem', { name: 'Keep this as a report' })).toBeNull();
+    });
+  });
 });

@@ -60,6 +60,10 @@ export interface FieldDef {
   sensitivity: FieldSensitivity;
   /** ENUM fields: the allowed values, so a filter can be checked. */
   enumValues?: readonly string[];
+  /** A calculated field ([8.15.36]); its `sql` was compiled from an expression. */
+  calculated?: boolean;
+  /** Every entity alias the SQL reads, when more than `entity` (calculated fields only). */
+  entities?: readonly string[];
 }
 
 export interface MeasureDef {
@@ -73,6 +77,8 @@ export interface MeasureDef {
   entity: string;
   /** What the number reveals; a money total is FINANCIAL, a head count PUBLIC. */
   sensitivity: FieldSensitivity;
+  /** Every entity alias the SQL reads, when more than `entity` (a measure over a calculated field). */
+  entities?: readonly string[];
 }
 
 /** How a TEACHER's view of an area is narrowed to the sections they teach (D5). */

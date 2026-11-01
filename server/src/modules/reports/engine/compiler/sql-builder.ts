@@ -15,6 +15,10 @@ export interface BuildInput {
   scope: readonly ScopeClause[];
   /** The caller's hard cap (D20). The definition's own `limit` can only lower it. */
   maxRows: number;
+  /** Sort keys whose field is not shown: ordered by the field's own SQL (only when rows are not grouped). */
+  unselectedSorts?: ReadonlySet<string>;
+  /** Bound values of calculated-field literals (`c0`, `c1`, ...). */
+  extraParams?: Record<string, unknown>;
 }
 
 const DATE_BUCKETS = { day: 'day', week: 'week', month: 'month', year: 'year' } as const;
@@ -126,7 +130,7 @@ export function buildQuery(dataSource: DataSource, input: BuildInput): SelectQue
   }
 
   const wheres = [...tenantClause(area.root), ...aliveClause(area.root), ...(area.baseWhere ?? [])];
-  const params: Record<string, unknown> = { tenantId };
+  const params: Record<string, unknown> = { ...input.extraParams, tenantId };
   let counter = 0;
   const next = () => `p${counter++}`;
   for (const filter of validated.filters) wheres.push(filterSql(filter, next, params));
@@ -138,6 +142,11 @@ export function buildQuery(dataSource: DataSource, input: BuildInput): SelectQue
   qb.setParameters(params);
 
   for (const sort of validated.sorts) {
+    if (input.unselectedSorts?.has(sort.key) && sort.field) {
+      // The registry's own SQL for the field, never text from the definition.
+      qb.addOrderBy(sort.field.sql, sort.dir === 'asc' ? 'ASC' : 'DESC');
+      continue;
+    }
     if (!visible.has(sort.key)) continue;
     // A selected column is sorted by its output name, which is a registry key (letters, digits, underscore).
     qb.addOrderBy(`"${sort.key}"`, sort.dir === 'asc' ? 'ASC' : 'DESC');

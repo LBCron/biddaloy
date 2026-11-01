@@ -20,18 +20,18 @@ describe('portal layout shell', () => {
     });
   }
 
-  it('lists 13 sidebar links, each with a different icon, including Surveys', async () => {
+  it('lists 14 sidebar links, each with a different icon, including Surveys', async () => {
     render('/portal/fees');
     const nav = (await screen.findAllByRole('navigation', { name: /main|menu|navigation/i }))[0]!;
     const links = within(nav).getAllByRole('link');
-    expect(links).toHaveLength(13);
+    expect(links).toHaveLength(14);
     expect(links.some((l) => l.getAttribute('href') === '/portal/surveys')).toBe(true);
     expect(links.some((l) => l.getAttribute('href') === '/portal/applications')).toBe(true);
     const icons = links.map((l) =>
       Array.from(l.querySelector('svg')?.classList ?? []).find((c) => c.startsWith('lucide-')),
     );
     expect(icons.every(Boolean)).toBe(true);
-    expect(new Set(icons).size).toBe(13);
+    expect(new Set(icons).size).toBe(14);
   });
 
   it('marks exactly one sidebar link current on /portal/fees', async () => {

@@ -139,4 +139,37 @@ describe('/payments', () => {
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/payments/record'));
   });
+
+  describe('keep this as a report [8.15.52]', () => {
+    it('offers it to an admin, and carries the date range into the question it asks', async () => {
+      mockList();
+      const user = userEvent.setup();
+      const { localeReady } = renderWithRouter(routeTree, {
+        initialEntries: ['/payments?date_from=2026-10-01&date_to=2026-10-31'],
+        tenantId: 'tenant-1',
+        role: 'ADMIN',
+        locale: 'en',
+      });
+      await localeReady;
+      await screen.findByText('Rahim Uddin');
+
+      await user.click(await screen.findByRole('button', { name: 'More ways to download' }));
+      await user.click(await screen.findByRole('menuitem', { name: 'Keep this as a report' }));
+
+      expect(await screen.findByRole('dialog', { name: 'Keep this as a report' })).toBeTruthy();
+      expect(await screen.findByRole('switch', { name: /Dates: ask when running/ })).toBeTruthy();
+    });
+
+    it('is not offered to an accountant, who cannot design reports', async () => {
+      mockList();
+      const user = userEvent.setup();
+      const { localeReady } = render(['/payments']);
+      await localeReady;
+      await screen.findByText('Rahim Uddin');
+
+      await user.click(await screen.findByRole('button', { name: 'More ways to download' }));
+      await screen.findByRole('menuitem', { name: 'For other software (CSV)' });
+      expect(screen.queryByRole('menuitem', { name: 'Keep this as a report' })).toBeNull();
+    });
+  });
 });

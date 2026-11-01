@@ -398,6 +398,88 @@ describe('ReportCompiler', () => {
     });
   });
 
+  describe('calculated fields (8.15.36)', () => {
+    const calc = (key: string, expression: string) => ({
+      key,
+      label_en: key,
+      label_bn: key,
+      expression,
+    });
+    const withCalc = (
+      calculated: ReportDefinitionJson['calculated'],
+      dataset: Partial<ReportDefinitionJson['dataset']>,
+    ) => definition(dataset, { calculated });
+
+    it('a calculated field can be shown, with its literals bound and its reads joined', () => {
+      const { sql, params } = sqlOf(
+        withCalc([calc('class_roll', "concat([class], '-', [roll])")], {
+          dimensions: [{ field: 'class_roll' }],
+        }),
+      );
+      expect(sql).toContain('CONCAT(');
+      expect(sql).toContain('LEFT JOIN "classes" "c"'); // [class] lives on a joined table
+      expect(sql).not.toContain("'-'");
+      expect(params).toContain('-');
+    });
+
+    it('can be added up, and filtered on', () => {
+      const { sql, params } = sqlOf(
+        withCalc([calc('bonus', '[roll] + 10')], {
+          measures: [{ field: 'bonus', fn: AggregateFn.SUM }],
+          filters: [{ field: 'bonus', op: FilterOp.GT, value: 100 }],
+        }),
+      );
+      expect(sql).toMatch(/SUM\(\(\(s\.roll_number\) \+ \(\$\d+\)::numeric\)\) AS "bonus"/);
+      expect(params).toEqual(expect.arrayContaining([10, 100]));
+    });
+
+    it('is as sensitive as what it reads: a role that cannot see the field cannot see the calculation', async () => {
+      class HideSensitive extends RoleScopePolicy {
+        override fieldAllowed(_c: ReportRunContext, def: { sensitivity: string }) {
+          return def.sensitivity !== 'CONTACT';
+        }
+      }
+      const compiler = new ReportCompiler(
+        dataSource,
+        new ReportRegistry([TEST_STUDENTS_AREA]),
+        new HideSensitive(noTeacherScope),
+      );
+      const compiled = compiler.compileWithScope(
+        withCalc([calc('phone_note', "concat([guardian_phone], 'x')")], {
+          dimensions: [{ field: 'name' }, { field: 'phone_note' }],
+        }),
+        {},
+        ctx,
+        500,
+        [],
+      );
+      expect(compiled.masked).toEqual(['phone_note']);
+    });
+
+    it('a calculation that does not work is refused with a fixed message and its place', () => {
+      for (const expression of ['[nothing] + 1', "[roll] + 'a'", 'lower([name])', '1 +']) {
+        let error: unknown;
+        try {
+          sqlOf(withCalc([calc('bad', expression)], { dimensions: [{ field: 'name' }] }));
+        } catch (e) {
+          error = e;
+        }
+        expect(error).toBeInstanceOf(ReportCompileError);
+        expect((error as ReportCompileError).code).toBe('BAD_CALCULATION');
+        expect((error as ReportCompileError).path).toBe('calculated[0]');
+        expect((error as ReportCompileError).message).not.toContain(expression);
+      }
+    });
+
+    it('cannot reuse the key of an existing field or be written in capitals', () => {
+      for (const key of ['name', 'students', 'Bad Key']) {
+        expect(() =>
+          sqlOf(withCalc([calc(key, '1 + 1')], { dimensions: [{ field: 'name' }] })),
+        ).toThrowError(expect.objectContaining({ code: 'BAD_CALCULATION' }));
+      }
+    });
+  });
+
   describe('row limit', () => {
     it('is the caller cap when the definition asks for more', () => {
       const { sql, params } = sqlOf(
@@ -443,7 +525,7 @@ describe('ReportCompiler', () => {
           }),
           {},
           500,
-          makeCompiler(new HideSensitive()),
+          makeCompiler(new HideSensitive(noTeacherScope)),
         ),
       ).toThrowError(expect.objectContaining({ code: 'NOT_FILTERABLE' }));
     });
@@ -467,7 +549,7 @@ describe('ReportCompiler', () => {
         ),
         {},
         500,
-        makeCompiler(new HideFinancial()),
+        makeCompiler(new HideFinancial(noTeacherScope)),
       );
       expect(compiled.masked).toEqual(['billed']);
     });

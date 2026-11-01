@@ -211,6 +211,46 @@ describe('report areas: students, staff, public exams (integration)', () => {
     await expect(run(def, UserRole.TEACHER)).rejects.toThrow('You cannot run this report.');
   });
 
+  it('calculated fields run on the database: text built from fields, a total, a percentage and a day count', async () => {
+    const calculated = (key: string, expression: string) => ({
+      key,
+      label_en: key,
+      label_bn: key,
+      expression,
+    });
+    const def = definition(ReportSubjectArea.STUDENTS, {
+      dimensions: [{ field: 'class' }, { field: 'label' }],
+      sort: [{ field: 'label', dir: 'asc' }],
+      filters: [{ field: 'class', op: FilterOp.EQ, value: 'Seven' }],
+    });
+    def.calculated = [
+      calculated('label', "concat([class], ' / ', [gender])"),
+      calculated('same_day', 'days_between([birth_date], [birth_date])'),
+      calculated('girls_pct', "pct(if([gender] = 'FEMALE', 1, 0), 1)"),
+    ];
+    const { rows } = await run(def, UserRole.ADMIN);
+    // Seven has 4 girls and 1 transferred boy; only the active enrolment-status filter is absent here.
+    expect(rows.map((r) => r.label)).toEqual([
+      'Seven / FEMALE',
+      'Seven / FEMALE',
+      'Seven / FEMALE',
+      'Seven / FEMALE',
+      'Seven / MALE',
+    ]);
+
+    const total = definition(ReportSubjectArea.STUDENTS, {
+      measures: [
+        { field: 'girls_pct', fn: 'AVG' as never },
+        { field: 'same_day', fn: 'MAX' as never },
+      ],
+      filters: [{ field: 'class', op: FilterOp.EQ, value: 'Seven' }],
+    });
+    total.calculated = def.calculated;
+    const [row] = (await run(total, UserRole.ADMIN)).rows;
+    expect(Number(row.girls_pct)).toBeCloseTo(80, 5); // 4 of 5 are girls
+    expect(row.same_day).toBeNull(); // no birth dates were recorded: a day count of nothing is nothing
+  });
+
   it('every field and every measure of every area runs against the database', async () => {
     const registry = new ReportRegistry();
     for (const area of ALL_AREAS) {

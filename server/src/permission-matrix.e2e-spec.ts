@@ -323,6 +323,13 @@ export const IDENTITY_SCOPED: IdentityScopedEntry[] = [
       '[67.1.09] platform route (SUPER_ADMIN reads engine health, no tenant data), same rationale as GET /platform/backups/health.',
   },
   {
+    controller: 'PlatformReportUsageController',
+    method: 'GET',
+    path: '/platform/reports/usage',
+    reason:
+      '[8.15.45] platform route (SUPER_ADMIN reads report usage counts, aggregates only, no student, guardian or money rows), same rationale as GET /platform/attention/health.',
+  },
+  {
     controller: 'PlatformAlertsController',
     method: 'GET',
     path: '/platform/alerts',

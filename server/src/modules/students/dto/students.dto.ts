@@ -259,6 +259,12 @@ export class QueryStudentDto {
   @MaxLength(20)
   gender?: string;
 
+  /** [8.15.33] Exact match, any letter case (the field is free text on the student record). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  religion?: string;
+
   @IsOptional()
   @IsDateString()
   date_of_birth_from?: string;
@@ -337,6 +343,12 @@ export class QueryStudentIdsDto {
   @IsString()
   @MaxLength(20)
   gender?: string;
+
+  /** [8.15.33] Exact match, any letter case (the field is free text on the student record). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  religion?: string;
 
   @IsOptional()
   @IsDateString()

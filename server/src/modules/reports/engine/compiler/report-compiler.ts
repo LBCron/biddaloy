@@ -1,10 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, type SelectQueryBuilder } from 'typeorm';
-import { UserRole } from '@biddaloy/shared';
-import type { AggregateFn, ReportDefinitionJson, ReportFieldType } from '@biddaloy/shared';
-import { ReportRegistry } from '../registry/registry';
 import {
+  type AggregateFn,
+  type ReportDefinitionJson,
+  ReportFieldType,
+  UserRole,
+} from '@biddaloy/shared';
+import { ExpressionError } from '../expressions/expression.parser';
+import { compileExpression } from '../expressions/expression.compiler';
+import type { ValueType } from '../expressions/expression.functions';
+import { ReportRegistry } from '../registry/registry';
+import type { FieldDef, SubjectAreaDef } from '../registry/registry.types';
+import {
+  COMMITTEE_EXTRA_FIELDS,
   type ReportRunContext,
   RoleScopePolicy,
   type ScopeClause,
@@ -34,6 +43,88 @@ export interface CompiledReport {
   aliases: string[];
 }
 
+const TO_VALUE_TYPE: Record<ReportFieldType, ValueType> = {
+  [ReportFieldType.TEXT]: 'TEXT',
+  [ReportFieldType.NUMBER]: 'NUMBER',
+  [ReportFieldType.MONEY]: 'MONEY',
+  [ReportFieldType.PERCENT]: 'PERCENT',
+  [ReportFieldType.DATE]: 'DATE',
+  [ReportFieldType.ENUM]: 'TEXT',
+  [ReportFieldType.BOOLEAN]: 'BOOLEAN',
+};
+const FROM_VALUE_TYPE: Record<ValueType, ReportFieldType> = {
+  TEXT: ReportFieldType.TEXT,
+  NUMBER: ReportFieldType.NUMBER,
+  MONEY: ReportFieldType.MONEY,
+  PERCENT: ReportFieldType.PERCENT,
+  DATE: ReportFieldType.DATE,
+  BOOLEAN: ReportFieldType.BOOLEAN,
+  NULL: ReportFieldType.TEXT,
+};
+
+/**
+ * [8.15.36] The area plus the report's calculated fields, each compiled from its expression into an
+ * ordinary field (so it can be shown, split by, filtered and sorted) with the sensitivity of the most
+ * sensitive field it reads. Literals become bound parameters, returned in `params`.
+ */
+export function withCalculated(
+  area: SubjectAreaDef,
+  calculated: ReportDefinitionJson['calculated'],
+): { area: SubjectAreaDef; params: Record<string, unknown> } {
+  if (!calculated || calculated.length === 0) return { area, params: {} };
+  const params: Record<string, unknown> = {};
+  let counter = 0;
+  const taken = new Set([...area.fields.map((f) => f.key), ...area.measures.map((m) => m.key)]);
+  const added: FieldDef[] = [];
+  calculated.forEach((calc, i) => {
+    const path = `calculated[${i}]`;
+    if (
+      !/^[a-z][a-z0-9_]*$/.test(calc.key) ||
+      taken.has(calc.key) ||
+      COMMITTEE_EXTRA_FIELDS.has(calc.key)
+    ) {
+      throw new ReportCompileError('BAD_CALCULATION', path);
+    }
+    try {
+      const compiled = compileExpression(
+        calc.expression,
+        (key) => {
+          const f = area.fields.find((x) => x.key === key);
+          return f
+            ? {
+                sql: f.sql,
+                type: TO_VALUE_TYPE[f.type],
+                sensitivity: f.sensitivity,
+                entity: f.entity,
+              }
+            : undefined;
+        },
+        () => `c${counter++}`,
+        params,
+      );
+      taken.add(calc.key);
+      added.push({
+        key: calc.key,
+        labelEn: calc.label_en,
+        labelBn: calc.label_bn,
+        type: FROM_VALUE_TYPE[compiled.type],
+        sql: compiled.sql,
+        entity: compiled.entities[0] ?? area.root.alias,
+        entities: compiled.entities,
+        filterable: true,
+        groupable: true,
+        sortable: true,
+        sensitivity: compiled.sensitivity,
+        calculated: true,
+      });
+    } catch (error) {
+      if (error instanceof ExpressionError) throw new ReportCompileError('BAD_CALCULATION', path);
+      throw error;
+    }
+  });
+  return { area: { ...area, fields: [...area.fields, ...added] }, params };
+}
+
 /**
  * [8.15.15] The only author of report SQL (D4). Definition + the runner's answers +
  * who is running it in; a parameterised, school-scoped query builder out.
@@ -55,8 +146,8 @@ export class ReportCompiler {
   ): Promise<CompiledReport> {
     const area = this.registry.area(definition.subjectArea);
     // Validate first so a malformed definition is reported as such before any access check.
-    validateDefinition(definition, area, values);
     if (!area) throw new ReportCompileError('UNKNOWN_AREA', 'subjectArea');
+    validateDefinition(definition, withCalculated(area, definition.calculated).area, values);
     const scope = await this.policy.scopeFor(ctx, area);
     return this.compileWithScope(definition, values, ctx, maxRows, scope);
   }
@@ -69,9 +160,10 @@ export class ReportCompiler {
     maxRows: number,
     scope: readonly ScopeClause[],
   ): CompiledReport {
-    const area = this.registry.area(definition.subjectArea);
+    const registered = this.registry.area(definition.subjectArea);
+    if (!registered) throw new ReportCompileError('UNKNOWN_AREA', 'subjectArea');
+    const { area, params: calculatedParams } = withCalculated(registered, definition.calculated);
     const validated = validateDefinition(definition, area, values);
-    if (!area) throw new ReportCompileError('UNKNOWN_AREA', 'subjectArea');
 
     // D5: the runner's permissions decide what is shown, never the author's.
     const masked: string[] = [];
@@ -97,13 +189,29 @@ export class ReportCompiler {
     }
 
     const referenced = new Set<string>();
-    for (const { field } of validated.dimensions)
-      if (visible.has(field.key)) referenced.add(field.entity);
+    const addEntities = (def: { entity: string; entities?: readonly string[] }) => {
+      for (const alias of def.entities && def.entities.length > 0 ? def.entities : [def.entity]) {
+        referenced.add(alias);
+      }
+    };
+    for (const { field } of validated.dimensions) if (visible.has(field.key)) addEntities(field);
     for (const { measure, alias } of validated.measures)
-      if (visible.has(alias)) referenced.add(measure.entity);
-    for (const filter of validated.filters) referenced.add(filter.field.entity);
-    for (const sort of validated.sorts)
-      if (sort.field && visible.has(sort.key)) referenced.add(sort.field.entity);
+      if (visible.has(alias)) addEntities(measure);
+    for (const filter of validated.filters) addEntities(filter.field);
+    // A field can order the rows without being shown, if the role may see it and rows are not grouped.
+    const selected = new Set([
+      ...validated.dimensions.map((d) => d.field.key),
+      ...validated.measures.map((m) => m.alias),
+    ]);
+    const unselectedSorts = new Set(
+      validated.sorts
+        .filter((s) => s.field && !selected.has(s.key) && this.policy.fieldAllowed(ctx, s.field))
+        .map((s) => s.key),
+    );
+    for (const sort of validated.sorts) {
+      if (sort.field && (visible.has(sort.key) || unselectedSorts.has(sort.key)))
+        addEntities(sort.field);
+    }
     for (const clause of scope) for (const alias of clause.aliases ?? []) referenced.add(alias);
 
     const joins = planJoins(area, referenced);
@@ -115,6 +223,8 @@ export class ReportCompiler {
       visible,
       scope,
       maxRows,
+      extraParams: calculatedParams,
+      unselectedSorts,
     });
 
     const columns: CompiledColumn[] = [

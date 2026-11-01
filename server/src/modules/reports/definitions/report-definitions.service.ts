@@ -15,12 +15,14 @@ import {
 } from '@biddaloy/shared';
 import { AuditService } from '../../audit/audit.service';
 import { validateDefinition } from '../engine/compiler/validate-definition';
+import { seedSystemReports } from '../system/system-reports.seeder';
 import { ReportRegistry } from '../engine/registry/registry';
 import { ReportDefinitionVersion } from '../entities/report-definition-version.entity';
 import { ReportDefinition } from '../entities/report-definition.entity';
 import type {
   CatalogueFolderDto,
   CreateReportDefinitionDto,
+  ReportPresentationDto,
   UpdateReportDefinitionDto,
 } from './dto/report-definition.dto';
 
@@ -217,8 +219,27 @@ export class ReportDefinitionsService {
     });
   }
 
+  /**
+   * A school made before the ready-made reports shipped has none yet: put them in on first look (D12).
+   * One lookup when they are there; a second caller racing us hits the unique key and loses harmlessly.
+   */
+  private async ensureSystemReports(tenantId: string): Promise<void> {
+    const has = await this.definitions
+      .createQueryBuilder('d')
+      .withDeleted()
+      .where('d.tenant_id = :tenantId AND d.system_template_key IS NOT NULL', { tenantId })
+      .getExists();
+    if (has) return;
+    try {
+      await this.definitions.manager.transaction((m) => seedSystemReports(m, tenantId, null));
+    } catch (e) {
+      if ((e as { code?: string }).code !== '23505') throw e;
+    }
+  }
+
   /** What this role may run: published reports whose roles include theirs, grouped by folder. */
   async catalogue(viewer: DefinitionViewer): Promise<CatalogueFolderDto[]> {
+    await this.ensureSystemReports(viewer.tenantId);
     const qb = this.definitions
       .createQueryBuilder('d')
       .where('d.tenant_id = :tenantId AND d.deleted_at IS NULL', { tenantId: viewer.tenantId })
@@ -249,6 +270,35 @@ export class ReportDefinitionsService {
       folders.set(d.folder, folder);
     }
     return [...folders.values()];
+  }
+
+  /**
+   * [8.15.50] How a report looks, for any role that may run it: the questions it asks, its layout,
+   * page, colour rules and links, from the PUBLISHED version (never the draft). The same rules as the
+   * catalogue and as a run, because it asks the catalogue: another school's, an archived, a
+   * draft-only or a role-hidden report all answer the one 404. The dataset (field keys, filters,
+   * sorts) and the calculated fields are left out: a viewer learns no more than the run shows.
+   */
+  async presentation(viewer: DefinitionViewer, id: string): Promise<ReportPresentationDto> {
+    const folders = await this.catalogue(viewer);
+    const entry = folders.flatMap((f) => f.reports).find((r) => r.id === id);
+    if (!entry) throw new NotFoundException('Report not found');
+    const version = await this.versions.findOne({
+      where: { id: entry.version_id, tenant_id: viewer.tenantId },
+    });
+    if (!version) throw new NotFoundException('Report not found');
+    // Named one by one: a field added to the definition later is private until it is listed here.
+    const { schema, subjectArea, parameters, layout, page, format, drill } = version.definition;
+    return {
+      version_id: version.id,
+      schema,
+      subjectArea,
+      parameters,
+      layout,
+      page,
+      format,
+      drill,
+    };
   }
 
   /** Every report of the school for the designer, newest first, with its latest version number. */

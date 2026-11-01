@@ -53,6 +53,8 @@
     "printWholeClass": "Print ID cards for whole {{name}}",
     "edit": "Edit",
     "allGenders": "All genders",
+    "religionFilterLabel": "Religion",
+    "religionFilterPlaceholder": "As written on the student's record",
     "searchPlaceholder": "Name, roll or registration number",
     "cardSubtitle": "{{class}} · Section {{section}} · Roll {{roll}}",
     "emptyExplanation": "Add your first student and the list will show up here.",

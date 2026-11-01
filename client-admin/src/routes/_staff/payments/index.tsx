@@ -16,8 +16,10 @@ import { ListShell, useListShellState, type FilterFieldDescriptor } from '@bidda
 import { formatDate, formatServerAmount, parseServerDate } from '@biddaloy/ui/utils';
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { Banknote, Receipt } from 'lucide-react';
+import * as React from 'react';
 import { z } from 'zod';
 
+import { SaveAsReportDialog } from '../-save-as-report/save-as-report-dialog';
 import { loadRouteNamespaces } from '../../../route-loaders';
 
 import { usePaymentsList } from './-list/use-payments-list';
@@ -62,7 +64,8 @@ export const Route = createFileRoute('/_staff/payments/')({
       });
     }
   },
-  loader: () => loadRouteNamespaces('payments', 'common'),
+  // 'staff' holds the role names the keep-as-report dialog lists.
+  loader: () => loadRouteNamespaces('payments', 'common', 'staff'),
   pendingComponent: PaymentsPending,
   component: PaymentsPage,
 });
@@ -88,6 +91,9 @@ function PaymentsPage() {
 function PaymentsList({ canRecord, onRecord }: { canRecord: boolean; onRecord: () => void }) {
   const { t } = useTranslation('payments');
   const canExportAll = useHasPermission(Permission.REPORTS_EXPORT);
+  // [8.15.52] Keeping the list as a report is a designer's job.
+  const canDesignReports = useHasPermission(Permission.REPORTS_DESIGN);
+  const [keepAsReportOpen, setKeepAsReportOpen] = React.useState(false);
   const regionConfig = useRegionConfig();
   const [state, actions] = useListShellState();
   const filters = state.filters;
@@ -196,56 +202,67 @@ function PaymentsList({ canRecord, onRecord }: { canRecord: boolean; onRecord: (
   ];
 
   return (
-    <ListShell
-      title={t('title')}
-      subtitle={t('subtitle')}
-      actions={[
-        {
-          id: 'record',
-          label: t('recordAction'),
-          priority: 'primary',
-          icon: <Banknote aria-hidden />,
-          allowed: canRecord,
-          onClick: onRecord,
-        },
-      ]}
-      // [8.15.17] Everything matching the filters below, as Excel (or CSV from the arrow).
-      tabs={
-        <ExportMenu
-          totalCount={query.data?.total ?? 0}
-          canExportAll={canExportAll}
-          onExportAll={(format) =>
-            downloadListExport('/payments/export', paymentListParams, format)
-          }
+    <>
+      <ListShell
+        title={t('title')}
+        subtitle={t('subtitle')}
+        actions={[
+          {
+            id: 'record',
+            label: t('recordAction'),
+            priority: 'primary',
+            icon: <Banknote aria-hidden />,
+            allowed: canRecord,
+            onClick: onRecord,
+          },
+        ]}
+        // [8.15.17] Everything matching the filters below, as Excel (or CSV from the arrow).
+        tabs={
+          <ExportMenu
+            totalCount={query.data?.total ?? 0}
+            canExportAll={canExportAll}
+            onExportAll={(format) =>
+              downloadListExport('/payments/export', paymentListParams, format)
+            }
+            {...(canDesignReports ? { onKeepAsReport: () => setKeepAsReportOpen(true) } : {})}
+          />
+        }
+        filters={{ fields: filterFields, values: state.filters, onChange: actions.setFilters }}
+        tableId="payments-list"
+        caption={t('list.caption')}
+        columns={columns}
+        rowActions={(row) => [{ intent: 'view', label: t('list.view'), to: `/payments/${row.id}` }]}
+        data={query.data?.data ?? []}
+        getRowId={(row) => row.id}
+        sorting={state.sorting}
+        onSortingChange={actions.setSorting}
+        page={state.page}
+        pageSize={state.limit}
+        totalCount={query.data?.total ?? 0}
+        onPageChange={actions.setPage}
+        onPageSizeChange={actions.setLimit}
+        pageSizeLabel={t('pagination.rowsPerPage', { ns: 'common' })}
+        loading={query.isLoading}
+        isFetching={query.isFetching}
+        {...(query.isError ? { error: t('list.error') } : {})}
+        emptyState={{
+          title: t('list.emptyTitle'),
+          explanation: t('list.emptyText'),
+          icon: <Receipt aria-hidden />,
+          // The header already carries the primary "Record payment"; an
+          // identical EmptyState action would duplicate its accessible name,
+          // so the empty state stays action-less.
+        }}
+      />
+      {canDesignReports && (
+        <SaveAsReportDialog
+          open={keepAsReportOpen}
+          onOpenChange={setKeepAsReportOpen}
+          kind="payments"
+          filters={{ ...filters }}
         />
-      }
-      filters={{ fields: filterFields, values: state.filters, onChange: actions.setFilters }}
-      tableId="payments-list"
-      caption={t('list.caption')}
-      columns={columns}
-      rowActions={(row) => [{ intent: 'view', label: t('list.view'), to: `/payments/${row.id}` }]}
-      data={query.data?.data ?? []}
-      getRowId={(row) => row.id}
-      sorting={state.sorting}
-      onSortingChange={actions.setSorting}
-      page={state.page}
-      pageSize={state.limit}
-      totalCount={query.data?.total ?? 0}
-      onPageChange={actions.setPage}
-      onPageSizeChange={actions.setLimit}
-      pageSizeLabel={t('pagination.rowsPerPage', { ns: 'common' })}
-      loading={query.isLoading}
-      isFetching={query.isFetching}
-      {...(query.isError ? { error: t('list.error') } : {})}
-      emptyState={{
-        title: t('list.emptyTitle'),
-        explanation: t('list.emptyText'),
-        icon: <Receipt aria-hidden />,
-        // The header already carries the primary "Record payment"; an
-        // identical EmptyState action would duplicate its accessible name,
-        // so the empty state stays action-less.
-      }}
-    />
+      )}
+    </>
   );
 }
 

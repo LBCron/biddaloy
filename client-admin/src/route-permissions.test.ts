@@ -130,6 +130,8 @@ const NAV_PATH_TO_ROUTE_ID: Record<string, string> = {
   '/audit-logs': '/_staff/audit-logs/',
   '/settings': '/_staff/settings',
   '/reports/collections': '/_staff/reports/collections',
+  '/reports/student-count': '/_staff/reports/student-count',
+  '/reports': '/_staff/reports/',
 };
 
 /** Every `to`/`permission` pair `STAFF_NAV_GROUPS` declares (plus

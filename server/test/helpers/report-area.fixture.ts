@@ -102,7 +102,10 @@ export class ReportAreaFixture {
     opts: {
       total: number;
       paid?: number;
+      /** A standing discount on the bill (set when the bill is made). */
       discount?: number;
+      /** A one-off discount given at checkout. */
+      oneOffDiscount?: number;
       status: string;
       dueDate: string;
       period?: string;
@@ -114,13 +117,14 @@ export class ReportAreaFixture {
        VALUES ($1, 'Tuition', $2, $3, $4, $5) RETURNING id`,
       [opts.feeType ?? 'MONTHLY_TUITION', opts.total, classId, yearId, tenantId],
     );
-    const discount = opts.discount ?? 0;
-    // `discount_amount` must equal standing + one-off (a CHECK); a fixture discount is a standing one.
+    const standing = opts.discount ?? 0;
+    const oneOff = opts.oneOffDiscount ?? 0;
+    // `discount_amount` must equal standing + one-off (a CHECK).
     return this.one(
       `INSERT INTO student_fees
          (student_id, academic_year_id, fee_structure_id, period_start, due_date,
-          total_amount, paid_amount, discount_amount, standing_discount_amount, status)
-       VALUES ($1, $2, $3, $4::date, $5::date, $6, $7, $8, $8, $9) RETURNING id`,
+          total_amount, paid_amount, discount_amount, standing_discount_amount, one_off_discount_amount, status)
+       VALUES ($1, $2, $3, $4::date, $5::date, $6, $7, $8, $9, $10, $11) RETURNING id`,
       [
         studentId,
         yearId,
@@ -129,7 +133,9 @@ export class ReportAreaFixture {
         opts.dueDate,
         opts.total,
         opts.paid ?? 0,
-        discount,
+        standing + oneOff,
+        standing,
+        oneOff,
         opts.status,
       ],
     );
@@ -159,6 +165,34 @@ export class ReportAreaFixture {
         opts.reversalOf ?? null,
       ],
     );
+  }
+
+  /** Applies part of a payment to a bill, the way checkout does. */
+  allocate(paymentId: string, billId: string, amount: number, discount = 0): Promise<unknown> {
+    return this.ds.query(
+      `INSERT INTO payment_allocations (payment_id, student_fee_id, allocated_amount, discount_amount, allocation_type)
+       VALUES ($1, $2, $3, $4, 'DUE')`,
+      [paymentId, billId, amount, discount],
+    );
+  }
+
+  /** A wallet holding `balance`, with the given moves (positive adds, negative takes). */
+  async wallet(
+    tenantId: string,
+    studentId: string,
+    balance: number,
+    moves: Array<{ amount: number; kind: string; note?: string }>,
+  ): Promise<void> {
+    const walletId = await this.one(
+      `INSERT INTO student_wallets (tenant_id, student_id, balance) VALUES ($1, $2, $3) RETURNING id`,
+      [tenantId, studentId, balance],
+    );
+    for (const m of moves) {
+      await this.ds.query(
+        `INSERT INTO wallet_transactions (tenant_id, wallet_id, amount, kind, note) VALUES ($1, $2, $3, $4, $5)`,
+        [tenantId, walletId, m.amount, m.kind, m.note ?? null],
+      );
+    }
   }
 
   /** Marks the original as reversed by the reversal row, like the reversal service does. */

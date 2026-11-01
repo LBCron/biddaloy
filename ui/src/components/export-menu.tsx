@@ -18,9 +18,21 @@
  * Without `canExportAll` (no `REPORTS_EXPORT`) the "everything" items are hidden. The ticked-rows
  * download is a client-side CSV that needs no such permission, so it stays when rows are ticked.
  *
+ * [8.15.52] `onKeepAsReport` adds one more item, "Keep this as a report" (glossary: রিপোর্ট হিসেবে
+ * রাখুন). A page passes it only for a person who may design reports (`REPORTS_DESIGN`); the
+ * component never checks a permission itself. It needs no download permission, so it also shows
+ * when `canExportAll` is false (the overdue-only dues view has no "everything" download).
+ *
+ * ```
+ *  [ Download to Excel · 1,234 people ][v]
+ *                                       └ For other software (CSV)
+ *                                         ───────────────
+ *                                         Keep this as a report
+ * ```
+ *
  * Words come from `common.json` `export.*` (Epic 8.15 glossary: "Excel-এ নামান", never "export").
  */
-import { ChevronDownIcon, DownloadIcon } from 'lucide-react';
+import { BookmarkPlusIcon, ChevronDownIcon, DownloadIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useRegionConfig, useTranslation } from '../i18n';
@@ -28,7 +40,8 @@ import { cn } from '../primitives/lib/utils';
 import { formatNumber } from '../utils';
 
 import { Button } from './button';
-import { Menu, MenuContent, MenuItem, MenuTrigger } from './menu';
+import { HelpHint, useHelp } from './help-hint';
+import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from './menu';
 
 export type ExportMenuFormat = 'xlsx' | 'csv';
 
@@ -43,6 +56,16 @@ export interface ExportMenuProps {
   onExportSelected?: () => void | Promise<void>;
   /** The person holds `REPORTS_EXPORT`. */
   canExportAll: boolean;
+  /**
+   * [8.15.52] Opens the "keep this as a report" dialog. Pass it only for a person who holds
+   * `REPORTS_DESIGN`; leave it out and the item is not shown.
+   */
+  onKeepAsReport?: () => void;
+  /**
+   * A (?) after the download button (Epic 44). Shown only with the download button itself, so a
+   * person who may not download never sees a lone (?).
+   */
+  helpId?: string | undefined;
   /** What a row is: a person ("1,234 people") or a thing ("1,234 items"). */
   unit?: 'people' | 'items';
   /** The "too large" sentence suggests narrowing by class or section instead of by filters. */
@@ -63,11 +86,14 @@ export function ExportMenu({
   onExportAll,
   onExportSelected,
   canExportAll,
+  onKeepAsReport,
   unit = 'items',
   narrowByClass = false,
+  helpId,
   className,
 }: ExportMenuProps) {
   const { t } = useTranslation();
+  const { resolve } = useHelp();
   const regionConfig = useRegionConfig();
   const [busy, setBusy] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
@@ -75,7 +101,8 @@ export function ExportMenu({
   const inFlight = React.useRef(false);
 
   const showSelected = onExportSelected !== undefined && selectedCount > 0;
-  if (!canExportAll && !showSelected) return null;
+  const showKeep = onKeepAsReport !== undefined;
+  if (!canExportAll && !showSelected && !showKeep) return null;
 
   const countText = (n: number) =>
     t(unit === 'people' ? 'export.people' : 'export.items', {
@@ -108,17 +135,29 @@ export function ExportMenu({
 
   const selectedLabel = t('export.selectedOnly', { n: formatNumber(selectedCount, regionConfig) });
 
+  const keepLabel = t('export.keepAsReport');
+
   const body = !canExportAll ? (
-    // No permission for "everything": the ticked-rows download is all there is.
-    <Button
-      type="button"
-      variant="outline"
-      loading={busy}
-      onClick={() => void run(() => onExportSelected?.())}
-    >
-      <DownloadIcon aria-hidden="true" />
-      {selectedLabel}
-    </Button>
+    // No permission for "everything": only the ticked-rows download and keep-as-report are left.
+    <div className="inline-flex flex-wrap items-center gap-2">
+      {showSelected && (
+        <Button
+          type="button"
+          variant="outline"
+          loading={busy}
+          onClick={() => void run(() => onExportSelected?.())}
+        >
+          <DownloadIcon aria-hidden="true" />
+          {selectedLabel}
+        </Button>
+      )}
+      {showKeep && (
+        <Button type="button" variant="outline" onClick={() => onKeepAsReport?.()}>
+          <BookmarkPlusIcon aria-hidden="true" />
+          {keepLabel}
+        </Button>
+      )}
+    </div>
   ) : (
     <div role="group" aria-label={t('export.groupLabel')} className="inline-flex">
       <Button
@@ -156,14 +195,30 @@ export function ExportMenu({
           <MenuItem disabled={totalCount === 0} onSelect={() => void run(() => onExportAll('csv'))}>
             {t('export.csv')}
           </MenuItem>
+          {showKeep && (
+            <>
+              <MenuSeparator />
+              <MenuItem onSelect={() => onKeepAsReport?.()}>{keepLabel}</MenuItem>
+            </>
+          )}
         </MenuContent>
       </Menu>
     </div>
   );
 
+  // The row wrapper only exists when a (?) renders, so a menu without help keeps its DOM.
+  const hinted = canExportAll && helpId !== undefined && resolve(helpId) !== null;
+
   return (
     <div className={cn('flex flex-col items-start gap-1 md:items-end', className)}>
-      {body}
+      {hinted ? (
+        <div className="inline-flex items-center gap-1">
+          {body}
+          <HelpHint helpId={helpId} />
+        </div>
+      ) : (
+        body
+      )}
       {message !== null && (
         <p role="alert" className="text-sm text-destructive">
           {message}

@@ -3,6 +3,11 @@
  * exam documents (D12). Loads the data, shows A4 pages under a Close / Print bar, prints in
  * place with `window.print()` (not a dialog, so a multi-page print is never clipped). Report
  * cards and transcripts write their audit row first; no log row, no print (D17, D26).
+ *
+ * [8.15.30] `doc=report` is the ninth kind, but not an exam document: it has its own screen
+ * (`-document/report-pages.tsx`) and `PrintDocumentPage` only chooses between the two, so the
+ * exam hooks below never run for a report. Its audit is the report run itself, not a
+ * `document-prints` row (see that file).
  */
 import { Permission } from '@biddaloy/shared';
 import {
@@ -57,6 +62,7 @@ import {
   tabulationProps,
   transcriptProps,
 } from './-document/build-pages';
+import { ReportDocumentPage } from './-document/report-pages';
 
 const DOCS = [
   'seat-list',
@@ -67,8 +73,10 @@ const DOCS = [
   'tabulation',
   'report-cards',
   'transcript',
+  'report',
 ] as const;
-type Doc = (typeof DOCS)[number];
+/** The exam documents; `report` is handled by its own screen. */
+type Doc = Exclude<(typeof DOCS)[number], 'report'>;
 
 const DOC_KEY: Record<Doc, string> = {
   'seat-list': 'seatList',
@@ -82,6 +90,30 @@ const DOC_KEY: Record<Doc, string> = {
 };
 
 const uuid = z.string().uuid().optional().catch(undefined);
+
+/**
+ * `params` is the report's prompt answers as JSON. The router already parses a JSON-looking search
+ * value, so it can arrive as an object or as a string; anything that is not a plain object is
+ * "no answers" (the report then runs with its defaults), never an error.
+ */
+const reportParams = z
+  .unknown()
+  .transform((raw): Record<string, unknown> | undefined => {
+    let value = raw;
+    if (typeof raw === 'string') {
+      try {
+        value = JSON.parse(raw);
+      } catch {
+        return undefined;
+      }
+    }
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : undefined;
+  })
+  .catch(undefined)
+  // Without this the key is required of every link to this page (`params: unknown`).
+  .optional();
 const searchSchema = z.object({
   // A bad or missing value falls back rather than breaking the page.
   doc: z.enum(DOCS).catch('seat-list'),
@@ -89,6 +121,9 @@ const searchSchema = z.object({
   section_id: uuid,
   student_id: uuid,
   academic_year_id: uuid,
+  // [8.15.30] `doc=report`: which report, and what its prompts were answered with.
+  definitionId: uuid,
+  params: reportParams,
   // An in-app path only: never navigate to an address typed into the URL.
   from: z
     .string()
@@ -100,18 +135,34 @@ const searchSchema = z.object({
 export const Route = createFileRoute('/_staff/print/document')({
   staticData: { chromeless: true },
   validateSearch: searchSchema,
-  loader: () => loadRouteNamespaces('examDocuments', 'printTemplates', 'exams', 'common'),
+  loader: () =>
+    // `reportView` is for the report renderers; the names of the other kinds come from the first four.
+    loadRouteNamespaces('examDocuments', 'printTemplates', 'exams', 'common', 'reportView'),
   component: PrintDocumentPage,
 });
 
 const STICKERS_PER_PAGE = 12;
 
 function PrintDocumentPage() {
+  const search = Route.useSearch();
+  if (search.doc === 'report') {
+    return (
+      <ReportDocumentPage
+        definitionId={search.definitionId}
+        params={search.params}
+        from={search.from}
+      />
+    );
+  }
+  return <ExamDocumentPage doc={search.doc} />;
+}
+
+function ExamDocumentPage({ doc }: { doc: Doc }) {
   const { t, i18n } = useTranslation('examDocuments');
   const { t: tG } = useTranslation('printTemplates');
   const { t: tE } = useTranslation('exams');
   const search = Route.useSearch();
-  const { doc, exam_id: examId, section_id: sectionId, student_id: studentId } = search;
+  const { exam_id: examId, section_id: sectionId, student_id: studentId } = search;
   const academicYearId = search.academic_year_id;
   const router = useRouter();
   const wide = useIsWide();
@@ -502,7 +553,11 @@ function PrintDocumentPage() {
     );
   } else if (loading || !issuer) {
     body = (
-      <Skeleton role="status" aria-label={t('page.loading')} className="h-96 w-full max-w-[210mm]" />
+      <Skeleton
+        role="status"
+        aria-label={t('page.loading')}
+        className="h-96 w-full max-w-[210mm]"
+      />
     );
   } else if (!pages || count === 0) {
     body = <EmptyState title={t('page.empty')} explanation={t('page.emptyHint')} />;

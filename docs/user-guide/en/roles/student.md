@@ -45,6 +45,7 @@ All your features, in the order of the left menu. The list is built automaticall
 
 - [Overview](../portal/overview.md) — The first page you see when you sign in as a parent or student — total outstanding, what is due this month, whether your child is at school today, this month's attendance, homework, the latest result and the next holiday, all in one place.
 - [Fees and invoices](../portal/fees.md) — See your child's fees month by month — what was charged, discounted, paid and is still due — along with fines, credit balance, recurring fees and invoice printing.
+- [Statement](../portal/statement.md) — See what was charged, what was paid and what is still owed for your child, by date, and download or print the statement.
 - [Attendance](../portal/attendance.md) — See in a calendar which days your child came to school, missed, was late or on leave, along with the month's attendance rate.
 - [Routine](../portal/routine.md) — See your child's classes from today for the next seven days — which subject in which period, until when, in which room, and which class is cancelled or has a substitute teacher.
 - [Calendar](../portal/calendar.md) — See your child's class's school holidays, exams, events, meetings and deadlines in a month calendar; tap a day to see everything on it.

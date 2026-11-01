@@ -327,6 +327,32 @@ describe('ReportRunnerService (integration)', () => {
       expect(run.definition_version_id).toBe(versionId);
     });
 
+    it('a tile run (maxRows, log false) is capped, never raised, and leaves no run row', async () => {
+      await manyStudents(5);
+      const versionId = await publish(namesReport());
+      const tile = await runner.run({ ctx: ctx(), versionId, mode: 'RUN', maxRows: 3, log: false });
+      expect(tile).toMatchObject({ total_rows: 3, truncated: true, run_id: null });
+      // A cap above the mode's own is ignored.
+      const big = await runner.run({ ctx: ctx(), versionId, mode: 'PREVIEW', maxRows: 1_000_000 });
+      expect(big.rows).toHaveLength(5);
+      expect(await ds.getRepository(ReportRun).countBy({ tenant_id: tenantId })).toBe(0);
+    });
+
+    it('a RUN that is too slow leaves a failed run row with REPORT_TOO_SLOW and no data (D24)', async () => {
+      await manyStudents(1);
+      const versionId = await publish(namesReport());
+      const slow = vi
+        .spyOn(runner as unknown as { resultSet: () => Promise<unknown> }, 'resultSet')
+        .mockRejectedValueOnce(new ReportTimeoutError());
+      await expect(runner.run({ ctx: ctx(), versionId, mode: 'RUN' })).rejects.toBeInstanceOf(
+        ReportTimeoutError,
+      );
+      slow.mockRestore();
+      const [row] = await ds.getRepository(ReportRun).findBy({ tenant_id: tenantId });
+      expect(row).toMatchObject({ status: 'FAILED', error_code: 'REPORT_TOO_SLOW' });
+      expect(row.row_count).toBe(0);
+    });
+
     it('the queued-export source for a saved report gives the Bangla header and every row', async () => {
       await manyStudents(4);
       const versionId = await publish(namesReport());

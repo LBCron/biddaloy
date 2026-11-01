@@ -12,6 +12,7 @@ import { slice as peopleOps } from './slices/people-ops';
 import { slice as commsPrint } from './slices/comms-print';
 import { slice as applications } from './slices/applications';
 import { slice as billing } from './slices/billing';
+import { slice as reports } from './slices/reports';
 import { slice as attention } from './slices/attention';
 
 /** Run order matters: later slices read ids earlier ones publish. `attention` is always last. */
@@ -29,6 +30,7 @@ export const SLICES: DemoSlice[] = [
   commsPrint,
   applications,
   billing,
+  reports,
   attention,
 ];
 
@@ -43,8 +45,4 @@ export const EXEMPT: Record<string, string> = {
   AuditLog: 'written by services as a side effect, never seeded directly',
   ReportSnapshot: 'runtime output: a stored copy of one run (Epic 8.15)',
   ReportSchedule: 'runtime output: schedules are set up by the school (Epic 8.15)',
-  // Until [8.15.32] adds `slices/reports.ts` (system reports, one custom draft, two runs); then delete these three.
-  ReportDefinition: 'owed by [8.15.32]: slices/reports.ts seeds the system reports',
-  ReportDefinitionVersion: 'owed by [8.15.32]: slices/reports.ts seeds the system reports',
-  ReportRun: 'owed by [8.15.32]: slices/reports.ts seeds two runs',
 };

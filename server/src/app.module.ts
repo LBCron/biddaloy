@@ -43,7 +43,6 @@ import { RestoreModule } from './modules/workbook/restore/restore.module';
 import { ImportModule } from './modules/workbook/import/import.module';
 import { TemplateModule } from './modules/workbook/template/template.module';
 import { ReportsModule } from './modules/reports/reports.module';
-import { StudentCountModule } from './modules/reports/student-count/student-count.module';
 import { DashboardInsightsModule } from './modules/dashboard/insights/dashboard-insights.module';
 import { StaffHrModule } from './modules/staff-hr/staff-hr.module';
 import { SearchModule } from './modules/search/search.module';
@@ -481,7 +480,6 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
     TemplateModule,
     ReportsModule,
     // [8.15.53] Early BANBEIS count (temporary, D23); removed at the epic close.
-    StudentCountModule,
     DashboardInsightsModule,
     SearchModule,
     GradingModule,
