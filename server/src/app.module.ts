@@ -70,6 +70,7 @@ import { AcrModule } from './modules/acr/acr.module';
 import { IncidentsModule } from './modules/incidents/incidents.module';
 import { AttentionModule } from './modules/attention/attention.module';
 import { NoticesModule } from './modules/notices/notices.module';
+import { NoticeAccessModule } from './modules/notices/access/notice-access.module';
 import { SurveysModule } from './modules/surveys/surveys.module';
 import { RegistrationModule } from './modules/registration/registration.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
@@ -501,6 +502,7 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
     IncidentsModule,
     AttentionModule,
     NoticesModule,
+    NoticeAccessModule,
     SurveysModule,
     PerformanceModule,
     RegistrationModule,
