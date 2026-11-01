@@ -69,6 +69,7 @@ import { ApplicationAttachment } from './modules/applications/entities/applicati
 import { AcrModule } from './modules/acr/acr.module';
 import { IncidentsModule } from './modules/incidents/incidents.module';
 import { AttentionModule } from './modules/attention/attention.module';
+import { NoticesModule } from './modules/notices/notices.module';
 import { SurveysModule } from './modules/surveys/surveys.module';
 import { RegistrationModule } from './modules/registration/registration.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
@@ -88,6 +89,9 @@ import { BillingModule } from './modules/billing/billing.module';
 import { IdleAccountModule } from './modules/billing/idle-account.module';
 import { PlatformAlert } from './modules/health/platform-alerts/platform-alert.entity';
 import { AlertRecipient } from './modules/attention/entities/alert-recipient.entity';
+import { Notice } from './modules/notices/entities/notice.entity';
+import { NoticeAttachment } from './modules/notices/entities/notice-attachment.entity';
+import { NoticeRecipient } from './modules/notices/entities/notice-recipient.entity';
 import { Survey } from './modules/surveys/entities/survey.entity';
 import { SurveyQuestion } from './modules/surveys/entities/survey-question.entity';
 import { SurveyTarget } from './modules/surveys/entities/survey-target.entity';
@@ -387,6 +391,9 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
             StaffIncident,
             Alert,
             AlertRecipient,
+            Notice,
+            NoticeAttachment,
+            NoticeRecipient,
             PlatformAlert,
             SeatOrder,
             PlatformPayment,
@@ -504,6 +511,7 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
     AcrModule,
     IncidentsModule,
     AttentionModule,
+    NoticesModule,
     SurveysModule,
     PerformanceModule,
     RegistrationModule,

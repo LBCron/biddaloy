@@ -130,6 +130,9 @@ import { SeatOrder } from '../src/modules/billing/entities/seat-order.entity';
 import { PlatformPayment } from '../src/modules/billing/entities/platform-payment.entity';
 import { PlatformAlert } from '../src/modules/health/platform-alerts/platform-alert.entity';
 import { AlertRecipient } from '../src/modules/attention/entities/alert-recipient.entity';
+import { Notice } from '../src/modules/notices/entities/notice.entity';
+import { NoticeAttachment } from '../src/modules/notices/entities/notice-attachment.entity';
+import { NoticeRecipient } from '../src/modules/notices/entities/notice-recipient.entity';
 import { Survey } from '../src/modules/surveys/entities/survey.entity';
 import { SurveyQuestion } from '../src/modules/surveys/entities/survey-question.entity';
 import { SurveyTarget } from '../src/modules/surveys/entities/survey-target.entity';
@@ -266,6 +269,9 @@ export const ALL_ENTITIES = [
   StaffIncident,
   Alert,
   AlertRecipient,
+  Notice,
+  NoticeAttachment,
+  NoticeRecipient,
   PlatformAlert,
   SeatOrder,
   PlatformPayment,
