@@ -715,3 +715,25 @@ Every table has `tenant_id`. Only SHA-256 hashes of public and link tokens are s
 ### Notice board: Wave 1 learning (2026-11-01)
 
 See the dated bullets in [27-qa-audit-lessons.md](27-qa-audit-lessons.md) (Docker hang, stale lock), [22-demo-seed.md](22-demo-seed.md) (coverage guard) and [36-domain-invariants.md](36-domain-invariants.md) (reset order, delete guard).
+
+### Notice board: Wave 4 close learning (2026-11-02)
+
+The close journey is `e2e/journeys/notices.spec.ts`. It drives the real screens: write with a PDF, add a section's guardians on one tab and one teacher by name on another, publish, then read as a guardian.
+
+```mermaid
+flowchart LR
+    A[Admin writes notice + PDF] --> B[Guardians tab: Add all matching]
+    B --> C[By name tab: tick one teacher]
+    C --> D[Publish]
+    D --> E[Guardian A: Overview card, All notices, opens it]
+    D --> F[Guardian B, other section: sees nothing]
+    E --> G[Admin report: 1 seen of 2]
+    H[Teacher posts to own section] --> E
+```
+
+- **Surprise:** the portal Overview card had no link, so a guardian could see a notice title there but not open it (the reader list route was added after the card). Fixed: the card now links to `/portal/notices`. Rows are still plain text, not links; a row that opens the notice is a follow-up.
+- **Surprise:** `/portal/notices/$noticeId` had no `h1` (the detail's title is an `h2`, because the same component also fills a dialog). Reflow, target-size and axe sweeps all failed on it. Fixed with a `PageHeader` on the route.
+- **Surprise:** the portal list used `Tabs` with no `TabsContent`, so `aria-controls` pointed at nothing (axe `aria-valid-attr-value`, critical). Fixed with the empty hidden panel `PrintablesTabs` already uses. Rule candidate: any `Tabs` that only filters a table carries that panel.
+- **Surprise:** the manifest's three `$noticeId` entries said "seeded" but `yarn seed` wrote no notice. Fixed: `seed.notices.ts` publishes one notice (title `E2E seeded notice`) for the demo parent, through the real services, and `e2e/responsive/routes.ts` finds it by title.
+- Guardian accounts in a journey come from the invite batch plus first sign-in with a code, as in `arrival-notice.spec.ts`. A passwordless account cannot be logged in by API.
+- Usability tasks ক, গ, ঙ were **not run with people** (see `docs/ux-research/epic-53-notices.md`).

@@ -4,6 +4,7 @@ import { expect } from '@playwright/test';
 import {
   createFineStructure,
   createGuardian,
+  createStaffUser,
   currentAcademicYear,
   post,
   type ApiSession,
@@ -325,5 +326,39 @@ export const REGISTRY: DialogEntry[] = [
     submitKey: 'students.new.submitAction',
     postUrl: /\/api\/v1\/students$/,
     done: (page) => expect(page).toHaveURL(/\/students\/[0-9a-f-]{36}/, { timeout: 15_000 }),
+  },
+  {
+    // [53.4] Publishing a notice: the confirm dialog's "Yes, publish". The draft and its one
+    // recipient come from the API, so the page only walks Next, Next and confirms.
+    name: 'notice publish',
+    route: '/communications/notices',
+    prepare: async (request, session, suffix) => {
+      const staff = await createStaffUser(request, session, `Dbl notice staff ${suffix}`);
+      const notice = await post<{ id: string }>(request, session, '/notices', {
+        title: `Dbl notice ${suffix}`,
+        body: 'Double-submit check',
+      });
+      await post(request, session, `/notices/${notice.id}/recipients`, {
+        items: [{ kind: 'STAFF', userId: staff.id }],
+      });
+      return { route: `/communications/notices/${notice.id}/edit` };
+    },
+    open: async (page) => {
+      const next = page.getByRole('button', { name: t('noticeCompose.actions.next') });
+      await next.click();
+      await expect(
+        page.getByRole('listitem').filter({ hasText: t('noticeCompose.steps.audience') }),
+      ).toHaveAttribute('aria-current', 'step');
+      await next.click();
+      await expect(
+        page.getByRole('heading', { name: t('noticeCompose.review.heading') }),
+      ).toBeVisible();
+      await page.getByRole('button', { name: t('noticeCompose.actions.publish') }).click();
+    },
+    fill: async () => undefined,
+    submitKey: 'noticeCompose.actions.confirmPublish',
+    postUrl: /\/api\/v1\/notices\/[0-9a-f-]{36}\/publish$/,
+    done: (page) =>
+      expect(page).toHaveURL(/\/communications\/notices\/[0-9a-f-]{36}$/, { timeout: 15_000 }),
   },
 ];

@@ -293,3 +293,8 @@ Dated learning (2026-11-01, Epic 53 Wave 1):
 
 - **Surprise:** the Docker daemon hung for about 1.5 hours; `docker ps` never returned and DB tests were blocked. Cost: time lost guessing at test failures. Fix: diagnose first, for example check the backend process start time, before concluding anything. Rule candidate: a hung `docker ps` is an environment fault, not a test result.
 - **Surprise:** a stale worktree `index.lock` blocked a commit. Fix: confirm no version-control process is running, then remove the lock file. Rule candidate: never delete `index.lock` before that check.
+
+Dated learning (2026-11-02, Epic 53 Wave 4 close):
+
+- **Surprise:** `@sweep`-tagged specs run only in the nightly `-sweeps` project, so a new a11y spec tagged `@sweep` is not part of PR CI. Fix: the notices a11y spec carries no tag. Rule candidate: say in the ticket which project a spec must run in.
+- **Surprise:** `getByLabel('Name')` matched both an input and a tab panel whose name contained the word. Fix: `exact: true`.

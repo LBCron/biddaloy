@@ -85,6 +85,7 @@ import { ensureAttentionW5Seed } from './seed.attention-w5';
 import { ensureDashboardSeed } from './seed.dashboard';
 import { ensureArrivalNoticeSetting, ensureArrivalSeed } from './seed.arrival';
 import { ensureCoordinatorsSeed } from './seed.coordinators';
+import { ensureNoticeSeed } from './seed.notices';
 import { ArrivalNoticeSubscription } from '../modules/attendance/entities/arrival-notice-subscription.entity';
 import { Alert } from '../modules/attention/entities/alert.entity';
 import { AlertRecipient } from '../modules/attention/entities/alert-recipient.entity';
@@ -417,6 +418,9 @@ export async function seed() {
 
     // [83.3.4] D31: a class coordinator and a Mathematics subject coordinator for Playwright.
     await ensureCoordinatorsSeed(dataSource, school.id);
+
+    // [53.4 / #3382] One published notice so the route sweeps' $noticeId entries resolve.
+    await ensureNoticeSeed(app, school.id, lifecycleAdmin.id);
   }
 
   // [35.5.5] Unapplied tenant for walking the preset flow (after the demo seeds).
