@@ -32,6 +32,8 @@ export const AUDIT_ENTITY_TYPES = [
   'CalendarFeedToken',
   'Class',
   'ClassSection',
+  // [83.2.2] Coordinator assign / remove.
+  'CoordinatorAssignment',
   'CurriculumPreset',
   'Designation',
   'DiscountRule',

@@ -966,6 +966,17 @@ describe('MY_CLASS_VIEW [47.1.1] D11', () => {
   });
 });
 
+describe('COORDINATION_VIEW [83.1.1] D9/D25', () => {
+  it('is held by TEACHER and no other tenant role (SUPER_ADMIN holds every permission)', () => {
+    const holders = Object.values(UserRole).filter(
+      (r) =>
+        r !== UserRole.SUPER_ADMIN && ROLE_PERMISSIONS[r]?.includes(Permission.COORDINATION_VIEW),
+    );
+    // Only TEACHER: ADMIN and EXECUTIVE already read every class, so they need no coordinator page.
+    expect(holders).toEqual([UserRole.TEACHER]);
+  });
+});
+
 describe('applications grants [52.1.1]', () => {
   const holders = (p: Permission) =>
     Object.values(UserRole).filter((r) => ROLE_PERMISSIONS[r]?.includes(p));

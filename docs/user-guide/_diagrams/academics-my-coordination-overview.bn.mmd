@@ -1,0 +1,11 @@
+%% title: আমার সমন্বয়: কী বাকি, আর কাকে মনে করাবেন
+%% desc: অ্যাডমিন একজন শিক্ষককে সমন্বয়ক করেন। আমার সমন্বয় পাতায় হাজিরা না নেওয়া শাখা থেকে হাজিরা খাতায়, বাকি নম্বরপত্র থেকে নম্বরপত্রে যাওয়া যায়, আর শিক্ষকদের জানান বাছাই করা শিক্ষকদের একটি বার্তা পাঠায়।
+flowchart LR
+  A["অ্যাডমিন<br/>সমন্বয়ক করেন"]:::admin --> M["আমার সমন্বয়"]:::teacher
+  M --> N["নেওয়া হয়নি"]:::note --> R["হাজিরা খাতা<br/>(শুধু পড়া)"]:::note
+  M --> P["নম্বর বাকি"]:::note --> G["নম্বরপত্র<br/>(শুধু পড়া)"]:::note
+  M --> T["শিক্ষকদের জানান"]:::teacher --> W["বাছাই করা শিক্ষক<br/>বার্তা পান"]:::note
+  classDef teacher fill:#e7f5ff,stroke:#1c7ed6,color:#0b3d66
+  classDef admin fill:#fff4e6,stroke:#e8590c,color:#7a2e05
+  classDef guardian fill:#ebfbee,stroke:#2b8a3e,color:#14411d
+  classDef note fill:#f1f3f5,stroke:#868e96,color:#343a40

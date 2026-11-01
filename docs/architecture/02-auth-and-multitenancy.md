@@ -327,7 +327,7 @@ flowchart LR
 
 **Security rules** for this path live in [08-security.md](08-security.md#security-rules):
 [Rule 1](08-security.md#rule-1-routes-are-closed-by-default) (routes closed by default),
-[Rule 2](08-security.md#rule-2-teacher-reads-are-scoped-to-assigned-sections) (teacher scope),
+[Rule 2](08-security.md#rule-2-teacher-reads-are-scoped-to-assigned-sections) (teacher scope; a coordinator row widens reads only, through `includeCoordinated` — see [03-backend-modules.md](03-backend-modules.md#coordinators-widen-reads-never-writes-epic-83)),
 [Rule 8](08-security.md#rule-8-suspend-remove-or-reset-bumps-tokens_valid_after) (session cut-off) and
 [Rule 15](08-security.md#rule-15-redis-down-has-a-written-answer-per-route) (Redis down).
 
@@ -464,23 +464,25 @@ building a new gated route:
   is already spent, so he runs step-up again with Karim's code. A school can
   also turn on **Always need a second admin to reverse a payment**
   (`fees.requireSecondApprover`) to refuse self-approval even with one admin.
+
 - **Attempts are counted three ways** (Redis, 15-minute window, limit
   `STEP_UP_RATE_LIMIT_MAX_ATTEMPTS`, default 5). Every attempt counts, right
   or wrong, before the credential is checked. Any one over its limit is a 429.
   The approver key is counted only after the caller's own two keys allow the
   attempt, so one caller adds at most 5 to it.
 
-  | Key | Limit | Why |
-  | --- | --- | --- |
-  | `step-up-attempts:pair:<tenant>:<caller>:<approver>` | 5 | One caller's attempts never lock the approver out for others. |
-  | `step-up-attempts:actor:<caller>` | 5 | One caller cannot spread guesses over many approvers. |
-  | `step-up-attempts:approver:<tenant>:<approver>` | 20 (4x) | Many callers together cannot multiply the guesses at one approver. |
+  | Key                                                  | Limit   | Why                                                                |
+  | ---------------------------------------------------- | ------- | ------------------------------------------------------------------ |
+  | `step-up-attempts:pair:<tenant>:<caller>:<approver>` | 5       | One caller's attempts never lock the approver out for others.      |
+  | `step-up-attempts:actor:<caller>`                    | 5       | One caller cannot spread guesses over many approvers.              |
+  | `step-up-attempts:approver:<tenant>:<approver>`      | 20 (4x) | Many callers together cannot multiply the guesses at one approver. |
 
   Code requests have the same 20 ceiling per approver
   (`step-up-otp-requests:approver:…`): past it, the 202 still comes back but no
   new code is sent, so ten staff cannot text one approver ten times. Only codes
   actually sent count: a request inside the caller's own 60 s cooldown sends
   nothing and gives its slot back.
+
 - **A step-up code is bound to the school, the caller and the scope it was
   requested for.** `POST /auth/step-up/otp/request` takes `{ identifier, scope }`
   and the code is stored under `tenant:caller:scope:approver`. Using it for a
@@ -525,6 +527,7 @@ sequenceDiagram
   PaymentReversalService-->>Admin: 409 REVERSE_LATER_PAYMENTS_FIRST
   Note over Admin: needs a new OTP to retry
 ```
+
 - **`ApprovalGuard` runs after `RolesGuard`/`PermissionsGuard`.** A caller
   who isn't allowed on the route at all still gets a plain 401/403 from the
   earlier guards, not `APPROVAL_REQUIRED` — the step-up prompt only appears
@@ -735,6 +738,12 @@ flowchart TD
   have no "leave". `POST /users/:id/restore` (needs `MEMBER_REMOVE`, ADMIN and SUPER_ADMIN only today) brings back the rows
   ended by the latest event. A person with no active staff role is a
   "Former" member.
+
+## Learning: coordinator scope (Epic 83, 2026-10-31)
+
+- **Surprise:** `HomeworkService.findOne` gates both the homework detail read and its edits, so a read-only widening there would have opened writes. **Fix:** homework list and detail stay teaching-only; coordinators get the read-only analytics rollups. **Rule candidate:** before passing `includeCoordinated` to a gate, grep its callers for a write path.
+- **Surprise:** `GET /students/:id` goes through `FamilyAccessService.assertLinked`, the same gate fees and invoices use. **Fix:** an `opts.includeCoordinated` on `assertLinked` that only the student detail passes; the student list and `GET /students/ids` pass the flag to `sectionScope` (D5 keeps money routes teaching-only).
+- **Rule:** a coordinator gets the listed reads only; they never change attendance, marks or student records. Their one write is the reminder they send through `POST /coordination/alerts`. The enforcing test is `server/src/coordinator-scope.e2e-spec.ts`; it lists the widened reads and the unchanged edit routes in `server/test/helpers/coordinator-scope-routes.ts`.
 
 ## Why this deviated from the original plan
 

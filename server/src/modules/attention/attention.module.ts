@@ -102,6 +102,13 @@ import { BillingRulesModule } from './rules/billing/billing-rules.module';
     GuardianSmsFallbackService,
     AttentionHealthService,
   ],
-  exports: [RuleRegistryService, RuleContextService, AlertWriterService, AttentionQueryService],
+  // [83.3.2] ManualAlertsService: My coordination's notify rides the manual-alert path (D8).
+  exports: [
+    RuleRegistryService,
+    RuleContextService,
+    AlertWriterService,
+    AttentionQueryService,
+    ManualAlertsService,
+  ],
 })
 export class AttentionModule {}

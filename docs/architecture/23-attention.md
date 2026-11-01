@@ -180,6 +180,23 @@ The ladder is in `attendanceStep()` in
 leave, the alert goes to the assistant teachers who are not on leave, plus
 whoever is substituting for the class teacher's periods that day.
 
+**Coordinators (Epic 83, D6/D7/D26).** A teacher can coordinate whole classes
+(class coordinator) or one subject in some classes (subject coordinator). Two
+rules add them to `recipients`; the dedupe key never changes, so the alert
+writer just merges the new recipients into the same alert.
+
+| Rule                   | Who joins                                                                                     | When                                      |
+| ---------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `attendance.not_taken` | class coordinators of the section's class (day and period registers)                          | level 1 (WARNING) and up; heads stay at 2 |
+| `exams.marks_overdue`  | class coordinators of the exam's class, and the subject coordinator of an open grid's subject | always (same as the roles)                |
+
+How recipients beyond roles are added: the rule loads them itself with
+`coordinatorRecipients()` (`rules/structure/coordinator-recipients.ts`, one query
+per run) and picks the rows that fit each finding with `coordinates()`. Nothing in
+the engine or the writer knows about coordinators. Example: a Mathematics subject
+coordinator of Class 9 gets "Term 1 (Class 9): 2 mark sheets still open" when one
+open sheet is Mathematics, and nothing when both open sheets are Bangla.
+
 ## Delivery
 
 Push only. The engine never sends SMS from this path.
@@ -536,6 +553,13 @@ flowchart LR
 - Separately, `SeatNoticesService` (daily, after the entitlement recompute) sends SMS + email at
   30 / 7 / 0 days (`seats_d30`, `seats_d7`, `seats_expired`), once per key per `period_end`. The
   stamps live in `schools.onboarding.seat_warnings`.
+
+## Learning: Epic 83 coordinators (2026-10-31)
+
+- **Surprise:** the attendance rule only builds recipients for a draft when a class teacher exists or heads are added. A section with no class teacher but a coordinator would have been skipped. **Cost:** none (caught in design). **Fix:** coordinators join `users` before the "anyone to tell?" check. **Rule candidate:** a rule that adds recipients beyond roles adds them before deciding whether to emit.
+- **Surprise:** the coordinator SQL mentions `user_tenants` inside an `EXISTS`, and the unit specs' SQL routers matched `FROM user_tenants` first. **Cost:** a wrong mock row. **Fix:** route `FROM coordinator_assignments` first in both specs. **Rule candidate:** SQL-routing mocks match the most specific table first.
+- **Surprise:** the demo seed's FAST sweep alone gives a coordinator their alerts; nothing needed hand-writing. **Rule candidate:** prefer the real engine over hand-written alert rows in seeds.
+- **Scope flag:** read paths opt in with `includeCoordinated: true`; writes never do. The baseline spec (`coordinator-scope.e2e-spec.ts`) runs the same routes before and after a coordinator row, which is what makes the flag safe to add to more call sites later.
 
 ## Shipped choices worth knowing (and why)
 

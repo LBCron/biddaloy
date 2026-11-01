@@ -4,6 +4,7 @@ import { ClassSection } from '../src/modules/academics/entities/class-section.en
 import { Teacher } from '../src/modules/academics/entities/teacher.entity';
 import { StaffProfile } from '../src/modules/staff-profiles/entities/staff-profile.entity';
 import { TeacherClassSection } from '../src/modules/academics/entities/teacher-class-section.entity';
+import { CoordinatorAssignment } from '../src/modules/academics/entities/coordinator-assignment.entity';
 import { Subject } from '../src/modules/academics/entities/subject.entity';
 import { ClassSubject } from '../src/modules/academics/entities/class-subject.entity';
 import { CalendarEvent } from '../src/modules/calendar/entities/calendar-event.entity';
@@ -137,6 +138,7 @@ export const ALL_ENTITIES = [
   Teacher,
   StaffProfile,
   TeacherClassSection,
+  CoordinatorAssignment,
   Subject,
   ClassSubject,
   CalendarEvent,

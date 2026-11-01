@@ -109,11 +109,16 @@ export class MarksAuthorizationService {
       return;
     }
 
-    const { homeroom, subjectIds, inYearWindow } = await this.teacherScope.rolesInSection({
-      userId,
-      tenantId,
-      sectionId,
-    });
+    const { homeroom, subjectIds, inYearWindow, coordinated } =
+      await this.teacherScope.rolesInSection({
+        userId,
+        tenantId,
+        sectionId,
+      });
+    // [83.3.1] D4/D19 — read only: a class coordinator reads every subject of the section, a
+    // subject coordinator only theirs. Coordinator rows are current-year by construction.
+    // `assertCanWrite` / `writableSubjects` never look at `coordinated`.
+    if (coordinated.allSubjects || coordinated.subjectIds.includes(subjectId)) return;
     if ((!homeroom && !subjectIds.includes(subjectId)) || !inYearWindow) {
       throw deny(role);
     }

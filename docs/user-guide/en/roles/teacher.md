@@ -59,6 +59,7 @@ All your features, in the order of the left menu. The list is built automaticall
 - [Routine review](../academics/routine-review.md) — See every period of the arranged routine in one list, send it for review so teachers can look, publish it, handle teachers' change requests, and copy the routine to another academic year.
 - [My routine](../academics/my-routine.md) — Teachers see their own periods for today and the next days, see whom they are covering for, and report whether each period was taught.
 - [My class](../academics/my-class.md) — See today's absentees, attendance flags, dues, homework, results and the student list of the section you are class teacher of, and take attendance in one tap.
+- [My coordination](../academics/my-coordination.md) — As a class or subject coordinator, see which sections have no attendance today, whose marks are still pending and who teaches what, and send those teachers one reminder.
 - [Homework](../academics/homework.md) — Create homework for a class and subject, give it to a section or one student, give the same homework to more sections, change or deactivate what was given, check each student's work, and import many homework from a file at once.
 - [Syllabus](../academics/syllabus.md) — Put a class and subject's syllabus topics in order, make a study plan for each section's subject, and see which section is behind.
 

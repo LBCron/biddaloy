@@ -59,7 +59,11 @@ export class AttendanceAccessService {
       // use. Older registers stay reachable by direct link (`assertCanAccessSection`).
       return this.sectionRepo
         .createQueryBuilder('cs')
-        .innerJoinAndSelect('cs.class', 'class', 'class.deleted_at IS NULL AND class.tenant_id = :tenantId')
+        .innerJoinAndSelect(
+          'cs.class',
+          'class',
+          'class.deleted_at IS NULL AND class.tenant_id = :tenantId',
+        )
         .innerJoin(
           'academic_years',
           'ay',
@@ -98,6 +102,9 @@ export class AttendanceAccessService {
     userId: string,
     sectionId: string,
     tenantId: string,
+    /** [83.3.1] D18 — read call sites only (register view, summaries). Marking, finalize,
+     * corrections and the matrix save never pass it, so a coordinator never writes (D4). */
+    opts: { includeCoordinated?: boolean } = {},
   ): Promise<ClassSection> {
     if (canAccessTenantWide(role)) {
       const section = await this.sectionRepo.findOne({
@@ -110,7 +117,11 @@ export class AttendanceAccessService {
     }
 
     if (role === UserRole.TEACHER) {
-      const ids = await teacherSectionIds(this.sectionRepo.manager, { userId, tenantId });
+      const ids = await teacherSectionIds(this.sectionRepo.manager, {
+        userId,
+        tenantId,
+        includeCoordinated: opts.includeCoordinated,
+      });
       const section = ids.includes(sectionId)
         ? await this.sectionRepo.findOne({ where: { id: sectionId, tenant_id: tenantId } })
         : null;
@@ -178,9 +189,10 @@ export class AttendanceAccessService {
     tenantId: string,
     date: string,
     periodNo: number | null,
+    opts: { includeCoordinated?: boolean } = {},
   ): Promise<void> {
     try {
-      await this.assertCanAccessSection(role, userId, sectionId, tenantId);
+      await this.assertCanAccessSection(role, userId, sectionId, tenantId, opts);
     } catch (err) {
       if (!isAccessMiss(err) || periodNo === null) throw err;
       const mine = await this.substitutePeriods(role, userId, sectionId, tenantId, date);
@@ -196,9 +208,10 @@ export class AttendanceAccessService {
     sectionId: string,
     tenantId: string,
     date: string,
+    opts: { includeCoordinated?: boolean } = {},
   ): Promise<ResolvedPeriod[]> {
     try {
-      await this.assertCanAccessSection(role, userId, sectionId, tenantId);
+      await this.assertCanAccessSection(role, userId, sectionId, tenantId, opts);
     } catch (err) {
       if (!isAccessMiss(err)) throw err;
       const mine = await this.substitutePeriods(role, userId, sectionId, tenantId, date);

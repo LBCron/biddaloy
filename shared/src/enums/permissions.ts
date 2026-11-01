@@ -36,6 +36,8 @@ export enum Permission {
   STUDENT_NOTES_READ = 'STUDENT_NOTES_READ',
   /** [47.1.1] D11 — the "My Class" view; TEACHER only. */
   MY_CLASS_VIEW = 'MY_CLASS_VIEW',
+  /** [83.0] D9/D25 — Academics › My coordination and `/coordination/*`; TEACHER only, scoped by `coordinator_assignments`. */
+  COORDINATION_VIEW = 'COORDINATION_VIEW',
   STUDENT_NOTES_WRITE = 'STUDENT_NOTES_WRITE',
   STUDENT_RECORDS_READ = 'STUDENT_RECORDS_READ',
   STUDENT_RECORDS_WRITE = 'STUDENT_RECORDS_WRITE',
@@ -485,6 +487,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     // [52.1.1] Applications (D22/D45)
     Permission.APPLICATION_SUBMIT,
     Permission.MY_CLASS_VIEW,
+    // [83.0] D25 — My coordination; empty overview without coordinator rows.
+    Permission.COORDINATION_VIEW,
     Permission.STUDENT_READ,
     Permission.GUARDIAN_READ,
     // Deliberately no FEE_STRUCTURE_READ: the fee-structure GETs only need

@@ -148,6 +148,7 @@ export class FeeController {
     // narrowed to the same assigned sections.
     if (!isGuardianRole(tenant.role)) {
       // [75.6-d] TEACHER: only current-year assigned sections (`null` = unrestricted staff).
+      // [83.0] D5 — teaching-only on purpose; no `includeCoordinated`.
       const scoped = await this.teacherScope.scopedStudentIds({
         role: tenant.role,
         userId: user.sub,
@@ -182,6 +183,7 @@ export class FeeController {
     @CurrentTenant() tenant: { id: string; role: string },
     @CurrentUser() user: JwtPayload,
   ) {
+    // [83.0] D5 — teaching-only on purpose; no `includeCoordinated`.
     const scoped = await this.teacherScope.scopedStudentIds({
       role: tenant.role,
       userId: user.sub,
@@ -412,9 +414,11 @@ export class FeeController {
     @CurrentUser() user: JwtPayload,
   ) {
     const who = { role: tenant.role, userId: user.sub, tenantId: tenant.id };
+    // [83.0] D5 — teaching-only on purpose; no `includeCoordinated`.
     const scope = await this.teacherScope.assertCanSeeGuardian({ ...who, guardianId });
     const payments = await this.paymentService.findByGuardian(guardianId, tenant.id);
     // A sibling in another section is dropped for a TEACHER; `null` = unrestricted.
+    // [83.0] D5 — teaching-only on purpose; no `includeCoordinated`.
     const scoped = await this.teacherScope.scopedStudentIds({ ...who, scope });
     if (!scoped) return payments;
     const visible = new Set(scoped);

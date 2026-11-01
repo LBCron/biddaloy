@@ -157,7 +157,11 @@
       "removeError": "শিক্ষক অপসারণ করতে ব্যর্থ হয়েছে",
       "removeConfirmTitle": "শিক্ষকের নিয়োগ বাতিল করবেন?",
       "removeConfirmDescription": "{{name}}-কে {{section}} শাখা থেকে সরানো হবে। পরে আবার নিয়োগ দেওয়া যাবে।",
-      "emptyExplanation": "শাখা যোগ করার পর এখানে শিক্ষক নিয়োগ দেওয়া যাবে।"
+      "emptyExplanation": "শাখা যোগ করার পর এখানে শিক্ষক নিয়োগ দেওয়া যাবে।",
+      "coordinators": {
+        "title": "সমন্বয়ক",
+        "caption": "এই শ্রেণির সমন্বয়ক"
+      }
     },
     "tabSubjects": "বিষয়",
     "tabHomework": "বাড়ির কাজ",

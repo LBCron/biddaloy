@@ -23,6 +23,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AcademicYearModule } from './modules/academics/academic-year.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
 import { ClassModule } from './modules/classes/classes.module';
+import { CoordinationModule } from './modules/classes/coordination.module';
 import { EnrollmentModule } from './modules/enrollments/enrollments.module';
 import { UserModule } from './modules/users/users.module';
 import { StudentModule } from './modules/students/students.module';
@@ -163,6 +164,7 @@ import { AuditLog } from './modules/audit/entities/audit-log.entity';
 import { PushSubscription } from './modules/push/entities/push-subscription.entity';
 import { Enrollment } from './modules/students/entities/enrollment.entity';
 import { TeacherClassSection } from './modules/academics/entities/teacher-class-section.entity';
+import { CoordinatorAssignment } from './modules/academics/entities/coordinator-assignment.entity';
 import { Subject } from './modules/academics/entities/subject.entity';
 import { ClassSubject } from './modules/academics/entities/class-subject.entity';
 import { CalendarEvent } from './modules/calendar/entities/calendar-event.entity';
@@ -273,6 +275,8 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
             PushSubscription,
             Enrollment,
             TeacherClassSection,
+            // [83.1.2] Coordinator rows (Epic 83).
+            CoordinatorAssignment,
             Subject,
             ClassSubject,
             CalendarEvent,
@@ -496,6 +500,9 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
     SocialAuthModule,
     TrialModule,
     DemoModule,
+    // [83.3.2] My coordination. Last on purpose: it imports Exams + Attention (so it cannot live
+    // inside ClassModule), and registering it last keeps every other module's route order.
+    CoordinationModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: AppThrottlerGuard }],

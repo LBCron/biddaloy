@@ -8,7 +8,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { Permission, UserRole, hasTenantDataScope, roleHasPermission } from '@biddaloy/shared';
 import { TeacherClassSection } from '../academics/entities/teacher-class-section.entity';
-import { teacherAssignments } from '../classes/teacher-scope.service';
+import {
+  teacherAssignments,
+  teacherCoordinatedClassIds,
+  teacherSectionIds,
+} from '../classes/teacher-scope.service';
 import { ClassSection } from '../academics/entities/class-section.entity';
 import { Class } from '../academics/entities/class.entity';
 import { Subject } from '../academics/entities/subject.entity';
@@ -174,7 +178,17 @@ export class HomeworkAccessService {
 
     if (role === UserRole.TEACHER) {
       const rows = await teacherAssignments(this.tcsRepo.manager, { userId, tenantId });
-      if (!rows.some((r) => r.section_id === sectionId)) {
+      // [83.3.1] D4 read: a coordinator of the section's class may view its rollup too.
+      const coordinated =
+        !rows.some((r) => r.section_id === sectionId) &&
+        (
+          await teacherSectionIds(this.tcsRepo.manager, {
+            userId,
+            tenantId,
+            includeCoordinated: true,
+          })
+        ).includes(sectionId);
+      if (!rows.some((r) => r.section_id === sectionId) && !coordinated) {
         throw new NotFoundException('You do not have access to this section');
       }
       return;
@@ -196,7 +210,13 @@ export class HomeworkAccessService {
 
     if (role === UserRole.TEACHER) {
       const rows = await teacherAssignments(this.tcsRepo.manager, { userId, tenantId });
-      if (!rows.some((r) => r.class_id === classId)) {
+      if (
+        !rows.some((r) => r.class_id === classId) &&
+        // [83.3.1] D4 read: a coordinator of the class may view its rollup too.
+        !(await teacherCoordinatedClassIds(this.tcsRepo.manager, { userId, tenantId })).includes(
+          classId,
+        )
+      ) {
         throw new NotFoundException('You do not have access to this class');
       }
       return;

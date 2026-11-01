@@ -109,9 +109,12 @@ interface Fx {
   perPeriod?: boolean;
   sessions?: unknown[];
   slots?: unknown[];
+  coordinators?: unknown[];
 }
 function build(f: Fx = {}) {
   const query = vi.fn(async (sql: string) => {
+    // [83.2.4] Before the user_tenants route: the coordinator query has one in an EXISTS.
+    if (sql.includes('FROM coordinator_assignments')) return f.coordinators ?? [];
     if (sql.includes('FROM class_sections cs')) return [{ id: 'S1', class_id: 'C1', label: '7-B' }];
     if (sql.includes('calendar_events')) return [];
     if (sql.includes('FROM attendance_sessions')) return f.sessions ?? [];
@@ -207,6 +210,66 @@ describe('AttendanceNotTakenRule', () => {
     expect(finding.severity).toBe(AlertSeverity.CRITICAL);
     expect(finding.escalationLevel).toBe(2);
     expect(finding.recipients.map((r) => r.userId).sort()).toEqual(['head', 'u-CT']);
+  });
+
+  // [83.2.4] D7: a class coordinator of the section's class joins at level 1, not before;
+  // subject coordinators and coordinators of other classes never do. Dedupe key unchanged (D26).
+  describe('coordinators (83.2.4)', () => {
+    const coordinators = [
+      { userId: 'u-COORD', classId: 'C1', subjectId: null },
+      { userId: 'u-MATHS', classId: 'C1', subjectId: 'MATHS' },
+      { userId: 'u-OTHER', classId: 'C9', subjectId: null },
+    ];
+
+    it('level 0 (REMINDER, inside grace): not a recipient yet', async () => {
+      const { rule } = build({ coordinators });
+      const [finding] = await rule.evaluate(ctx({ localTime: '08:05' }));
+      expect(finding.escalationLevel).toBe(0);
+      expect(finding.recipients.map((r) => r.userId)).toEqual(['u-CT']);
+    });
+
+    it('level 1 (WARNING): the class coordinator joins; heads do not', async () => {
+      const { rule } = build({ coordinators });
+      const [finding] = await rule.evaluate(ctx());
+      expect(finding.escalationLevel).toBe(1);
+      expect(finding.recipients).toEqual([
+        { userId: 'u-CT', role: UserRole.TEACHER },
+        { userId: 'u-COORD', role: UserRole.TEACHER },
+      ]);
+      expect(finding.dedupeKey).toBe('section:S1:2026-10-10');
+    });
+
+    it('a late period register (level 1) reaches the class coordinator; an on-time one does not', async () => {
+      const late = build({
+        coordinators,
+        perPeriod: true,
+        sessions: [{ section_id: 'S1', period_no: null, state: 'FINALIZED' }],
+        slots: [build().slot('p2')],
+      });
+      const [f] = await late.rule.evaluate(ctx({ localTime: '09:20' }));
+      expect(f.escalationLevel).toBe(1);
+      expect(f.recipients.map((r) => r.userId)).toEqual(['u-T2', 'u-COORD']);
+      const [g] = await late.rule.evaluate(ctx({ localTime: '09:05' }));
+      expect(g.recipients.map((r) => r.userId)).toEqual(['u-T2']);
+    });
+
+    it('a late period with no resolved teacher still reaches the class coordinator', async () => {
+      const unresolved = build({
+        coordinators,
+        perPeriod: true,
+        sessions: [{ section_id: 'S1', period_no: null, state: 'FINALIZED' }],
+        slots: [build().slot('p2', { teacher_ids: [] })],
+      });
+      const [f] = await unresolved.rule.evaluate(ctx({ localTime: '09:20' }));
+      expect(f.escalationLevel).toBe(1);
+      expect(f.recipients.map((r) => r.userId)).toEqual(['u-COORD']);
+    });
+
+    it('level 2 (CRITICAL): coordinator and heads both', async () => {
+      const { rule } = build({ coordinators });
+      const [finding] = await rule.evaluate(ctx({ localTime: '10:05' }));
+      expect(finding.recipients.map((r) => r.userId).sort()).toEqual(['head', 'u-COORD', 'u-CT']);
+    });
   });
 
   it('a FINALIZED day session clears the day finding', async () => {

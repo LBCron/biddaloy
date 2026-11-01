@@ -4,6 +4,7 @@ import { TeacherService, UserService } from '../../../modules/users/users.servic
 import { User } from '../../../modules/users/entities/user.entity';
 import { Teacher } from '../../../modules/academics/entities/teacher.entity';
 import { TeacherClassSection } from '../../../modules/academics/entities/teacher-class-section.entity';
+import { CoordinatorAssignment } from '../../../modules/academics/entities/coordinator-assignment.entity';
 import { StaffProfile } from '../../../modules/staff-profiles/entities/staff-profile.entity';
 import { StaffHrRecord } from '../../../modules/staff-hr/entities/staff-hr-record.entity';
 import { Designation } from '../../../modules/staff-hr/entities/designation.entity';
@@ -80,6 +81,7 @@ export const slice: DemoSlice = {
   covers: [
     Teacher,
     TeacherClassSection,
+    CoordinatorAssignment,
     StaffProfile,
     StaffHrRecord,
     Designation,
@@ -471,6 +473,56 @@ export const slice: DemoSlice = {
       }
     }
 
+    // --- coordinators (83.1.3, Epic 83 D36), main (HIGH) branch, current year only.
+    // The class-teacher-8a card's teacher coordinates three consecutive classes; a Mathematics
+    // teacher of the same branch coordinates Mathematics in two consecutive classes. Classes are
+    // picked by position (numeric grade order), never by name; the start is drawn with ctx.rng.
+    const coordinators: Record<string, unknown>[] = [];
+    const high = org.tenants.find((t) => t.kind === 'HIGH');
+    const card8a = byCard.get('class-teacher-8a');
+    const current = high?.years.find((y) => y.isCurrent);
+    if (high && card8a && current) {
+      const classes = [...current.classes].sort((a, b) => a.numericGrade - b.numericGrade);
+      const list = teacherRows.get(high.id) ?? [];
+      const cardTeacher = list.find((t) => t.userId === card8a.userId);
+      const mathsTeachers = list.filter(
+        (t) => t.subjects.includes('MATH') && t.userId !== card8a.userId,
+      );
+      const [maths] = await ctx.ds.query(
+        `SELECT id FROM subjects WHERE tenant_id = $1 AND name_en = $2 AND deleted_at IS NULL`,
+        [high.id, SUBJECTS.MATH.en],
+      );
+      const run = (n: number) => {
+        const start = rng.number.int({ min: 0, max: Math.max(0, classes.length - n) });
+        return classes.slice(start, start + n);
+      };
+      if (cardTeacher && classes.length >= 3) {
+        for (const cls of run(3)) {
+          coordinators.push({
+            id: rng.string.uuid(),
+            tenant_id: high.id,
+            teacher_id: cardTeacher.teacherId,
+            class_id: cls.id,
+            subject_id: null,
+            assigned_by_user_id: org.adminUserId,
+          });
+        }
+      }
+      if (maths && mathsTeachers.length && classes.length >= 2) {
+        const teacher = ctx.pick(mathsTeachers);
+        for (const cls of run(2)) {
+          coordinators.push({
+            id: rng.string.uuid(),
+            tenant_id: high.id,
+            teacher_id: teacher.teacherId,
+            class_id: cls.id,
+            subject_id: maths.id,
+            assigned_by_user_id: org.adminUserId,
+          });
+        }
+      }
+    }
+
     let rows = 0;
     const ins = async (entity: Function, data: Record<string, unknown>[]) => {
       rows += await insertChunked(ctx.ds.getRepository(entity as never), data as never);
@@ -487,6 +539,7 @@ export const slice: DemoSlice = {
     await ins(StaffLanguage, languages);
     await ins(StaffDocument, documents);
     await ins(TeacherClassSection, tcs);
+    await ins(CoordinatorAssignment, coordinators);
 
     ctx.ids.set('teachersByTenant', teacherRows);
     ctx.ids.set('staffByCardKey', byCard);

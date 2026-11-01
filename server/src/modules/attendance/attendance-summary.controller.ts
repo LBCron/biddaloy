@@ -107,6 +107,7 @@ export class AttendanceSummaryController {
       user.sub,
       sectionId,
       tenant.id,
+      { includeCoordinated: true }, // [83.3.1] D4 read
     );
     return this.summaryService.getSectionSummary({
       tenantId: tenant.id,
@@ -143,6 +144,7 @@ export class AttendanceSummaryController {
       user.sub,
       sectionId,
       tenant.id,
+      { includeCoordinated: true }, // [83.3.1] D4 read
     );
     const { from, to } = resolveDateRange({ month: query.month });
     return this.summaryService.getSectionRegisterMatrix({
@@ -180,6 +182,7 @@ export class AttendanceSummaryController {
       user.sub,
       sectionId,
       tenant.id,
+      { includeCoordinated: true }, // [83.3.1] D4 read
     );
     return this.summaryService.getSectionSubjectSummary({
       tenantId: tenant.id,
@@ -215,6 +218,7 @@ export class AttendanceSummaryController {
       user.sub,
       sectionId,
       tenant.id,
+      { includeCoordinated: true }, // [83.3.1] D4 read
     );
     return this.summaryService.getSectionStreaks({ tenantId: tenant.id, sectionId });
   }

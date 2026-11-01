@@ -170,6 +170,8 @@ export const TRANSACTIONAL_TABLES_CHILD_FIRST = [
   'enrollments',
   'class_subjects',
   'teacher_class_sections',
+  // [83.1.2] FKs teachers, classes, subjects, users (CASCADE / SET NULL); clears before teachers.
+  'coordinator_assignments',
   // [21.2.1] Routine domain — child-first. `routine_slots` FKs to
   // `subjects`/`teachers` (via `routine_slot_teachers`) `ON DELETE CASCADE`,
   // so this whole block must precede both below. `shifts` is deliberately

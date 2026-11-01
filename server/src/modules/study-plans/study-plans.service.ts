@@ -192,12 +192,18 @@ export class StudyPlansService {
     ) {
       return true;
     }
-    const { homeroom } = await this.teacherScope.rolesInSection({
+    const { homeroom, coordinated } = await this.teacherScope.rolesInSection({
       userId: caller.userId,
       tenantId: caller.tenantId,
       sectionId: plan.section_id,
     });
-    return homeroom !== null;
+    // [83.3.1] D4/D19 read: a class coordinator reads every plan of the section, a subject
+    // coordinator only their subject's. `canWrite` above never looks at `coordinated`.
+    return (
+      homeroom !== null ||
+      coordinated.allSubjects ||
+      coordinated.subjectIds.includes(plan.subject_id)
+    );
   }
 
   async assertCanRead(caller: StudyPlanCaller, plan: StudyPlan): Promise<void> {

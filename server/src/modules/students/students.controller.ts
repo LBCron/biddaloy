@@ -151,6 +151,8 @@ export class StudentController {
       role: tenant.role,
       userId: user.sub,
       tenantId: tenant.id,
+      // [83.3.1] D4 read: coordinators also see the students of their classes.
+      includeCoordinated: true,
     });
     const page = await this.studentService.findAll(query, tenant.id, scope);
     return redactHealthNotes(page, canReadRecords(tenant.role));
@@ -205,6 +207,8 @@ export class StudentController {
       role: tenant.role,
       userId: user.sub,
       tenantId: tenant.id,
+      // [83.3.1] D4 read: coordinators also see the students of their classes.
+      includeCoordinated: true,
     });
     return this.studentService.findAllIds(query, tenant.id, scope);
   }
@@ -224,7 +228,10 @@ export class StudentController {
     // [5.1] moved the check that used to be inline here into
     // FamilyAccessService so every widened family route shares one copy.
     // Before the lookup (D13): a missing id and someone else's student give the same answer.
-    await this.familyAccess.assertLinked(tenant.role, user.sub, id, tenant.id);
+    // [83.3.1] D4 read: a coordinator of the student's class sees the student too.
+    await this.familyAccess.assertLinked(tenant.role, user.sub, id, tenant.id, {
+      includeCoordinated: true,
+    });
     const student = await this.studentService.findOne(id, tenant.id);
     return redactHealthNotes(student, canReadRecords(tenant.role));
   }
@@ -319,6 +326,8 @@ export class StudentController {
       role: tenant.role,
       userId: user.sub,
       tenantId: tenant.id,
+      // [83.3.1] D4 read: coordinators also see the students of their classes.
+      includeCoordinated: true,
     });
     const page = await this.guardianService.findAll(query, tenant.id, scope);
     return redactHealthNotes(page, canReadRecords(tenant.role));
@@ -382,6 +391,7 @@ export class StudentController {
       userId: user.sub,
       tenantId: tenant.id,
       guardianId: id,
+      includeCoordinated: true, // [83.3.1] D4 read
     });
     const guardian = await this.guardianService.findOne(id, tenant.id);
     if (scope) {

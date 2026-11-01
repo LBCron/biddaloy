@@ -100,6 +100,7 @@ export const PERMISSION_GROUPS: readonly { id: string; permissions: readonly Per
       Permission.ACADEMIC_YEAR_MANAGE,
       Permission.CLASS_MANAGE,
       Permission.MY_CLASS_VIEW,
+      Permission.COORDINATION_VIEW,
       Permission.ACADEMIC_STRUCTURE_READ,
       Permission.CURRICULUM_PRESET_APPLY,
       Permission.CALENDAR_READ,

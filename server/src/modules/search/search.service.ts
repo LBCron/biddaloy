@@ -77,7 +77,12 @@ export class SearchService {
     const sectionIds =
       roleScope(role) === RoleScope.ASSIGNED_SECTIONS
         ? userId
-          ? await teacherSectionIds(this.studentRepo.manager, { userId, tenantId })
+          ? // [83.3.1] D4 read: search finds the students of coordinated classes too.
+            await teacherSectionIds(this.studentRepo.manager, {
+              userId,
+              tenantId,
+              includeCoordinated: true,
+            })
           : []
         : null;
     const term = normalizeSearchTerm(query.q);

@@ -31,6 +31,8 @@ const DUPLICATE_MESSAGE_BY_TABLE: Record<string, string> = {
   classes: 'A class with this name already exists in this year',
   class_sections: 'A section with this name already exists in this class',
   academic_years: 'An academic year with this name already exists',
+  // [83.2.2] Same sentence as CoordinatorsService's own 409 (the service maps it first).
+  coordinator_assignments: 'This coordinator assignment already exists.',
 };
 
 // [#3172] One ACTIVE homework assignment per (homework, target). The service checks first and

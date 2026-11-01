@@ -499,6 +499,30 @@ export {
   type TargetSuggestion,
 } from './promotions';
 export { myClassSectionsQueryOptions, useMyClassSections, type MyClassSection } from './my-class';
+// [83.2.5 / 83.3.4] Coordinators (admin) and My coordination (coordinator).
+export {
+  coordinatorKeys,
+  coordinatorsQueryOptions,
+  useAssignCoordinators,
+  useCoordinators,
+  useRemoveCoordinator,
+  type AssignCoordinatorsInput,
+  type CoordinatorAssignment,
+  type CoordinatorsFilter,
+} from './coordinators';
+export {
+  coordinationKeys,
+  coordinationOverviewQueryOptions,
+  useCoordinationOverview,
+  useNotifyCoordinatedTeachers,
+  type CoordinationClass,
+  type CoordinationOverview,
+  type CoordinationPendingGrid,
+  type CoordinationSection,
+  type CoordinationTeacher,
+  type NotifyCoordinatedTeachersInput,
+  type NotifyCoordinatedTeachersResult,
+} from './coordination';
 export {
   attendanceKeys,
   lowAttendanceKey,

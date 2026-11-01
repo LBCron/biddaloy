@@ -114,6 +114,7 @@ export class CheckoutController {
     }
 
     // [75.6-d] TEACHER: any student outside current-year assigned sections is a 404 (D13).
+    // [83.0] D5 — teaching-only on purpose; no `includeCoordinated`.
     const scoped = await this.teacherScope.scopedStudentIds({
       role: tenant.role,
       userId: user.sub,
