@@ -131,6 +131,13 @@ export class Notices1791900002100 implements MigrationInterface {
     await queryRunner.query(
       `CREATE INDEX "IDX_notice_recipients_tenant_user" ON "notice_recipients" ("tenant_id", "user_id")`,
     );
+    // the reader claims rows by student / guardian (a login made after publish)
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notice_recipients_tenant_student" ON "notice_recipients" ("tenant_id", "student_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notice_recipients_tenant_guardian" ON "notice_recipients" ("tenant_id", "guardian_id")`,
+    );
     await queryRunner.query(
       `ALTER TABLE "notice_recipients" ADD CONSTRAINT "FK_notice_recipients_tenant_id" FOREIGN KEY ("tenant_id") REFERENCES "schools"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );

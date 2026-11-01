@@ -9212,7 +9212,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Add everyone an audience filter matches (max 5,000) */
+        /** Add everyone an audience filter matches (max 5,000 rows; a guardian counts once per child) */
         post: operations["NoticesController_addMatching_v1"];
         delete?: never;
         options?: never;
@@ -17240,7 +17240,7 @@ export interface components {
             recipientCount: number;
             seenCount: number;
             createdAt: string;
-            /** @description Returned once, only when a public link was just made. */
+            /** @description PATCH only: returned once when that edit turned the public link on. Publish never returns it (its answer is cached for idempotency); use POST :id/public-link. */
             publicLinkToken?: string | null;
         };
         NoticePageDto: {

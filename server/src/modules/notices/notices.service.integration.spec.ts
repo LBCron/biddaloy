@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import {
   BadRequestException,
   ConflictException,
@@ -135,8 +135,34 @@ describe('NoticesService (integration)', () => {
       ]);
   });
 
+  // the push fan-out is detached and writes pushed_at; never let it run into the next test's reset
+  afterEach(() => svc.idle());
+
   afterAll(async () => {
     if (ds) await ds.destroy();
+  });
+
+  it("expiresOn comes back as the school-local 'YYYY-MM-DD', not a Date (M1)", async () => {
+    const n = await draft({ expiresOn: '2099-12-31' });
+    expect(n.expiresOn).toBe('2099-12-31');
+    await recipients.add(T, admin, n.id, [staffRef(u.staff2)]);
+    expect((await svc.publish(T, admin, n.id, false)).expiresOn).toBe('2099-12-31');
+    expect(
+      (await svc.list(T, admin, { page: 1, limit: 100, q: sfx })).items.find((x) => x.id === n.id)
+        ?.expiresOn,
+    ).toBe('2099-12-31');
+  });
+
+  it('PATCH with null on a NOT NULL field is a 400, never a DB error (m2)', async () => {
+    const n = await draft();
+    for (const k of ['title', 'body', 'important', 'pinned', 'isPublic'])
+      await expect(svc.update(T, admin, n.id, { [k]: null } as never)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    // expiresOn may be cleared
+    await expect(svc.update(T, admin, n.id, { expiresOn: null })).resolves.toMatchObject({
+      expiresOn: null,
+    });
   });
 
   it('publish snapshots the list: adding or removing rows afterwards is refused', async () => {
@@ -176,7 +202,7 @@ describe('NoticesService (integration)', () => {
       })
       .catch((e) => e);
     expect(err).toBeInstanceOf(BadRequestException);
-    expect(err.message).toBe('সর্বোচ্চ ৫,০০০ জন');
+    expect(err.message).toBe('সর্বোচ্চ ৫,০০০ জন (অভিভাবককে প্রতিটি সন্তানের জন্য আলাদা গোনা হয়)');
     expect(await rows(n.id)).toHaveLength(0);
   });
 
@@ -244,10 +270,13 @@ describe('NoticesService (integration)', () => {
     const n = await draft({ important: true, isPublic: true });
     await recipients.add(T, admin, n.id, [staffRef(u.staff2)]);
     const pub = await svc.publish(T, admin, n.id, true);
-    expect(pub.publicLinkToken).toBeTruthy();
+    // M3: publish never returns the raw token (its answer is cached for idempotency)
+    expect(pub.publicLinkToken).toBeUndefined();
     expect(pub.smsStatus).toBe('PENDING');
+    expect((await noticeRow(n.id)).public_token_hash).not.toBeNull();
+    const { token } = await svc.newPublicLink(T, admin, n.id);
     const before = await noticeRow(n.id);
-    expect(await links.resolve(pub.publicLinkToken!)).not.toBeNull();
+    expect(await links.resolve(token)).not.toBeNull();
     expect((await alertRow(before.alert_id)).status).toBe('ACTIVE');
     expect((await alertRow(before.sms_task_alert_id)).status).toBe('ACTIVE');
 
@@ -255,7 +284,7 @@ describe('NoticesService (integration)', () => {
     expect(out.status).toBe('WITHDRAWN');
     const after = await noticeRow(n.id);
     expect(after.public_token_hash).toBeNull();
-    expect(await links.resolve(pub.publicLinkToken!)).toBeNull();
+    expect(await links.resolve(token)).toBeNull();
     expect((await alertRow(before.alert_id)).status).toBe('WITHDRAWN');
     expect((await alertRow(before.sms_task_alert_id)).status).toBe('RESOLVED');
     // declined by the system: no deciding user
@@ -477,10 +506,11 @@ describe('NoticesService (integration)', () => {
       [id, T],
     );
 
-  it('audit rows are written for publish, withdraw and public-link off (D17)', async () => {
+  it('audit rows are written for publish, withdraw and public-link on / off (D17)', async () => {
     const n = await draft({ isPublic: true });
     await recipients.add(T, admin, n.id, [staffRef(u.staff2)]);
     await svc.publish(T, admin, n.id, false);
+    await svc.newPublicLink(T, admin, n.id);
     await svc.turnOffPublicLink(T, admin, n.id);
     expect((await noticeRow(n.id)).public_token_hash).toBeNull();
     expect((await noticeRow(n.id)).is_public).toBe(false);
@@ -488,6 +518,7 @@ describe('NoticesService (integration)', () => {
     const rowsOut = await audits(n.id);
     expect(rowsOut.map((r: { event: string }) => r.event)).toEqual([
       'PUBLISH',
+      'PUBLIC_LINK_ON',
       'PUBLIC_LINK_OFF',
       'WITHDRAW',
     ]);

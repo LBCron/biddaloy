@@ -10,7 +10,6 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
 import { AuditAction, NoticeSmsStatus, NoticeStatus } from '@biddaloy/shared';
 import { normalizeSearchTerm } from '../../common/utils/normalize-search-term.util';
-import { localToday } from '../../common/time';
 import { AlertWriterService } from '../attention/engine/alert-writer.service';
 import { NoticeAlertsService, NoticeAlertInput } from '../attention/notice/notice-alerts.service';
 import { AuditService } from '../audit/audit.service';
@@ -47,6 +46,7 @@ const M = {
   withdrawn: 'তুলে নেওয়া নোটিশ বদলানো যায় না',
   smsAsked: 'এসএমএসের অনুরোধ আগেই করা হয়েছে',
   outOfScope: 'আপনার শ্রেণির বাইরের প্রাপক আছে',
+  nullField: 'শিরোনাম, লেখা বা কোনো সুইচ খালি রাখা যায় না',
 } as const;
 
 /** Which services a publish touches. Pure so the decision table is one readable unit test. */
@@ -83,7 +83,8 @@ export class NoticesService {
     offset: number,
   ): Promise<{ items: NoticeDto[]; total: number }> {
     const rows = await this.ds.query(
-      `SELECT n.*, a.full_name AS author_name,
+      // a raw `date` column comes back as a JS Date; the DTO wants the school-local 'YYYY-MM-DD'
+      `SELECT n.*, to_char(n.expires_on, 'YYYY-MM-DD') AS expires_on_text, a.full_name AS author_name,
               (SELECT count(DISTINCT ${PERSON}) FROM notice_recipients r
                 WHERE r.notice_id = n.id AND r.tenant_id = n.tenant_id)::int AS people,
               (SELECT count(DISTINCT ${PERSON}) FROM notice_recipients r
@@ -117,7 +118,7 @@ export class NoticesService {
         important: n.important,
         pinned: n.pinned,
         isPublic: n.is_public,
-        expiresOn: n.expires_on,
+        expiresOn: n.expires_on_text,
         authorUserId: n.author_user_id,
         authorName: n.author_name,
         publishedAt: iso(n.published_at),
@@ -199,8 +200,7 @@ export class NoticesService {
 
   private async assertExpiry(tenantId: string, expiresOn?: string | null) {
     if (!expiresOn) return;
-    const settings = await this.schools.getResolvedSettings(tenantId);
-    if (expiresOn < localToday(settings.region?.timezone ?? 'UTC'))
+    if (expiresOn < (await this.schools.todayFor(tenantId)))
       throw new BadRequestException(M.expiry);
   }
 
@@ -416,10 +416,11 @@ export class NoticesService {
     });
 
     // The links service uses its own connection, so it runs after our row lock is released.
-    let token: string | null = null;
+    // The raw token is NOT returned: publish carries an Idempotency-Key, and the interceptor
+    // stores the whole answer in Redis for 24 h. The client asks POST :id/public-link for one.
     if (notice.is_public) {
       try {
-        token = await this.links.createPublicLink({ id, tenant_id: tenantId });
+        await this.links.createPublicLink({ id, tenant_id: tenantId });
       } catch (e) {
         this.logger.error(`public link failed after publish: ${(e as Error).message}`);
       }
@@ -428,7 +429,7 @@ export class NoticesService {
     await this.invalidateAlert(tenantId, smsTaskId);
     // D29: push fan-out runs after the response is decided; a failure is only logged
     this.detach(() => this.pushAll(tenantId, notice));
-    return { ...(await this.get(tenantId, actor, id)), publicLinkToken: token };
+    return this.get(tenantId, actor, id);
   }
 
   /** D29: a failed push is logged; publish already succeeded. Muted NOTICE category is skipped unless important. */
@@ -478,6 +479,11 @@ export class NoticesService {
     id: string,
     dto: UpdateNoticeDto,
   ): Promise<NoticeDto> {
+    // PartialType's @IsOptional lets null through; only expiresOn may be cleared (Rule 24: no 500)
+    if (
+      (['title', 'body', 'important', 'pinned', 'isPublic'] as const).some((k) => dto[k] === null)
+    )
+      throw new BadRequestException(M.nullField);
     if (dto.expiresOn) await this.assertExpiry(tenantId, dto.expiresOn);
     const after = await this.ds.transaction(async (tx) => {
       const n = await loadOwnedNotice(tx, tenantId, actor, id, true);
@@ -544,7 +550,14 @@ export class NoticesService {
         this.logger.error(`public link failed after edit: ${(e as Error).message}`);
       }
     }
-    if (after.linkOff) await this.links.turnOffPublicLink({ id, tenant_id: tenantId });
+    if (after.linkOff) {
+      // the edit has committed; resolve() also refuses a public hash while is_public is off
+      try {
+        await this.links.turnOffPublicLink({ id, tenant_id: tenantId });
+      } catch (e) {
+        this.logger.error(`public link off failed after edit: ${(e as Error).message}`);
+      }
+    }
     if (after.alertTouched) await this.invalidate(tenantId, id);
     return { ...(await this.get(tenantId, actor, id)), publicLinkToken: token };
   }
@@ -624,7 +637,20 @@ export class NoticesService {
     const n = await loadOwnedNotice(this.ds.manager, tenantId, actor, id);
     if (n.status !== NoticeStatus.PUBLISHED) throw new ConflictException(M.notPublished);
     const token = await this.links.createPublicLink({ id, tenant_id: tenantId });
-    await this.ds.getRepository(Notice).update({ id, tenant_id: tenantId }, { is_public: true });
+    await this.ds.transaction(async (tx) => {
+      await tx.update(Notice, { id, tenant_id: tenantId }, { is_public: true });
+      await this.audit.record(
+        {
+          action: AuditAction.UPDATE,
+          entity_type: 'Notice',
+          entity_id: id,
+          tenant_id: tenantId,
+          performed_by_user_id: actor.userId,
+          new_values: { event: 'PUBLIC_LINK_ON' },
+        },
+        tx,
+      );
+    });
     return { token };
   }
 

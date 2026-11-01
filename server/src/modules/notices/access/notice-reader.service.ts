@@ -1,10 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { NoticeStatus } from '@biddaloy/shared';
+import { AlertWriterService } from '../../attention/engine/alert-writer.service';
 import { NoticeAlertsService } from '../../attention/notice/notice-alerts.service';
 import { normalizeSearchTerm } from '../../../common/utils/normalize-search-term.util';
 import { SchoolsService } from '../../schools/schools.service';
 import { NoticeAttachment } from '../entities/notice-attachment.entity';
+import { claimRecipientRows } from '../notice-recipients.service';
 import { toDto as toFileDto } from './notice-files.service';
 import type {
   NoticeMineDetailDto,
@@ -46,6 +48,7 @@ export class NoticeReaderService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly alerts: NoticeAlertsService,
+    private readonly alertWriter: AlertWriterService,
     private readonly schools: SchoolsService,
   ) {}
 
@@ -53,6 +56,7 @@ export class NoticeReaderService {
     const page = q.page ?? 1;
     const limit = q.limit ?? 20;
     const term = normalizeSearchTerm(q.q);
+    await claimRecipientRows(this.dataSource, tenantId, userId);
     // "Today" is the school's calendar day, not the database's (expires_on is a school-local date).
     // ponytail: the year filter compares published_at in the DB session timezone (UTC); a notice
     // published in the last hours of 31 Dec local time may land in the next year. Fix if it matters.
@@ -124,9 +128,12 @@ export class NoticeReaderService {
     await this.dataSource.transaction((tx) =>
       this.alerts.acknowledge(tx, tenantId, noticeId, userId),
     );
+    // after commit: the amber bar and badge drop now, not after the 60 s summary TTL
+    await this.alertWriter.invalidateSummary(tenantId, [userId]).catch(() => undefined);
   }
 
   private async mine(tenantId: string, userId: string, noticeId: string): Promise<Row> {
+    await claimRecipientRows(this.dataSource, tenantId, userId);
     const rows: Row[] = await this.dataSource.query(
       `SELECT n.id, n.title, n.body, n.important, n.pinned, n.published_at,
          to_char(n.expires_on, 'YYYY-MM-DD') AS expires_on, n.edited_at,

@@ -34,7 +34,8 @@ export interface NoticeActor {
 export const MSG = {
   notFound: 'Notice not found',
   notDraft: 'প্রাপক শুধু খসড়া নোটিশে বদলানো যায়',
-  cap: 'সর্বোচ্চ ৫,০০০ জন',
+  // the cap counts rows: a guardian of 2 children is 2 rows (recipient_count still counts people)
+  cap: 'সর্বোচ্চ ৫,০০০ জন (অভিভাবককে প্রতিটি সন্তানের জন্য আলাদা গোনা হয়)',
   staffForbidden: 'You do not have access to this audience',
 } as const;
 
@@ -64,6 +65,31 @@ export async function loadOwnedNotice(
   if (!notice || (!canManage(actor) && notice.author_user_id !== actor.userId))
     throw new NotFoundException(MSG.notFound);
   return notice;
+}
+
+/**
+ * A student or guardian who got a login after publish has rows with user_id NULL. Every reader path
+ * (list, open, acknowledge, file) calls this first, so that person's current login owns their rows.
+ * ponytail: write-on-read, claim only. A login unlinked later keeps its rows until the new login
+ * reads; refresh where accounts get linked if that ever matters.
+ */
+export async function claimRecipientRows(
+  q: Pick<EntityManager, 'query'>,
+  tenantId: string,
+  userId: string,
+): Promise<void> {
+  await q.query(
+    `UPDATE notice_recipients r SET user_id = s.user_id FROM students s
+      WHERE r.kind = 'STUDENT' AND r.tenant_id = $1 AND s.tenant_id = $1 AND s.id = r.student_id
+        AND s.user_id = $2::uuid AND r.user_id IS DISTINCT FROM $2::uuid`,
+    [tenantId, userId],
+  );
+  await q.query(
+    `UPDATE notice_recipients r SET user_id = g.user_id FROM guardians g
+      WHERE r.kind = 'GUARDIAN' AND r.tenant_id = $1 AND g.tenant_id = $1 AND g.id = r.guardian_id
+        AND g.user_id = $2::uuid AND r.user_id IS DISTINCT FROM $2::uuid`,
+    [tenantId, userId],
+  );
 }
 
 // Fixed SQL, every id a parameter (Rule 4). Each statement re-checks tenant ownership, so a foreign
