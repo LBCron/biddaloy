@@ -49,6 +49,15 @@ const ALLOW_LIST: Record<string, { reason: string; removedBy: string }> = {
     reason: 'global on purpose: random secret hash, ICS feed lookup',
     removedBy: 'permanent',
   },
+  // resolve() looks the token up before it knows the school; a 256-bit token cannot collide
+  'notices(public_token_hash)': {
+    reason: 'global on purpose: random secret hash, public notice link lookup',
+    removedBy: 'permanent',
+  },
+  'notice_recipients(link_token_hash)': {
+    reason: 'global on purpose: random secret hash, personal notice link lookup',
+    removedBy: 'permanent',
+  },
 };
 
 /**

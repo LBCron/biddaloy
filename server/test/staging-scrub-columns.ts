@@ -99,6 +99,7 @@ const BY_TABLE: Record<string, Partial<Record<ScrubHandling, string[]>>> = {
   staff_incidents: { null: ['body', 'withdraw_reason'] },
   staff_documents: { fake: ['original_filename'], 'kept-public': ['storage_key'] },
   print_assets: { fake: ['original_name'], 'kept-public': ['storage_key'] },
+  notice_attachments: { fake: ['original_name'], 'kept-public': ['storage_key'] },
 
   // --- tokens, sessions, devices ---
   refresh_tokens: { 'delete-row': ['*'] },
@@ -130,6 +131,9 @@ const BY_TABLE: Record<string, Partial<Record<ScrubHandling, string[]>>> = {
     null: ['message_template'],
     'kept-public': ['batch_name', 'filters_applied'],
   },
+  // NOT NULL text becomes '[scrubbed]'; the link hashes go so no production link opens on staging
+  notices: { null: ['title', 'body', 'public_token_hash'] },
+  notice_recipients: { null: ['link_token_hash'] },
   alerts: {
     null: ['manual_body', 'manual_title'],
     fake: ['params'],

@@ -138,6 +138,7 @@ UPDATE staff_incidents SET body = '[scrubbed]',
   withdraw_reason = CASE WHEN withdrawn_at IS NOT NULL THEN '[scrubbed]' END;
 UPDATE staff_documents SET original_filename = 'file-' || left(id::text, 8);
 UPDATE print_assets SET original_name = 'file-' || left(id::text, 8);
+UPDATE notice_attachments SET original_name = 'file-' || left(id::text, 8);
 
 -- School provider secrets (paths from TenantSettingsDto @Secret()) and SMTP identity -------------
 
@@ -191,6 +192,10 @@ UPDATE communication_logs SET
   metadata = NULL,
   status = CASE WHEN status = 'QUEUED' THEN 'FAILED' ELSE status END;
 UPDATE reminder_batches SET message_template = NULL;
+-- Notices: the text can name people, and no production notice link may open on staging.
+UPDATE notices SET title = '[scrubbed]', body = '[scrubbed]',
+  public_token_hash = NULL, public_token_created_at = NULL;
+UPDATE notice_recipients SET link_token_hash = NULL WHERE link_token_hash IS NOT NULL;
 -- params: studentName, and the headlines built from it (homework-not-submitted.rule.ts writes
 -- "<name> has not submitted ..."). The headlines stay as '[scrubbed]': they are the alert's title.
 UPDATE alerts SET manual_body = NULL,
