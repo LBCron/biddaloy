@@ -126,6 +126,15 @@ describe('runStackConfigCheck', () => {
     'GOOGLE_OAUTH_CLIENT_SECRET',
     'FACEBOOK_OAUTH_CLIENT_ID',
     'FACEBOOK_OAUTH_CLIENT_SECRET',
+    'SMS_PROVIDER',
+    'GREENWEB_API_KEY',
+    'GREENWEB_API_URL',
+    'MIMSMS_API_KEY',
+    'MIMSMS_SENDER_ID',
+    'MIMSMS_API_URL',
+    'ONECODESOFT_API_KEY',
+    'ONECODESOFT_SENDER_ID',
+    'ONECODESOFT_API_URL',
     'PLATFORM_SMS_PROVIDER',
     'PLATFORM_SMS_API_KEY',
     'PLATFORM_SMS_SENDER_ID',
@@ -504,6 +513,8 @@ describe('runStackConfigCheck', () => {
     for (const key of [
       'PLATFORM_SMS_API_KEY',
       'SMS_PROVIDER',
+      'ONECODESOFT_API_KEY',
+      'ONECODESOFT_API_URL',
       'SMTP_HOST',
       'PLATFORM_ALERT_PHONES',
     ]) {
@@ -513,6 +524,93 @@ describe('runStackConfigCheck', () => {
       expect(result.output).not.toContain('live-value-123');
     }
     expect((await runStackConfigCheck('staging', { ...staging, SMTP_HOST: '' })).ok).toBe(true);
+  });
+
+  describe('platform SMS provider (97 D3)', () => {
+    const onecode = {
+      SMS_PROVIDER: 'onecodesoft',
+      ONECODESOFT_API_KEY: 'k-123',
+      ONECODESOFT_SENDER_ID: 'sid',
+      ONECODESOFT_API_URL: 'https://gw.example/api',
+    };
+
+    it('prod passes with SMS_PROVIDER=onecodesoft and its three keys', async () => {
+      expect(await runStackConfigCheck('prod', { ...prod, ...onecode })).toEqual({
+        ok: true,
+        output: 'config ok',
+      });
+    });
+
+    it('prod refuses an unknown SMS_PROVIDER without echoing it', async () => {
+      const r = await runStackConfigCheck('prod', {
+        ...prod,
+        ...onecode,
+        SMS_PROVIDER: 'nosuchvendor',
+      });
+      expect(r.ok).toBe(false);
+      expect(r.output).toContain('SMS_PROVIDER must name a registered SMS provider');
+      expect(r.output).not.toContain('nosuchvendor');
+    });
+
+    it('prod refuses a chosen provider missing a required key, naming keys only', async () => {
+      const { ONECODESOFT_API_URL: _u, ...noUrl } = onecode;
+      const r = await runStackConfigCheck('prod', { ...prod, ...noUrl });
+      expect(r.ok).toBe(false);
+      expect(r.output).toContain('ONECODESOFT_API_URL');
+      expect(r.output).not.toContain('k-123');
+      const m = await runStackConfigCheck('prod', {
+        ...prod,
+        SMS_PROVIDER: 'mimsms',
+        MIMSMS_API_KEY: 'k-123',
+      });
+      expect(m.ok).toBe(false);
+      expect(m.output).toContain('MIMSMS_SENDER_ID');
+    });
+
+    // CodeRabbit on PR #3325: a key of spaces only is not a key.
+    it('prod refuses a required key that is only spaces', async () => {
+      const r = await runStackConfigCheck('prod', {
+        ...prod,
+        ...onecode,
+        ONECODESOFT_API_KEY: '   ',
+      });
+      expect(r.ok).toBe(false);
+      expect(r.output).toContain('SMS_PROVIDER needs ONECODESOFT_API_KEY on prod');
+    });
+
+    it('prod refuses provider keys with no SMS_PROVIDER', async () => {
+      const r = await runStackConfigCheck('prod', { ...prod, ...onecode, SMS_PROVIDER: '' });
+      expect(r.ok).toBe(false);
+      expect(r.output).toContain('SMS_PROVIDER must name a registered SMS provider');
+    });
+
+    it('prod with only SMTP keys and no SMS_PROVIDER passes', async () => {
+      const r = await runStackConfigCheck('prod', { ...prod, SMTP_HOST: 'smtp.example.com' });
+      expect(r.ok).toBe(true);
+      expect(r.output).not.toContain('SMS_PROVIDER');
+    });
+
+    it('prod refuses a typo SMS_PROVIDER even with no SMS keys, without echoing it', async () => {
+      const r = await runStackConfigCheck('prod', { ...prod, SMS_PROVIDER: 'onecodesft' });
+      expect(r.ok).toBe(false);
+      expect(r.output).toContain('SMS_PROVIDER must name a registered SMS provider');
+      expect(r.output).not.toContain('onecodesft');
+    });
+
+    it('prod with no provider keys at all is fine (alerts then only warn)', async () => {
+      expect((await runStackConfigCheck('prod', prod)).ok).toBe(true);
+    });
+
+    it('staging and demo refuse ONECODESOFT_API_KEY by name', async () => {
+      for (const [stack, env] of [
+        ['staging', staging],
+        ['demo', demo],
+      ] as const) {
+        const r = await runStackConfigCheck(stack, { ...env, ONECODESOFT_API_KEY: 'live-123' });
+        expect(r.output).toContain('ONECODESOFT_API_KEY must be empty');
+        expect(r.output).not.toContain('live-123');
+      }
+    });
   });
 
   it('demo with a bucket other than biddaloy-demo fails', async () => {

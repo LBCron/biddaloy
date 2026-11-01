@@ -122,15 +122,22 @@ describe('TenantSettingsDto', () => {
       expect(errors.some((e) => e.property === 'communications')).toBe(true);
     });
 
-    it('rejects null for an optional scalar', async () => {
-      const dto = toDto({
+    // #3331: null clears a saved optional field (the merge removes it); a required one cannot be cleared.
+    it('accepts null for an optional field and rejects it for a required one', async () => {
+      const optional = toDto({
         version: TENANT_SETTINGS_SCHEMA_VERSION,
         communications: { sms: { provider: 'alpha', alpha: { ...ALPHA, apiUrl: null } } },
       });
+      expect(await validate(optional, VALIDATION_OPTIONS)).toEqual([]);
 
-      const errors = await validate(dto, VALIDATION_OPTIONS);
-
-      expect(msg(commError(errors, 'sms'))).toContain('apiUrl must be text.');
+      const required = toDto({
+        version: TENANT_SETTINGS_SCHEMA_VERSION,
+        communications: { sms: { provider: 'alpha', alpha: { ...ALPHA, senderId: null } } },
+      });
+      const errors = await validate(required, VALIDATION_OPTIONS);
+      expect(msg(commError(errors, 'sms'))).toContain(
+        'senderId is required and cannot be cleared.',
+      );
     });
 
     it('still accepts an omitted optional field', async () => {

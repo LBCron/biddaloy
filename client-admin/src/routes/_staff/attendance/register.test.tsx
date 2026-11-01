@@ -14,8 +14,12 @@ import { routeTree } from '../../../routeTree.gen';
 const CLASS_ID = '11111111-1111-4111-8111-111111111111';
 const SECTION_ID = '22222222-2222-4222-8222-222222222222';
 
-function dates31(month: string) {
-  return Array.from({ length: 31 }, (_, i) => ({
+/** Every day of `month` (`YYYY-MM`): 28 to 31 of them. Tests that use the current month must not
+ * assume 31 days (November has 30, and "2026-11-31" is not a date). */
+function datesOfMonth(month: string) {
+  const [y, m] = month.split('-').map(Number) as [number, number];
+  const days = new Date(y, m, 0).getDate();
+  return Array.from({ length: days }, (_, i) => ({
     date: `${month}-${String(i + 1).padStart(2, '0')}`,
     is_working_day: true,
   }));
@@ -103,7 +107,7 @@ describe('/attendance/register', () => {
     server.use(
       pinEnglishRegion,
       http.get('/api/v1/attendance/sections/:sectionId/register-matrix', () =>
-        HttpResponse.json({ dates: dates31('2026-01'), rows: [registerRow()] }),
+        HttpResponse.json({ dates: datesOfMonth('2026-01'), rows: [registerRow()] }),
       ),
     );
 
@@ -180,7 +184,7 @@ describe('/attendance/register', () => {
         HttpResponse.json([{ id: SECTION_ID, section_name: 'A', enrolled_count: 30 }]),
       ),
       http.get('/api/v1/attendance/sections/:sectionId/register-matrix', () =>
-        HttpResponse.json({ dates: dates31('2026-01'), rows: [registerRow()] }),
+        HttpResponse.json({ dates: datesOfMonth('2026-01'), rows: [registerRow()] }),
       ),
     );
 
@@ -203,7 +207,7 @@ describe('/attendance/register', () => {
   it('shows an empty state when the section has no students', async () => {
     server.use(
       http.get('/api/v1/attendance/sections/:sectionId/register-matrix', () =>
-        HttpResponse.json({ dates: dates31('2026-01'), rows: [] }),
+        HttpResponse.json({ dates: datesOfMonth('2026-01'), rows: [] }),
       ),
     );
 
@@ -250,7 +254,7 @@ describe('/attendance/register', () => {
         return HttpResponse.json({ version: 1, region: { ...REGION_BD_EN, numerals: 'bengali' } });
       }),
       http.get('/api/v1/attendance/sections/:sectionId/register-matrix', () =>
-        HttpResponse.json({ dates: dates31('2026-01'), rows: [registerRow()] }),
+        HttpResponse.json({ dates: datesOfMonth('2026-01'), rows: [registerRow()] }),
       ),
     );
 
@@ -285,7 +289,7 @@ function useMatrix(putHandler?: Parameters<typeof http.put>[1]) {
     pinEnglishRegion,
     http.get('/api/v1/attendance/sections/:sectionId/register-matrix', () =>
       HttpResponse.json({
-        dates: dates31('2026-01'),
+        dates: datesOfMonth('2026-01'),
         versions: { '2026-01-01': 3 },
         rows: [
           registerRow(),
@@ -425,7 +429,7 @@ describe('/attendance/register month edit', () => {
       pinEnglishRegion,
       http.get('/api/v1/attendance/sections/:sectionId/register-matrix', () =>
         HttpResponse.json({
-          dates: dates31(month),
+          dates: datesOfMonth(month),
           versions: { [today]: 1 },
           rows: [registerRow({ marks: { [today]: 'PRESENT' } })],
         }),
@@ -664,7 +668,7 @@ describe('/attendance/register month edit', () => {
         if (new URL(request.url).searchParams.get('month') !== '2026-02') return;
         await gate;
         return HttpResponse.json({
-          dates: dates31('2026-02').slice(0, 28),
+          dates: datesOfMonth('2026-02').slice(0, 28),
           versions: {},
           rows: [registerRow({ marks: {} })],
         });

@@ -301,6 +301,16 @@ describe('CommunicationsService', () => {
       [null, null],
       [{}, null],
       [{ error: 42 }, null],
+      // #3351: a Check status "not delivered" has no `error`; the vendor code stays out (Rule 23).
+      [
+        { delivery: { status: 'FAILED', code: '1001', checkedAt: '2026-10-31T10:00:00.000Z' } },
+        'FAILED',
+      ],
+      [{ delivery: { status: 'PENDING', checkedAt: '2026-10-31T10:00:00.000Z' } }, null],
+      [
+        { error: 'No provider registered for medium "SMS"', delivery: { status: 'FAILED' } },
+        'NO_PROVIDER',
+      ],
     ])('[#2604] maps metadata %j to error %j', async (metadata, expected) => {
       repo.findOne.mockResolvedValue({
         id: 'log-1',

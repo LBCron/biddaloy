@@ -35,6 +35,17 @@ export interface CommunicationSendResult {
    */
   segments?: number;
   /**
+   * [97.4.01] D23: the descriptor name of the provider that handled the send (set by
+   * `sendThroughProvider`), so the log records which company to ask for delivery status.
+   * Absent when no provider was reached (config error) or in sink mode.
+   */
+  provider?: string;
+  /**
+   * #3350: whose account sent it (`platform` = the platform's env keys), so Check status asks that
+   * same account. Set next to `provider`.
+   */
+  source?: 'override' | 'tenant' | 'platform';
+  /**
    * [15.6.6/#549] Epic #508 D6's three provider outcomes, set on every
    * result (success or failure) so `CommunicationsProcessor` can settle
    * SMS credit reservations without re-deriving it from `success`/`error`.

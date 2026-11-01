@@ -35,6 +35,10 @@ const ALLOWED_FILES = new Set([
   'server/src/modules/communications/providers/messaging-providers.ts',
   // The demo school's seed picks a provider on purpose (Epic 97 D6 shape); it has no other way to name one.
   'server/src/scripts/demo-seed/slices/comms-print.ts',
+  // Test/story data for ProviderConfigForm: copies of the real server descriptors.
+  'client-admin/src/pages/settings/provider-config-form.fixtures.ts',
+  // #3339 data migration: rewrites rows that stored this exact company name; SQL cannot ask the list.
+  'server/src/migrations/1791900002000-SmsDropUnownedGreenwebProvider.ts',
 ]);
 /**
  * Files that name a vendor today, each with the reason. NOT a free pass: the list may only shrink
@@ -55,15 +59,6 @@ const KNOWN: Record<string, string> = {
   'ui/src/shells/form-shell-errors.ts': 'doc-comment example',
   'ui/src/test/msw/handlers/schools.ts': 'test fixture',
   // real debt, removed by the Epic 97 UI waves / platform-alert follow-up
-  'server/src/modules/health/health.module.ts':
-    'platform alerts still wire two SMS providers directly',
-  'server/src/modules/health/platform-alerts/platform-alerts.service.ts':
-    'PLATFORM_SMS_PROVIDER branch',
-  'client-admin/src/pages/settings/SmsSection.tsx': 'hand-built SMS form (UI wave)',
-  'client-admin/src/pages/settings/connection-test-status.tsx':
-    'hand-built SMS readiness (UI wave)',
-  'ui/src/hooks/school-settings.ts': 'hand-typed SMS settings (UI wave)',
-  'ui/src/i18n/locales/bn/settings.json': 'legacy per-vendor labels outside help.messaging',
   'ui/src/i18n/locales/en/settings.json': 'legacy per-vendor labels outside help.messaging',
 };
 const isTestFile = (p: string) => /\.(spec\.tsx?|test\.tsx?|stories\.tsx|e2e-spec\.ts)$/.test(p);
@@ -114,18 +109,23 @@ const names = MESSAGING_PROVIDERS.map(
   (P) => new (P as unknown as new () => MessagingProvider<unknown>)().descriptor.name,
 );
 
-describe('messaging provider names stay inside their own code (D19)', () => {
+// #3340: one walk of the whole repo per run, shared by the two tests that need it (each used to
+// walk it again and could pass vitest's 5 s default on a loaded machine).
+let repoLeaks: string[] | undefined;
+const leaksInRepo = () => (repoLeaks ??= findLeaks(ROOTS, REPO, names));
+
+describe('messaging provider names stay inside their own code (D19)', { timeout: 60_000 }, () => {
   it('knows the real provider names', () => {
     expect(names).toEqual(expect.arrayContaining(['greenweb', 'onecodesoft', 'smtp']));
   });
 
   it('no generic file names a vendor', () => {
-    const unexpected = findLeaks(ROOTS, REPO, names).filter((l) => !(l.split(':')[0] in KNOWN));
+    const unexpected = leaksInRepo().filter((l) => !(l.split(':')[0] in KNOWN));
     expect(unexpected).toEqual([]);
   });
 
   it('KNOWN only lists files that still leak (shrink it, never grow it)', () => {
-    const leaking = new Set(findLeaks(ROOTS, REPO, names).map((l) => l.split(':')[0]));
+    const leaking = new Set(leaksInRepo().map((l) => l.split(':')[0]));
     expect(Object.keys(KNOWN).filter((f) => !leaking.has(f))).toEqual([]);
   });
 

@@ -44,7 +44,7 @@ export class CommunicationProviderRegistryService {
         } catch (err) {
           return failedResult(err, medium, params);
         }
-        return sendThroughProvider(resolved.provider, params, resolved.config);
+        return sendThroughProvider(resolved.provider, params, resolved.config, resolved.source);
       },
     };
   }

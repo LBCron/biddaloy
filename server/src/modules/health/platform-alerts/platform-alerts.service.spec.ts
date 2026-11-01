@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Logger } from '@nestjs/common';
 import { queueWorkers } from '../../../common/queue-workers';
 import { MailpitSinkProvider } from '../../communications/providers/sink/mailpit-sink.provider';
+import { ProviderNotConfiguredError } from '../../communications/config/provider-not-configured.error';
 import { PlatformAlertsService } from './platform-alerts.service';
 
 const OPENED = new Date('2026-11-02T08:02:10Z');
@@ -29,10 +30,18 @@ function fakes(opts: {
     }),
   };
   const health = { probeRedis: vi.fn(opts.probe ?? (async () => 'fail' as const)) };
-  const env = opts.env ?? { PLATFORM_SMS_API_KEY: 'key' };
+  const env = opts.env ?? { SMS_PROVIDER: 'p' };
   const config = { get: (k: string) => env[k] };
-  const greenweb = { send: vi.fn().mockResolvedValue({ success: true }) };
-  const mim = { send: vi.fn().mockResolvedValue({ success: true }) };
+  const provider = { send: vi.fn().mockResolvedValue({ success: true }) };
+  // Stands in for the real resolver: configured when SMS_PROVIDER or the legacy key is set.
+  const resolver = {
+    resolve: vi.fn(async (_m: unknown, _t: unknown, o?: { override?: unknown }) => {
+      if (!env.SMS_PROVIDER && !env.PLATFORM_SMS_API_KEY) {
+        throw new ProviderNotConfiguredError('SMS', 'not set');
+      }
+      return { provider, config: { override: o?.override } };
+    }),
+  };
   const tenantStatus = {
     platformTenantId: vi.fn(async () =>
       opts.platformTenantId === null ? undefined : (opts.platformTenantId ?? 'platform-tenant'),
@@ -42,11 +51,10 @@ function fakes(opts: {
     dataSource as never,
     health as never,
     config as never,
-    greenweb as never,
-    mim as never,
+    resolver as never,
     tenantStatus as never,
   );
-  return { service, dataSource, health, greenweb, mim, sql };
+  return { service, dataSource, health, provider, resolver, sql };
 }
 
 const inserts = (sql: string[]) => sql.filter((s) => s.includes('INSERT INTO platform_alerts'));
@@ -73,8 +81,72 @@ describe('PlatformAlertsService', () => {
     await f.service.tick();
 
     expect(inserts(f.sql)).toHaveLength(1);
-    expect(f.greenweb.send).toHaveBeenCalledTimes(2);
-    expect(f.greenweb.send.mock.calls[0][0].body).toContain('ALERT: Redis is down since 08:02 UTC');
+    expect(f.provider.send).toHaveBeenCalledTimes(2);
+    expect(f.provider.send.mock.calls[0][0].body).toContain('ALERT: Redis is down since 08:02 UTC');
+  });
+
+  const down = { hourlyRows: [{ opened_at: OPENED }], phones: ['01711111111'] };
+  const trip = async (f: ReturnType<typeof fakes>) => {
+    for (let i = 0; i < 3; i++) await f.service.tick();
+  };
+
+  it('resolves the platform SMS provider (null tenant, platform keys allowed, no override)', async () => {
+    const f = fakes(down);
+    await trip(f);
+    expect(f.resolver.resolve).toHaveBeenCalledWith('SMS', null, {
+      allowPlatformKeys: true,
+      override: undefined,
+    });
+    expect(f.provider.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('never touches BullMQ: the service has no queue dependency and sends while Redis is down', async () => {
+    const f = fakes(down); // probeRedis fails every tick = Redis down
+    await trip(f);
+    expect(f.health.probeRedis).toHaveBeenCalledTimes(3);
+    expect(f.provider.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('deprecated PLATFORM_SMS_* keys map onto the override (unregistered name = registry default)', async () => {
+    const f = fakes({
+      ...down,
+      env: {
+        PLATFORM_SMS_PROVIDER: 'p',
+        PLATFORM_SMS_API_KEY: 'secret-key-value',
+        PLATFORM_SMS_SENDER_ID: 'sid',
+        PLATFORM_SMS_API_URL: 'https://gw.example/api',
+      },
+    });
+    await trip(f);
+    expect(f.resolver.resolve).toHaveBeenCalledWith('SMS', null, {
+      allowPlatformKeys: true,
+      // Nested under the registry default: SMS has several providers, so flat keys are ignored.
+      override: {
+        provider: 'greenweb',
+        greenweb: {
+          apiKey: 'secret-key-value',
+          senderId: 'sid',
+          apiUrl: 'https://gw.example/api',
+        },
+      },
+    });
+  });
+
+  it('SMS_PROVIDER set wins over the deprecated keys: no override', async () => {
+    const f = fakes({ ...down, env: { SMS_PROVIDER: 'p', PLATFORM_SMS_API_KEY: 'k' } });
+    await trip(f);
+    expect(f.resolver.resolve).toHaveBeenCalledWith('SMS', null, {
+      allowPlatformKeys: true,
+      override: undefined,
+    });
+  });
+
+  it('nothing configured: warns "not configured" and never throws out of the tick', async () => {
+    const warn = vi.spyOn(Logger.prototype, 'warn');
+    const f = fakes({ ...down, env: {} });
+    await expect(trip(f)).resolves.toBeUndefined();
+    expect(f.provider.send).not.toHaveBeenCalled();
+    expect(warn.mock.calls.some((c) => String(c[0]).includes('not configured'))).toBe(true);
   });
 
   it('2 failures then a success never open an alert, and the counter resets', async () => {
@@ -86,7 +158,7 @@ describe('PlatformAlertsService', () => {
     await f.service.tick();
     await f.service.tick(); // only 2 failures since the reset
     expect(inserts(f.sql)).toHaveLength(0);
-    expect(f.greenweb.send).not.toHaveBeenCalled();
+    expect(f.provider.send).not.toHaveBeenCalled();
   });
 
   it('the first good probe closes the alert and sends one "recovered" text', async () => {
@@ -96,8 +168,8 @@ describe('PlatformAlertsService', () => {
       phones: ['01711111111'],
     });
     await f.service.tick();
-    expect(f.greenweb.send).toHaveBeenCalledTimes(1);
-    expect(f.greenweb.send.mock.calls[0][0].body).toContain(
+    expect(f.provider.send).toHaveBeenCalledTimes(1);
+    expect(f.provider.send.mock.calls[0][0].body).toContain(
       'RECOVERED: Redis is back at 08:40 UTC after 38 min',
     );
   });
@@ -105,7 +177,7 @@ describe('PlatformAlertsService', () => {
   it('a second good probe sends nothing (no open row to close)', async () => {
     const f = fakes({ probe: async () => 'ok', closeRows: [], phones: ['01711111111'] });
     await f.service.tick();
-    expect(f.greenweb.send).not.toHaveBeenCalled();
+    expect(f.provider.send).not.toHaveBeenCalled();
   });
 
   it('sends no "recovered" text if nobody got the "down" text (sms_count = 0)', async () => {
@@ -115,13 +187,13 @@ describe('PlatformAlertsService', () => {
       phones: ['01711111111'],
     });
     await f.service.tick();
-    expect(f.greenweb.send).not.toHaveBeenCalled();
+    expect(f.provider.send).not.toHaveBeenCalled();
   });
 
   it('sends nothing when the hourly UPDATE returns no row (another instance, or < 1 h)', async () => {
     const f = fakes({ hourlyRows: [], phones: ['01711111111'] });
     for (let i = 0; i < 4; i++) await f.service.tick();
-    expect(f.greenweb.send).not.toHaveBeenCalled();
+    expect(f.provider.send).not.toHaveBeenCalled();
   });
 
   describe('recipients (D16)', () => {
@@ -176,7 +248,7 @@ describe('PlatformAlertsService', () => {
         body: expect.stringContaining('Redis is down'),
       });
       expect(Logger.prototype.warn).not.toHaveBeenCalled();
-      expect(f.greenweb.send).not.toHaveBeenCalled();
+      expect(f.provider.send).not.toHaveBeenCalled();
     });
 
     it('never reaches a real gateway under the sink, even when a real SMS key is present', async () => {
@@ -190,7 +262,7 @@ describe('PlatformAlertsService', () => {
       const f = fakes({ ...open, env: { PLATFORM_SMS_API_KEY: 'real-key' } });
       for (let i = 0; i < 3; i++) await f.service.tick();
       expect(send).toHaveBeenCalledTimes(2);
-      expect(f.greenweb.send).not.toHaveBeenCalled();
+      expect(f.provider.send).not.toHaveBeenCalled();
     });
 
     it('is unchanged with the sink off', async () => {
@@ -202,41 +274,14 @@ describe('PlatformAlertsService', () => {
     });
   });
 
-  describe('provider choice (D6)', () => {
+  describe('send and log', () => {
     const open = { hourlyRows: [{ opened_at: OPENED }], phones: ['01711111111'] };
-
-    it('uses Greenweb by default', async () => {
-      const f = fakes({ ...open, env: { PLATFORM_SMS_API_KEY: 'key' } });
-      for (let i = 0; i < 3; i++) await f.service.tick();
-      expect(f.greenweb.send).toHaveBeenCalledWith(
-        { to: '01711111111', body: expect.any(String) },
-        expect.objectContaining({ gateway: 'greenweb', apiKey: 'key' }),
-      );
-      expect(f.mim.send).not.toHaveBeenCalled();
-    });
-
-    it('uses MimSMS with its sender id when PLATFORM_SMS_PROVIDER=mimsms', async () => {
-      const f = fakes({
-        ...open,
-        env: {
-          PLATFORM_SMS_API_KEY: 'key',
-          PLATFORM_SMS_PROVIDER: 'mimsms',
-          PLATFORM_SMS_SENDER_ID: 'BIDDALOY',
-        },
-      });
-      for (let i = 0; i < 3; i++) await f.service.tick();
-      expect(f.mim.send).toHaveBeenCalledWith(
-        { to: '01711111111', body: expect.any(String) },
-        expect.objectContaining({ gateway: 'mimsms', senderId: 'BIDDALOY' }),
-      );
-      expect(f.greenweb.send).not.toHaveBeenCalled();
-    });
 
     // [75.34 review r1, F-2441-3] the raw provider body can echo the full number.
     it('logs the send status only, never the raw provider response', async () => {
       const log = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
       const f = fakes(open);
-      f.greenweb.send.mockResolvedValue({
+      f.provider.send.mockResolvedValue({
         success: true,
         outcome: 'ACCEPTED',
         providerMessageId: 'm-1',
@@ -253,18 +298,19 @@ describe('PlatformAlertsService', () => {
       const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
       const f = fakes({ ...open, env: {} });
       for (let i = 0; i < 3; i++) await f.service.tick();
-      expect(warn).toHaveBeenCalledWith(
-        expect.stringContaining('platform alert SMS not configured; would text 1 phone(s):'),
-      );
-      expect(f.greenweb.send).not.toHaveBeenCalled();
-      expect(f.mim.send).not.toHaveBeenCalled();
+      // PR #3325 nit: one warning per alert, naming both the config problem and what was not sent.
+      const lines = warn.mock.calls.map((c) => String(c[0]));
+      const notConfigured = lines.filter((l) => l.startsWith('platform alert SMS not configured'));
+      expect(notConfigured).toHaveLength(1);
+      expect(notConfigured[0]).toContain('would text 1 phone(s):');
+      expect(f.provider.send).not.toHaveBeenCalled();
     });
   });
 
   describe('never throws', () => {
     it('survives a gateway that rejects', async () => {
       const f = fakes({ hourlyRows: [{ opened_at: OPENED }], phones: ['01711111111'] });
-      f.greenweb.send.mockRejectedValue(new Error('gateway down'));
+      f.provider.send.mockRejectedValue(new Error('gateway down'));
       for (let i = 0; i < 3; i++) await expect(f.service.tick()).resolves.toBeUndefined();
     });
 

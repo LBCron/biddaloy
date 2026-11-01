@@ -5,12 +5,22 @@
 import { test, type Page } from '@playwright/test';
 
 import { imgDir } from '../helpers/capture';
-import { asRole, go, snap, step } from '../helpers/nav';
+import { asRole, go, snap, step, tr } from '../helpers/nav';
 
 const dir = imgDir('administration');
 const f = (name: string) => `${dir}/${name}.png`;
 const h1 = (p: Page) => p.getByRole('main').getByRole('heading', { level: 1 });
-const SECTIONS = ['school', 'academics', 'finance', 'billing', 'communication', 'printing', 'security', 'alerts', 'backup'];
+const SECTIONS = [
+  'school',
+  'academics',
+  'finance',
+  'billing',
+  'communication',
+  'printing',
+  'security',
+  'alerts',
+  'backup',
+];
 
 async function settle(page: Page, ms = 1500) {
   await page.waitForLoadState('networkidle').catch(() => undefined);
@@ -39,7 +49,10 @@ test('administration pages', async ({ browser }, info) => {
   await step('roles', async () => {
     await go(page, '/roles');
     await settle(page, 2000);
-    await snap(page, f('roles-01-list'), [{ target: h1(page) }, { target: main.locator('div.rounded-lg.border').first() }]);
+    await snap(page, f('roles-01-list'), [
+      { target: h1(page) },
+      { target: main.locator('div.rounded-lg.border').first() },
+    ]);
   });
 
   await step('print-templates', async () => {
@@ -58,7 +71,27 @@ test('administration pages', async ({ browser }, info) => {
     await step(`settings-${s}`, async () => {
       await go(page, `/settings?section=${s}`);
       await settle(page, 2500);
-      await snap(page, f(`settings-${s}`), [{ target: h1(page) }, { target: main.getByRole('heading').nth(1) }]);
+      // Communication has its own numbered parts, matching the guide's alt text (Epic 97).
+      const targets =
+        s === 'communication'
+          ? [
+              { target: page.locator('#sms-section').getByRole('combobox').first() },
+              {
+                target: page
+                  .locator('#sms-section')
+                  .getByRole('button', { name: tr('settings', 'testConnection.action') }),
+              },
+              {
+                target: main.getByText(tr('settings', 'smsCredit.legend'), { exact: true }).first(),
+              },
+              {
+                target: main
+                  .getByText(tr('settings', 'smsCredit.ledgerTitle'), { exact: true })
+                  .first(),
+              },
+            ]
+          : [{ target: h1(page) }, { target: main.getByRole('heading').nth(1) }];
+      await snap(page, f(`settings-${s}`), targets);
     });
   }
 });

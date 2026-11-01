@@ -9,7 +9,7 @@ import {
   assertSafeHttpDestination,
   DestinationBlockedError,
 } from '../shared/outbound-destination-guard';
-import { fetchPinnedJson } from '../shared/pinned-http';
+import { fetchPinnedJsonWithStatus } from '../shared/pinned-http';
 
 const REQUEST_TIMEOUT_MS = 10_000;
 
@@ -25,6 +25,11 @@ const REJECTED_AUTH_ERROR = 'OneCodeSoft rejected the API key.';
 const AMBIGUOUS_ERROR = 'OneCodeSoft did not give a usable answer.';
 const BLOCKED_ERROR = 'OneCodeSoft API address is not allowed.';
 const NO_URL_ERROR = 'OneCodeSoft API address is not set.';
+const SEND_TEXT = {
+  auth: REJECTED_AUTH_ERROR,
+  rejected: REJECTED_ERROR,
+  ambiguous: AMBIGUOUS_ERROR,
+};
 const AUTH_REJECTED = /unauthori[sz]ed|unauthenticated|invalid api key/i;
 const REJECTED_RECIPIENT_STATUSES = new Set(['failed', 'blocked', 'spam']);
 const FAILED_DELIVERY_STATUSES = new Set(['failed', 'expired', 'rejected', 'undelivered']);
@@ -34,9 +39,8 @@ const FAILED_DELIVERY_STATUSES = new Set(['failed', 'expired', 'rejected', 'unde
  * Bearer key, JSON in and out; the base address comes from the vendor
  * dashboard, so `apiUrl` is required. It must include the `/api` segment
  * (vendor paths are `/api/v3/...`); this class appends `/v3/...` to it.
- * Known gap: `fetchPinnedJson` hides the HTTP status, so 401/5xx are read from the body
- * (follow-up: expose the status from shared/pinned-http.ts). Help text for `apiUrl` lives in i18n
- * key `help.messaging.onecodesoft.apiUrl` (D15/D18).
+ * The HTTP status decides before the body (#3320): 401/403 and other 4xx are REJECTED, 5xx is
+ * AMBIGUOUS. Help text for `apiUrl` lives in i18n key `help.messaging.onecodesoft.apiUrl` (D15/D18).
  */
 @Injectable()
 export class OnecodesoftProvider extends MessagingProvider<OnecodesoftConfig> {
@@ -84,7 +88,7 @@ export class OnecodesoftProvider extends MessagingProvider<OnecodesoftConfig> {
     }
     try {
       const { destination, url } = await this.target(config, '/v3/send-sms');
-      const data = (await fetchPinnedJson(destination, url, {
+      const { status, body } = await fetchPinnedJsonWithStatus(destination, url, {
         method: 'POST',
         headers: this.headers(config),
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -93,7 +97,10 @@ export class OnecodesoftProvider extends MessagingProvider<OnecodesoftConfig> {
           message,
           ...(config.senderId ? { senderid: config.senderId } : {}),
         }),
-      })) as Record<string, any>;
+      });
+      const failed = this.failureForHttpStatus(status, SEND_TEXT, segmentInfo.segments, body);
+      if (failed) return failed;
+      const data = body as Record<string, any>;
 
       const result = (data?.data?.results ?? data?.results)?.[0];
       if (data?.status === 'success' && String(result?.status).toLowerCase() === 'sent') {
@@ -123,13 +130,15 @@ export class OnecodesoftProvider extends MessagingProvider<OnecodesoftConfig> {
           outcome: 'REJECTED',
         };
       }
-      // Answered, but not in a shape we trust: the SMS may have gone out.
+      // Answered, but not in a shape we trust: the SMS may have gone out, so it is never
+      // retried (a retry could send it twice; see `failureForHttpStatus`). The credit stays held.
       return {
         success: false,
         providerMessageId: null,
         error: AMBIGUOUS_ERROR,
         raw: data,
         segments: segmentInfo.segments,
+        retryable: false,
         outcome: 'AMBIGUOUS',
       };
     } catch (err) {
@@ -140,7 +149,7 @@ export class OnecodesoftProvider extends MessagingProvider<OnecodesoftConfig> {
         // Fixed sentences only: the guard's own message can carry the raw URL (Rule 23).
         error: blocked ? BLOCKED_ERROR : AMBIGUOUS_ERROR,
         segments: segmentInfo.segments,
-        retryable: blocked ? false : undefined,
+        retryable: this.retryAfterThrow(err),
         outcome: blocked ? 'REJECTED' : 'AMBIGUOUS',
       };
     }
@@ -148,12 +157,17 @@ export class OnecodesoftProvider extends MessagingProvider<OnecodesoftConfig> {
 
   async getBalance(config: OnecodesoftConfig): Promise<{ amount: number; estimateSms?: number }> {
     const { destination, url } = await this.target(config, '/v3/balance');
-    const data = (await fetchPinnedJson(destination, url, {
+    const { status, body: json } = await fetchPinnedJsonWithStatus(destination, url, {
       method: 'GET',
       headers: this.headers(config),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    })) as Record<string, any>;
-    // A refused key is the one failure the admin can fix by name (testConnection says so).
+    });
+    const data = json as Record<string, any>;
+    // A refused key is the one failure the admin can fix by name (testConnection says so). The
+    // status decides first: any other error code is a plain failure, whatever its body says (a 500
+    // with "Unauthenticated." is the vendor failing, not the key). The body is read only on a 2xx.
+    if (status === 401 || status === 403) throw new ProviderAuthRejectedError();
+    if (status >= 400) throw new Error('OneCodeSoft balance check failed.');
     if (AUTH_REJECTED.test(String(data?.message))) throw new ProviderAuthRejectedError();
     const body = data?.data ?? data;
     const raw = body?.balance;
@@ -172,12 +186,15 @@ export class OnecodesoftProvider extends MessagingProvider<OnecodesoftConfig> {
     const { destination, url } = await this.target(config, '/v3/status', {
       message_id: providerMessageId,
     });
-    const data = (await fetchPinnedJson(destination, url, {
+    const { status, body } = await fetchPinnedJsonWithStatus(destination, url, {
       method: 'GET',
       headers: this.headers(config),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    })) as Record<string, any>;
-    if (data?.status === 'error') throw new Error('OneCodeSoft status check failed.');
+    });
+    const data = body as Record<string, any>;
+    if (status >= 400 || data?.status === 'error') {
+      throw new Error('OneCodeSoft status check failed.');
+    }
     const info = data?.data?.Data ?? data?.Data;
     if (!info) return { status: 'PENDING' };
     const code =

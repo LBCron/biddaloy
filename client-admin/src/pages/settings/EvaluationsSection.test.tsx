@@ -64,6 +64,25 @@ describe('EvaluationsSection', () => {
     );
   });
 
+  // PR #3325 review round 2, finding 8: while the providers query loads (or if it fails) the
+  // answer is unknown, so a school that has SMS must not see "No SMS company added." flash.
+  it('with an unknown provider state (null): no badge, no link and no alert', async () => {
+    renderWithProviders(
+      <WithTestRouter>
+        <EvaluationsSection
+          schoolId={SCHOOL_ID}
+          evaluations={{ incidentSmsEnabled: true }}
+          smsConfigured={null}
+        />
+      </WithTestRouter>,
+      opts,
+    );
+    await screen.findByLabelText(LABEL);
+    expect(screen.queryByText('No SMS company added.')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Communication › add SMS company' })).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('with a provider: a success badge, no link and no alert', async () => {
     renderWithProviders(
       <WithTestRouter>

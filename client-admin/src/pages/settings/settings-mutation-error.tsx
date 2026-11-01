@@ -9,11 +9,17 @@ import { CircleAlertIcon } from 'lucide-react';
  */
 export function SettingsMutationError({ error }: { error: unknown }) {
   const { t } = useTranslation('settings');
-  const forbidden = error instanceof ApiError && error.statusCode === 403;
   return (
     <p role="alert" className="flex items-center gap-1.5 text-destructive">
       <CircleAlertIcon aria-hidden="true" className="size-4 shrink-0" />
-      {t(forbidden ? 'mutationError.forbidden' : 'mutationError.generic')}
+      {t(mutationErrorKey(error))}
     </p>
   );
+}
+
+/** The sentence key for a failed settings request (for text that is not this component). */
+export function mutationErrorKey(error: unknown) {
+  return error instanceof ApiError && error.statusCode === 403
+    ? 'mutationError.forbidden'
+    : 'mutationError.generic';
 }

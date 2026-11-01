@@ -122,7 +122,7 @@ Do this after you add students, so that guardians can sign in to the app. You se
 
 5. If it looks right, press **Send invitations**.
 
-   → Sending starts. The dialog says "Sending… {queued} of {total} still in progress." When it finishes, the text changes to "Done — {number} sent, {number} failed, {number} skipped." Then press **Close**.
+   → Sending starts. The dialog says "Sending… {queued} of {total} still in progress." When it finishes, the text changes to "Done — {number} sent, {number} failed, {number} skipped." Then press **Close**. An invitation that the [Message log](../communications/message-log.md) later shows as **Delivered** still counts as sent.
 
 > **Remember:** nothing goes out before you press **Send invitations**. You cannot pick a few guardians in this dialog: every eligible guardian comes into the preview together. If you close the dialog after sending, the work keeps going.
 
@@ -270,6 +270,8 @@ At the top of the guardian's page are the name, a **Primary** or **Secondary** m
 | **Communication History** | Messages sent directly to this guardian: **Date**, **Medium**, **Recipient**, **Status**. For viewing only                                |
 | **Payment History**       | Payments for any of this guardian's children: **Date**, **Student**, **Amount**, **Method**, **Reference**. Each row has **View payment** |
 
+The **Messages** button at the top (Admin, Accountant, Office staff) opens the [Message log](../communications/message-log.md#task-scoped) with this guardian's messages, where each one can be opened in full.
+
 The tab is part of the page's address, so you can send someone straight to the "Linked Students" tab.
 
 ---
@@ -285,7 +287,7 @@ The tab is part of the page's address, so you can send someone straight to the "
 | **Full name is required.**                                | Write the name in the **Full name** box.                                                                                                                                          | Admin, Accountant, Office staff |
 | **Couldn't update the guardian. Try again.**              | Check your internet and press **Save changes** again. What you typed stays in the boxes. This also shows if you try to change a phone or email that the guardian uses to sign in. | Admin                           |
 | **Couldn't update linked students. Try again.**           | Check your internet and press **Save** again.                                                                                                                                     | Admin                           |
-| **Could not preview invitations. Please try again.**      | Check your internet and press **Preview invitations** again.                                                               | Admin                           |
+| **Could not preview invitations. Please try again.**      | Check your internet and press **Preview invitations** again.                                                                                                                      | Admin                           |
 | **Could not send invitations. Please try again.**         | Check your internet and press **Send invitations** again. Guardians whose invitation already went will not get it twice.                                                          | Admin                           |
 | **No guardians found**                                    | Clear the filters. If the list is really empty, first [add students](students.md). If you are a teacher, you see only the guardians of students in your section.                  | Admin                           |
 

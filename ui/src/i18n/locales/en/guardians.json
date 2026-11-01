@@ -47,6 +47,7 @@
       "payments": "Payment History"
     },
     "actions": {
+      "messages": "Messages",
       "edit": "Edit"
     },
     "information": {

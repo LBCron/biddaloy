@@ -371,7 +371,8 @@ describe('mergeTenantSettings', () => {
       expect(whatsapp.accessToken).toBe('enc:old-token');
     });
 
-    it('an explicit null clears a secret field rather than leaving it unchanged', () => {
+    // #3331: null removes the key (a cleared secret and a never-set one read the same).
+    it('an explicit null removes a secret field rather than leaving it unchanged', () => {
       const existing = {
         version: 1,
         communications: {
@@ -389,7 +390,30 @@ describe('mergeTenantSettings', () => {
         unknown
       >;
 
-      expect(whatsapp.accessToken).toBeNull();
+      expect(whatsapp).toEqual({ phoneNumberId: '111' });
+    });
+
+    // #3331: clearing a saved optional field (senderId) must actually remove it; omission keeps it.
+    it('an explicit null removes a saved optional field; an omitted one is kept', () => {
+      const existing = {
+        version: 1,
+        communications: {
+          sms: {
+            provider: 'beta',
+            beta: { token: 'enc:t', senderId: 'OLD', apiUrl: 'https://x.example' },
+          },
+        },
+      };
+      const patch = toPatch({
+        version: 1,
+        communications: { sms: { provider: 'beta', beta: { senderId: null } } },
+      });
+
+      const merged = mergeTenantSettings(existing, patch);
+      expect((merged.communications as Record<string, unknown>).sms).toEqual({
+        provider: 'beta',
+        beta: { token: 'enc:t', apiUrl: 'https://x.example' },
+      });
     });
 
     it('merges two levels deep — sms.beta.token omitted preserves it while senderId updates', () => {

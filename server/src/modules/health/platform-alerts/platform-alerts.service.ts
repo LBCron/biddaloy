@@ -3,8 +3,12 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { queueWorkers } from '../../../common/queue-workers';
-import { GreenwebProvider } from '../../communications/providers/sms/greenweb.provider';
-import { MimsmsProvider } from '../../communications/providers/sms/mimsms.provider';
+import {
+  MessagingConfigResolver,
+  type ResolvedMessaging,
+} from '../../communications/config/messaging-config.resolver';
+import { descriptorsFor } from '../../schools/settings/messaging-descriptors';
+import { ProviderNotConfiguredError } from '../../communications/config/provider-not-configured.error';
 import { MailpitSinkProvider } from '../../communications/providers/sink/mailpit-sink.provider';
 import { isMessageSink } from '../../communications/providers/sink/message-sink';
 import { HealthService } from '../health.service';
@@ -26,7 +30,7 @@ const maskPhone = (p: string) => `***${p.slice(-3)}`;
  * 3 failures in a row open one `REDIS_DOWN` row and text every platform SUPER_ADMIN, then hourly
  * while it stays open; the first good probe closes it and sends one "recovered" text.
  * Every state change is one conditional SQL statement, so several API instances never open two
- * rows or send twice. SMS goes straight to the gateway with the platform's own key (D6).
+ * rows or send twice. SMS goes straight to the registered provider with the platform's env config (D3), never the queue.
  */
 @Injectable()
 export class PlatformAlertsService implements OnModuleInit, OnModuleDestroy {
@@ -39,12 +43,12 @@ export class PlatformAlertsService implements OnModuleInit, OnModuleDestroy {
     private readonly dataSource: DataSource,
     private readonly health: HealthService,
     private readonly config: ConfigService,
-    private readonly greenweb: GreenwebProvider,
-    private readonly mim: MimsmsProvider,
+    private readonly resolver: MessagingConfigResolver,
     private readonly tenantStatus: TenantStatusService,
   ) {}
 
   onModuleInit(): void {
+    this.warnDeprecatedKeys();
     // Scripts (queueWorkers off) and tests never probe; tests call tick() directly.
     if (!queueWorkers.enabled || process.env.NODE_ENV === 'test') return;
     this.timer = setInterval(() => void this.tick(), PROBE_INTERVAL_MS);
@@ -155,8 +159,8 @@ export class PlatformAlertsService implements OnModuleInit, OnModuleDestroy {
     const phones = await this.recipients();
     if (isMessageSink()) {
       // Epic 87 (D23): staging/demo alerts land in the test inbox. The sink provider is used
-      // directly, not through CommunicationsModule, which would pull BullMQ into this
-      // Redis-outage path. It never throws (returns a failed result), and the tick catches anyway.
+      // directly, not through the config resolver or the queue: the alert path must work while
+      // Redis is down. It never throws (returns a failed result), and the tick catches anyway.
       const sink = MailpitSinkProvider.forMedium(CommunicationMedium.SMS);
       // No recipients means no inbox message; say so, or the alert drops without a trace.
       if (phones.length === 0)
@@ -164,34 +168,13 @@ export class PlatformAlertsService implements OnModuleInit, OnModuleDestroy {
       for (const phone of phones) await sink.send({ to: phone, body: text });
       return;
     }
-    const apiKey = this.config.get<string>('PLATFORM_SMS_API_KEY');
-    if (!apiKey) {
-      this.logger.warn(
-        `platform alert SMS not configured; would text ${phones.length} phone(s): ${text}`,
-      );
-      return;
-    }
-    const apiUrl = this.config.get<string>('PLATFORM_SMS_API_URL') || undefined;
-    const provider = this.config.get<string>('PLATFORM_SMS_PROVIDER') ?? 'greenweb';
-    const senderId = this.config.get<string>('PLATFORM_SMS_SENDER_ID') ?? '';
-    if (provider === 'mimsms' && !senderId) {
-      this.logger.warn(
-        'platform alert SMS: PLATFORM_SMS_PROVIDER=mimsms needs PLATFORM_SMS_SENDER_ID',
-      );
-      return;
-    }
+    // One warning per alert: resolveSms names the config problem and what was not sent.
+    const resolved = await this.resolveSms(`; would text ${phones.length} phone(s): ${text}`);
+    if (!resolved) return;
+    const { provider, config } = resolved;
     for (const phone of phones) {
       try {
-        const result =
-          provider === 'mimsms'
-            ? await this.mim.send(
-                { to: phone, body: text },
-                { gateway: 'mimsms', apiKey, senderId, apiUrl },
-              )
-            : await this.greenweb.send(
-                { to: phone, body: text },
-                { gateway: 'greenweb', apiKey, apiUrl },
-              );
+        const result = await provider.send({ to: phone, body: text }, config);
         // Status only: the provider's raw body can echo the full destination number.
         const { success, outcome, providerMessageId, error } = result;
         this.logger.log(
@@ -202,6 +185,69 @@ export class PlatformAlertsService implements OnModuleInit, OnModuleDestroy {
           `platform alert SMS to ${maskPhone(phone)} failed: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
+    }
+  }
+
+  /** Deprecated `PLATFORM_SMS_*` keys: one boot warning, key names only (Rule 13). */
+  private warnDeprecatedKeys(): void {
+    const get = (k: string) => this.config.get<string>(k);
+    // stack.yml defaults PLATFORM_SMS_PROVIDER, so it alone is never a signal.
+    const names = ['PLATFORM_SMS_API_KEY', 'PLATFORM_SMS_SENDER_ID', 'PLATFORM_SMS_API_URL'];
+    const setNames = names.filter((k) => get(k));
+    if (setNames.length === 0) return;
+    if (get('SMS_PROVIDER')) {
+      this.logger.warn('PLATFORM_SMS_* ignored because SMS_PROVIDER is set');
+      return;
+    }
+    if (get('PLATFORM_SMS_PROVIDER')) setNames.unshift('PLATFORM_SMS_PROVIDER');
+    this.logger.warn(
+      get('PLATFORM_SMS_API_KEY')
+        ? `${setNames.join(', ')} are deprecated and read for one more release; set SMS_PROVIDER and the provider's own keys instead`
+        : `${setNames.join(', ')} are set without PLATFORM_SMS_API_KEY, so they are ignored; set SMS_PROVIDER and the provider's own keys`,
+    );
+  }
+
+  /**
+   * Platform SMS config (D3): the registered provider and its env keys, never the queue.
+   * For one release the old `PLATFORM_SMS_*` keys still work when `SMS_PROVIDER` is unset;
+   * they ride in as the resolver override so `process.env` is never touched.
+   * Returns undefined when nothing usable is configured; never throws (the tick must not).
+   */
+  private async resolveSms(notSent = ''): Promise<ResolvedMessaging | undefined> {
+    const get = (k: string) => this.config.get<string>(k) || undefined;
+    const legacyKey = get('PLATFORM_SMS_API_KEY');
+    const legacy = !get('SMS_PROVIDER') && !!legacyKey;
+    // Old meaning: the named provider if registered (any case), else the registry default.
+    const wanted = get('PLATFORM_SMS_PROVIDER')?.trim().toLowerCase();
+    const sms = descriptorsFor(CommunicationMedium.SMS);
+    const provider = (sms.find((d) => d.name === wanted) ?? sms[0])?.name;
+    // Nested under the provider: SMS has several providers, so the resolver ignores flat keys.
+    const override =
+      legacy && provider
+        ? {
+            provider,
+            [provider]: {
+              apiKey: legacyKey,
+              senderId: get('PLATFORM_SMS_SENDER_ID'),
+              apiUrl: get('PLATFORM_SMS_API_URL'),
+            },
+          }
+        : undefined;
+    try {
+      return await this.resolver.resolve(CommunicationMedium.SMS, null, {
+        allowPlatformKeys: true,
+        override,
+      });
+    } catch (error) {
+      // Only ProviderNotConfiguredError text is safe to log (names fields, never values).
+      const reason =
+        error instanceof ProviderNotConfiguredError
+          ? legacy
+            ? 'the deprecated PLATFORM_SMS_* keys are incomplete (PLATFORM_SMS_API_KEY, plus PLATFORM_SMS_SENDER_ID / PLATFORM_SMS_API_URL for some providers); set SMS_PROVIDER and the provider keys instead'
+            : error.message
+          : 'the config could not be resolved';
+      this.logger.warn(`platform alert SMS not configured: ${reason}${notSent}`);
+      return undefined;
     }
   }
 }

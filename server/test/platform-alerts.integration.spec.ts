@@ -18,7 +18,7 @@ describe('platform_alerts (integration)', () => {
   const greenweb = { send: vi.fn().mockResolvedValue({ success: true }) };
   let service: PlatformAlertsService;
   let platformTenantId: string | undefined = SEED_TENANT_ID;
-  const env: Record<string, string | undefined> = { PLATFORM_SMS_API_KEY: 'key' };
+  const env: Record<string, string | undefined> = { SMS_PROVIDER: 'p' };
   const otherTenantId = randomUUID();
 
   beforeAll(async () => {
@@ -28,8 +28,7 @@ describe('platform_alerts (integration)', () => {
       dataSource,
       { probeRedis: async () => probe } as never,
       { get: (k: string) => env[k] } as never,
-      greenweb as never,
-      { send: vi.fn() } as never,
+      { resolve: async () => ({ provider: greenweb, config: {} }) } as never,
       { platformTenantId: async () => platformTenantId } as never,
     );
     await dataSource.query(

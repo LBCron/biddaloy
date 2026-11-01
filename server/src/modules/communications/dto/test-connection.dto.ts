@@ -1,4 +1,4 @@
-import { IsIn, IsObject, IsOptional } from 'class-validator';
+import { IsIn, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
 import {
   TESTABLE_MEDIA,
   TestableCommunicationMedium,
@@ -22,4 +22,13 @@ export class TestConnectionDto {
   @IsOptional()
   @IsObject()
   config?: Record<string, unknown>;
+
+  /**
+   * Also send one real message to this phone (SMS) or address (EMAIL) once the connection test
+   * passes. Format is checked per medium in `ConnectionTestService`; needs an `Idempotency-Key`.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  sendTo?: string;
 }

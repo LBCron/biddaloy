@@ -226,7 +226,7 @@ Press a name in the list, or **View**, to open the profile.
 
 - **Top row:** **Registration no.**, **Class** (class · section), **Roll**, and the **Primary guardian** (name and phone).
 - **Status:** a badge next to the name: **Active**, **Inactive**, **Transferred** or **Graduated**.
-- **Action buttons:** **Edit**, **Record leaving** or **Readmit**, **Collect fees**, **Send reminder**, **Print ID card**, **Delete**. You see only what your role may do ([Who can do what](#roles)).
+- **Action buttons:** **Edit**, **Record leaving** or **Readmit**, **Collect fees**, **Send reminder**, **Print ID card**, **Delete**, and **Messages** (in **More actions**), which opens the [Message log](../communications/message-log.md#task-scoped) with this student's messages. You see only what your role may do ([Who can do what](#roles)).
 
 The tabs come in this order:
 
