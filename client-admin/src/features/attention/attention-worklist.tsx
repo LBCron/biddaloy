@@ -10,6 +10,7 @@ import { markAllNotificationsRead, markNotificationRead } from '@biddaloy/ui/api
 import {
   AlertSeverityBadge,
   AlertSnoozeMenu,
+  AttentionNoticeItem,
   Button,
   Card,
   DataTable,
@@ -20,11 +21,16 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  NOTICE_IMPORTANT,
+  NOTICE_SMS_APPROVAL,
+  isNoticeAlert,
+  noticeIdOf,
   type DataTableColumn,
   type RowAction,
 } from '@biddaloy/ui/components';
 import {
   useActiveRole,
+  attentionKeys,
   useAllClasses,
   useAttentionItems,
   useClassSections,
@@ -43,9 +49,11 @@ import {
   type FilterFieldDescriptor,
 } from '@biddaloy/ui/shells';
 import { formatDateTime } from '@biddaloy/ui/utils';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRightIcon, CheckCheckIcon, InfoIcon } from 'lucide-react';
 import * as React from 'react';
+
+import { useAcknowledgeNotice } from '../notices/read/use-my-notices';
 
 export type WorklistTab = 'active' | 'history';
 
@@ -67,6 +75,8 @@ export function AttentionWorklist({ scope, tab, onTabChange }: AttentionWorklist
   const deviceRef = React.useRef<HTMLDivElement>(null);
   const hide = useHideAttentionItem();
   const snooze = useSnoozeAttentionItem();
+  const acknowledge = useAcknowledgeNotice();
+  const queryClient = useQueryClient();
 
   const { category: categoryRaw, class_id, section_id, student_id } = state.filters;
   const category = CATEGORIES.find((c) => c === categoryRaw);
@@ -79,6 +89,7 @@ export function AttentionWorklist({ scope, tab, onTabChange }: AttentionWorklist
   const resetActionErrors = () => {
     hide.reset();
     snooze.reset();
+    acknowledge.reset();
   };
 
   const query = useAttentionItems({
@@ -163,6 +174,8 @@ export function AttentionWorklist({ scope, tab, onTabChange }: AttentionWorklist
   }
 
   function actionsFor(item: AlertItem): RowAction[] {
+    // Important notices leave through "পড়েছি", never through close (D17).
+    const important = item.ruleKey === NOTICE_IMPORTANT;
     const rowActions: RowAction[] = [];
     if (item.actionUrl && item.actionLabel) {
       rowActions.push({
@@ -173,7 +186,7 @@ export function AttentionWorklist({ scope, tab, onTabChange }: AttentionWorklist
         to: item.actionUrl,
       });
     }
-    if (item.closable && item.state === AlertRecipientState.OPEN) {
+    if (item.closable && !important && item.state === AlertRecipientState.OPEN) {
       rowActions.push({
         intent: 'dismiss',
         label: t('item.closeNamed', { title: item.title }),
@@ -188,6 +201,7 @@ export function AttentionWorklist({ scope, tab, onTabChange }: AttentionWorklist
   const canSnooze = (item: AlertItem) =>
     item.state === AlertRecipientState.OPEN &&
     item.closable &&
+    item.ruleKey !== NOTICE_IMPORTANT &&
     item.severity === AlertSeverity.WARNING;
 
   const columns: DataTableColumn<AlertItem>[] = [
@@ -202,7 +216,11 @@ export function AttentionWorklist({ scope, tab, onTabChange }: AttentionWorklist
       header: t('worklist.colTitle'),
       accessorFn: (item) => (
         <div>
-          <div className="font-medium">{item.title}</div>
+          <div className="font-medium">
+            {item.ruleKey === NOTICE_SMS_APPROVAL
+              ? t('notice.smsPending', { title: item.title })
+              : item.title}
+          </div>
           <div className="text-caption text-text-secondary">{item.why}</div>
         </div>
       ),
@@ -230,7 +248,20 @@ export function AttentionWorklist({ scope, tab, onTabChange }: AttentionWorklist
       header: t('worklist.colActions'),
       accessorFn: (item) => (
         <div className="flex min-w-0 flex-wrap items-center gap-1">
-          <RowActions actions={actionsFor(item)} />
+          {isNoticeAlert(item) && item.state === AlertRecipientState.OPEN ? (
+            <AttentionNoticeItem
+              item={item}
+              busy={acknowledge.isPending && acknowledge.variables === noticeIdOf(item)}
+              onAcknowledge={(id) =>
+                acknowledge.mutate(id, {
+                  onSuccess: () =>
+                    void queryClient.invalidateQueries({ queryKey: attentionKeys.all }),
+                })
+              }
+            />
+          ) : (
+            <RowActions actions={actionsFor(item)} />
+          )}
           {canSnooze(item) && (
             <AlertSnoozeMenu
               triggerVariant="icon"
@@ -286,7 +317,7 @@ export function AttentionWorklist({ scope, tab, onTabChange }: AttentionWorklist
             }}
             resultCount={total}
           />
-          {(hide.isError || snooze.isError) && (
+          {(hide.isError || snooze.isError || acknowledge.isError) && (
             <p role="alert" className="text-caption text-destructive">
               {t('item.actionFailed')}
             </p>
