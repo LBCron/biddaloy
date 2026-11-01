@@ -442,6 +442,19 @@
     "routes": ["/reports/alerts"]
   },
   {
+    "id": "communications.notices",
+    "kind": "nav",
+    "path": "communications/notices",
+    "route": "/communications/notices",
+    "roles": ["ADMIN", "TEACHER", "EXECUTIVE", "OFFICE_STAFF"],
+    "routes": [
+      "/communications/notices",
+      "/communications/notices/$noticeId",
+      "/communications/notices/$noticeId/edit",
+      "/communications/notices/new"
+    ]
+  },
+  {
     "id": "communications.sendMessage",
     "kind": "nav",
     "path": "communications/send-message",
@@ -614,6 +627,14 @@
     "route": "/portal/homework",
     "roles": ["PARENT", "STUDENT"],
     "routes": ["/portal/homework"]
+  },
+  {
+    "id": "portal.notices",
+    "kind": "portal",
+    "path": "portal/notices",
+    "route": "/portal/notices",
+    "roles": ["PARENT", "STUDENT"],
+    "routes": ["/portal/notices", "/portal/notices/$noticeId"]
   },
   {
     "id": "portal.surveys",

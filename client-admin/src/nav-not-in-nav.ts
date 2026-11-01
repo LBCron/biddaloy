@@ -46,6 +46,8 @@ export const NOT_IN_NAV: Record<string, string> = {
     'guardian portal page, has its own portal nav, not the staff sidebar',
   '/portal/notifications':
     'guardian portal page, reached from the bell and the alerts modal, not the portal nav',
+  '/portal/notices/': 'guardian portal page, has its own portal nav, not the staff sidebar',
+  '/portal/notices/$noticeId': 'guardian portal page, opened from the notice list or a shared link',
   '/portal/surveys': 'guardian portal page, has its own portal nav, not the staff sidebar',
   '/portal/results': 'guardian portal page, has its own portal nav, not the staff sidebar',
   '/portal/syllabus': 'guardian portal page, has its own portal nav, not the staff sidebar',
@@ -126,6 +128,9 @@ export const NOT_IN_NAV: Record<string, string> = {
   '/_staff/students/new': 'action reached from the students list, not its own nav item',
   '/_staff/promotions/new':
     'action reached from the promotions list or the palette, not its own nav item',
+  '/_staff/communications/notices/new': 'action reached from the notices list or the palette',
+  '/_staff/communications/notices/$noticeId/': 'detail route reached from the notices list',
+  '/_staff/communications/notices/$noticeId/edit': 'edit form reached from the notice detail',
   '/_staff/communications/batches/$batchId': 'detail route reached from the batches list',
   '/_staff/fees/schedules/$id': 'detail route reached from the schedules list',
   '/_staff/fees/fines/rules':

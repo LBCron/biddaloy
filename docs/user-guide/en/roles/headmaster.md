@@ -86,6 +86,7 @@ All your features, in the order of the left menu. The list is built automaticall
 
 **Communications**
 
+- Notices (coming soon)
 - [Send an alert](../communications/send-alert.md) — Write a short alert by hand and send it to chosen roles, sections, guardians or named staff; it shows in their bar at the top and in their notifications until the end date, and you can withdraw it early.
 
 <!-- /guide:generated -->

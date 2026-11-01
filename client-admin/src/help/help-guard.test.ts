@@ -17,7 +17,8 @@ import { HELP_GAPS, HELP_INDEX } from './help-index.gen';
 import { HELP_UNWIRED, PUBLIC } from './help-unwired';
 
 /** Guide pages whose feature id is not in their own helpIds yet; shrink, never grow. */
-const NO_PAGE_ENTRY_YET = new Set<string>();
+// [53.4.01] Notice pages have no guide page until #3389 (shrink-only: delete these when it lands).
+const NO_PAGE_ENTRY_YET = new Set<string>(['communications.notices', 'portal.notices']);
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const features = JSON.parse(

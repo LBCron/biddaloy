@@ -26,6 +26,7 @@ describe('portal layout shell', () => {
     const links = within(nav).getAllByRole('link');
     expect(links).toHaveLength(14);
     expect(links.some((l) => l.getAttribute('href') === '/portal/surveys')).toBe(true);
+    expect(links.some((l) => l.getAttribute('href') === '/portal/notices')).toBe(true);
     expect(links.some((l) => l.getAttribute('href') === '/portal/applications')).toBe(true);
     const icons = links.map((l) =>
       Array.from(l.querySelector('svg')?.classList ?? []).find((c) => c.startsWith('lucide-')),

@@ -75,6 +75,8 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
   '/portal/results': 'guardian portal uses bottom tab nav, no breadcrumb chrome',
   '/portal/syllabus': 'guardian portal uses bottom tab nav, no breadcrumb chrome',
   '/portal/homework': 'guardian portal uses bottom tab nav, no breadcrumb chrome',
+  '/portal/notices/': 'guardian portal uses bottom tab nav, no breadcrumb chrome',
+  '/portal/notices/$noticeId': 'guardian portal uses bottom tab nav, no breadcrumb chrome',
   '/portal/programs': 'guardian portal uses bottom tab nav, no breadcrumb chrome',
 
   // --- Platform (SUPER_ADMIN) area ---
@@ -252,6 +254,17 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
   '/_staff/print/committee-report': [{ label: { key: 'committeeReport' } }],
   '/_staff/print/document': [{ label: { key: 'printDocument' } }],
   '/_staff/reports/printables': [{ label: { key: 'printables' } }],
+  '/_staff/communications/notices/': [{ label: { key: 'notices' } }],
+  '/_staff/communications/notices/new': [{ label: { key: 'notices' } }, { label: { key: 'new' } }],
+  '/_staff/communications/notices/$noticeId/': [
+    { label: { key: 'notices' } },
+    { label: { key: 'noticeDetail' }, dynamic: 'entity' },
+  ],
+  '/_staff/communications/notices/$noticeId/edit': [
+    { label: { key: 'notices' } },
+    { label: { key: 'noticeDetail' }, dynamic: 'entity' },
+    { label: { key: 'edit' } },
+  ],
   '/_staff/communications/send': [{ label: { key: 'sendMessage' } }],
   '/_staff/communications/send-alert': [{ label: { key: 'sendAlert' } }],
   '/_staff/reports/alerts': [{ label: { key: 'alertsReport' } }],

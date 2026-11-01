@@ -127,6 +127,8 @@ import { Route as AuthSocialDoneRouteImport } from './routes/auth.social.done'
 import { Route as PortalApplicationsIndexRouteImport } from './routes/portal/applications/index'
 import { Route as PortalApplicationsApplicationIdRouteImport } from './routes/portal/applications/$applicationId'
 import { Route as PortalApplicationsNewRouteImport } from './routes/portal/applications/new'
+import { Route as PortalNoticesIndexRouteImport } from './routes/portal/notices/index'
+import { Route as PortalNoticesNoticeIdRouteImport } from './routes/portal/notices/$noticeId'
 import { Route as StaffAcademicsHomeworkIndexRouteImport } from './routes/_staff/academics/homework/index'
 import { Route as StaffAcademicsHomeworkHomeworkIdRouteImport } from './routes/_staff/academics/homework/$homeworkId'
 import { Route as StaffAcademicsHomeworkImportRouteImport } from './routes/_staff/academics/homework/import'
@@ -143,6 +145,8 @@ import { Route as StaffAttendanceStaffLeaveRouteImport } from './routes/_staff/a
 import { Route as StaffCommunicationsBatchesIndexRouteImport } from './routes/_staff/communications/batches/index'
 import { Route as StaffCommunicationsBatchesBatchIdRouteImport } from './routes/_staff/communications/batches/$batchId'
 import { Route as StaffCommunicationsMessageLogIndexRouteImport } from './routes/_staff/communications/message-log/index'
+import { Route as StaffCommunicationsNoticesIndexRouteImport } from './routes/_staff/communications/notices/index'
+import { Route as StaffCommunicationsNoticesNewRouteImport } from './routes/_staff/communications/notices/new'
 import { Route as StaffExamsSeatPlansIndexRouteImport } from './routes/_staff/exams/seat-plans/index'
 import { Route as StaffExamsSeatPlansPlanIdRouteImport } from './routes/_staff/exams/seat-plans/$planId'
 import { Route as StaffExamsTemplatesIndexRouteImport } from './routes/_staff/exams/templates/index'
@@ -156,6 +160,8 @@ import { Route as StaffReportsReportIdEditRouteImport } from './routes/_staff/re
 import { Route as StaffReportsRunsRunIdRouteImport } from './routes/_staff/reports/runs.$runId'
 import { Route as StaffResultsExamIdStudentIdRouteImport } from './routes/_staff/results/$examId.$studentId'
 import { Route as StaffStudentsStudentIdEditRouteImport } from './routes/_staff/students/$studentId_.edit'
+import { Route as StaffCommunicationsNoticesNoticeIdIndexRouteImport } from './routes/_staff/communications/notices/$noticeId/index'
+import { Route as StaffCommunicationsNoticesNoticeIdEditRouteImport } from './routes/_staff/communications/notices/$noticeId/edit'
 import { Route as StaffMarksExamIdSectionIdSubjectIdRouteImport } from './routes/_staff/marks/$examId.$sectionId.$subjectId'
 import { Route as StaffStaffUserIdAcrAssessmentIdRouteImport } from './routes/_staff/staff/$userId_.acr.$assessmentId'
 import { Route as StaffStaffEvaluationsSurveysSurveyIdRouteImport } from './routes/_staff/staff/evaluations_.surveys.$surveyId'
@@ -766,6 +772,16 @@ const PortalApplicationsNewRoute = PortalApplicationsNewRouteImport.update({
   path: '/applications/new',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalNoticesIndexRoute = PortalNoticesIndexRouteImport.update({
+  id: '/notices/',
+  path: '/notices/',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalNoticesNoticeIdRoute = PortalNoticesNoticeIdRouteImport.update({
+  id: '/notices/$noticeId',
+  path: '/notices/$noticeId',
+  getParentRoute: () => PortalRoute,
+} as any)
 const StaffAcademicsHomeworkIndexRoute =
   StaffAcademicsHomeworkIndexRouteImport.update({
     id: '/academics/homework/',
@@ -862,6 +878,18 @@ const StaffCommunicationsMessageLogIndexRoute =
     path: '/communications/message-log/',
     getParentRoute: () => StaffRoute,
   } as any)
+const StaffCommunicationsNoticesIndexRoute =
+  StaffCommunicationsNoticesIndexRouteImport.update({
+    id: '/communications/notices/',
+    path: '/communications/notices/',
+    getParentRoute: () => StaffRoute,
+  } as any)
+const StaffCommunicationsNoticesNewRoute =
+  StaffCommunicationsNoticesNewRouteImport.update({
+    id: '/communications/notices/new',
+    path: '/communications/notices/new',
+    getParentRoute: () => StaffRoute,
+  } as any)
 const StaffExamsSeatPlansIndexRoute =
   StaffExamsSeatPlansIndexRouteImport.update({
     id: '/exams/seat-plans/',
@@ -933,6 +961,18 @@ const StaffStudentsStudentIdEditRoute =
   StaffStudentsStudentIdEditRouteImport.update({
     id: '/students/$studentId_/edit',
     path: '/students/$studentId/edit',
+    getParentRoute: () => StaffRoute,
+  } as any)
+const StaffCommunicationsNoticesNoticeIdIndexRoute =
+  StaffCommunicationsNoticesNoticeIdIndexRouteImport.update({
+    id: '/communications/notices/$noticeId/',
+    path: '/communications/notices/$noticeId/',
+    getParentRoute: () => StaffRoute,
+  } as any)
+const StaffCommunicationsNoticesNoticeIdEditRoute =
+  StaffCommunicationsNoticesNoticeIdEditRouteImport.update({
+    id: '/communications/notices/$noticeId/edit',
+    path: '/communications/notices/$noticeId/edit',
     getParentRoute: () => StaffRoute,
   } as any)
 const StaffMarksExamIdSectionIdSubjectIdRoute =
@@ -1040,6 +1080,7 @@ export interface FileRoutesByFullPath {
   '/auth/social/done': typeof AuthSocialDoneRoute
   '/portal/applications/$applicationId': typeof PortalApplicationsApplicationIdRoute
   '/portal/applications/new': typeof PortalApplicationsNewRoute
+  '/portal/notices/$noticeId': typeof PortalNoticesNoticeIdRoute
   '/holiday-sets/': typeof PlatformHolidaySetsIndexRoute
   '/schools/': typeof PlatformSchoolsIndexRoute
   '/subscriptions/': typeof PlatformSubscriptionsIndexRoute
@@ -1071,6 +1112,7 @@ export interface FileRoutesByFullPath {
   '/students/': typeof StaffStudentsIndexRoute
   '/admission/$slug/': typeof AdmissionSlugIndexRoute
   '/portal/applications/': typeof PortalApplicationsIndexRoute
+  '/portal/notices/': typeof PortalNoticesIndexRoute
   '/academics/homework/$homeworkId': typeof StaffAcademicsHomeworkHomeworkIdRoute
   '/academics/homework/import': typeof StaffAcademicsHomeworkImportRoute
   '/academics/homework/new': typeof StaffAcademicsHomeworkNewRoute
@@ -1079,6 +1121,7 @@ export interface FileRoutesByFullPath {
   '/admissions/intakes/$intakeId': typeof StaffAdmissionsIntakesIntakeIdRoute
   '/attendance/staff/leave': typeof StaffAttendanceStaffLeaveRoute
   '/communications/batches/$batchId': typeof StaffCommunicationsBatchesBatchIdRoute
+  '/communications/notices/new': typeof StaffCommunicationsNoticesNewRoute
   '/exams/seat-plans/$planId': typeof StaffExamsSeatPlansPlanIdRoute
   '/exams/templates/$templateId': typeof StaffExamsTemplatesTemplateIdRoute
   '/fees/fines/rules': typeof StaffFeesFinesRulesRoute
@@ -1096,13 +1139,16 @@ export interface FileRoutesByFullPath {
   '/attendance/staff/': typeof StaffAttendanceStaffIndexRoute
   '/communications/batches/': typeof StaffCommunicationsBatchesIndexRoute
   '/communications/message-log/': typeof StaffCommunicationsMessageLogIndexRoute
+  '/communications/notices/': typeof StaffCommunicationsNoticesIndexRoute
   '/exams/seat-plans/': typeof StaffExamsSeatPlansIndexRoute
   '/exams/templates/': typeof StaffExamsTemplatesIndexRoute
   '/fees/fines/': typeof StaffFeesFinesIndexRoute
   '/fees/schedules/': typeof StaffFeesSchedulesIndexRoute
+  '/communications/notices/$noticeId/edit': typeof StaffCommunicationsNoticesNoticeIdEditRoute
   '/marks/$examId/$sectionId/$subjectId': typeof StaffMarksExamIdSectionIdSubjectIdRoute
   '/staff/$userId/acr/$assessmentId': typeof StaffStaffUserIdAcrAssessmentIdRoute
   '/staff/evaluations/surveys/$surveyId': typeof StaffStaffEvaluationsSurveysSurveyIdRoute
+  '/communications/notices/$noticeId/': typeof StaffCommunicationsNoticesNoticeIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1188,6 +1234,7 @@ export interface FileRoutesByTo {
   '/auth/social/done': typeof AuthSocialDoneRoute
   '/portal/applications/$applicationId': typeof PortalApplicationsApplicationIdRoute
   '/portal/applications/new': typeof PortalApplicationsNewRoute
+  '/portal/notices/$noticeId': typeof PortalNoticesNoticeIdRoute
   '/holiday-sets': typeof PlatformHolidaySetsIndexRoute
   '/schools': typeof PlatformSchoolsIndexRoute
   '/subscriptions': typeof PlatformSubscriptionsIndexRoute
@@ -1219,6 +1266,7 @@ export interface FileRoutesByTo {
   '/students': typeof StaffStudentsIndexRoute
   '/admission/$slug': typeof AdmissionSlugIndexRoute
   '/portal/applications': typeof PortalApplicationsIndexRoute
+  '/portal/notices': typeof PortalNoticesIndexRoute
   '/academics/homework/$homeworkId': typeof StaffAcademicsHomeworkHomeworkIdRoute
   '/academics/homework/import': typeof StaffAcademicsHomeworkImportRoute
   '/academics/homework/new': typeof StaffAcademicsHomeworkNewRoute
@@ -1227,6 +1275,7 @@ export interface FileRoutesByTo {
   '/admissions/intakes/$intakeId': typeof StaffAdmissionsIntakesIntakeIdRoute
   '/attendance/staff/leave': typeof StaffAttendanceStaffLeaveRoute
   '/communications/batches/$batchId': typeof StaffCommunicationsBatchesBatchIdRoute
+  '/communications/notices/new': typeof StaffCommunicationsNoticesNewRoute
   '/exams/seat-plans/$planId': typeof StaffExamsSeatPlansPlanIdRoute
   '/exams/templates/$templateId': typeof StaffExamsTemplatesTemplateIdRoute
   '/fees/fines/rules': typeof StaffFeesFinesRulesRoute
@@ -1244,13 +1293,16 @@ export interface FileRoutesByTo {
   '/attendance/staff': typeof StaffAttendanceStaffIndexRoute
   '/communications/batches': typeof StaffCommunicationsBatchesIndexRoute
   '/communications/message-log': typeof StaffCommunicationsMessageLogIndexRoute
+  '/communications/notices': typeof StaffCommunicationsNoticesIndexRoute
   '/exams/seat-plans': typeof StaffExamsSeatPlansIndexRoute
   '/exams/templates': typeof StaffExamsTemplatesIndexRoute
   '/fees/fines': typeof StaffFeesFinesIndexRoute
   '/fees/schedules': typeof StaffFeesSchedulesIndexRoute
+  '/communications/notices/$noticeId/edit': typeof StaffCommunicationsNoticesNoticeIdEditRoute
   '/marks/$examId/$sectionId/$subjectId': typeof StaffMarksExamIdSectionIdSubjectIdRoute
   '/staff/$userId/acr/$assessmentId': typeof StaffStaffUserIdAcrAssessmentIdRoute
   '/staff/evaluations/surveys/$surveyId': typeof StaffStaffEvaluationsSurveysSurveyIdRoute
+  '/communications/notices/$noticeId': typeof StaffCommunicationsNoticesNoticeIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1341,6 +1393,7 @@ export interface FileRoutesById {
   '/auth/social/done': typeof AuthSocialDoneRoute
   '/portal/applications/$applicationId': typeof PortalApplicationsApplicationIdRoute
   '/portal/applications/new': typeof PortalApplicationsNewRoute
+  '/portal/notices/$noticeId': typeof PortalNoticesNoticeIdRoute
   '/_platform/holiday-sets/': typeof PlatformHolidaySetsIndexRoute
   '/_platform/schools/': typeof PlatformSchoolsIndexRoute
   '/_platform/subscriptions/': typeof PlatformSubscriptionsIndexRoute
@@ -1372,6 +1425,7 @@ export interface FileRoutesById {
   '/_staff/students/': typeof StaffStudentsIndexRoute
   '/admission/$slug/': typeof AdmissionSlugIndexRoute
   '/portal/applications/': typeof PortalApplicationsIndexRoute
+  '/portal/notices/': typeof PortalNoticesIndexRoute
   '/_staff/academics/homework/$homeworkId': typeof StaffAcademicsHomeworkHomeworkIdRoute
   '/_staff/academics/homework/import': typeof StaffAcademicsHomeworkImportRoute
   '/_staff/academics/homework/new': typeof StaffAcademicsHomeworkNewRoute
@@ -1380,6 +1434,7 @@ export interface FileRoutesById {
   '/_staff/admissions/intakes/$intakeId': typeof StaffAdmissionsIntakesIntakeIdRoute
   '/_staff/attendance/staff/leave': typeof StaffAttendanceStaffLeaveRoute
   '/_staff/communications/batches/$batchId': typeof StaffCommunicationsBatchesBatchIdRoute
+  '/_staff/communications/notices/new': typeof StaffCommunicationsNoticesNewRoute
   '/_staff/exams/seat-plans/$planId': typeof StaffExamsSeatPlansPlanIdRoute
   '/_staff/exams/templates/$templateId': typeof StaffExamsTemplatesTemplateIdRoute
   '/_staff/fees/fines/rules': typeof StaffFeesFinesRulesRoute
@@ -1397,13 +1452,16 @@ export interface FileRoutesById {
   '/_staff/attendance/staff/': typeof StaffAttendanceStaffIndexRoute
   '/_staff/communications/batches/': typeof StaffCommunicationsBatchesIndexRoute
   '/_staff/communications/message-log/': typeof StaffCommunicationsMessageLogIndexRoute
+  '/_staff/communications/notices/': typeof StaffCommunicationsNoticesIndexRoute
   '/_staff/exams/seat-plans/': typeof StaffExamsSeatPlansIndexRoute
   '/_staff/exams/templates/': typeof StaffExamsTemplatesIndexRoute
   '/_staff/fees/fines/': typeof StaffFeesFinesIndexRoute
   '/_staff/fees/schedules/': typeof StaffFeesSchedulesIndexRoute
+  '/_staff/communications/notices/$noticeId/edit': typeof StaffCommunicationsNoticesNoticeIdEditRoute
   '/_staff/marks/$examId/$sectionId/$subjectId': typeof StaffMarksExamIdSectionIdSubjectIdRoute
   '/_staff/staff/$userId_/acr/$assessmentId': typeof StaffStaffUserIdAcrAssessmentIdRoute
   '/_staff/staff/evaluations_/surveys/$surveyId': typeof StaffStaffEvaluationsSurveysSurveyIdRoute
+  '/_staff/communications/notices/$noticeId/': typeof StaffCommunicationsNoticesNoticeIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1493,6 +1551,7 @@ export interface FileRouteTypes {
     | '/auth/social/done'
     | '/portal/applications/$applicationId'
     | '/portal/applications/new'
+    | '/portal/notices/$noticeId'
     | '/holiday-sets/'
     | '/schools/'
     | '/subscriptions/'
@@ -1524,6 +1583,7 @@ export interface FileRouteTypes {
     | '/students/'
     | '/admission/$slug/'
     | '/portal/applications/'
+    | '/portal/notices/'
     | '/academics/homework/$homeworkId'
     | '/academics/homework/import'
     | '/academics/homework/new'
@@ -1532,6 +1592,7 @@ export interface FileRouteTypes {
     | '/admissions/intakes/$intakeId'
     | '/attendance/staff/leave'
     | '/communications/batches/$batchId'
+    | '/communications/notices/new'
     | '/exams/seat-plans/$planId'
     | '/exams/templates/$templateId'
     | '/fees/fines/rules'
@@ -1549,13 +1610,16 @@ export interface FileRouteTypes {
     | '/attendance/staff/'
     | '/communications/batches/'
     | '/communications/message-log/'
+    | '/communications/notices/'
     | '/exams/seat-plans/'
     | '/exams/templates/'
     | '/fees/fines/'
     | '/fees/schedules/'
+    | '/communications/notices/$noticeId/edit'
     | '/marks/$examId/$sectionId/$subjectId'
     | '/staff/$userId/acr/$assessmentId'
     | '/staff/evaluations/surveys/$surveyId'
+    | '/communications/notices/$noticeId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1641,6 +1705,7 @@ export interface FileRouteTypes {
     | '/auth/social/done'
     | '/portal/applications/$applicationId'
     | '/portal/applications/new'
+    | '/portal/notices/$noticeId'
     | '/holiday-sets'
     | '/schools'
     | '/subscriptions'
@@ -1672,6 +1737,7 @@ export interface FileRouteTypes {
     | '/students'
     | '/admission/$slug'
     | '/portal/applications'
+    | '/portal/notices'
     | '/academics/homework/$homeworkId'
     | '/academics/homework/import'
     | '/academics/homework/new'
@@ -1680,6 +1746,7 @@ export interface FileRouteTypes {
     | '/admissions/intakes/$intakeId'
     | '/attendance/staff/leave'
     | '/communications/batches/$batchId'
+    | '/communications/notices/new'
     | '/exams/seat-plans/$planId'
     | '/exams/templates/$templateId'
     | '/fees/fines/rules'
@@ -1697,13 +1764,16 @@ export interface FileRouteTypes {
     | '/attendance/staff'
     | '/communications/batches'
     | '/communications/message-log'
+    | '/communications/notices'
     | '/exams/seat-plans'
     | '/exams/templates'
     | '/fees/fines'
     | '/fees/schedules'
+    | '/communications/notices/$noticeId/edit'
     | '/marks/$examId/$sectionId/$subjectId'
     | '/staff/$userId/acr/$assessmentId'
     | '/staff/evaluations/surveys/$surveyId'
+    | '/communications/notices/$noticeId'
   id:
     | '__root__'
     | '/'
@@ -1793,6 +1863,7 @@ export interface FileRouteTypes {
     | '/auth/social/done'
     | '/portal/applications/$applicationId'
     | '/portal/applications/new'
+    | '/portal/notices/$noticeId'
     | '/_platform/holiday-sets/'
     | '/_platform/schools/'
     | '/_platform/subscriptions/'
@@ -1824,6 +1895,7 @@ export interface FileRouteTypes {
     | '/_staff/students/'
     | '/admission/$slug/'
     | '/portal/applications/'
+    | '/portal/notices/'
     | '/_staff/academics/homework/$homeworkId'
     | '/_staff/academics/homework/import'
     | '/_staff/academics/homework/new'
@@ -1832,6 +1904,7 @@ export interface FileRouteTypes {
     | '/_staff/admissions/intakes/$intakeId'
     | '/_staff/attendance/staff/leave'
     | '/_staff/communications/batches/$batchId'
+    | '/_staff/communications/notices/new'
     | '/_staff/exams/seat-plans/$planId'
     | '/_staff/exams/templates/$templateId'
     | '/_staff/fees/fines/rules'
@@ -1849,13 +1922,16 @@ export interface FileRouteTypes {
     | '/_staff/attendance/staff/'
     | '/_staff/communications/batches/'
     | '/_staff/communications/message-log/'
+    | '/_staff/communications/notices/'
     | '/_staff/exams/seat-plans/'
     | '/_staff/exams/templates/'
     | '/_staff/fees/fines/'
     | '/_staff/fees/schedules/'
+    | '/_staff/communications/notices/$noticeId/edit'
     | '/_staff/marks/$examId/$sectionId/$subjectId'
     | '/_staff/staff/$userId_/acr/$assessmentId'
     | '/_staff/staff/evaluations_/surveys/$surveyId'
+    | '/_staff/communications/notices/$noticeId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -2705,6 +2781,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalApplicationsNewRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/portal/notices/': {
+      id: '/portal/notices/'
+      path: '/notices'
+      fullPath: '/portal/notices/'
+      preLoaderRoute: typeof PortalNoticesIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/notices/$noticeId': {
+      id: '/portal/notices/$noticeId'
+      path: '/notices/$noticeId'
+      fullPath: '/portal/notices/$noticeId'
+      preLoaderRoute: typeof PortalNoticesNoticeIdRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/_staff/academics/homework/': {
       id: '/_staff/academics/homework/'
       path: '/academics/homework'
@@ -2817,6 +2907,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffCommunicationsMessageLogIndexRouteImport
       parentRoute: typeof StaffRoute
     }
+    '/_staff/communications/notices/': {
+      id: '/_staff/communications/notices/'
+      path: '/communications/notices'
+      fullPath: '/communications/notices/'
+      preLoaderRoute: typeof StaffCommunicationsNoticesIndexRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/_staff/communications/notices/new': {
+      id: '/_staff/communications/notices/new'
+      path: '/communications/notices/new'
+      fullPath: '/communications/notices/new'
+      preLoaderRoute: typeof StaffCommunicationsNoticesNewRouteImport
+      parentRoute: typeof StaffRoute
+    }
     '/_staff/exams/seat-plans/': {
       id: '/_staff/exams/seat-plans/'
       path: '/exams/seat-plans'
@@ -2906,6 +3010,20 @@ declare module '@tanstack/react-router' {
       path: '/students/$studentId/edit'
       fullPath: '/students/$studentId/edit'
       preLoaderRoute: typeof StaffStudentsStudentIdEditRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/_staff/communications/notices/$noticeId/': {
+      id: '/_staff/communications/notices/$noticeId/'
+      path: '/communications/notices/$noticeId'
+      fullPath: '/communications/notices/$noticeId/'
+      preLoaderRoute: typeof StaffCommunicationsNoticesNoticeIdIndexRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/_staff/communications/notices/$noticeId/edit': {
+      id: '/_staff/communications/notices/$noticeId/edit'
+      path: '/communications/notices/$noticeId/edit'
+      fullPath: '/communications/notices/$noticeId/edit'
+      preLoaderRoute: typeof StaffCommunicationsNoticesNoticeIdEditRouteImport
       parentRoute: typeof StaffRoute
     }
     '/_staff/marks/$examId/$sectionId/$subjectId': {
@@ -3064,6 +3182,7 @@ interface StaffRouteChildren {
   StaffAdmissionsIntakesIntakeIdRoute: typeof StaffAdmissionsIntakesIntakeIdRoute
   StaffAttendanceStaffLeaveRoute: typeof StaffAttendanceStaffLeaveRoute
   StaffCommunicationsBatchesBatchIdRoute: typeof StaffCommunicationsBatchesBatchIdRoute
+  StaffCommunicationsNoticesNewRoute: typeof StaffCommunicationsNoticesNewRoute
   StaffExamsSeatPlansPlanIdRoute: typeof StaffExamsSeatPlansPlanIdRoute
   StaffExamsTemplatesTemplateIdRoute: typeof StaffExamsTemplatesTemplateIdRoute
   StaffPrintTemplatesTemplateIdEditRoute: typeof StaffPrintTemplatesTemplateIdEditRoute
@@ -3079,11 +3198,14 @@ interface StaffRouteChildren {
   StaffAttendanceStaffIndexRoute: typeof StaffAttendanceStaffIndexRoute
   StaffCommunicationsBatchesIndexRoute: typeof StaffCommunicationsBatchesIndexRoute
   StaffCommunicationsMessageLogIndexRoute: typeof StaffCommunicationsMessageLogIndexRoute
+  StaffCommunicationsNoticesIndexRoute: typeof StaffCommunicationsNoticesIndexRoute
   StaffExamsSeatPlansIndexRoute: typeof StaffExamsSeatPlansIndexRoute
   StaffExamsTemplatesIndexRoute: typeof StaffExamsTemplatesIndexRoute
+  StaffCommunicationsNoticesNoticeIdEditRoute: typeof StaffCommunicationsNoticesNoticeIdEditRoute
   StaffMarksExamIdSectionIdSubjectIdRoute: typeof StaffMarksExamIdSectionIdSubjectIdRoute
   StaffStaffUserIdAcrAssessmentIdRoute: typeof StaffStaffUserIdAcrAssessmentIdRoute
   StaffStaffEvaluationsSurveysSurveyIdRoute: typeof StaffStaffEvaluationsSurveysSurveyIdRoute
+  StaffCommunicationsNoticesNoticeIdIndexRoute: typeof StaffCommunicationsNoticesNoticeIdIndexRoute
 }
 
 const StaffRouteChildren: StaffRouteChildren = {
@@ -3172,6 +3294,7 @@ const StaffRouteChildren: StaffRouteChildren = {
   StaffAttendanceStaffLeaveRoute: StaffAttendanceStaffLeaveRoute,
   StaffCommunicationsBatchesBatchIdRoute:
     StaffCommunicationsBatchesBatchIdRoute,
+  StaffCommunicationsNoticesNewRoute: StaffCommunicationsNoticesNewRoute,
   StaffExamsSeatPlansPlanIdRoute: StaffExamsSeatPlansPlanIdRoute,
   StaffExamsTemplatesTemplateIdRoute: StaffExamsTemplatesTemplateIdRoute,
   StaffPrintTemplatesTemplateIdEditRoute:
@@ -3189,13 +3312,18 @@ const StaffRouteChildren: StaffRouteChildren = {
   StaffCommunicationsBatchesIndexRoute: StaffCommunicationsBatchesIndexRoute,
   StaffCommunicationsMessageLogIndexRoute:
     StaffCommunicationsMessageLogIndexRoute,
+  StaffCommunicationsNoticesIndexRoute: StaffCommunicationsNoticesIndexRoute,
   StaffExamsSeatPlansIndexRoute: StaffExamsSeatPlansIndexRoute,
   StaffExamsTemplatesIndexRoute: StaffExamsTemplatesIndexRoute,
+  StaffCommunicationsNoticesNoticeIdEditRoute:
+    StaffCommunicationsNoticesNoticeIdEditRoute,
   StaffMarksExamIdSectionIdSubjectIdRoute:
     StaffMarksExamIdSectionIdSubjectIdRoute,
   StaffStaffUserIdAcrAssessmentIdRoute: StaffStaffUserIdAcrAssessmentIdRoute,
   StaffStaffEvaluationsSurveysSurveyIdRoute:
     StaffStaffEvaluationsSurveysSurveyIdRoute,
+  StaffCommunicationsNoticesNoticeIdIndexRoute:
+    StaffCommunicationsNoticesNoticeIdIndexRoute,
 }
 
 const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)
@@ -3217,7 +3345,9 @@ interface PortalRouteChildren {
   PortalIndexRoute: typeof PortalIndexRoute
   PortalApplicationsApplicationIdRoute: typeof PortalApplicationsApplicationIdRoute
   PortalApplicationsNewRoute: typeof PortalApplicationsNewRoute
+  PortalNoticesNoticeIdRoute: typeof PortalNoticesNoticeIdRoute
   PortalApplicationsIndexRoute: typeof PortalApplicationsIndexRoute
+  PortalNoticesIndexRoute: typeof PortalNoticesIndexRoute
 }
 
 const PortalRouteChildren: PortalRouteChildren = {
@@ -3237,7 +3367,9 @@ const PortalRouteChildren: PortalRouteChildren = {
   PortalIndexRoute: PortalIndexRoute,
   PortalApplicationsApplicationIdRoute: PortalApplicationsApplicationIdRoute,
   PortalApplicationsNewRoute: PortalApplicationsNewRoute,
+  PortalNoticesNoticeIdRoute: PortalNoticesNoticeIdRoute,
   PortalApplicationsIndexRoute: PortalApplicationsIndexRoute,
+  PortalNoticesIndexRoute: PortalNoticesIndexRoute,
 }
 
 const PortalRouteWithChildren =
