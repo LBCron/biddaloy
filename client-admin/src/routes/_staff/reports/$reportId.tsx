@@ -16,23 +16,45 @@
  * runs again. The answers are kept in the address bar (`?p=`), so a link reopens the same view.
  *
  * Where the layout and the questions come from: the catalogue (`GET /reports/catalogue`) names the
- * report, but the definition itself (`GET /reports/definitions/:id`) is open only to someone who may
- * design reports. So a designer gets the report's own layout and questions; everyone else gets a
- * plain table, and the server still applies the report's default answers. A server follow-up would
- * let every viewer read the layout (see the 8.15.29 notes).
+ * report. Its look comes from one of two places. A designer (REPORTS_DESIGN) reads the definition
+ * (`GET /reports/definitions/:id`), which also feeds the Change button. Everyone else reads the
+ * presentation (`GET /reports/catalogue/:id/definition`, REPORTS_VIEW): the published version's
+ * questions, layout, colour rules and links, under the catalogue's own visibility, with no dataset.
+ * If the presentation is refused (a 404: the report is hidden or gone) the page shows a plain table
+ * and the server still applies the report's default answers.
  *
  * Failures are said in place, in plain words: a report that is too slow asks the person to narrow
  * the choices (and opens the form), a missing answer says so, a report that is gone says so.
  *
- * Words come from `reports.json` `runner.*` and `prompts.*` (the 8.15 glossary).
+ * [8.15.42] Colour rules and links. A report's `format` rules colour cells (never by colour alone: an
+ * icon and a word go with it) and a legend under the report says what each colour means, in the
+ * sentence the designer wrote. Its `drill` rules turn counts into links that open another report or
+ * the student list with the same choices; the page it opens shows "ফিরে যান", which comes back here
+ * with the choices kept (`?from=`, accepted only when it is a path inside this app). The rules
+ * comes with the layout (see above), so every viewer sees the colours and links.
+ *
+ * [8.15.47] The More menu: "Email this regularly" (an admin; `-delivery/schedule-dialog.tsx`), "Keep today's
+ * copy" (whoever may take files out; `-delivery/snapshots-panel.tsx`, which also lists the kept copies under the
+ * result) and "Show on my dashboard" (one click, no dialog; the dashboard cards are in
+ * `client-admin/src/dashboard/report-cards/`). Opening a report is noted in this browser for the
+ * dashboard's "Reports you may need" card.
+ *
+ * Words come from `reports.json` `runner.*` and `prompts.*` (the 8.15 glossary), and
+ * `reportDesigner.json` for the designer, legend and link words.
  */
-import { Permission, type ReportDefinitionJson, type ReportLayout } from '@biddaloy/shared';
+import {
+  Permission,
+  type ReportDefinitionJson,
+  type ReportFormatRule,
+  type ReportLayout,
+} from '@biddaloy/shared';
 import { ApiError } from '@biddaloy/ui/api';
 import {
   Button,
   EmptyState,
   ErrorState,
   ExportMenu,
+  HelpHint,
   PromptSummary,
   ReportChart,
   ReportCrosstab,
@@ -42,12 +64,18 @@ import {
   RoutePending,
   Skeleton,
   Textarea,
+  FORMAT_TONES,
   defaultPromptValues,
+  describeRule,
+  resolveDrill,
+  useDesignerLabels,
   missingPrompts,
   promptParams,
   sanitizePromptValues,
   toast,
   withDefaults,
+  type DrillLinks,
+  type DrillTarget,
   type PromptChoices,
   type PromptParameter,
   type PromptValues,
@@ -63,6 +91,7 @@ import {
   useReportCatalogue,
   useReportDefinition,
   useReportFeedback,
+  useReportPresentation,
   useRunReport,
   type ReportRunResponse,
 } from '@biddaloy/ui/hooks';
@@ -76,16 +105,37 @@ import {
 import { PageContainer, PageHeader } from '@biddaloy/ui/shells';
 import { formatNumber } from '@biddaloy/ui/utils';
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
-import { PrinterIcon, ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
+import { createFileRoute, useRouter, useRouterState } from '@tanstack/react-router';
+import {
+  ArrowLeftIcon,
+  CopyCheckIcon,
+  LayoutDashboardIcon,
+  MailIcon,
+  PinOffIcon,
+  PrinterIcon,
+  ThumbsDownIcon,
+  ThumbsUpIcon,
+} from 'lucide-react';
 import * as React from 'react';
+import type { ComponentProps } from 'react';
 import { z } from 'zod';
 
+import { useOpenedReports, usePinnedReports } from '../../../dashboard/report-cards/report-prefs';
 import { loadRouteNamespaces, swallowUnlessOffline } from '../../../route-loaders';
+import { STAFF_ROUTE_PERMISSIONS } from '../../../route-permissions';
+import { isSameAppRedirect } from '../../../same-app-redirect';
+
+import { ScheduleDialog } from './-delivery/schedule-dialog';
+import { KeepCopyDialog, SnapshotsPanel } from './-delivery/snapshots-panel';
+
+/** The parts of a definition the runner reads: what a presentation carries, and a draft has too. */
+type ReportLook = Pick<ReportDefinitionJson, 'parameters' | 'layout' | 'format' | 'drill'>;
 
 const runnerSearchSchema = z.object({
   // The answers to the report's questions. Anything wrong in them is dropped when they are read.
   p: z.record(z.string(), z.unknown()).optional().catch(undefined),
+  // [8.15.42] Where "ফিরে যান" goes: the address of the report this one was opened from.
+  from: z.string().optional().catch(undefined),
 });
 
 export const Route = createFileRoute('/_staff/reports/$reportId')({
@@ -93,7 +143,7 @@ export const Route = createFileRoute('/_staff/reports/$reportId')({
   loader: ({ context: { queryClient } }) =>
     Promise.all([
       queryClient.ensureQueryData(reportCatalogueQueryOptions()).catch(swallowUnlessOffline),
-      loadRouteNamespaces('reports', 'reportView', 'common', 'nav'),
+      loadRouteNamespaces('reports', 'reportView', 'reportDesigner', 'common', 'nav', 'staff'),
     ]),
   pendingComponent: ReportRunnerPending,
   component: ReportRunnerPage,
@@ -128,29 +178,57 @@ function ReportRunnerPage() {
 
 function ReportRunner({ reportId }: { reportId: string }) {
   const { t } = useTranslation('reports');
+  const { t: tDesigner } = useTranslation('reportDesigner');
   const { locale } = useLocale();
   const regionConfig = useRegionConfig();
+  const router = useRouter();
+  const here = useRouterState({ select: (state) => state.location.href });
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const canDesign = useHasPermission(Permission.REPORTS_DESIGN);
   const canExport = useHasPermission(Permission.REPORTS_EXPORT);
   const canPrint = useHasPermission(Permission.DOCUMENT_PRINT);
+  const canShowOnDashboard = useHasPermission(Permission.DASHBOARD_VIEW);
   const canReadStructure = useHasPermission(Permission.ACADEMIC_STRUCTURE_READ);
+  const canOpenStudents = useHasPermission(STAFF_ROUTE_PERMISSIONS['/_staff/students/']!);
 
   const catalogue = useReportCatalogue();
   const entry = catalogue.data?.flatMap((folder) => folder.reports).find((r) => r.id === reportId);
   const name = entry ? (locale === 'bn' ? entry.name_bn : entry.name_en) || entry.name_en : '';
 
-  // The layout and the questions: only a designer may read the definition (see the file header).
+  // [8.15.47] The dashboard's "Reports you may need" card asks which reports this person has opened.
+  const { markOpened } = useOpenedReports();
+  const pins = usePinnedReports();
+  const [emailOpen, setEmailOpen] = React.useState(false);
+  const [keepOpen, setKeepOpen] = React.useState(false);
+  const noted = React.useRef(false);
+  const isKnown = entry !== undefined;
+  React.useEffect(() => {
+    if (!isKnown || noted.current) return;
+    noted.current = true;
+    markOpened(reportId);
+  }, [isKnown, markOpened, reportId]);
+
+  // The layout and the questions: a designer reads the definition, everyone else the presentation
+  // of the published version (see the file header). Only the one in use is fetched.
   const definition = useReportDefinition(reportId, { enabled: canDesign && entry !== undefined });
-  const body = (definition.data?.draft ?? null) as ReportDefinitionJson | null;
+  const presentation = useReportPresentation(reportId, {
+    enabled: !canDesign && entry !== undefined,
+  });
+  const body: ReportLook | null = canDesign
+    ? ((definition.data?.draft ?? null) as ReportDefinitionJson | null)
+    : (presentation.data ?? null);
   const parameters: PromptParameter[] = body?.parameters ?? [];
   const layout: ReportLayout | undefined = body?.layout;
 
   // Choices for the questions. A role that cannot read the school's structure sees none, and then
   // the report simply runs on the server's own default answers.
-  const needsYears = parameters.some((p) => p.type === 'ACADEMIC_YEAR');
-  const needsClasses = parameters.some((p) => p.type === 'CLASS' || p.type === 'SECTION');
+  // A link to the student list turns a class name into the class's id, and only fits the current year.
+  const drillRules = body?.drill ?? [];
+  const drillsToStudents = drillRules.some((rule) => 'route' in rule.target);
+  const needsYears = parameters.some((p) => p.type === 'ACADEMIC_YEAR') || drillsToStudents;
+  const needsClasses =
+    parameters.some((p) => p.type === 'CLASS' || p.type === 'SECTION') || drillsToStudents;
   const needsSections = parameters.some((p) => p.type === 'SECTION');
   const years = useQuery({
     ...academicYearsQueryOptions({ limit: 100 }),
@@ -214,7 +292,10 @@ function ReportRunner({ reportId }: { reportId: string }) {
   // Run once, as soon as everything the first run needs has settled (D22). A ref, not state, so
   // React's double effect in development and a remount never write two run-log rows.
   const started = React.useRef(false);
-  const definitionSettled = entry !== undefined && (!canDesign || !definition.isPending);
+  // Whichever of the two is in use must have answered (or failed: then the table is plain), or the
+  // first run would go out with no questions and the form would never open.
+  const definitionSettled =
+    entry !== undefined && !(canDesign ? definition.isPending : presentation.isPending);
   const yearsSettled = !(needsYears && canReadStructure) || !years.isPending;
   React.useEffect(() => {
     if (started.current || !definitionSettled || !yearsSettled) return;
@@ -250,6 +331,47 @@ function ReportRunner({ reportId }: { reportId: string }) {
 
   const result: ReportRunResponse | undefined = run.data;
   const ranParams = promptParams(parameters, ran ?? {});
+  const pinned = pins.isPinned(reportId);
+  function togglePin() {
+    pins.toggle(reportId);
+    toast.success(t(pinned ? 'delivery.pinToast.removed' : 'delivery.pinToast.added'));
+  }
+
+  // ---- [8.15.42] links and colours --------------------------------------------------------------
+  const reportOf = (key: string) =>
+    catalogue.data?.flatMap((f) => f.reports).find((r) => r.key === key);
+  const locationOf = (target: DrillTarget) =>
+    target.kind === 'report'
+      ? router.buildLocation({
+          to: '/reports/$reportId',
+          params: { reportId: target.reportId },
+          search: {
+            ...(Object.keys(target.params).length > 0 ? { p: target.params } : {}),
+            from: here,
+          },
+        })
+      : router.buildLocation({ to: '/students', search: { ...target.search, from: here } });
+  const drill = React.useMemo(() => {
+    if (drillRules.length === 0) return undefined;
+    const links: DrillLinks = {
+      resolve: ({ fields, values }) =>
+        resolveDrill(drillRules, fields, values, {
+          reportIdByKey: (key) => reportOf(key)?.id,
+          classIdByName: (name) => classList.data?.find((c) => c.name === name)?.id,
+          params: ranParams,
+          canOpen: (kind) => kind === 'report' || canOpenStudents,
+          isCurrentYear: (name) => years.data?.data.find((y) => y.name === name)?.is_current,
+        }),
+      href: (target) => locationOf(target).href,
+      open: (target) => router.history.push(locationOf(target).href),
+      label: (what, value) => tDesigner('drill.open', { what, value }),
+    };
+    return { rules: drillRules, links };
+    // The links read these; `ranParams` is rebuilt every render, `ran` says when it really changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drillRules, catalogue.data, classList.data, years.data, canOpenStudents, here, ran]);
+  const formatRules: ReportFormatRule[] = body?.format ?? [];
+  const backTo = search.from !== undefined && isSameAppRedirect(search.from) ? search.from : null;
   const notFound =
     (catalogue.isSuccess && entry === undefined) ||
     (run.error instanceof ApiError && run.error.statusCode === 404);
@@ -293,17 +415,80 @@ function ReportRunner({ reportId }: { reportId: string }) {
   return (
     <PageContainer>
       <div className="flex flex-col gap-4 md:gap-6">
-        <PageHeader title={name} />
+        {backTo !== null && (
+          <div className="print:hidden">
+            <Button asChild variant="link" className="h-auto px-0">
+              <a
+                href={backTo}
+                onClick={(event) => {
+                  event.preventDefault();
+                  router.history.push(backTo);
+                }}
+              >
+                <ArrowLeftIcon aria-hidden="true" />
+                {tDesigner('back')}
+              </a>
+            </Button>
+          </div>
+        )}
+        <PageHeader
+          title={name}
+          actions={[
+            {
+              id: 'edit',
+              label: tDesigner(
+                definition.data?.draft === null ? 'edit.copyAndChange' : 'edit.change',
+              ),
+              priority: 'secondary',
+              // Only a designer, and only once the report's own definition has arrived.
+              allowed: canDesign && definition.data !== undefined,
+              to: `/reports/${reportId}/edit`,
+            },
+            // [8.15.47] In the More menu, in plain words (D21): no "schedule", "snapshot" or "widget".
+            {
+              id: 'email-regularly',
+              label: t('delivery.menu.email'),
+              icon: <MailIcon aria-hidden="true" />,
+              priority: 'tertiary',
+              allowed: canDesign,
+              onClick: () => setEmailOpen(true),
+            },
+            {
+              id: 'keep-copy',
+              label: t('delivery.menu.keep'),
+              icon: <CopyCheckIcon aria-hidden="true" />,
+              priority: 'tertiary',
+              allowed: canExport,
+              disabled: result === undefined,
+              onClick: () => setKeepOpen(true),
+            },
+            {
+              id: 'show-on-dashboard',
+              label: t(pinned ? 'delivery.menu.unpin' : 'delivery.menu.pin'),
+              icon: pinned ? (
+                <PinOffIcon aria-hidden="true" />
+              ) : (
+                <LayoutDashboardIcon aria-hidden="true" />
+              ),
+              priority: 'tertiary',
+              allowed: canShowOnDashboard,
+              onClick: togglePin,
+            },
+          ]}
+        />
 
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between print:hidden">
           {values !== null && parameters.length > 0 ? (
-            <div className="min-w-0 flex-1">
-              <PromptSummary
-                parameters={parameters}
-                value={values}
-                expanded={promptsOpen}
-                onToggle={() => setPromptsOpen((open) => !open)}
-              />
+            <div className="flex min-w-0 flex-1 items-center gap-1">
+              <div className="min-w-0 flex-1">
+                <PromptSummary
+                  parameters={parameters}
+                  value={values}
+                  expanded={promptsOpen}
+                  onToggle={() => setPromptsOpen((open) => !open)}
+                />
+              </div>
+              <HelpHint helpId="reports.hub.section.questions" />
             </div>
           ) : (
             <div className="flex-1" />
@@ -322,10 +507,12 @@ function ReportRunner({ reportId }: { reportId: string }) {
                 {t('runner.print')}
               </Button>
             )}
+            {canPrint && <HelpHint helpId="reports.hub.action.print" />}
             <ExportMenu
               totalCount={result?.total_rows ?? 0}
               canExportAll={canExport && result !== undefined}
               unit="items"
+              helpId="reports.hub.action.downloadExcel"
               onExportAll={async (format) => {
                 const outcome = await exportReport.mutateAsync({
                   definitionId: reportId,
@@ -350,6 +537,7 @@ function ReportRunner({ reportId }: { reportId: string }) {
               running={run.isPending}
               open={promptsOpen}
               onOpenChange={setPromptsOpen}
+              runHelpId="reports.hub.action.showReport"
             />
           </div>
         )}
@@ -390,12 +578,28 @@ function ReportRunner({ reportId }: { reportId: string }) {
                 caption={name}
                 loading={run.isPending}
                 onPageChange={(next) => ran && execute(ran, next)}
+                formatRules={formatRules}
+                drill={drill}
               />
+              <FormatLegend rules={formatRules} columns={result.columns} />
               <UsefulLine reportId={reportId} runId={result.run_id} />
             </>
           )}
         </section>
+
+        <SnapshotsPanel definitionId={reportId} enabled={canExport} />
       </div>
+      {canDesign && (
+        <ScheduleDialog
+          open={emailOpen}
+          onOpenChange={setEmailOpen}
+          definitionId={reportId}
+          params={ranParams}
+        />
+      )}
+      {canExport && result !== undefined && (
+        <KeepCopyDialog open={keepOpen} onOpenChange={setKeepOpen} runId={result.run_id} />
+      )}
     </PageContainer>
   );
 }
@@ -407,18 +611,33 @@ function ResultView({
   caption,
   loading,
   onPageChange,
+  formatRules,
+  drill,
 }: {
   result: ReportRunResponse;
   layout: ReportLayout | undefined;
   caption: string;
   loading: boolean;
   onPageChange: (page: number) => void;
+  formatRules: ReportFormatRule[];
+  drill: ComponentProps<typeof ReportTable>['drill'];
 }) {
+  const designer = useDesignerLabels();
+  const format =
+    formatRules.length > 0 ? { rules: formatRules, toneLabels: designer.format.tones } : undefined;
   switch (layout?.type) {
     case 'GROUPED':
       return <ReportGrouped result={result} layout={layout} caption={caption} />;
     case 'CROSSTAB':
-      return <ReportCrosstab result={result} layout={layout} caption={caption} />;
+      return (
+        <ReportCrosstab
+          result={result}
+          layout={layout}
+          caption={caption}
+          {...(format ? { format } : {})}
+          {...(drill ? { drill } : {})}
+        />
+      );
     case 'CHART':
       return <ReportChart result={result} layout={layout} caption={caption} />;
     default:
@@ -428,10 +647,55 @@ function ResultView({
           caption={caption}
           tableId="report-run"
           isFetching={loading}
+          {...(format ? { format } : {})}
+          {...(drill ? { drill } : {})}
           {...(result.total_pages > 1 ? { onPageChange } : {})}
         />
       );
   }
+}
+
+/**
+ * [8.15.42] The sentence behind every colour, under the report: "লাল = যদি বাকি বেশি ৫,০০০ হয়". The
+ * words are the designer's own (`useDesignerLabels`), so a colour is never unexplained.
+ */
+function FormatLegend({
+  rules,
+  columns,
+}: {
+  rules: ReportFormatRule[];
+  columns: ReportRunResponse['columns'];
+}) {
+  const { t } = useTranslation('reportDesigner');
+  const { locale } = useLocale();
+  const regionConfig = useRegionConfig();
+  const { format } = useDesignerLabels();
+  const lines = rules.flatMap((rule) => {
+    const sentence = describeRule(rule, columns, locale, regionConfig);
+    return sentence ? [{ rule, sentence }] : [];
+  });
+  if (lines.length === 0) return null;
+  return (
+    <section
+      aria-label={t('legend.title', { ns: 'reportDesigner' })}
+      className="flex flex-col gap-1 text-text-secondary"
+    >
+      <ul className="flex flex-col gap-1">
+        {lines.map(({ rule, sentence }, index) => {
+          const { fg, icon: Icon } = FORMAT_TONES[rule.style.tone];
+          return (
+            <li key={index} className="flex items-center gap-2">
+              <Icon aria-hidden="true" className={`size-4 shrink-0 ${fg}`} />
+              <span>
+                {format.tones[rule.style.tone]} = {format.if} {sentence.field}{' '}
+                {format.ops[sentence.op]} {sentence.value} {format.then}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
 }
 
 const feedbackKey = (reportId: string) => `reports.feedback.${reportId}`;
@@ -518,6 +782,7 @@ function UsefulLine({ reportId, runId }: { reportId: string; runId: string }) {
         >
           <ThumbsDownIcon aria-hidden="true" />
         </Button>
+        <HelpHint helpId="reports.hub.section.feedback" />
       </div>
       {phase === 'comment' && (
         <form

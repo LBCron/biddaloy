@@ -11,6 +11,10 @@
  * is read from `STAFF_ROUTE_PERMISSIONS` (the one map the route guard also uses), never copied here,
  * so a card and its page cannot disagree about who may open it.
  *
+ * The student count (BANBEIS) is not here any more: it is a ready report in the catalogue
+ * (`student-count-banbeis`), so it shows as an ordinary card, and `/reports/student-count` only
+ * redirects to it (Epic 8.15 D23).
+ *
  * Names are the sidebar labels (`nav.json`), because title, crumb and sidebar label are one name
  * (P7). Each description is one plain line of what the report shows (D21): no field names, no layout
  * words. Both languages sit here, like `action-registry.ts`, so the hub's search can match either
@@ -43,7 +47,6 @@ export interface CodedReport {
   /** The page it opens. */
   readonly to:
     | '/reports/collections'
-    | '/reports/student-count'
     | '/attendance/reports'
     | '/reports/printables'
     | '/reports/alerts'
@@ -67,17 +70,6 @@ export const CODED_REPORTS: readonly CodedReport[] = [
     description: {
       en: 'How much was paid each day, by which method and to whom.',
       bn: 'কোন দিনে কত টাকা জমা হয়েছে, কীভাবে এবং কার হাতে।',
-    },
-  },
-  {
-    id: 'student-count',
-    to: '/reports/student-count',
-    routeId: '/_staff/reports/student-count',
-    folder: 'students',
-    name: { en: 'Student count (BANBEIS)', bn: 'ছাত্রসংখ্যা (BANBEIS)' },
-    description: {
-      en: 'Number of students by class and gender.',
-      bn: 'শ্রেণি ও লিঙ্গ অনুযায়ী ছাত্রছাত্রীর সংখ্যা।',
     },
   },
   {

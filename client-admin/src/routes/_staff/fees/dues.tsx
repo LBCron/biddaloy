@@ -42,6 +42,7 @@ import { z } from 'zod';
 
 import { readVisibleColumns } from '../-save-as-report/list-to-definition';
 import { SaveAsReportDialog } from '../-save-as-report/save-as-report-dialog';
+import { ListReportHint } from '../../../components/list-report-hint';
 import { loadRouteNamespaces, swallowUnlessOffline } from '../../../route-loaders';
 import { SendReminderDialog } from '../students/-send-reminder-dialog';
 
@@ -158,7 +159,7 @@ export const Route = createFileRoute('/_staff/fees/dues')({
         )
         .catch(swallowUnlessOffline),
       // 'staff' holds the role names the keep-as-report dialog lists.
-      loadRouteNamespaces('fees', 'feeStructures', 'staff'),
+      loadRouteNamespaces('fees', 'feeStructures', 'staff', 'reports'),
     ]),
   pendingComponent: DuesQueuePending,
   component: DuesQueuePage,
@@ -558,6 +559,17 @@ function DuesQueuePage() {
     ? allFilterFields.filter((field) => !('key' in field && FLAGGED_HIDDEN.has(field.key)))
     : allFilterFields;
 
+  // The Export menu and the [8.15.55] tip both open the "keep as report" dialog with the shown columns.
+  function openKeepAsReport() {
+    setKeepAsReport({
+      columns: readVisibleColumns(
+        'fees-dues',
+        columns.map((column) => column.id),
+        DEFAULT_COLUMN_VISIBILITY,
+      ),
+    });
+  }
+
   return (
     <>
       <ListShell
@@ -576,7 +588,7 @@ function DuesQueuePage() {
         ]}
         // [8.15.17] One click downloads every student with dues matching the filters below.
         tabs={
-          <div className="flex items-start justify-start gap-1 md:justify-end">
+          <div className="flex flex-wrap items-start justify-start gap-1 md:justify-end">
             <ExportMenu
               totalCount={duesQuery.data?.total ?? 0}
               selectedCount={selectedRows.length}
@@ -587,21 +599,11 @@ function DuesQueuePage() {
                 downloadListExport('/fees/dues/export', duesListFilters, format)
               }
               onExportSelected={exportSelectedToCsv}
-              {...(canDesignReports
-                ? {
-                    onKeepAsReport: () =>
-                      setKeepAsReport({
-                        columns: readVisibleColumns(
-                          'fees-dues',
-                          columns.map((column) => column.id),
-                          DEFAULT_COLUMN_VISIBILITY,
-                        ),
-                      }),
-                  }
-                : {})}
+              {...(canDesignReports ? { onKeepAsReport: openKeepAsReport } : {})}
             />
             {/* The old "Export CSV" (?) id lives on: the guide ties it to this download. */}
             <HelpHint helpId="finance.dues.action.exportCsv" />
+            <ListReportHint list="dues" filters={state.filters} onKeep={openKeepAsReport} />
           </div>
         }
         filters={{ fields: filterFields, values: state.filters, onChange: handleFilterChange }}

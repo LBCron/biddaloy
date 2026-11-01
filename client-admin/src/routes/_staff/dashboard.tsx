@@ -26,6 +26,8 @@ export const Route = createFileRoute('/_staff/dashboard')({
       'applications',
       'printHistory',
       'setupChecklist',
+      'reports',
+      'reportView',
     ),
   pendingComponent: DashboardPending,
   component: DashboardRoute,

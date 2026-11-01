@@ -51,6 +51,13 @@ export interface RunRequest {
   mode: RunMode;
   /** 1-based page of `RUN_PAGE_SIZE` rows; ignored for PREVIEW. */
   page?: number;
+  /** Lowers the row cap below the mode's own (a dashboard widget shows 50). It can never raise it. */
+  maxRows?: number;
+  /**
+   * `false` writes no `report_runs` row for a RUN. A tile that refreshes on its own must not
+   * inflate the usage numbers (D24). Defaults to true.
+   */
+  log?: boolean;
 }
 
 export interface ReportResultColumn {
@@ -125,12 +132,30 @@ export class ReportRunnerService {
   async run(req: RunRequest): Promise<ReportRunResult> {
     const startedAt = Date.now();
     const { definition, versionId } = await this.resolve(req);
-    const cap = req.mode === 'PREVIEW' ? PREVIEW_MAX_ROWS : RUN_MAX_ROWS;
+    const modeCap = req.mode === 'PREVIEW' ? PREVIEW_MAX_ROWS : RUN_MAX_ROWS;
+    const cap =
+      req.maxRows && req.maxRows > 0 ? Math.min(modeCap, Math.trunc(req.maxRows)) : modeCap;
     const params = req.params ?? {};
 
     // One more than the cap tells us the report is longer than the mode allows.
     const compiled = await this.compiler.compile(definition, params, req.ctx, cap + 1);
-    const set = await this.resultSet(req, versionId, compiled, cap);
+    let set: CachedSet;
+    try {
+      set = await this.resultSet(req, versionId, compiled, cap);
+    } catch (error) {
+      // D24: a report that was too slow is counted on the usage page. The row carries no data.
+      if (error instanceof ReportTimeoutError && req.mode === 'RUN' && req.log !== false) {
+        const failed = await this.runLog.start({
+          tenantId: req.ctx.tenantId,
+          userId: req.ctx.userId,
+          kind: ReportRunKind.RUN,
+          definitionVersionId: versionId,
+          params,
+        });
+        await this.runLog.fail(req.ctx.tenantId, failed.id, 'REPORT_TOO_SLOW');
+      }
+      throw error;
+    }
 
     const pageSize = req.mode === 'RUN' ? RUN_PAGE_SIZE : set.rows.length || 1;
     const totalPages = Math.max(1, Math.ceil(set.rows.length / pageSize));
@@ -139,7 +164,7 @@ export class ReportRunnerService {
       req.mode === 'RUN' ? set.rows.slice((page - 1) * pageSize, page * pageSize) : set.rows;
 
     let runId: string | null = null;
-    if (req.mode === 'RUN') {
+    if (req.mode === 'RUN' && req.log !== false) {
       const run = await this.runLog.start({
         tenantId: req.ctx.tenantId,
         userId: req.ctx.userId,

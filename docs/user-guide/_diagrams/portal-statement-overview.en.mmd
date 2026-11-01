@@ -1,0 +1,13 @@
+%% title: How the statement is worked out
+%% desc: The school charges bills and takes payments. The server first checks that you are linked to this child, then lists every bill and payment with what is still owed after each line. The closing line is what is still owed now. Money kept in advance is listed apart and is not counted.
+flowchart TD
+  B["School charges a bill"]:::admin --> L
+  P["School takes a payment"]:::admin --> L
+  L["Lines in date order<br/>Still owed after each"] --> C{"Linked to this child?"}:::note
+  C -->|"No"| X["Nothing is sent"]
+  C -->|"Yes"| S["Statement page<br/>Still owed now"]:::guardian
+  S --> D["Download / Print"]:::guardian
+  W["Advance money"]:::note -.->|"listed apart, not counted"| S
+  classDef admin fill:#fff4e6,stroke:#e8590c,color:#7a2e05
+  classDef note fill:#f1f3f5,stroke:#868e96,color:#343a40
+  classDef guardian fill:#ebfbee,stroke:#2b8a3e,color:#14411d

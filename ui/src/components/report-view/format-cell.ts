@@ -9,8 +9,11 @@
  * `suppressed`. It must never read as 0: `isHiddenCell` names that case so the caller can show a dash
  * with a tooltip in plain words (see `ReportCell`).
  */
+import type { ReportFilter, ReportFormatRule } from '@biddaloy/shared';
+
 import type { RegionConfig } from '../../i18n';
 import { formatDate, formatScore, formatServerAmount } from '../../utils';
+import { opWordOf, type OpWord } from '../report-designer/filter-builder';
 
 import type { ReportColumn, ReportColumnType } from './types';
 
@@ -124,4 +127,117 @@ export function addUp(values: readonly unknown[], type: ReportColumnType): Added
   }
   if (!seen) return { value: null, incomplete };
   return { value: type === 'MONEY' ? sum / 100 : sum, incomplete };
+}
+
+// ---------------------------------------------------------------------------
+// [8.15.42] Colour rules: "if [Still owed] [more] [5,000] then red"
+// ---------------------------------------------------------------------------
+
+export type FormatTone = ReportFormatRule['style']['tone'];
+
+/** What a renderer needs to colour cells: the report's rules, and each colour's word for a screen reader. */
+export interface ReportFormatting {
+  rules: readonly ReportFormatRule[];
+  toneLabels: Record<FormatTone, string>;
+}
+
+/** A number to compare. Money is compared in whole paisa, so 0.1 + 0.2 equals 0.30 (Rule 26). */
+function comparable(value: unknown, type: ReportColumnType): number | string | null {
+  if (NUMERIC.has(type)) {
+    const n = toNumber(value);
+    return n === null ? null : type === 'MONEY' ? Math.round(n * 100) : n;
+  }
+  return typeof value === 'string' ? value : null;
+}
+
+/** The rule's own number or text, read the same way as the cell's. A question (`{ param }`) has no answer here. */
+function ruleValue(raw: unknown, type: ReportColumnType): number | string | null {
+  if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) return null;
+  return comparable(raw, type);
+}
+
+/** Does `actual` (a cell's value) meet the rule's condition? A missing or unreadable value never does. */
+export function meetsCondition(
+  when: ReportFilter,
+  actual: unknown,
+  type: ReportColumnType,
+): boolean {
+  const left = comparable(actual, type);
+  if (left === null) return false;
+  const raw = when.value;
+  const list = Array.isArray(raw) ? raw.map((v) => ruleValue(v, type)) : [ruleValue(raw, type)];
+  if (list.some((v) => v === null)) return false;
+  const [first, second] = list as (number | string)[];
+  switch (when.op) {
+    case 'EQ':
+      return left === first;
+    case 'NEQ':
+      return left !== first;
+    case 'IN':
+      return list.includes(left);
+    case 'NOT_IN':
+      return !list.includes(left);
+    case 'GT':
+      return first !== undefined && left > first;
+    case 'GTE':
+      return first !== undefined && left >= first;
+    case 'LT':
+      return first !== undefined && left < first;
+    case 'LTE':
+      return first !== undefined && left <= first;
+    case 'BETWEEN':
+      return first !== undefined && second !== undefined && left >= first && left <= second;
+    default:
+      return false;
+  }
+}
+
+/**
+ * The tone for one cell, or `null` for none. `key` is the cell's column; `values` are the values of
+ * the cell's row (or, in a table of counts, the cell's own count and the fields that name it). The
+ * first rule that colours this column and is met wins, so the order a person wrote them is the
+ * order they apply in.
+ */
+export function toneFor(
+  rules: readonly ReportFormatRule[] | undefined,
+  key: string,
+  values: Readonly<Record<string, unknown>>,
+  columns: readonly ReportColumn[],
+): FormatTone | null {
+  for (const rule of rules ?? []) {
+    if (rule.field !== key) continue;
+    const column = columns.find((c) => c.key === rule.when.field);
+    if (!column || !(rule.when.field in values)) continue;
+    if (meetsCondition(rule.when, values[rule.when.field], column.type)) return rule.style.tone;
+  }
+  return null;
+}
+
+/** The three pieces of a rule's sentence, in the viewer's language and digits: `[Still owed] [more] [5,000]`. */
+export interface RuleSentence {
+  field: string;
+  /** Which of the designer's five words the operator is shown as. */
+  op: OpWord;
+  value: string;
+}
+
+/** Writes a rule as the pieces of the designer's sentence; `null` for a rule whose field is not in the report. */
+export function describeRule(
+  rule: ReportFormatRule,
+  columns: readonly ReportColumn[],
+  locale: string,
+  config: RegionConfig,
+  words?: CellWords,
+): RuleSentence | null {
+  const column = columns.find((c) => c.key === rule.when.field);
+  if (!column) return null;
+  const raw = rule.when.value;
+  const parts = (Array.isArray(raw) ? raw : [raw]).map((v) =>
+    typeof v === 'object' && v !== null ? DASH : formatCell(v, column.type, config, words),
+  );
+  return {
+    field: columnLabel(column, locale),
+    op: opWordOf(rule.when.op),
+    value: parts.join(rule.when.op === 'BETWEEN' ? ' – ' : ', '),
+  };
 }

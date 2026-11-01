@@ -173,6 +173,66 @@ describe('Report engine routes E2E', () => {
       await as(UserRole.PARENT, http().get('/api/v1/reports/catalogue')).expect(403);
     });
 
+    it('how a report looks is open to every role that may run it, as the catalogue is', async () => {
+      const id = await create('look-open');
+      await publish(id);
+      const url = `/api/v1/reports/catalogue/${id}/definition`;
+
+      await http().get(url).expect(401);
+      for (const role of [
+        UserRole.ADMIN,
+        UserRole.ACCOUNTANT,
+        UserRole.TEACHER,
+        UserRole.COMMITTEE,
+      ]) {
+        const res = await as(role, http().get(url)).expect(200);
+        // Only the look: never the dataset, the calculated fields or the draft.
+        expect(Object.keys(res.body).sort()).toEqual([
+          'drill',
+          'format',
+          'layout',
+          'page',
+          'parameters',
+          'schema',
+          'subjectArea',
+          'version_id',
+        ]);
+        expect(res.body.layout).toEqual({ type: ReportLayoutType.TABLE });
+      }
+      // A guardian cannot open reports at all.
+      await as(UserRole.PARENT, http().get(url)).expect(403);
+    });
+
+    it('how a report looks is 404 (never 403) when the role, school, state or id does not fit', async () => {
+      const adminsOnly = await create('look-admins', [UserRole.ADMIN]);
+      await publish(adminsOnly);
+      const draftOnly = await create('look-draft');
+      const archived = await create('look-archived');
+      await publish(archived);
+      await as(
+        UserRole.ADMIN,
+        http().post(`/api/v1/reports/definitions/${archived}/archive`),
+      ).expect(200);
+      const look = (id: string) => `/api/v1/reports/catalogue/${id}/definition`;
+
+      // Made for admins only: a teacher and an accountant are told it does not exist.
+      await as(UserRole.TEACHER, http().get(look(adminsOnly))).expect(404);
+      await as(UserRole.ACCOUNTANT, http().get(look(adminsOnly))).expect(404);
+      await as(UserRole.ADMIN, http().get(look(adminsOnly))).expect(200);
+      // Not published, archived, and an id nobody has.
+      await as(UserRole.ADMIN, http().get(look(draftOnly))).expect(404);
+      await as(UserRole.TEACHER, http().get(look(archived))).expect(404);
+      await as(UserRole.TEACHER, http().get(look(randomUUID()))).expect(404);
+      // Another school's admin does not find the seed school's published report.
+      const open = await create('look-tenant');
+      await publish(open);
+      await as(UserRole.ADMIN, http().get(look(open)), adminToken, bigSchool).expect(404);
+      await as(
+        UserRole.TEACHER,
+        http().get('/api/v1/reports/catalogue/not-a-uuid/definition'),
+      ).expect(400);
+    });
+
     it('only ADMIN may create, edit, publish, copy or archive a report', async () => {
       const id = await create('guarded');
       for (const role of [UserRole.ACCOUNTANT, UserRole.TEACHER, UserRole.COMMITTEE]) {

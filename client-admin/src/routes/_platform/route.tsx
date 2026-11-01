@@ -64,6 +64,7 @@ function PlatformLayout() {
   const SchoolsIcon = PLATFORM_NAV_ICONS['/schools'];
   const HolidaySetsIcon = PLATFORM_NAV_ICONS['/holiday-sets'];
   const SubscriptionsIcon = PLATFORM_NAV_ICONS['/subscriptions'];
+  const ReportsUsageIcon = PLATFORM_NAV_ICONS['/reports-usage'];
   const DashboardIcon = STAFF_NAV_ICONS.dashboard;
 
   const matches = useMatches();
@@ -93,9 +94,14 @@ function PlatformLayout() {
       label: t('items.subscriptions'),
       icon: <SubscriptionsIcon aria-hidden="true" />,
     },
+    {
+      to: '/reports-usage',
+      label: t('items.reportsUsage'),
+      icon: <ReportsUsageIcon aria-hidden="true" />,
+    },
   ];
   const platformPages = navItems.map((i) => ({ id: i.to, label: i.label, to: i.to }));
-  // The console's bottom bar keeps Schools and Holidays (Subscriptions is under More); the third cell goes back to the school app (C8).
+  // The console's bottom bar keeps Schools and Holidays (Subscriptions and Report usage are under More); the third cell goes back to the school app (C8).
   const cells = [
     { ...navItems[0]!, label: t('bottomNavCells.schools') },
     { ...navItems[1]!, label: t('bottomNavCells.holidays') },

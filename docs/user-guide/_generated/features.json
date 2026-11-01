@@ -385,7 +385,13 @@
     "path": "reports/hub",
     "route": "/reports",
     "roles": ["ADMIN", "ACCOUNTANT", "TEACHER", "EXECUTIVE", "COMMITTEE"],
-    "routes": ["/reports", "/reports/$reportId"]
+    "routes": [
+      "/reports",
+      "/reports/$reportId",
+      "/reports/$reportId/edit",
+      "/reports/new",
+      "/reports/runs/$runId"
+    ]
   },
   {
     "id": "reports.collectionsReport",
@@ -528,6 +534,14 @@
     "route": "/portal/fees",
     "roles": ["PARENT", "STUDENT"],
     "routes": ["/portal/fees"]
+  },
+  {
+    "id": "portal.statement",
+    "kind": "portal",
+    "path": "portal/statement",
+    "route": "/portal/statement",
+    "roles": ["PARENT", "STUDENT"],
+    "routes": ["/portal/statement"]
   },
   {
     "id": "portal.attendance",
