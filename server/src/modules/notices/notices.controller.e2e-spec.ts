@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
 import supertest = require('supertest');
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
@@ -6,6 +6,7 @@ import { DataSource } from 'typeorm';
 import { randomUUID } from 'node:crypto';
 import { UserRole } from '@biddaloy/shared';
 import { AppModule } from '../../app.module';
+import { NoticesService } from './notices.service';
 import { configureApiVersioning } from '@test/helpers/e2e-app.helper';
 import { buildValidationPipeOptions } from '../../validation-pipe';
 import {
@@ -105,6 +106,9 @@ describe('Notices API E2E', () => {
         .expect(200)
     ).body.access_token;
   }, 60_000);
+
+  // the push fan-out after publish is detached; let it finish before the next test
+  afterEach(() => app.get(NoticesService).idle());
 
   afterAll(async () => {
     await ds.query(`DELETE FROM notice_recipients WHERE tenant_id = $1`, [SEED_TENANT_ID]);
@@ -267,6 +271,34 @@ describe('Notices API E2E', () => {
 
     await call('post', `/notices/${n.id}/withdraw`).expect(200);
     await call('post', `/notices/${n.id}/withdraw`).expect(409);
+  });
+
+  it('publish of a public notice never returns the raw token, so the idempotency cache never holds it (M3)', async () => {
+    const n = (
+      await call('post', '/notices', {
+        body: { title: `E2E ${tag}`, body: 'hello', isPublic: true },
+      }).expect(201)
+    ).body;
+    await call('post', `/notices/${n.id}/recipients`, {
+      body: { items: [{ kind: 'STAFF', userId: SEED_ADMIN_USER_ID }] },
+    }).expect(201);
+    const key = `pubtok-${tag}`;
+    const first = await call('post', `/notices/${n.id}/publish`, { body: {}, key }).expect(200);
+    const replay = await call('post', `/notices/${n.id}/publish`, { body: {}, key }).expect(200);
+    // the interceptor stores exactly this body in Redis for 24 h
+    expect(first.body).not.toHaveProperty('publicLinkToken');
+    expect(replay.body).not.toHaveProperty('publicLinkToken');
+    expect(first.body.isPublic).toBe(true);
+    // the token comes from the uncached route instead
+    const link = await call('post', `/notices/${n.id}/public-link`).expect(201);
+    expect(typeof link.body.token).toBe('string');
+  });
+
+  it('PATCH with null on a NOT NULL field is 400, not 500 (m2)', async () => {
+    const n = await mk();
+    for (const k of ['title', 'body', 'important', 'pinned', 'isPublic'])
+      await call('patch', `/notices/${n.id}`, { body: { [k]: null } }).expect(400);
+    await call('patch', `/notices/${n.id}`, { body: { expiresOn: null } }).expect(200);
   });
 
   it('a draft can be edited, copied, emptied and deleted; publishing it empty is 400', async () => {

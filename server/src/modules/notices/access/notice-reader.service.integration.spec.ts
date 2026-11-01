@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import { NotFoundException } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { getDataSourceToken } from '@nestjs/typeorm';
@@ -8,6 +8,7 @@ import { createTestModule } from '@test/helpers/module.helper';
 import { ALL_ENTITIES } from '@test/all-entities';
 import { SEED_ADMIN_PASSWORD_HASH, SEED_SECTION_1_ID, SEED_TENANT_ID } from '@test/constants';
 import { AuthModule } from '../../auth/auth.module';
+import { AlertWriterService } from '../../attention/engine/alert-writer.service';
 import { NoticeAccessModule } from './notice-access.module';
 import { NoticeReaderService } from './notice-reader.service';
 
@@ -18,6 +19,7 @@ import { NoticeReaderService } from './notice-reader.service';
 describe('NoticeReaderService (integration)', () => {
   let service: NoticeReaderService;
   let ds: DataSource;
+  let invalidate: ReturnType<typeof vi.spyOn>;
   const T = SEED_TENANT_ID;
   const TENANT_B = randomUUID();
   const sfx = randomUUID().slice(0, 8);
@@ -63,7 +65,7 @@ describe('NoticeReaderService (integration)', () => {
       `INSERT INTO notice_recipients (tenant_id, notice_id, kind, user_id) VALUES ($1,$2,'STAFF',$3)`,
       [tenant, notice, user],
     );
-  const guardianRow = (notice: string, student: string, guardian: string, user: string) =>
+  const guardianRow = (notice: string, student: string, guardian: string, user: string | null) =>
     ds.query(
       `INSERT INTO notice_recipients (tenant_id, notice_id, kind, user_id, guardian_id, student_id)
        VALUES ($1,$2,'GUARDIAN',$3,$4,$5)`,
@@ -84,6 +86,7 @@ describe('NoticeReaderService (integration)', () => {
       [ConfigModule.forRoot({ isGlobal: true }), NoticeAccessModule, AuthModule],
     );
     service = module.get(NoticeReaderService);
+    invalidate = vi.spyOn(module.get(AlertWriterService), 'invalidateSummary');
     ds = module.get<DataSource>(getDataSourceToken());
     for (const [name, id] of Object.entries(u)) {
       await ds.query(
@@ -196,8 +199,11 @@ describe('NoticeReaderService (integration)', () => {
     const normal = await mkNotice();
     await staffRow(imp, u.author);
     await staffRow(normal, u.author);
+    invalidate.mockClear();
     await service.acknowledge(T, u.author, imp);
     expect((await recipient(imp, u.author)).acknowledged_at).not.toBeNull();
+    // the amber bar drops at once: the summary cache is cleared for the acknowledging user
+    expect(invalidate).toHaveBeenCalledWith(T, [u.author]);
     await expect(service.acknowledge(T, u.author, normal)).rejects.toBeInstanceOf(
       NotFoundException,
     );
@@ -212,5 +218,26 @@ describe('NoticeReaderService (integration)', () => {
     expect(res.total).toBe(1);
     expect(res.data).toHaveLength(1);
     expect([...res.data[0].forStudents].sort()).toEqual([`Kid One ${sfx}`, `Kid Two ${sfx}`]);
+  });
+
+  it('a guardian who gets a login after publish sees, opens and acknowledges the notice (M2)', async () => {
+    const n = await mkNotice({ important: true, title: `late-${sfx}` });
+    const [{ id: late }] = await ds.query(
+      `INSERT INTO guardians (full_name, relationship, phone, email, tenant_id, user_id,
+                              preferred_communication, is_primary_contact, created_at, updated_at)
+       VALUES ('G Late','MOTHER','+8801700000093',$1,$2,NULL,'SMS',true,NOW(),NOW()) RETURNING id`,
+      [`glate-${randomUUID()}@test.com`, T],
+    );
+    // published while the guardian had no login: the row has no user_id
+    await guardianRow(n, kid1, late, null);
+    expect((await service.list(T, u.g2, { q: `late-${sfx}` })).total).toBe(0);
+
+    // the school invites the guardian later
+    await ds.query(`UPDATE guardians SET user_id = $1 WHERE id = $2`, [u.g2, late]);
+    const res = await service.list(T, u.g2, { q: `late-${sfx}` });
+    expect(res.data.map((x) => x.id)).toEqual([n]);
+    expect((await service.open(T, u.g2, n)).id).toBe(n);
+    await service.acknowledge(T, u.g2, n);
+    expect((await recipient(n, u.g2)).acknowledged_at).not.toBeNull();
   });
 });

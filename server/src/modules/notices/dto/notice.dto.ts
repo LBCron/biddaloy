@@ -187,7 +187,10 @@ export class NoticeDto {
   recipientCount: number;
   @ApiProperty() seenCount: number;
   @ApiProperty() createdAt: string;
-  @ApiPropertyOptional({ description: 'Returned once, only when a public link was just made.' })
+  @ApiPropertyOptional({
+    description:
+      'PATCH only: returned once when that edit turned the public link on. Publish never returns it (its answer is cached for idempotency); use POST :id/public-link.',
+  })
   publicLinkToken?: string | null;
 }
 

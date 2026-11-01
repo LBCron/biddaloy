@@ -36,6 +36,8 @@ import { CommunicationLog } from '../../communications/entities/communication-lo
   where: `"kind" = 'GUARDIAN'`,
 })
 @Index('IDX_notice_recipients_tenant_user', ['tenant_id', 'user_id'])
+@Index('IDX_notice_recipients_tenant_student', ['tenant_id', 'student_id'])
+@Index('IDX_notice_recipients_tenant_guardian', ['tenant_id', 'guardian_id'])
 @Unique('UQ_notice_recipients_link_token_hash', ['link_token_hash'])
 @Check('CHK_notice_recipients_kind', `"kind" IN ('STAFF','STUDENT','GUARDIAN')`)
 @Check(

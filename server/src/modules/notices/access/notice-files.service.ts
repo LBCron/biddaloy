@@ -17,6 +17,7 @@ import { tenantObjectKey } from '../../storage/storage-key';
 import { matchesDeclaredType } from '../../storage/file-signature';
 import { Notice } from '../entities/notice.entity';
 import { NoticeAttachment } from '../entities/notice-attachment.entity';
+import { claimRecipientRows } from '../notice-recipients.service';
 import type { NoticeFileDto } from './dto/notice-reader.dto';
 
 const EXT: Record<string, string> = {
@@ -183,6 +184,7 @@ export class NoticeFilesService {
     const n = await m.findOne(Notice, { where: { id: noticeId, tenant_id: tenantId } });
     let allowed = !!n && (n.author_user_id === user.userId || this.canManage(user));
     if (n && !allowed && n.status === NoticeStatus.PUBLISHED) {
+      await claimRecipientRows(m, tenantId, user.userId);
       const rows = await m.query(
         `SELECT 1 FROM notice_recipients WHERE tenant_id = $1 AND notice_id = $2 AND user_id = $3 LIMIT 1`,
         [tenantId, noticeId, user.userId],
