@@ -392,25 +392,13 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
                     if (key !== 'sms') touch();
                   }}
                 />
-                <Label
-                  htmlFor={`notice-${key}`}
-                  helpId={`notices.compose.field.${key}`}
-                  helpLabel={t(`fields.${key}`)}
-                >
-                  {t(`fields.${key}`)}
-                </Label>
+                <Label htmlFor={`notice-${key}`}>{t(`fields.${key}`)}</Label>
               </div>
             ))}
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label
-              htmlFor="notice-expires"
-              helpId="notices.compose.field.expires"
-              helpLabel={t('fields.expires')}
-            >
-              {t('fields.expires')}
-            </Label>
+            <Label htmlFor="notice-expires">{t('fields.expires')}</Label>
             <div className="flex items-center gap-3">
               <DatePicker
                 id="notice-expires"

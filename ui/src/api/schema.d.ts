@@ -9777,7 +9777,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** A page of people a notice could reach (basic tabs). */
+        /** A page of people a notice could reach. */
         get: operations["AudienceController_people_v1"];
         put?: never;
         post?: never;
@@ -13337,7 +13337,7 @@ export interface components {
         };
         DashboardLayoutItemDto: {
             /** @enum {string} */
-            key: "attendance-today" | "staff-today" | "collection-month" | "mark-entry-progress" | "syllabus-progress" | "at-risk-students" | "sms-balance" | "failed-messages" | "upcoming" | "homework-submission-rate" | "recent-activity" | "my-routine-today" | "my-pending-sections" | "my-mark-deadlines" | "homework-to-check" | "class-teacher-streaks" | "my-leave-balance" | "my-syllabus-progress" | "collection-today" | "collection-by-month" | "dues-ageing" | "dues-by-class" | "fee-generation-status" | "reminders-pending" | "recent-payments" | "committee-enrollment" | "committee-attendance" | "committee-finance" | "committee-pass-rate" | "seat-plan-status" | "results-state" | "admissions-today" | "guardians-incomplete" | "students-added-today" | "approvals-pending" | "print-queue" | "setup-checklist" | "syllabus-vs-plan" | "my-lessons-to-mark";
+            key: "attendance-today" | "staff-today" | "collection-month" | "mark-entry-progress" | "syllabus-progress" | "at-risk-students" | "sms-balance" | "failed-messages" | "upcoming" | "homework-submission-rate" | "recent-activity" | "my-routine-today" | "my-pending-sections" | "my-mark-deadlines" | "homework-to-check" | "class-teacher-streaks" | "my-leave-balance" | "my-syllabus-progress" | "collection-today" | "collection-by-month" | "dues-ageing" | "dues-by-class" | "fee-generation-status" | "reminders-pending" | "recent-payments" | "committee-enrollment" | "committee-attendance" | "committee-finance" | "committee-pass-rate" | "seat-plan-status" | "results-state" | "admissions-today" | "guardians-incomplete" | "students-added-today" | "approvals-pending" | "print-queue" | "setup-checklist" | "syllabus-vs-plan" | "my-lessons-to-mark" | "latest-notices";
             hidden?: boolean;
             /** @enum {string} */
             size?: "S" | "M" | "L";
@@ -18103,6 +18103,19 @@ export interface components {
             roles?: components["schemas"]["UserRole"][];
             classIds?: string[];
             sectionIds?: string[];
+            /**
+             * Format: uuid
+             * @description EXAM_FAILED: a published exam.
+             */
+            examId?: string;
+            /** @description LOW_ATTENDANCE: current-year % below this. */
+            belowPercent?: number;
+            /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+            shift?: string;
+            /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+            version?: string;
+            /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+            group?: string;
             /** @description Name search. */
             q?: string;
             /** @default 1 */
@@ -43318,6 +43331,16 @@ export interface operations {
                 roles?: components["schemas"]["UserRole"][];
                 classIds?: string[];
                 sectionIds?: string[];
+                /** @description EXAM_FAILED: a published exam. */
+                examId?: string;
+                /** @description LOW_ATTENDANCE: current-year % below this. */
+                belowPercent?: number;
+                /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+                shift?: string;
+                /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+                version?: string;
+                /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+                group?: string;
                 /** @description Name search. */
                 q?: string;
                 page?: number;
