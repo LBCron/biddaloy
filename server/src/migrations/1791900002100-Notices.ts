@@ -8,8 +8,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * (repo style, see alert_recipients); values mirror `@biddaloy/shared`.
  * Only SHA-256 hashes of public/link tokens are stored.
  */
-export class Notices1791900001200 implements MigrationInterface {
-  name = 'Notices1791900001200';
+export class Notices1791900002100 implements MigrationInterface {
+  name = 'Notices1791900002100';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`

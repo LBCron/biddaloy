@@ -5,7 +5,7 @@ import { ALL_ENTITIES } from '@test/all-entities';
 import { SEED_TENANT_ID, SEED_ADMIN_USER_ID, SEED_SECTION_1_ID } from '@test/constants';
 import { Student } from '../../students/entities/student.entity';
 import { Guardian } from '../../students/entities/guardian.entity';
-import { Notices1791900001200 } from '../../../migrations/1791900001200-Notices';
+import { Notices1791900002100 } from '../../../migrations/1791900002100-Notices';
 
 /**
  * [53.1.02] Notices schema: CHECKs, partial uniques, RESTRICT FKs and the
@@ -194,7 +194,7 @@ describe('Notices schema (integration)', () => {
       await ds.query(`DELETE FROM notice_attachments`);
       await ds.query(`DELETE FROM notices`);
       const qr: QueryRunner = ds.createQueryRunner();
-      const m = new Notices1791900001200();
+      const m = new Notices1791900002100();
       try {
         await m.down(qr);
         const gone = await ds.query(`SELECT to_regclass('public.notices') AS t`);
