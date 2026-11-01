@@ -4,12 +4,16 @@ import { ConfigModule } from '@nestjs/config';
 import { getDataSourceToken } from '@nestjs/typeorm';
 import { getQueueToken } from '@nestjs/bullmq';
 import { randomUUID } from 'node:crypto';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
+import { countSmsSegments } from '@biddaloy/shared';
 import { createTestModule } from '@test/helpers/module.helper';
 import { ALL_ENTITIES } from '@test/all-entities';
 import { SEED_ADMIN_PASSWORD_HASH, SEED_SECTION_1_ID, SEED_TENANT_ID } from '@test/constants';
 import { COMMUNICATIONS_QUEUE } from '../../communications/communications.constants';
+import { CommunicationLog } from '../../communications/entities/communication-log.entity';
+import { NoticeAlertsService } from '../../attention/notice/notice-alerts.service';
 import { AuditService } from '../../audit/audit.service';
+import { NoticeLinksService } from '../links/notice-links.service';
 import { NoticeSmsModule } from './notice-sms.module';
 import { NoticeSmsService, maskSmsPhone } from './notice-sms.service';
 
@@ -19,6 +23,7 @@ describe('NoticeSmsService (integration)', () => {
   let ds: DataSource;
   let add: ReturnType<typeof vi.fn>;
   let audit: ReturnType<typeof vi.spyOn>;
+  let alerts: NoticeAlertsService;
   const T = SEED_TENANT_ID;
   const sfx = randomUUID().slice(0, 8);
   const author = randomUUID();
@@ -98,6 +103,34 @@ describe('NoticeSmsService (integration)', () => {
         [T, available],
       );
   };
+  /** Ledger rows written after `mark()`: the ledger is never cleared between tests. */
+  const ledgerIds = async (): Promise<string[]> =>
+    (await ds.query(`SELECT id FROM sms_credit_ledger WHERE tenant_id = $1`, [T])).map(
+      (r: any) => r.id,
+    );
+  const newLedger = (before: string[]) =>
+    ds.query(
+      `SELECT kind, units, idempotency_key FROM sms_credit_ledger
+        WHERE tenant_id = $1 AND NOT (id = ANY($2::uuid[])) ORDER BY kind`,
+      [T, before],
+    );
+  const balance = async () => {
+    const [b] = await ds.query(
+      `SELECT available, reserved FROM sms_credit_balance WHERE tenant_id = $1`,
+      [T],
+    );
+    return [b.available, b.reserved];
+  };
+  /** Raises the real SMS approval task for a notice and links it, as NoticesService does. */
+  const withTask = async (id: string) => {
+    const taskId = await ds.transaction((tx) =>
+      alerts.raiseSmsApprovalTask(tx, { id, tenantId: T, title: 't', body: 'b', expiresOn: null }),
+    );
+    await ds.query(`UPDATE notices SET sms_task_alert_id = $2 WHERE id = $1`, [id, taskId]);
+    return taskId;
+  };
+  const taskStatus = async (taskId: string) =>
+    (await ds.query(`SELECT status FROM alerts WHERE id = $1`, [taskId]))[0].status;
   const unmeter = async () => {
     await ds.query(`UPDATE schools SET settings = $2::jsonb WHERE id = $1`, [
       T,
@@ -116,6 +149,7 @@ describe('NoticeSmsService (integration)', () => {
     ds = module.get<DataSource>(getDataSourceToken());
     add = vi.spyOn(module.get(getQueueToken(COMMUNICATIONS_QUEUE)), 'add') as never;
     audit = vi.spyOn(module.get(AuditService), 'record');
+    alerts = module.get(NoticeAlertsService);
     oldSettings = (await ds.query(`SELECT settings FROM schools WHERE id = $1`, [T]))[0].settings;
     for (const [id, n] of [
       [author, 'author'],
@@ -222,27 +256,136 @@ describe('NoticeSmsService (integration)', () => {
     expect(add).not.toHaveBeenCalled();
   });
 
-  it('approve on an expired notice is 409', async () => {
+  it('approve on an expired notice is 409 notLive and the request is closed as DECLINED', async () => {
+    await meter(10);
     const id = await notice([await guardian('01711000002')], { expires: '2000-01-01' });
-    await expect(svc.approve(T, id, approver)).rejects.toBeInstanceOf(ConflictException);
-    expect((await row(id)).sms_status).toBe('PENDING');
+    const taskId = await withTask(id);
+    const before = await ledgerIds();
+    // the notLive sentence itself: a notPending 409 here would mean the close ran too early
+    await expect(svc.approve(T, id, approver)).rejects.toThrow(
+      'নোটিশটি প্রকাশিত নেই, তুলে নেওয়া হয়েছে বা মেয়াদ শেষ',
+    );
+    // the close committed on its own, after the 409's rollback
+    const n = await row(id);
+    expect(n.sms_status).toBe('DECLINED');
+    // declined by the system, not by the caller
+    expect(n.sms_decided_by_user_id).toBeNull();
+    expect(await taskStatus(taskId)).toBe('RESOLVED');
+    // money: nothing was reserved, so nothing moves
+    expect(await newLedger(before)).toEqual([]);
+    expect(await balance()).toEqual([10, 0]);
+    expect(add).not.toHaveBeenCalled();
+    // a second approve is now plainly notPending
+    await expect(svc.approve(T, id, approver)).rejects.toThrow(
+      'এই নোটিশের এসএমএস অনুরোধ এখন অপেক্ষায় নেই',
+    );
   });
 
-  it('metered: reserves whole segments, then the job carries batchId and segments', async () => {
-    await meter(10);
-    const id = await notice([await guardian('01711000003'), await guardian('01711000004')]);
-    await svc.approve(T, id, approver);
+  it('view on an expired PENDING request says live:false, declines it and closes the task once', async () => {
+    const id = await notice([await guardian('01711000030')], { expires: '2000-01-01' });
+    const taskId = await withTask(id);
+    // another tenant cannot trigger the close
+    await expect(svc.view(randomUUID(), id, 1, 20)).rejects.toBeInstanceOf(NotFoundException);
+    expect((await row(id)).sms_status).toBe('PENDING');
+
+    const v = await svc.view(T, id, 1, 20);
+    expect(v.live).toBe(false);
+    expect(v.status).toBe('DECLINED');
+    expect((await row(id)).sms_status).toBe('DECLINED');
+    expect(await taskStatus(taskId)).toBe('RESOLVED');
+    const recips = await ds.query(
+      `SELECT DISTINCT state FROM alert_recipients WHERE alert_id = $1`,
+      [taskId],
+    );
+    expect(recips.map((r: any) => r.state)).toEqual(['RESOLVED']);
+    const audits = audit.mock.calls.length;
+    // idempotent: closing an already-closed request is a no-op
+    expect((await svc.view(T, id, 1, 20)).status).toBe('DECLINED');
+    expect(audit.mock.calls.length).toBe(audits);
+  });
+
+  it('view on a live PENDING request touches nothing', async () => {
+    const id = await notice([await guardian('01711000031')]);
+    const taskId = await withTask(id);
+    const v = await svc.view(T, id, 1, 20);
+    expect([v.live, v.status]).toEqual([true, 'PENDING']);
+    expect((await row(id)).sms_status).toBe('PENDING');
+    expect(await taskStatus(taskId)).toBe('ACTIVE');
+    expect(audit).not.toHaveBeenCalled();
+  });
+
+  it('metered: reserves whole segments x unique phones, jobs add up to exactly the reservation', async () => {
+    await meter(100);
+    const id = await notice([
+      await guardian('01711000003'),
+      await guardian('01711000004'),
+      await guardian('01711000004'), // same phone: one SMS, one share of credit
+    ]);
+    // Bangla title: UCS-2, so the body is several segments, not one
+    await ds.query(`UPDATE notices SET title = $2 WHERE id = $1`, [id, 'নোটিশ '.repeat(20)]);
+    expect((await svc.approve(T, id, approver)).queued).toBe(2);
+    const logs = await logsOf(id);
+    const s = countSmsSegments(logs[0].message_body).segments;
+    expect(s).toBeGreaterThan(1);
     const [led] = await ds.query(
       `SELECT kind, units FROM sms_credit_ledger WHERE tenant_id = $1 AND idempotency_key = $2`,
       [T, `batch:${add.mock.calls[0][1].batchId}`],
     );
     expect(led.kind).toBe('RESERVE');
-    const [{ available }] = await ds.query(
-      `SELECT available FROM sms_credit_balance WHERE tenant_id = $1`,
+    // money: units = segments x unique phones
+    expect(led.units).toBe(s * 2);
+    const jobs = add.mock.calls.map((c) => c[1]);
+    expect(jobs.every((j) => j.segments === s)).toBe(true);
+    expect(jobs.reduce((sum, j) => sum + j.segments, 0)).toBe(led.units);
+    const [{ available, reserved }] = await ds.query(
+      `SELECT available, reserved FROM sms_credit_balance WHERE tenant_id = $1`,
       [T],
     );
-    expect(available).toBe(10 - led.units);
-    expect(add.mock.calls[0][1]).toMatchObject({ batchId: expect.any(String) });
+    expect([available, reserved]).toEqual([100 - s * 2, s * 2]);
+  });
+
+  it('a failure after createPersonalLinks clears every new link hash and releases all credit', async () => {
+    await meter(10);
+    const id = await notice([await guardian('01711000020'), await guardian('01711000021')]);
+    const before = await ledgerIds();
+    const links = vi.spyOn(
+      (svc as unknown as { links: NoticeLinksService }).links,
+      'createPersonalLinks',
+    );
+    const realSave = EntityManager.prototype.save;
+    const save = vi.spyOn(EntityManager.prototype, 'save').mockImplementation(function (
+      this: EntityManager,
+      ...a: unknown[]
+    ) {
+      // only the communication-log insert fails: it runs after the links were written
+      if (a[0] === CommunicationLog) return Promise.reject(new Error('log insert down'));
+      return (realSave as (...x: unknown[]) => Promise<unknown>).apply(this, a);
+    } as never);
+    let made: unknown[] = [];
+    try {
+      await expect(svc.approve(T, id, approver)).rejects.toThrow('log insert down');
+      // read before mockRestore, which wipes mock.results
+      made = await Promise.all(links.mock.results.map((r) => r.value));
+    } finally {
+      save.mockRestore();
+      links.mockRestore();
+    }
+    // the links really were made before the failure, so the cleanup below is real
+    expect(made).toHaveLength(1);
+    expect(made[0]).toHaveLength(2);
+    const linked = await ds.query(
+      `SELECT count(*)::int c FROM notice_recipients WHERE notice_id = $1 AND link_token_hash IS NOT NULL`,
+      [id],
+    );
+    expect(linked[0].c).toBe(0);
+    expect(await balance()).toEqual([10, 0]);
+    const ledger = await newLedger(before);
+    // one reservation, given back in full
+    expect(ledger.map((l: any) => l.kind).sort()).toEqual(['RELEASE', 'RESERVE']);
+    expect(ledger[0].units).toBe(ledger[1].units);
+    expect(ledger[1].units).toBeGreaterThan(0);
+    expect((await row(id)).sms_status).toBe('PENDING');
+    expect(await logsOf(id)).toHaveLength(0);
   });
 
   it('metered with too little credit: 409 INSUFFICIENT_SMS_CREDIT, notice stays PENDING, no logs, no reserve', async () => {
@@ -306,16 +449,72 @@ describe('NoticeSmsService (integration)', () => {
 
   it('enqueue failure gives that credit back and fails that log only', async () => {
     await meter(10);
-    const id = await notice([await guardian('01711000007')]);
+    const id = await notice([await guardian('01711000007'), await guardian('01711000008')]);
+    const before = await ledgerIds();
+    // the FIRST add rejects, the second goes through
     add.mockRejectedValueOnce(new Error('redis down'));
     await svc.approve(T, id, approver);
-    const [log] = await logsOf(id);
-    expect(log.status).toBe('FAILED');
-    const [{ available, reserved }] = await ds.query(
-      `SELECT available, reserved FROM sms_credit_balance WHERE tenant_id = $1`,
-      [T],
-    );
-    expect([available, reserved]).toEqual([10, 0]);
+    const failedId = add.mock.calls[0][1].logId;
+    const okId = add.mock.calls[1][1].logId;
+    const s = add.mock.calls[0][1].segments;
+    const status = Object.fromEntries((await logsOf(id)).map((l: any) => [l.id, l.status]));
+    expect(status).toEqual({ [failedId]: 'FAILED', [okId]: 'QUEUED' });
+    const ledger = await newLedger(before);
+    // money: only the failed log's share comes back; the other stays reserved for its send
+    expect(ledger.find((l: any) => l.idempotency_key === `log:${failedId}:settle`)).toMatchObject({
+      kind: 'RELEASE',
+      units: s,
+    });
+    expect(ledger.some((l: any) => l.idempotency_key === `log:${okId}:settle`)).toBe(false);
+    expect(ledger.filter((l: any) => l.kind === 'RESERVE')).toEqual([
+      expect.objectContaining({ units: 2 * s }),
+    ]);
+    expect(await balance()).toEqual([10 - s, s]);
+  });
+
+  it('two approves racing on one notice: one sends, the other gets 409, credit reserved once', async () => {
+    await meter(10);
+    const id = await notice([await guardian('01711000040')]);
+    const before = await ledgerIds();
+    // Hold the first approve inside its transaction (row lock taken) until the second is waiting.
+    let entered!: () => void;
+    const inside = new Promise<void>((r) => (entered = r));
+    let open!: () => void;
+    const gate = new Promise<void>((r) => (open = r));
+    audit.mockImplementationOnce(async () => {
+      entered();
+      await gate;
+    });
+    try {
+      const first = svc.approve(T, id, approver);
+      await inside;
+      const second = svc.approve(T, id, approver);
+      // wait for the second to block on the first's row lock (a condition, not a sleep);
+      // each worker has its own database, so this only sees this file's sessions
+      await expect
+        .poll(async () => {
+          const rows = await ds.query(
+            `SELECT count(*)::int AS n FROM pg_stat_activity
+              WHERE datname = current_database() AND wait_event_type = 'Lock'
+                AND pid <> pg_backend_pid()`,
+          );
+          return rows[0].n;
+        })
+        .toBeGreaterThan(0);
+      open();
+      const [a, b] = await Promise.allSettled([first, second]);
+      expect(a).toEqual({ status: 'fulfilled', value: { status: 'APPROVED', queued: 1 } });
+      expect(b.status).toBe('rejected');
+      expect((b as PromiseRejectedResult).reason.message).toBe(
+        'এই নোটিশের এসএমএস অনুরোধ এখন অপেক্ষায় নেই',
+      );
+    } finally {
+      open();
+    }
+    expect(add).toHaveBeenCalledTimes(1);
+    const reserves = (await newLedger(before)).filter((l: any) => l.kind === 'RESERVE');
+    expect(reserves).toHaveLength(1);
+    expect(await balance()).toEqual([10 - reserves[0].units, reserves[0].units]);
   });
 
   it('view: masked phones, counts, text, cost; request must exist', async () => {

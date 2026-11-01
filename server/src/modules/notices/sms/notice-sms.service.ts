@@ -141,11 +141,56 @@ export class NoticeSmsService {
     }
   }
 
+  /**
+   * Lazy expiry (no scheduler hook exists): a PENDING request on a notice that is no longer live
+   * is declined by the system and its task closed, in its own transaction so it survives the
+   * caller's 409. Re-checked under the row lock, so a live or already-decided notice is a no-op.
+   * Never touches credit: nothing was reserved for a request that never got approved.
+   */
+  private async closeIfNotLive(tenantId: string, id: string): Promise<boolean> {
+    let taskId: string | null = null;
+    const closed = await this.ds.transaction(async (tx) => {
+      const n = await this.lockNotice(tx, tenantId, id);
+      if (n.sms_status !== NoticeSmsStatus.PENDING || (await this.isLive(tenantId, n)))
+        return false;
+      taskId = n.sms_task_alert_id;
+      if (taskId) await this.alerts.closeTask(tx, tenantId, taskId);
+      // declined by the system: no deciding user (same as withdraw)
+      await tx.update(
+        Notice,
+        { id, tenant_id: tenantId },
+        { sms_status: NoticeSmsStatus.DECLINED, sms_decided_at: new Date() },
+      );
+      await this.audit.record(
+        {
+          action: AuditAction.UPDATE,
+          entity_type: 'Notice',
+          entity_id: id,
+          tenant_id: tenantId,
+          performed_by_user_id: null,
+          new_values: { event: 'SMS_EXPIRED' },
+        },
+        tx,
+      );
+      return true;
+    });
+    if (closed) await this.invalidate(tenantId, taskId);
+    return closed;
+  }
+
   // ---- reads ----
 
   async view(tenantId: string, id: string, page: number, limit: number): Promise<NoticeSmsViewDto> {
     const n = await this.ds.getRepository(Notice).findOne({ where: { id, tenant_id: tenantId } });
     if (!n || n.sms_status === NoticeSmsStatus.NONE) throw new NotFoundException(M.notFound);
+    const live = await this.isLive(tenantId, n);
+    // Only a dead PENDING request takes the write lock; a live notice is never touched here.
+    if (
+      n.sms_status === NoticeSmsStatus.PENDING &&
+      !live &&
+      (await this.closeIfNotLive(tenantId, id))
+    )
+      n.sms_status = NoticeSmsStatus.DECLINED;
     const requester = n.sms_requested_by_user_id
       ? await this.ds
           .getRepository(User)
@@ -161,7 +206,7 @@ export class NoticeSmsService {
       status: n.sms_status,
       requester: requester?.full_name ?? null,
       requestedAt: n.sms_requested_at ? n.sms_requested_at.toISOString() : null,
-      live: await this.isLive(tenantId, n),
+      live,
       items: rows.slice((page - 1) * limit, page * limit).map((r) => ({
         id: r.recipient.id,
         guardianName: r.recipient.guardian?.full_name ?? '',
@@ -251,12 +296,16 @@ export class NoticeSmsService {
     let reserved = false;
     let taskId: string | null = null;
     let linkedIds: string[] = [];
+    let notLive = false;
     const jobs: { logId: string; segments: number }[] = [];
     try {
       await this.ds.transaction(async (tx) => {
         const n = await this.lockNotice(tx, tenantId, id);
         if (n.sms_status !== NoticeSmsStatus.PENDING) throw new ConflictException(M.notPending);
-        if (!(await this.isLive(tenantId, n))) throw new ConflictException(M.notLive);
+        if (!(await this.isLive(tenantId, n))) {
+          notLive = true;
+          throw new ConflictException(M.notLive);
+        }
         taskId = n.sms_task_alert_id;
 
         const will = this.sendable(await this.guardianRows(tx, tenantId, id));
@@ -362,6 +411,14 @@ export class NoticeSmsService {
             );
         } catch (le) {
           this.logger.error(`notice sms link cleanup failed: ${(le as Error).message}`);
+        }
+      }
+      // The 409's transaction rolled back (lock released); close the dead request on its own.
+      if (notLive) {
+        try {
+          await this.closeIfNotLive(tenantId, id);
+        } catch (ce) {
+          this.logger.error(`notice sms expiry close failed: ${(ce as Error).message}`);
         }
       }
       throw e;

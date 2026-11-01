@@ -185,10 +185,23 @@ describe('Notice SMS API E2E', () => {
     await call('post', `/notices/${id}/sms/approve`).expect(409);
   });
 
-  it('missing or foreign X-Tenant-ID is 401 on every route', async () => {
+  it('approve on an expired notice is 409 and the request is DECLINED after the response', async () => {
+    const id = await pending();
+    await ds.query(`UPDATE notices SET expires_on = '2000-01-01' WHERE id = $1`, [id]);
+    const res = await call('post', `/notices/${id}/sms/approve`).expect(409);
+    expect(JSON.stringify(res.body)).not.toContain('2000-01-01');
+    // the close commits on its own, so it survives the 409
+    const [n] = await ds.query(`SELECT sms_status FROM notices WHERE id = $1`, [id]);
+    expect(n.sms_status).toBe('DECLINED');
+    const v = await call('get', `/notices/${id}/sms`).expect(200);
+    expect([v.body.live, v.body.status]).toEqual([false, 'DECLINED']);
+  });
+
+  it('missing, foreign or malformed X-Tenant-ID is 401 on every route', async () => {
     const id = randomUUID();
     const bogus = '00000000-0000-4000-8000-00000000dead';
-    for (const tenant of [null, bogus]) {
+    // 'not-a-uuid': same 401 the context guard gives elsewhere (staff-attendance.e2e-spec.ts)
+    for (const tenant of [null, bogus, 'not-a-uuid']) {
       await call('get', `/notices/${id}/sms`, { tenant }).expect(401);
       await call('patch', `/notices/${id}/sms/recipients`, {
         tenant,
