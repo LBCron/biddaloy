@@ -15,8 +15,11 @@ import { routeTree } from '../../../routeTree.gen';
 const CLASS_ID = '11111111-1111-4111-8111-111111111111';
 const SECTION_ID = '22222222-2222-4222-8222-222222222222';
 
+// Every real day of the month (a fixed 31 made "2026-11-31" in a 30-day month).
 function dates31(month: string) {
-  return Array.from({ length: 31 }, (_, i) => ({
+  const [y, m] = month.split('-').map(Number);
+  const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return Array.from({ length: days }, (_, i) => ({
     date: `${month}-${String(i + 1).padStart(2, '0')}`,
     is_working_day: true,
   }));
