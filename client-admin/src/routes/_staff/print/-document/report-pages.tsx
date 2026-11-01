@@ -14,10 +14,10 @@
  * What it reuses: `ReportTable`, `ReportGrouped`, `ReportCrosstab` and `ReportChart`, forced into
  * their table form (a printed page has no phone layout), inside `A4Document`.
  *
- * Which layout: `GET /reports/definitions/:id` says (grouped, table of counts, chart), but only a
- * person who holds REPORTS_DESIGN may read it. Everyone else prints by the result's columns, as a
- * plain table. Server follow-up: put `layout` and `page` in the run result so every viewer prints
- * the same page.
+ * Which layout: a designer (REPORTS_DESIGN) reads `GET /reports/definitions/:id`; everyone else reads
+ * `GET /reports/catalogue/:id/definition` (the published version's look, under the catalogue's own
+ * visibility, no dataset). Either says grouped, table of counts or chart. Only when neither can be
+ * read (a 404: the report is hidden or gone) does the result print by its columns, as a plain table.
  *
  * Audit: no `document-prints` row. That endpoint is for one student's document
  * (`POST /students/:id/document-prints`). A report print is the run itself: `POST /reports/run`
@@ -68,7 +68,7 @@ type PageHints = Partial<ReportPage> & { break_groups?: boolean };
 
 export interface ReportPrintPagesProps {
   result: ReportRunResult;
-  /** The definition's layout; without it (no REPORTS_DESIGN) the result prints as a plain table. */
+  /** The definition's layout; without it (the look could not be read) the result prints as a plain table. */
   layout?: (ReportLayoutProps & { type?: ReportLayout['type'] }) | undefined;
   page?: PageHints | undefined;
   title: string;
@@ -274,6 +274,12 @@ interface DefinitionDetail {
   draft: { layout?: ReportLayout; page?: ReportPage } | null;
 }
 
+/** `GET /reports/catalogue/:id/definition`: the published version's look, for any viewer. */
+interface PresentationDetail {
+  layout?: ReportLayout;
+  page?: ReportPage;
+}
+
 /** Every page of the answer, in order (`truncated` says when the 10,000-row cap cut it short). */
 async function runAllPages(
   definitionId: string,
@@ -318,7 +324,7 @@ export function ReportDocumentPage({ definitionId, params, from }: ReportDocumen
   const on = canView && definitionId !== undefined;
 
   const profile = useSchoolProfile();
-  // The name, for anyone who may run reports (the definition itself is for designers only).
+  // The name, for anyone who may run reports (the definition itself is for designers).
   const catalogue = useQuery({
     queryKey: ['report-print', 'catalogue'],
     queryFn: async ({ signal }) =>
@@ -333,6 +339,20 @@ export function ReportDocumentPage({ definitionId, params, from }: ReportDocumen
       (await apiClient.get<DefinitionDetail>(`/reports/definitions/${definitionId}`, { signal }))
         .data,
     enabled: on && canDesign,
+    staleTime: Infinity,
+    retry: false,
+  });
+  // Everyone else reads the published version's look. A 404 (hidden, gone) is not an error here:
+  // the report then prints as a plain table.
+  const presentation = useQuery({
+    queryKey: ['report-print', 'presentation', definitionId],
+    queryFn: async ({ signal }) =>
+      (
+        await apiClient.get<PresentationDetail>(`/reports/catalogue/${definitionId}/definition`, {
+          signal,
+        })
+      ).data,
+    enabled: on && !canDesign,
     staleTime: Infinity,
     retry: false,
   });
@@ -365,7 +385,8 @@ export function ReportDocumentPage({ definitionId, params, from }: ReportDocumen
     logo_key: p.logo_url ? 'active' : null,
   };
 
-  const loading = profile.isLoading || run.isLoading || definition.isLoading;
+  const loading =
+    profile.isLoading || run.isLoading || definition.isLoading || presentation.isLoading;
   const failed = profile.isError || run.isError;
   const ready = on && !loading && !failed && issuer !== undefined && run.data !== undefined;
   const hasRows = (run.data?.rows.length ?? 0) > 0;
@@ -447,7 +468,7 @@ export function ReportDocumentPage({ definitionId, params, from }: ReportDocumen
       />
     );
   } else {
-    const detail = definition.data?.draft;
+    const detail = canDesign ? definition.data?.draft : presentation.data;
     body = (
       <ReportPrintPages
         result={run.data}

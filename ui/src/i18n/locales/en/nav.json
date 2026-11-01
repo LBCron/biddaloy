@@ -126,7 +126,9 @@
     "reportDetail": "Report",
     "alertsReport": "Alerts report",
     "portalHomework": "Homework",
-    "committeeReport": "Monthly meeting report"
+    "committeeReport": "Monthly meeting report",
+    "reportsUsage": "Report usage",
+    "reportRun": "Your report"
   },
   "groups": {
     "people": "People",

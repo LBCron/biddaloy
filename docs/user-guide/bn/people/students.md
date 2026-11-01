@@ -52,6 +52,7 @@ helpIds:
     people.students.field.rollNumber,
     people.students.field.bloodGroup,
     people.students.field.preferredCommunication,
+    people.students.section.statement#task-fees,
   ]
 devices: [desktop]
 entry: [sidebar, palette, page:welcome]
@@ -204,6 +205,8 @@ knownIssues: []
 ফিল্টারে **শ্রেণি** আর **শাখা** দুটোই বাছলে উপরে **পুরো (শাখার নাম)-এর আইডি কার্ড প্রিন্ট** বোতাম আসে। এতে পুরো শাখার কার্ড একবারে প্রিন্ট হয়।
 
 তালিকার প্রতিটি সারির শেষে **দেখুন** (প্রোফাইল খোলে), **সম্পাদনা** আর **ফি আদায়** থাকে।
+
+[ছাত্রসংখ্যা (BANBEIS)](../reports/student-count.md) রিপোর্টের কোনো সংখ্যায় চেপে এখানে এলে শ্রেণি আর লিঙ্গ আগেই বাছা থাকে, আর ওপরের **ফিরে যান** আপনাকে সেই রিপোর্টে ফিরিয়ে নেয়।
 
 ### শিক্ষার্থীর তথ্য বদলান <a href="#task-edit" id="task-edit"></a>
 

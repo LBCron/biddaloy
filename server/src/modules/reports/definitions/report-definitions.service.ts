@@ -22,6 +22,7 @@ import { ReportDefinition } from '../entities/report-definition.entity';
 import type {
   CatalogueFolderDto,
   CreateReportDefinitionDto,
+  ReportPresentationDto,
   UpdateReportDefinitionDto,
 } from './dto/report-definition.dto';
 
@@ -269,6 +270,35 @@ export class ReportDefinitionsService {
       folders.set(d.folder, folder);
     }
     return [...folders.values()];
+  }
+
+  /**
+   * [8.15.50] How a report looks, for any role that may run it: the questions it asks, its layout,
+   * page, colour rules and links, from the PUBLISHED version (never the draft). The same rules as the
+   * catalogue and as a run, because it asks the catalogue: another school's, an archived, a
+   * draft-only or a role-hidden report all answer the one 404. The dataset (field keys, filters,
+   * sorts) and the calculated fields are left out: a viewer learns no more than the run shows.
+   */
+  async presentation(viewer: DefinitionViewer, id: string): Promise<ReportPresentationDto> {
+    const folders = await this.catalogue(viewer);
+    const entry = folders.flatMap((f) => f.reports).find((r) => r.id === id);
+    if (!entry) throw new NotFoundException('Report not found');
+    const version = await this.versions.findOne({
+      where: { id: entry.version_id, tenant_id: viewer.tenantId },
+    });
+    if (!version) throw new NotFoundException('Report not found');
+    // Named one by one: a field added to the definition later is private until it is listed here.
+    const { schema, subjectArea, parameters, layout, page, format, drill } = version.definition;
+    return {
+      version_id: version.id,
+      schema,
+      subjectArea,
+      parameters,
+      layout,
+      page,
+      format,
+      drill,
+    };
   }
 
   /** Every report of the school for the designer, newest first, with its latest version number. */

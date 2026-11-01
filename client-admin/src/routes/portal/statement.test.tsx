@@ -16,6 +16,7 @@ import bnFees from '../../../../ui/src/i18n/locales/bn/fees.json';
 import bnNav from '../../../../ui/src/i18n/locales/bn/nav.json';
 import enFees from '../../../../ui/src/i18n/locales/en/fees.json';
 import enNav from '../../../../ui/src/i18n/locales/en/nav.json';
+import { expectHelp } from '../../help/test-utils';
 import { routeTree } from '../../routeTree.gen';
 import { StatementSection } from '../_staff/students/-detail/statement-section';
 
@@ -174,6 +175,21 @@ describe('/portal/statement', () => {
     await user.click(screen.getByRole('link', { name: /Karim/ }));
     expect(await screen.findByText('All paid')).toBeTruthy();
     expect(requests).toContain(`/portal/students/${KARIM}/statement`);
+  });
+
+  // [8.15.49] The page title's (?) comes from the route; the print action's is wired by hand.
+  it('puts a (?) on the title and on the Download / Print button', async () => {
+    vi.stubEnv('VITE_HANDBOOK_URL', 'https://guide.test');
+    try {
+      serve({});
+      const { localeReady } = renderPortal();
+      await localeReady;
+      await screen.findAllByRole('button', { name: 'Download / Print' });
+      await expectHelp('portal.statement');
+      await expectHelp('portal.statement.action.print');
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it('has one Download / Print button that prints only the statement', async () => {

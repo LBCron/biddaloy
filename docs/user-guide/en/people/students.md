@@ -52,6 +52,7 @@ helpIds:
     people.students.field.rollNumber,
     people.students.field.bloodGroup,
     people.students.field.preferredCommunication,
+    people.students.section.statement#task-fees,
   ]
 devices: [desktop]
 entry: [sidebar, palette, page:welcome]
@@ -206,6 +207,8 @@ This form cannot keep a student on your device while the internet is off. So the
 If you choose both **Class** and **Section** in the filters, a **Print ID cards for whole (section name)** button appears. It prints the cards of the whole section at once.
 
 At the end of each row in the list are **View** (opens the profile), **Edit** and **Collect fees**.
+
+If you got here by pressing a number in the [Student count (BANBEIS)](../reports/student-count.md) report, the class and gender are already chosen, and **Go back** at the top returns you to that report.
 
 ### Change a student's details <a href="#task-edit" id="task-edit"></a>
 

@@ -55,6 +55,7 @@ export const NOT_IN_NAV: Record<string, string> = {
   '/_platform/holiday-sets/': 'platform admin page, has its own nav, not the staff sidebar',
   '/_platform/holiday-sets/$setId': 'platform admin page, has its own nav, not the staff sidebar',
   '/_platform/subscriptions/': 'platform admin page, has its own nav, not the staff sidebar',
+  '/_platform/reports-usage': 'platform admin page, has its own nav, not the staff sidebar',
   '/_platform/schools/': 'platform admin page, has its own nav, not the staff sidebar',
   '/_platform/schools/$schoolId': 'platform admin page, has its own nav, not the staff sidebar',
   '/_platform/schools/new': 'platform admin page, has its own nav, not the staff sidebar',
@@ -113,6 +114,12 @@ export const NOT_IN_NAV: Record<string, string> = {
     '[28.4.2] survey results reached from the Surveys tab on /staff/evaluations, not its own nav item',
   '/_staff/reports/$reportId':
     '[8.15.29] a report opened from a card on the Reports hub (/reports)',
+  '/_staff/reports/runs/$runId':
+    '[8.15.47] the page the link in a regular report email opens: one file, not a nav item',
+  '/_staff/reports/new':
+    "[8.15.41] the report designer: reached from the hub's New report button and the palette",
+  '/_staff/reports/$reportId_/edit':
+    "[8.15.41] the report designer on one report: reached from that report's Change button",
   '/_staff/students/$studentId': 'detail route reached from the students list',
   '/_staff/students/$studentId_/edit': 'action reached from the student detail page',
   '/_staff/students/import': 'action reached from the students list, not its own nav item',

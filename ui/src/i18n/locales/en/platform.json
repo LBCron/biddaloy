@@ -366,5 +366,46 @@
       "title": "Seats",
       "caption": "Seats bought, in use, and the payments behind them."
     }
+  },
+  "reportsUsage": {
+    "title": "How reports are used",
+    "subtitle": "Counts, plus the free-text comments people leave. A comment is typed by a person and may contain a name. No student, guardian or money rows.",
+    "rangeLabel": "Period",
+    "range": {
+      "30": "Last 30 days",
+      "90": "Last 90 days",
+      "365": "Last year"
+    },
+    "sortNote": "The least helpful reports come first. Reports nobody has answered about come last.",
+    "caption": "How often each report is run (including regular emails and downloads), and where people struggle",
+    "errorMessage": "The usage numbers could not be loaded.",
+    "retry": "Try again",
+    "emptyTitle": "No report was run in this period",
+    "emptyExplanation": "Try a longer period.",
+    "columns": {
+      "report": "Report",
+      "runs": "Times run",
+      "schools": "Schools",
+      "people": "People",
+      "helpful": "Found useful",
+      "slow": "Too slow",
+      "empty": "Nothing to show",
+      "big": "Large downloads",
+      "comments": "What people said"
+    },
+    "columnHelp": {
+      "big": "Downloads of more than 5,000 rows."
+    },
+    "custom": "Reports schools made themselves",
+    "names": {
+      "student-list": "Student list",
+      "student-count-banbeis": "Students by class and gender (BANBEIS)",
+      "staff-by-type-gender": "Teachers and staff by type",
+      "public-exam-results": "Public exam results",
+      "defaulters-guardian-contact": "Still owed, with guardian phone"
+    },
+    "helpfulNone": "No answers yet",
+    "noComments": "No comments",
+    "period": "{{from}} to {{to}}"
   }
 }

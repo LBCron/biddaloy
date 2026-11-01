@@ -11,7 +11,7 @@ sources:
   - server/src/modules/fees/statement/student-statement.service.ts
   - server/src/modules/students/family-access.service.ts
 labels: [fees:statement.*, nav:items.portalStatement, portal:empty.*]
-helpIds: [portal.statement]
+helpIds: [portal.statement, portal.statement.action.print#task-print]
 devices: [phone, desktop]
 entry: [sidebar]
 keywords: [হিসাব, বাকি, বিল, জমা, প্রিন্ট, ডাউনলোড, পিডিএফ, statement, account, still owed, print, download]

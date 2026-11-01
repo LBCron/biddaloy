@@ -8,6 +8,7 @@ import { expectKeyboardOperable } from '../test/a11y';
 import { cleanupTestState, renderWithProviders } from '../test/render-with-providers';
 
 import { ExportMenu, type ExportMenuProps } from './export-menu';
+import { HelpProvider, type HelpIndex } from './help-hint';
 
 afterEach(async () => {
   await cleanupTestState();
@@ -255,5 +256,52 @@ describe('ExportMenu', () => {
     await screen.findByRole('menu');
     await user.keyboard('{Enter}');
     expect(onExportAll).toHaveBeenCalledExactlyOnceWith('csv');
+  });
+});
+
+describe('ExportMenu (?) help', () => {
+  const index: HelpIndex = {
+    'reports.hub.action.downloadExcel': {
+      title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+      summary: { bn: 'Excel-এ নামান', en: 'Download to Excel' },
+      path: 'reports/hub',
+      anchor: 'task-download',
+      knownIssues: 0,
+    },
+  };
+  const withIndex = (props: Partial<ExportMenuProps>) =>
+    renderWithProviders(
+      <HelpProvider index={index} lang="en" baseUrl="https://guide.test">
+        <ExportMenu
+          totalCount={5}
+          canExportAll
+          onExportAll={() => Promise.resolve()}
+          helpId="reports.hub.action.downloadExcel"
+          {...props}
+        />
+      </HelpProvider>,
+      { locale: 'en' },
+    );
+
+  it('puts a (?) right after the download button when the id resolves', async () => {
+    const { container } = withIndex({});
+    await screen.findByRole('button', { name: 'Help: All reports' });
+    const hint = container.querySelector('[data-help-id="reports.hub.action.downloadExcel"]');
+    const group = container.querySelector('[role="group"]');
+    expect(hint).not.toBeNull();
+    expect(group?.nextElementSibling).toBe(hint);
+  });
+
+  it('shows no (?) without permission to download, so none is left alone', () => {
+    const { container } = withIndex({ canExportAll: false, onKeepAsReport: () => undefined });
+    expect(container.querySelector('[data-help-id]')).toBeNull();
+  });
+
+  it('keeps its DOM when no (?) resolves', () => {
+    const { container } = renderMenu({ helpId: 'reports.hub.action.downloadExcel' });
+    expect(container.querySelector('[data-help-id]')).toBeNull();
+    expect(container.querySelector('[role="group"]')?.parentElement?.className).toContain(
+      'flex-col',
+    );
   });
 });

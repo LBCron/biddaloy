@@ -60,6 +60,8 @@ import bnVerify from '../ui/src/i18n/locales/bn/verify.json';
 import bnPrograms from '../ui/src/i18n/locales/bn/programs.json';
 import bnPromotions from '../ui/src/i18n/locales/bn/promotions.json';
 import bnReports from '../ui/src/i18n/locales/bn/reports.json';
+import bnReportDesigner from '../ui/src/i18n/locales/bn/reportDesigner.json';
+import bnReportView from '../ui/src/i18n/locales/bn/reportView.json';
 import bnRoutines from '../ui/src/i18n/locales/bn/routines.json';
 import bnSeatPlans from '../ui/src/i18n/locales/bn/seatPlans.json';
 import bnSeatPlansDetail from '../ui/src/i18n/locales/bn/seatPlansDetail.json';
@@ -126,6 +128,8 @@ import enVerify from '../ui/src/i18n/locales/en/verify.json';
 import enPrograms from '../ui/src/i18n/locales/en/programs.json';
 import enPromotions from '../ui/src/i18n/locales/en/promotions.json';
 import enReports from '../ui/src/i18n/locales/en/reports.json';
+import enReportDesigner from '../ui/src/i18n/locales/en/reportDesigner.json';
+import enReportView from '../ui/src/i18n/locales/en/reportView.json';
 import enRoutines from '../ui/src/i18n/locales/en/routines.json';
 import enSeatPlans from '../ui/src/i18n/locales/en/seatPlans.json';
 import enSeatPlansDetail from '../ui/src/i18n/locales/en/seatPlansDetail.json';
@@ -216,6 +220,8 @@ const catalogs = {
     programs: bnPrograms,
     promotions: bnPromotions,
     reports: bnReports,
+    reportDesigner: bnReportDesigner,
+    reportView: bnReportView,
     routines: bnRoutines,
     seatPlans: bnSeatPlans,
     seatPlansDetail: bnSeatPlansDetail,
@@ -291,6 +297,8 @@ const catalogs = {
     programs: enPrograms,
     promotions: enPromotions,
     reports: enReports,
+    reportDesigner: enReportDesigner,
+    reportView: enReportView,
     routines: enRoutines,
     seatPlans: enSeatPlans,
     seatPlansDetail: enSeatPlansDetail,
