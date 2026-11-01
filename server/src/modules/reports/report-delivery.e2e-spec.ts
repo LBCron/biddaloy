@@ -50,7 +50,7 @@ describe('Report delivery routes E2E', () => {
 
   const definitionJson = (
     over: Record<string, unknown> = {},
-    subject = ReportSubjectArea.STUDENTS,
+    subject: ReportSubjectArea = ReportSubjectArea.STUDENTS,
   ) => ({
     schema: 1,
     subjectArea: subject,

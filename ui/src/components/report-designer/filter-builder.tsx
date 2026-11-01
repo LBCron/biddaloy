@@ -366,7 +366,7 @@ function ValueEditor({ field, word, value, onChange, labels, enumLabel }: ValueE
   }
 
   if (field.type === 'DATE') {
-    const [from, to] = asList(value);
+    const [from] = asList(value);
     if (word === 'between') return <DateRange value={value} onChange={onChange} labels={labels} />;
     return (
       <DatePicker
@@ -437,7 +437,8 @@ export function ConditionEditor({
     const next = fields.find((f) => f.key === key);
     if (!next) return;
     // Two ENUM fields have different choices, so a kept value could match none of them.
-    if (field && field.type === next.type && next.type !== 'ENUM') return onChange({ ...condition, field: key });
+    if (field && field.type === next.type && next.type !== 'ENUM')
+      return onChange({ ...condition, field: key });
     onChange({ field: key, op: 'EQ' });
   }
 
