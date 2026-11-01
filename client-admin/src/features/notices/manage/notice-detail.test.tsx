@@ -120,4 +120,40 @@ describe('NoticeDetail', () => {
     });
     expect(await screen.findByText('Rahim Uddin')).toBeTruthy();
   });
+
+  it('shows the link and SMS panels, and opens the SMS page from ?sms=1', async () => {
+    server.use(
+      http.get(`*/notices/${ID}`, () => HttpResponse.json({ ...notice, smsStatus: 'PENDING' })),
+      http.get(`*/notices/${ID}/sms`, () =>
+        HttpResponse.json({
+          status: 'PENDING',
+          requester: 'Karim',
+          requestedAt: null,
+          live: true,
+          items: [],
+          total: 0,
+          page: 1,
+          limit: 25,
+          counts: { willSend: 0, optedOut: 0, noPhone: 0 },
+          sms: { text: 'Exam routine', length: 12, segments: 1, encoding: 'GSM_7', creditCost: 0 },
+        }),
+      ),
+    );
+    const root = createRootRoute();
+    const index = createRoute({
+      getParentRoute: () => root,
+      path: '/',
+      validateSearch: (s: Record<string, unknown>) => s,
+      component: () => <NoticeDetail noticeId={ID} />,
+    });
+    renderWithRouter(root.addChildren([index]), {
+      initialEntries: ['/?sms=1'],
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+      locale: 'en',
+    });
+    // The dialog hides the page behind it from role queries, so look by text.
+    expect(await screen.findByText('Public link')).toBeTruthy();
+    expect(await screen.findByText('SMS for this notice')).toBeTruthy();
+  });
 });
