@@ -536,6 +536,77 @@ late fee on top of it isn't a case anyone asked for.
 
   TO_WALLET siblings are refused, and reversal handles a stale bill. Cost: a race between two checkouts on one wallet. Rule candidate: in any money path, lock bills then wallet, and burn approval tokens last -> Rule 24-27 candidate.
 
+## Student statement
+
+A statement answers one question for one student: **what was charged, what was paid, and what is still owed after each line?** It is a coded report (Epic 8.15 D10), not a defined one, because it is a ledger. The code is `server/src/modules/fees/statement/student-statement.service.ts`; the numbers are the same ones the student's fees tab and the dues list show.
+
+### Where the lines come from
+
+The service reads four kinds of line and puts them in one list. Nothing is stored: every request reads the tables again.
+
+```mermaid
+flowchart LR
+  SF1["student_fees<br/>total_amount"] -->|"BILL, debit"| L
+  SF2["student_fees<br/>standing_discount_amount"] -->|"DISCOUNT, credit"| L
+  PA1["payment_allocations<br/>allocated_amount"] -->|"PAYMENT credit<br/>(REVERSAL debit if the payment is a reversal)"| L
+  PA2["payment_allocations<br/>discount_amount"] -->|"DISCOUNT credit<br/>(REVERSAL debit if reversal)"| L
+  L["entries<br/>one row per line"] --> W["running balance<br/>SUM(debit - credit) over all history"]
+  W --> OUT["opening balance, lines,<br/>closing balance"]
+  WL["wallet_transactions"] -.->|"listed apart,<br/>never in the balance"| OUT
+```
+
+| Line kind  | Source row                                                             | Column | Date it carries                              |
+| ---------- | ---------------------------------------------------------------------- | ------ | -------------------------------------------- |
+| `BILL`     | a `student_fees` row (not deleted)                                     | debit  | its `due_date`, else its `period_start`      |
+| `DISCOUNT` | the same row's standing discount (only when above 0)                   | credit | same date as its bill                        |
+| `PAYMENT`  | one `payment_allocations` row of a normal payment (`allocated_amount`) | credit | `payment_date`, in Asia/Dhaka                |
+| `DISCOUNT` | the same allocation's one-off `discount_amount` (only when above 0)    | credit | `payment_date`, in Asia/Dhaka                |
+| `REVERSAL` | an allocation (or its discount) of a payment that undoes another       | debit  | the reversal's `payment_date`, in Asia/Dhaka |
+
+Payments reach a bill only through allocations, so one payment spread over two bills shows as two `PAYMENT` lines, each named after its bill's fee. A reversal is its own payment whose allocations mirror the original, so its lines come out as `REVERSAL` debits that put the money back on what is owed. A payment counts only if it succeeded, or is one side of a reversal; a failed or pending payment is left out. Lines of another student, or of another school, can never enter: both the school and the student are in the query itself.
+
+### Order and running balance
+
+Lines sort by date, then by kind (bill, then its standing discount, then payments, then one-off discounts), then by the time the row was created, then by its id. So on the day a bill falls due, the bill comes first and its discount right after it. The balance after a line is the sum of `debit - credit` of **every line up to and including it**, counted from the student's first line ever. A debit makes the student owe more, a credit less.
+
+### The opening balance rule
+
+A statement can ask for a range: `from` and `to`, both optional, both `YYYY-MM-DD`.
+
+- The balance is always counted over the whole history first, and the range only cuts the list afterwards. So an earlier `from` never changes a later balance.
+- **Opening balance** = the balance after the last line dated before `from`. With no `from`, or nothing before it, it is 0.
+- **Closing balance** = the balance after the last line shown. If the range holds no line, it is the opening balance.
+- With no range at all, the closing balance equals what the dues list says the student still owes (the integration spec asserts this).
+
+### Advance money is listed apart
+
+A wallet holds money paid in advance. It is not owed and not paid against a bill yet, so it never enters the balance. The response carries `wallet_balance` and `wallet_moves` (date, kind, amount, note; positive adds to the wallet, negative takes from it) beside the lines, in the order they happened. The wallet moves are not cut by `from` and `to`.
+
+### An example
+
+Karim has two bills in March. Bill A is 1,000 with a 100 standing discount; he pays 400 on 5 March and that payment is reversed on 20 March. Bill B is 500, paid 450 with a 50 discount at the counter.
+
+| Date       | Kind       | Debit | Credit | Still owed |
+| ---------- | ---------- | ----- | ------ | ---------- |
+| 2026-03-01 | `BILL`     | 1,000 | 0      | 1,000      |
+| 2026-03-01 | `DISCOUNT` | 0     | 100    | 900        |
+| 2026-03-05 | `PAYMENT`  | 0     | 400    | 500        |
+| 2026-03-10 | `BILL`     | 500   | 0      | 1,000      |
+| 2026-03-12 | `PAYMENT`  | 0     | 450    | 550        |
+| 2026-03-12 | `DISCOUNT` | 0     | 50     | 500        |
+| 2026-03-20 | `REVERSAL` | 400   | 0      | 900        |
+
+Asking for `?from=2026-03-10` shows the last four lines. The opening balance is 500 (what was owed after the 5 March payment) and the balances on those lines are unchanged. The closing balance is 900 either way.
+
+### The two routes
+
+| Route                                       | Who                                          | Notes                                                                                                                   |
+| ------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `GET /students/:studentId/statement`        | staff with `INVOICE_READ` and `PAYMENT_READ` | `:studentId` goes through `ParseUUIDPipe`; an unknown student is a 404                                                  |
+| `GET /portal/students/:studentId/statement` | a parent or student with `FEE_READ`          | only for a student linked to the caller (`FamilyAccessService`); any other student is the same 404, a staff role is 403 |
+
+Both take `from` and `to`, and both return the same body. Each request writes a `report_runs` row (source `student-statement`, the student and the range as params, the line count; no money values), so a look at a statement is audited like any report run.
+
 ## Family-facing access
 
 Parents/students see a deliberately narrower view of all of the above —

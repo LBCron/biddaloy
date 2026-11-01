@@ -176,7 +176,7 @@ knownIssues: []
 <details>
 <summary><strong>ঘরগুলোর অর্থ</strong></summary>
 
-<!-- guide:generated:fields:reports -->
+<!-- guide:generated:fields:reports:preset,customRange,method,collector -->
 
 | ঘর            | কী লিখবেন                                                                                            | বাধ্যতামূলক? |
 | ------------- | ---------------------------------------------------------------------------------------------------- | ------------ |

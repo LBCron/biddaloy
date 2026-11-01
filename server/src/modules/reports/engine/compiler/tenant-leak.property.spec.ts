@@ -10,6 +10,7 @@ import {
   type ReportDefinitionJson,
   type ReportFilter,
 } from '@biddaloy/shared';
+import type { TeacherScopeService } from '../../../classes/teacher-scope.service';
 import { ALL_AREAS } from '../registry/areas';
 import { ReportRegistry } from '../registry/registry';
 import type { FieldDef, SubjectAreaDef } from '../registry/registry.types';
@@ -150,7 +151,11 @@ describe('tenant-leak property (D6)', () => {
   for (const area of AREAS) {
     it(`every table in a generated ${area.key} query is filtered by tenant`, () => {
       const registry = new ReportRegistry([area]);
-      const compiler = new ReportCompiler(dataSource, registry, new RoleScopePolicy());
+      const compiler = new ReportCompiler(
+        dataSource,
+        registry,
+        new RoleScopePolicy({ sectionScope: async () => null } as unknown as TeacherScopeService),
+      );
       const entities = new Map([
         [area.root.alias, area.root],
         ...area.joins.map((j) => [j.to.alias, j.to] as const),
@@ -158,11 +163,12 @@ describe('tenant-leak property (D6)', () => {
 
       fc.assert(
         fc.property(definitionFor(area), (definition) => {
-          const compiled = compiler.compile(
+          const compiled = compiler.compileWithScope(
             definition,
             {},
             { tenantId: TENANT, userId: 'u', role: UserRole.ADMIN },
             500,
+            [],
           );
           const { root, joins, wheres } = inspect(compiled.query);
 
@@ -179,6 +185,9 @@ describe('tenant-leak property (D6)', () => {
               const via = joins.get(entity.tenantVia as string);
               expect(via?.direction).toBe('INNER');
               expect(via?.condition).toContain(`${entity.tenantVia}.tenant_id = :tenantId`);
+            } else if (entity.tenantColumn === null) {
+              // A lookup without tenant_id (users) is only reachable from its school-scoped parent.
+              expect(compiled.aliases).toContain(entity.tenantVia);
             } else {
               expect(joins.get(alias)?.condition).toContain(predicate);
             }
@@ -197,6 +206,6 @@ describe('tenant-leak property (D6)', () => {
         }),
         { numRuns: NUM_RUNS },
       );
-    });
+    }, 120_000);
   }
 });

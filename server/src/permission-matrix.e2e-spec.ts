@@ -323,6 +323,13 @@ export const IDENTITY_SCOPED: IdentityScopedEntry[] = [
       '[67.1.09] platform route (SUPER_ADMIN reads engine health, no tenant data), same rationale as GET /platform/backups/health.',
   },
   {
+    controller: 'PlatformReportUsageController',
+    method: 'GET',
+    path: '/platform/reports/usage',
+    reason:
+      '[8.15.45] platform route (SUPER_ADMIN reads report usage counts, aggregates only, no student, guardian or money rows), same rationale as GET /platform/attention/health.',
+  },
+  {
     controller: 'PlatformAlertsController',
     method: 'GET',
     path: '/platform/alerts',
@@ -839,9 +846,6 @@ function findRoleNarrowing(
 export const UI_ONLY_PERMISSIONS: Permission[] = [
   // Nav/page gates with no corresponding route check.
   Permission.DASHBOARD_ADMIN,
-  Permission.REPORTS_VIEW,
-  // [8.15.8] Consumed by the report routes in [8.15.24]; remove from this list there.
-  Permission.REPORTS_DESIGN,
   // [10.4] G17 — reserved for endpoints that don't exist yet (#291's
   // refund/void work); granted to ADMIN so the value isn't dead weight once
   // that endpoint ships, but nothing consumes it today.

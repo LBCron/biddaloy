@@ -3,8 +3,8 @@
  *
  * "Read-only" is a real constraint, not a description: this page renders
  * no button, menu item or link that changes anything. The only interactive
- * controls are the filters, the pagination `DataTable` owns, and the
- * per-row expand toggle. `GET /audit-logs` is `@Roles(ADMIN)` server-side.
+ * controls are the filters, the pagination `DataTable` owns, the
+ * per-row expand toggle, and [8.15.17]'s download menu (it reads, never writes). `GET /audit-logs` is `@Roles(ADMIN)` server-side.
  *
  * Its own inline permission gate (`useHasPermission(AUDIT_LOG_READ)`, an
  * `EmptyState` early-return) is gone as of [8.14.17]: `_staff.tsx`'s
@@ -19,9 +19,16 @@
  * re-sorts, and no column is sortable: a partial page re-sorted
  * client-side would silently misrepresent the trail's real order.
  */
-import { AuditAction, AUDIT_ENTITY_TYPES } from '@biddaloy/shared';
-import { RoutePending, type DataTableColumn } from '@biddaloy/ui/components';
-import { auditLogsQueryOptions, useAuditLogs, useUsers, type AuditLog } from '@biddaloy/ui/hooks';
+import { AuditAction, AUDIT_ENTITY_TYPES, Permission } from '@biddaloy/shared';
+import { ExportMenu, RoutePending, type DataTableColumn } from '@biddaloy/ui/components';
+import {
+  auditLogsQueryOptions,
+  downloadListExport,
+  useAuditLogs,
+  useHasPermission,
+  useUsers,
+  type AuditLog,
+} from '@biddaloy/ui/hooks';
 import {
   RegionConfigProvider,
   useRegionConfig,
@@ -196,6 +203,7 @@ function AuditLogsList() {
   const regionConfig = useRegionConfig();
   const [state, actions] = useListShellState();
   const filters = state.filters as AuditLogFilters;
+  const canExportAll = useHasPermission(Permission.REPORTS_EXPORT);
 
   const auditLogsQuery = useAuditLogs({
     page: state.page,
@@ -351,6 +359,27 @@ function AuditLogsList() {
       title={t('list.title')}
       // No action slot by design: the page is a record, not a workspace.
       subtitle={t('list.readOnlyNote')}
+      // [8.15.17] Everything matching the filters below, as Excel (or CSV from the arrow). The
+      // route takes the same wire names as the list (`entity_type`, ...), which `filters` holds.
+      tabs={
+        <ExportMenu
+          totalCount={auditLogsQuery.data?.total ?? 0}
+          canExportAll={canExportAll}
+          onExportAll={(format) =>
+            downloadListExport(
+              '/audit-logs/export',
+              {
+                action: filters.action,
+                entity_type: filters.entity_type,
+                performed_by_user_id: filters.performed_by_user_id,
+                from_date: filters.from_date,
+                to_date: filters.to_date,
+              },
+              format,
+            )
+          }
+        />
+      }
       filters={{ fields: filterFields, values: state.filters, onChange: actions.setFilters }}
       tableId="audit-logs-list"
       caption={t('list.caption')}

@@ -24,6 +24,7 @@ describe('report_definitions tab', () => {
     status: 'PUBLISHED',
     visible_roles: '["ADMIN","ACCOUNTANT"]',
     system_template_key: '',
+    draft: '',
     ...over,
   });
 
@@ -36,6 +37,19 @@ describe('report_definitions tab', () => {
       visible_roles: ['ADMIN', 'ACCOUNTANT'],
       folder: 'Students',
       system_template_key: null,
+      draft: null,
+    });
+  });
+
+  it('keeps the editable draft as JSON, and none when there is none', () => {
+    const withDraft = reportDefinitionsTab.fromRow(
+      cells({ draft: JSON.stringify({ schema: 1, subjectArea: 'STUDENTS' }) }),
+      2,
+      ctx,
+    );
+    expect('row' in withDraft && withDraft.row.draft).toEqual({
+      schema: 1,
+      subjectArea: 'STUDENTS',
     });
   });
 

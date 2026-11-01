@@ -68,6 +68,8 @@ export const AUDIT_ENTITY_TYPES = [
   'Registration',
   'ReminderBatch',
   'ReminderBatchPreview',
+  // [8.15.23] A tenant's report: created, edited, published, archived, cloned.
+  'ReportDefinition',
   // [8.15.10] One row per report run or export; never carries row data.
   'ReportRun',
   'Result',

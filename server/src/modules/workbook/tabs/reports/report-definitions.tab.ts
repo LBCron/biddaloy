@@ -1,5 +1,5 @@
 import type { EntityManager } from 'typeorm';
-import { ReportDefinitionStatus } from '@biddaloy/shared';
+import { ReportDefinitionStatus, type ReportDefinitionJson } from '@biddaloy/shared';
 import { ReportDefinition } from '../../../reports/entities/report-definition.entity';
 import { fromCell } from '../../codec/cell-format';
 import type { ColumnSpec, RowError, TabSpec } from '../../codec/tab-spec';
@@ -21,6 +21,7 @@ export interface ReportDefinitionRow {
   status: ReportDefinitionStatus;
   visible_roles: string[];
   system_template_key: string | null;
+  draft: ReportDefinitionJson | null;
 }
 
 const label = (en: string, bn: string) => ({ en, bn });
@@ -48,6 +49,7 @@ const columns: readonly ColumnSpec[] = [
     required: true,
     label: label('Visible to roles', 'যাদের দেখাবে'),
   },
+  { key: 'draft', type: 'json', label: label('Draft', 'খসড়া') },
   {
     key: 'system_template_key',
     type: 'string',
@@ -84,6 +86,7 @@ export const reportDefinitionsTab: TabSpec<ReportDefinition, ReportDefinitionRow
       status: entity.status,
       visible_roles: entity.visible_roles,
       system_template_key: entity.system_template_key,
+      draft: entity.draft,
     };
   },
 
@@ -125,6 +128,7 @@ export const reportDefinitionsTab: TabSpec<ReportDefinition, ReportDefinitionRow
         status: v.status as ReportDefinitionStatus,
         visible_roles: roles as string[],
         system_template_key: (v.system_template_key as string | undefined) ?? null,
+        draft: (v.draft as ReportDefinitionJson | undefined) ?? null,
       },
     };
   },
@@ -145,6 +149,7 @@ export const reportDefinitionsTab: TabSpec<ReportDefinition, ReportDefinitionRow
     if (row.system_template_key !== existing.system_template_key) {
       changed.push('system_template_key');
     }
+    if (JSON.stringify(row.draft) !== JSON.stringify(existing.draft)) changed.push('draft');
     return changed;
   },
 
@@ -163,6 +168,7 @@ export const reportDefinitionsTab: TabSpec<ReportDefinition, ReportDefinitionRow
     definition.status = row.status;
     definition.visible_roles = row.visible_roles;
     definition.system_template_key = row.system_template_key;
+    definition.draft = row.draft;
     // A new definition starts with no published version; the versions tab sets the pointer.
     if (!existing) definition.current_version_id = null;
     return m.save(ReportDefinition, definition);

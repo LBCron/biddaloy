@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 
 /** One list that can be exported: its header and a way to read every matching row. */
 export interface ReportRowSource {
-  header(): string[];
+  header(
+    tenantId: string,
+    userId: string,
+    query: Record<string, unknown>,
+  ): string[] | Promise<string[]>;
   /**
    * Every row matching `query`, in the list's order. The queued job calls this with the filters
    * saved on the run. Only roles holding REPORTS_EXPORT can queue an export, and none of them is

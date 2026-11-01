@@ -6,5 +6,6 @@
   "/schools": "internal: SUPER_ADMIN platform (D15), covered by #2558",
   "/schools/$schoolId": "internal: SUPER_ADMIN platform (D15), covered by #2558",
   "/schools/new": "internal: SUPER_ADMIN platform (D15), covered by #2558",
+  "/reports-usage": "internal: SUPER_ADMIN platform (D15), covered by #2558",
   "/subscriptions": "internal: SUPER_ADMIN platform (D15), covered by #2558"
 }

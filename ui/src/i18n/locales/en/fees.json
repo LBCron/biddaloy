@@ -419,6 +419,59 @@
       }
     }
   },
+  "statement": {
+    "title": "Statement",
+    "tabLabel": "Statement",
+    "from": "From",
+    "to": "To",
+    "fromLabel": "Show the statement from this date",
+    "toLabel": "Show the statement up to this date",
+    "anyDate": "Since the start",
+    "today": "Until today",
+    "print": "Print",
+    "loadError": "Could not load the statement. Try again.",
+    "tableLabel": "Bills and payments, with what is still owed after each",
+    "printTitle": "Fee statement",
+    "printRange": "From {{from}} to {{to}}",
+    "printFrom": "From {{from}}",
+    "printUpTo": "Up to {{to}}",
+    "printAll": "All dates",
+    "allPaid": "All paid",
+    "owedNow": "Still owed now: {{amount}}",
+    "owedUpTo": "Still owed up to {{date}}: {{amount}}",
+    "lastPaid": "Last paid on {{date}}",
+    "opening": "Still owed at the start",
+    "closing": "Still owed at the end",
+    "empty": {
+      "title": "No bills or payments in these dates",
+      "explanation": "Try another From or To date."
+    },
+    "columns": {
+      "date": "Date",
+      "what": "What",
+      "charged": "Charged",
+      "paid": "Paid",
+      "owed": "Still owed"
+    },
+    "portal": {
+      "loading": "Loading the statement",
+      "download": "Download / Print",
+      "allDates": "Showing everything since the start. Pick dates to see less.",
+      "owedAfter": "Still owed after: {{amount}}",
+      "entriesLabel": "Bills and payments"
+    },
+    "kind": {
+      "DISCOUNT": "Discount",
+      "REVERSAL": "Payment taken back"
+    },
+    "wallet": {
+      "title": "Advance money",
+      "balance": "Advance money held: {{amount}}",
+      "notCounted": "This money is kept apart. It is not part of what is still owed above.",
+      "added": "Added",
+      "taken": "Taken"
+    }
+  },
   "help": {
     "flagged": "Shows students with a fee past its due date. Leave it off to see everyone with dues.",
     "rule": "Every month on a day you pick (or the last day), or every week on the days you pick.",

@@ -10,7 +10,12 @@ import {
 } from '@biddaloy/shared';
 import { ReportRegistry } from '../registry/registry';
 import type { FieldDef } from '../registry/registry.types';
-import { type ReportRunContext, RoleScopePolicy } from '../security/role-scope.policy';
+import {
+  type ReportRunContext,
+  RoleScopePolicy,
+  type ScopeClause,
+} from '../security/role-scope.policy';
+import type { TeacherScopeService } from '../../../classes/teacher-scope.service';
 import { ReportCompileError } from './compiler.errors';
 import { ReportCompiler } from './report-compiler';
 import { TEST_FEES_AREA, TEST_STUDENTS_AREA } from './test-areas';
@@ -21,7 +26,10 @@ const ctx: ReportRunContext = { tenantId: TENANT, userId: 'u1', role: UserRole.A
 // A DataSource that is never connected: the builder only needs the driver to quote names.
 const dataSource = new DataSource({ type: 'postgres' });
 
-function makeCompiler(policy = new RoleScopePolicy()) {
+/** A teacher-scope service that is never asked: these specs drive `compileWithScope` directly. */
+const noTeacherScope = { sectionScope: async () => null } as unknown as TeacherScopeService;
+
+function makeCompiler(policy = new RoleScopePolicy(noTeacherScope)) {
   const registry = new ReportRegistry([TEST_STUDENTS_AREA, TEST_FEES_AREA]);
   return new ReportCompiler(dataSource, registry, policy);
 }
@@ -42,8 +50,14 @@ const definition = (
   ...extra,
 });
 
-const sqlOf = (def: ReportDefinitionJson, values = {}, maxRows = 500, c = makeCompiler()) => {
-  const compiled = c.compile(def, values, ctx, maxRows);
+const sqlOf = (
+  def: ReportDefinitionJson,
+  values = {},
+  maxRows = 500,
+  c = makeCompiler(),
+  scope: ScopeClause[] = [],
+) => {
+  const compiled = c.compileWithScope(def, values, ctx, maxRows, scope);
   const [sql, params] = compiled.query.getQueryAndParameters();
   return { sql, params, compiled };
 };
@@ -372,6 +386,98 @@ describe('ReportCompiler', () => {
     it('nothing to show', () => {
       refuse(definition(), 'NOTHING_TO_SHOW');
     });
+
+    it('a dataset with a missing array is a coded error, not a TypeError', () => {
+      const bad = definition();
+      (bad.dataset as unknown as Record<string, unknown>).dimensions = undefined;
+      refuse(bad, 'BAD_VALUE');
+      refuse(
+        { ...definition(), dataset: undefined } as unknown as ReportDefinitionJson,
+        'BAD_VALUE',
+      );
+    });
+  });
+
+  describe('calculated fields (8.15.36)', () => {
+    const calc = (key: string, expression: string) => ({
+      key,
+      label_en: key,
+      label_bn: key,
+      expression,
+    });
+    const withCalc = (
+      calculated: ReportDefinitionJson['calculated'],
+      dataset: Partial<ReportDefinitionJson['dataset']>,
+    ) => definition(dataset, { calculated });
+
+    it('a calculated field can be shown, with its literals bound and its reads joined', () => {
+      const { sql, params } = sqlOf(
+        withCalc([calc('class_roll', "concat([class], '-', [roll])")], {
+          dimensions: [{ field: 'class_roll' }],
+        }),
+      );
+      expect(sql).toContain('CONCAT(');
+      expect(sql).toContain('LEFT JOIN "classes" "c"'); // [class] lives on a joined table
+      expect(sql).not.toContain("'-'");
+      expect(params).toContain('-');
+    });
+
+    it('can be added up, and filtered on', () => {
+      const { sql, params } = sqlOf(
+        withCalc([calc('bonus', '[roll] + 10')], {
+          measures: [{ field: 'bonus', fn: AggregateFn.SUM }],
+          filters: [{ field: 'bonus', op: FilterOp.GT, value: 100 }],
+        }),
+      );
+      expect(sql).toMatch(/SUM\(\(\(s\.roll_number\) \+ \(\$\d+\)::numeric\)\) AS "bonus"/);
+      expect(params).toEqual(expect.arrayContaining([10, 100]));
+    });
+
+    it('is as sensitive as what it reads: a role that cannot see the field cannot see the calculation', async () => {
+      class HideSensitive extends RoleScopePolicy {
+        override fieldAllowed(_c: ReportRunContext, def: { sensitivity: string }) {
+          return def.sensitivity !== 'CONTACT';
+        }
+      }
+      const compiler = new ReportCompiler(
+        dataSource,
+        new ReportRegistry([TEST_STUDENTS_AREA]),
+        new HideSensitive(noTeacherScope),
+      );
+      const compiled = compiler.compileWithScope(
+        withCalc([calc('phone_note', "concat([guardian_phone], 'x')")], {
+          dimensions: [{ field: 'name' }, { field: 'phone_note' }],
+        }),
+        {},
+        ctx,
+        500,
+        [],
+      );
+      expect(compiled.masked).toEqual(['phone_note']);
+    });
+
+    it('a calculation that does not work is refused with a fixed message and its place', () => {
+      for (const expression of ['[nothing] + 1', "[roll] + 'a'", 'lower([name])', '1 +']) {
+        let error: unknown;
+        try {
+          sqlOf(withCalc([calc('bad', expression)], { dimensions: [{ field: 'name' }] }));
+        } catch (e) {
+          error = e;
+        }
+        expect(error).toBeInstanceOf(ReportCompileError);
+        expect((error as ReportCompileError).code).toBe('BAD_CALCULATION');
+        expect((error as ReportCompileError).path).toBe('calculated[0]');
+        expect((error as ReportCompileError).message).not.toContain(expression);
+      }
+    });
+
+    it('cannot reuse the key of an existing field or be written in capitals', () => {
+      for (const key of ['name', 'students', 'Bad Key']) {
+        expect(() =>
+          sqlOf(withCalc([calc(key, '1 + 1')], { dimensions: [{ field: 'name' }] })),
+        ).toThrowError(expect.objectContaining({ code: 'BAD_CALCULATION' }));
+      }
+    });
   });
 
   describe('row limit', () => {
@@ -403,7 +509,7 @@ describe('ReportCompiler', () => {
         definition({ dimensions: [{ field: 'name' }, { field: 'guardian_phone' }] }),
         {},
         500,
-        makeCompiler(new HideSensitive()),
+        makeCompiler(new HideSensitive(noTeacherScope)),
       );
       expect(sql).not.toContain('g.phone');
       expect(compiled.masked).toEqual(['guardian_phone']);
@@ -419,7 +525,7 @@ describe('ReportCompiler', () => {
           }),
           {},
           500,
-          makeCompiler(new HideSensitive()),
+          makeCompiler(new HideSensitive(noTeacherScope)),
         ),
       ).toThrowError(expect.objectContaining({ code: 'NOT_FILTERABLE' }));
     });
@@ -443,7 +549,7 @@ describe('ReportCompiler', () => {
         ),
         {},
         500,
-        makeCompiler(new HideFinancial()),
+        makeCompiler(new HideFinancial(noTeacherScope)),
       );
       expect(compiled.masked).toEqual(['billed']);
     });
@@ -462,26 +568,40 @@ describe('ReportCompiler', () => {
           definition({ dimensions: [{ field: 'guardian_phone' }] }),
           {},
           500,
-          makeCompiler(new HideSensitive()),
+          makeCompiler(new HideSensitive(noTeacherScope)),
         ),
       ).toThrowError(expect.objectContaining({ code: 'NOTHING_TO_SHOW' }));
     });
 
-    it('adds a row-scope clause from the policy, with its own parameters, and joins what it reads', () => {
-      class OwnSection extends RoleScopePolicy {
-        override scopeFor() {
-          return [
-            { sql: 'cs.id = :scopeSection', params: { scopeSection: 'sec-1' }, aliases: ['cs'] },
-          ];
-        }
-      }
+    it('COMMITTEE gets nothing from a report with no count measure', () => {
+      const committee = { ...ctx, role: UserRole.COMMITTEE };
+      expect(() =>
+        makeCompiler().compileWithScope(
+          definition({ dimensions: [{ field: 'class' }] }),
+          {},
+          committee,
+          500,
+          [],
+        ),
+      ).toThrowError(expect.objectContaining({ code: 'NOTHING_TO_SHOW' }));
+    });
+
+    it('adds a row-scope clause, with its own parameters, and joins what it reads', () => {
+      const scope = [
+        {
+          sql: 'cs.id IN (:...scopeSections)',
+          params: { scopeSections: ['sec-1'] },
+          aliases: ['cs'],
+        },
+      ];
       const { sql, params } = sqlOf(
         definition({ dimensions: [{ field: 'name' }] }),
         {},
         500,
-        makeCompiler(new OwnSection()),
+        makeCompiler(),
+        scope,
       );
-      expect(sql).toContain('cs.id = $');
+      expect(sql).toContain('cs.id IN ($');
       expect(sql).toContain('LEFT JOIN "class_sections" "cs"');
       expect(params).toContain('sec-1');
     });

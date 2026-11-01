@@ -907,6 +907,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/students/{studentId}/statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One student's bills, payments and discounts, with what is still owed after each. */
+        get: operations["StudentStatementController_staff_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/students/{studentId}/statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A guardian's view of their own child's statement. */
+        get: operations["StudentStatementController_portal_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/cart": {
         parameters: {
             query?: never;
@@ -5095,6 +5129,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/widgets/report/{definitionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReportsDashboardController_reportWidget_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dashboard/widgets/collection-month": {
         parameters: {
             query?: never;
@@ -5155,6 +5205,324 @@ export interface paths {
         };
         /** Dashboard widget: collection-by-month */
         get: operations["ReportsDashboardController_collectionByMonth_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/meta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Subject areas, fields and measures a report can use. No SQL. */
+        get: operations["ReportMetaController_meta_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/catalogue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reports your role may run, grouped by folder. */
+        get: operations["ReportDefinitionsController_catalogue_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/catalogue/{id}/definition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How one report looks (questions, layout, page, colours, links), from its published version. Same visibility as the catalogue; no dataset. */
+        get: operations["ReportDefinitionsController_presentation_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/definitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReportDefinitionsController_list_v1"];
+        put?: never;
+        post: operations["ReportDefinitionsController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/definitions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReportDefinitionsController_get_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["ReportDefinitionsController_update_v1"];
+        trace?: never;
+    };
+    "/api/v1/reports/definitions/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Freeze the draft as the next version, the one people run. */
+        post: operations["ReportDefinitionsController_publish_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/definitions/{id}/clone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A new draft from this report (yours or a ready one). */
+        post: operations["ReportDefinitionsController_clone_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/definitions/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ReportDefinitionsController_archive_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run a saved report (`definitionId`) or preview an unsaved one (`definition`, REPORTS_DESIGN). */
+        post: operations["ReportRunsController_run_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/runs/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export a saved report or a list. Up to 5,000 rows come back as a file; more are queued and answer 202 with the run id. */
+        post: operations["ReportRunsController_exportRun_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReportRunsController_status_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/runs/{id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The file of your finished queued export, while it has not expired. */
+        get: operations["ReportRunsController_download_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/runs/{id}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** One-tap "was this useful?" for your own run, once. */
+        post: operations["ReportRunsController_feedback_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/definitions/{id}/schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReportDeliveryController_listSchedules_v1"];
+        put?: never;
+        /** Email a link to this report to some roles, daily, weekly or monthly. */
+        post: operations["ReportDeliveryController_createSchedule_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/definitions/{id}/schedules/{scheduleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["ReportDeliveryController_removeSchedule_v1"];
+        options?: never;
+        head?: never;
+        patch: operations["ReportDeliveryController_updateSchedule_v1"];
+        trace?: never;
+    };
+    "/api/v1/reports/runs/{id}/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep today's copy of one of your runs. It never expires. */
+        post: operations["ReportDeliveryController_freeze_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Kept copies you may download, newest first. */
+        get: operations["ReportDeliveryController_listSnapshots_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/snapshots/{id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The kept file. Visibility is checked again on every download. */
+        get: operations["ReportDeliveryController_download_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/reports/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Which reports are used and found useful, counts only. Platform SUPER_ADMIN only. */
+        get: operations["PlatformReportUsageController_usage_v1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -10394,6 +10762,42 @@ export interface components {
              */
             previous_count: number | null;
         };
+        StatementEntryDto: {
+            /** @example 2026-05-01 */
+            date: string;
+            /** @enum {string} */
+            kind: "BILL" | "DISCOUNT" | "PAYMENT" | "REVERSAL";
+            description: string;
+            /** @description Charged: a bill, or a payment taken back. */
+            debit: number;
+            /** @description Paid or discounted. */
+            credit: number;
+            /** @description Still owed after this line. */
+            balance: number;
+        };
+        WalletMoveDto: {
+            date: string;
+            kind: string;
+            /** @description Positive adds to the wallet, negative takes from it. */
+            amount: number;
+            note: string | null;
+        };
+        StudentStatementDto: {
+            /** Format: uuid */
+            student_id: string;
+            student_name: string;
+            registration_number: string;
+            from: string | null;
+            to: string | null;
+            /** @description Still owed before the first line shown. */
+            opening_balance: number;
+            /** @description Still owed after the last line shown; equals the total on the student fees tab when `to` is not set. */
+            closing_balance: number;
+            entries: components["schemas"]["StatementEntryDto"][];
+            /** @description The advance money held for the student. It does not change what is owed. */
+            wallet_balance: number;
+            wallet_moves: components["schemas"]["WalletMoveDto"][];
+        };
         CartBillDto: {
             student_fee_id: string;
             fee_name: string;
@@ -13855,6 +14259,27 @@ export interface components {
             by_fee_type: components["schemas"]["CollectionsByFeeType"][];
             by_day: components["schemas"]["CollectionsByDay"][];
         };
+        WidgetColumnDto: {
+            key: string;
+            label_en: string;
+            label_bn: string;
+            /** @enum {string} */
+            type: "TEXT" | "NUMBER" | "MONEY" | "PERCENT" | "DATE" | "ENUM" | "BOOLEAN";
+            /** @enum {string} */
+            kind: "dimension" | "measure";
+        };
+        ReportWidgetDto: {
+            definition_id: string;
+            name_en: string;
+            name_bn: string;
+            columns: components["schemas"]["WidgetColumnDto"][];
+            rows: {
+                [key: string]: unknown;
+            }[];
+            /** @description True when the report has more rows than the tile shows. */
+            truncated: boolean;
+            suppressed: boolean;
+        };
         CollectionMonthFigures: {
             /**
              * @description Last day of the range, YYYY-MM-DD.
@@ -13968,6 +14393,281 @@ export interface components {
             previous_month_same_days_net: number;
             /** @description One slot per month of the current academic year (calendar year if none). */
             months: components["schemas"]["CollectionMonthFigure"][];
+        };
+        MetaFieldDto: {
+            key: string;
+            label_en: string;
+            label_bn: string;
+            type: string;
+            sensitivity: string;
+            filterable: boolean;
+            groupable: boolean;
+            sortable: boolean;
+            enum_values?: string[];
+        };
+        MetaMeasureDto: {
+            key: string;
+            label_en: string;
+            label_bn: string;
+            fn: string;
+            type: string;
+            sensitivity: string;
+        };
+        MetaAreaDto: {
+            key: string;
+            fields: components["schemas"]["MetaFieldDto"][];
+            measures: components["schemas"]["MetaMeasureDto"][];
+        };
+        ReportMetaDto: {
+            schema_version: number;
+            areas: components["schemas"]["MetaAreaDto"][];
+        };
+        CatalogueEntryDto: {
+            id: string;
+            key: string;
+            name_en: string;
+            name_bn: string;
+            /** @description The published version a run uses. */
+            version_id: string;
+            system_template_key: string | null;
+        };
+        CatalogueFolderDto: {
+            folder: string | null;
+            reports: components["schemas"]["CatalogueEntryDto"][];
+        };
+        ReportPresentationDto: {
+            /** @description The published version a run uses. */
+            version_id: string;
+            /** @example 1 */
+            schema: number;
+            /** @enum {string} */
+            subjectArea: "STUDENTS" | "STAFF" | "PUBLIC_EXAMS" | "FEES" | "PAYMENTS" | "ATTENDANCE";
+            parameters: {
+                [key: string]: unknown;
+            }[];
+            layout: {
+                [key: string]: unknown;
+            };
+            page: {
+                [key: string]: unknown;
+            };
+            format: {
+                [key: string]: unknown;
+            }[];
+            drill: {
+                [key: string]: unknown;
+            }[];
+        };
+        ReportDefinitionDto: {
+            id: string;
+            key: string;
+            name_en: string;
+            name_bn: string;
+            folder: string | null;
+            /** @enum {string} */
+            status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+            visible_roles: string[];
+            current_version_id: string | null;
+            /** @description Set on a copy of a ready report. */
+            system_template_key: string | null;
+            /** @description The latest published version number. */
+            version: number | null;
+            updated_at: string;
+        };
+        CreateReportDefinitionDto: {
+            /** @example dues-by-class */
+            key: string;
+            name_en: string;
+            name_bn: string;
+            folder?: string;
+            /** @description Roles that may run it. Empty: every role that can open reports. */
+            visible_roles?: ("ADMIN" | "ACCOUNTANT" | "EXECUTIVE" | "TEACHER" | "COMMITTEE" | "OFFICE_STAFF" | "EXAM_CONTROLLER")[];
+            definition: {
+                [key: string]: unknown;
+            };
+        };
+        ReportDefinitionDetailDto: {
+            id: string;
+            key: string;
+            name_en: string;
+            name_bn: string;
+            folder: string | null;
+            /** @enum {string} */
+            status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+            visible_roles: string[];
+            current_version_id: string | null;
+            /** @description Set on a copy of a ready report. */
+            system_template_key: string | null;
+            /** @description The latest published version number. */
+            version: number | null;
+            updated_at: string;
+            draft: {
+                [key: string]: unknown;
+            } | null;
+        };
+        UpdateReportDefinitionDto: {
+            name_en?: string;
+            name_bn?: string;
+            folder?: string;
+            visible_roles?: ("ADMIN" | "ACCOUNTANT" | "EXECUTIVE" | "TEACHER" | "COMMITTEE" | "OFFICE_STAFF" | "EXAM_CONTROLLER")[];
+            definition?: {
+                [key: string]: unknown;
+            };
+        };
+        RunReportDto: {
+            /**
+             * Format: uuid
+             * @description A saved report (REPORTS_VIEW and visible to your role).
+             */
+            definitionId?: string;
+            /** @description An unsaved report to preview (REPORTS_DESIGN). */
+            definition?: {
+                [key: string]: unknown;
+            };
+            params?: {
+                [key: string]: unknown;
+            };
+            page?: number;
+        };
+        ExportRunDto: {
+            /** Format: uuid */
+            definitionId?: string;
+            /** @description A list to export instead of a report, e.g. `students-list`. */
+            source?: string;
+            /** @description The list filters. */
+            query?: {
+                [key: string]: unknown;
+            };
+            params?: {
+                [key: string]: unknown;
+            };
+            /**
+             * @default XLSX
+             * @enum {string}
+             */
+            format: "CSV" | "XLSX";
+        };
+        QueuedExportDto: {
+            /** Format: uuid */
+            run_id: string;
+            /** @enum {string} */
+            status: "QUEUED" | "RUNNING" | "DONE" | "FAILED" | "EXPIRED";
+        };
+        ReportRunStatusDto: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "PREVIEW" | "RUN" | "EXPORT" | "SCHEDULED" | "SNAPSHOT";
+            /** @enum {string} */
+            status: "QUEUED" | "RUNNING" | "DONE" | "FAILED" | "EXPIRED";
+            format: string | null;
+            row_count: number;
+            error_code: string | null;
+            expires_at: string | null;
+            /** @description True while the file can still be downloaded. */
+            downloadable: boolean;
+        };
+        RunFeedbackDto: {
+            helpful: boolean;
+            comment?: string;
+        };
+        ReportScheduleDto: {
+            id: string;
+            definition_id: string;
+            /** @enum {string} */
+            frequency: "DAILY" | "WEEKLY" | "MONTHLY";
+            day_of_week: number | null;
+            day_of_month: number | null;
+            local_time: string;
+            params: {
+                [key: string]: unknown;
+            };
+            recipient_roles: string[];
+            /** @enum {string} */
+            format: "CSV" | "XLSX";
+            active: boolean;
+            last_run_id: string | null;
+            created_at: string;
+        };
+        CreateReportScheduleDto: {
+            /** @enum {string} */
+            frequency: "DAILY" | "WEEKLY" | "MONTHLY";
+            /** @description 0 is Sunday. WEEKLY only. */
+            day_of_week?: number;
+            /** @description MONTHLY only; 28 at most so every month has it. */
+            day_of_month?: number;
+            /**
+             * @description The school's wall-clock time, HH:MM.
+             * @example 08:30
+             */
+            local_time: string;
+            /** @description Answers to the report questions. */
+            params?: {
+                [key: string]: unknown;
+            };
+            recipient_roles: ("ADMIN" | "ACCOUNTANT" | "EXECUTIVE" | "TEACHER" | "COMMITTEE" | "OFFICE_STAFF" | "EXAM_CONTROLLER")[];
+            /** @enum {string} */
+            format: "CSV" | "XLSX";
+        };
+        UpdateReportScheduleDto: {
+            /** @enum {string} */
+            frequency?: "DAILY" | "WEEKLY" | "MONTHLY";
+            day_of_week?: number;
+            day_of_month?: number;
+            /** @example 08:30 */
+            local_time?: string;
+            params?: {
+                [key: string]: unknown;
+            };
+            recipient_roles?: ("ADMIN" | "ACCOUNTANT" | "EXECUTIVE" | "TEACHER" | "COMMITTEE" | "OFFICE_STAFF" | "EXAM_CONTROLLER")[];
+            /** @enum {string} */
+            format?: "CSV" | "XLSX";
+            active?: boolean;
+        };
+        CreateReportSnapshotDto: {
+            /**
+             * @description The date the numbers are as of. Defaults to the school's today; never in the future.
+             * @example 2026-10-31
+             */
+            as_of?: string;
+            label?: string;
+        };
+        ReportSnapshotDto: {
+            id: string;
+            definition_id: string;
+            name_en: string;
+            name_bn: string;
+            as_of: string;
+            label: string;
+            row_count: number;
+            created_at: string;
+        };
+        ReportSnapshotPageDto: {
+            items: components["schemas"]["ReportSnapshotDto"][];
+            limit: number;
+            offset: number;
+            /** @description True when more may follow. */
+            has_more: boolean;
+        };
+        PlatformReportUsageRowDto: {
+            /** @description A ready report's key, or 'custom' for a school's own. */
+            report_key: string;
+            runs: number;
+            schools: number;
+            unique_users: number;
+            /** @description Share of answers that said yes; null when nobody answered. */
+            helpful_pct: number | null;
+            too_slow: number;
+            empty_results: number;
+            /** @description Exports of more than 5,000 rows. */
+            large_exports: number;
+            /** @description The latest comments, newest first; no names or ids. */
+            latest_comments: string[];
+        };
+        PlatformReportUsageDto: {
+            from: string;
+            to: string;
+            reports: components["schemas"]["PlatformReportUsageRowDto"][];
         };
         AtRiskThresholdsDto: {
             absentStreakDays: number;
@@ -17954,6 +18654,7 @@ export interface operations {
                 version?: string;
                 enrollment_status?: "ACTIVE" | "INACTIVE" | "TRANSFERRED" | "GRADUATED";
                 gender?: string;
+                religion?: string;
                 date_of_birth_from?: string;
                 date_of_birth_to?: string;
                 sort?: "full_name" | "registration_number" | "created_at";
@@ -18106,6 +18807,7 @@ export interface operations {
                 version?: string;
                 enrollment_status?: "ACTIVE" | "INACTIVE" | "TRANSFERRED" | "GRADUATED";
                 gender?: string;
+                religion?: string;
                 date_of_birth_from?: string;
                 date_of_birth_to?: string;
                 sort?: "full_name" | "registration_number" | "created_at";
@@ -18180,6 +18882,7 @@ export interface operations {
                 version?: string;
                 enrollment_status?: "ACTIVE" | "INACTIVE" | "TRANSFERRED" | "GRADUATED";
                 gender?: string;
+                religion?: string;
                 date_of_birth_from?: string;
                 date_of_birth_to?: string;
             };
@@ -19489,6 +20192,82 @@ export interface operations {
             };
             /** @description Missing permission, or role not offered this widget (DASHBOARD_WIDGET_ROLE) */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StudentStatementController_staff_v1: {
+        parameters: {
+            query?: {
+                /** @description First day shown. Earlier entries fold into the opening balance. */
+                from?: string;
+                /** @description Last day shown. Default: everything. */
+                to?: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentStatementDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StudentStatementController_portal_v1: {
+        parameters: {
+            query?: {
+                /** @description First day shown. Earlier entries fold into the opening balance. */
+                from?: string;
+                /** @description Last day shown. Default: everything. */
+                to?: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentStatementDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -29981,6 +30760,39 @@ export interface operations {
             };
         };
     };
+    ReportsDashboardController_reportWidget_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                definitionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportWidgetDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ReportsDashboardController_collectionMonth_v1: {
         parameters: {
             query?: never;
@@ -30126,6 +30938,795 @@ export interface operations {
             };
             /** @description Missing permission, or role not offered this widget (DASHBOARD_WIDGET_ROLE) */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportMetaController_meta_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportMetaDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDefinitionsController_catalogue_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogueFolderDto"][];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDefinitionsController_presentation_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportPresentationDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDefinitionsController_list_v1: {
+        parameters: {
+            query?: {
+                status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportDefinitionDto"][];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDefinitionsController_create_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReportDefinitionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportDefinitionDetailDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDefinitionsController_get_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportDefinitionDetailDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDefinitionsController_update_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateReportDefinitionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportDefinitionDetailDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDefinitionsController_publish_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDefinitionsController_clone_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportDefinitionDetailDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDefinitionsController_archive_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportDefinitionDetailDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportRunsController_run_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunReportDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportRunsController_exportRun_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportRunDto"];
+            };
+        };
+        responses: {
+            /** @description The file (up to 5,000 rows). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            /** @description Queued; poll the run status. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueuedExportDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportRunsController_status_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportRunStatusDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportRunsController_download_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportRunsController_feedback_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunFeedbackDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDeliveryController_listSchedules_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportScheduleDto"][];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDeliveryController_createSchedule_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReportScheduleDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportScheduleDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDeliveryController_removeSchedule_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+                scheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDeliveryController_updateSchedule_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+                scheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateReportScheduleDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportScheduleDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDeliveryController_freeze_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReportSnapshotDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportSnapshotDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDeliveryController_listSnapshots_v1: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                /** @description Only the kept copies of this report */
+                definition_id?: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportSnapshotPageDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportDeliveryController_download_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlatformReportUsageController_usage_v1: {
+        parameters: {
+            query?: {
+                /** @description Default: 30 days before `to`. */
+                from?: string;
+                /** @description Inclusive. Default: today (UTC). */
+                to?: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformReportUsageDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

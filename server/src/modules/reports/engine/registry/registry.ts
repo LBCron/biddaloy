@@ -61,9 +61,13 @@ export function assertRegistryValid(areas: readonly SubjectAreaDef[]): void {
       }
     }
     for (const join of area.joins) {
-      if (join.to.tenantColumn !== 'tenant_id') {
+      if (join.to.tenantColumn === 'tenant_id') continue;
+      // A lookup table without tenant_id (users) is allowed only when it is reached from a row
+      // that is already school-scoped, so no other school's row can be joined in.
+      const parent = known.get(join.from);
+      if (join.to.tenantVia !== join.from || parent?.tenantColumn !== 'tenant_id') {
         problems.push(
-          `${where}: joined entity "${join.to.alias}" must have its own tenant_id column`,
+          `${where}: joined entity "${join.to.alias}" needs its own tenant_id, or tenantVia set to a school-scoped table it joins from`,
         );
       }
     }

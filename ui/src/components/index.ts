@@ -197,6 +197,51 @@ export {
   type MenuSubTriggerProps,
   type MenuSubContentProps,
 } from './menu';
+export { ExportMenu, type ExportMenuFormat, type ExportMenuProps } from './export-menu';
+export {
+  ReportPrompts,
+  PromptSummary,
+  defaultPromptValues,
+  missingPrompts,
+  promptParams,
+  sanitizePromptValues,
+  withDefaults,
+  NO_CHOICES,
+  type PromptChoices,
+  type PromptDateRange,
+  type PromptParameter,
+  type PromptSummaryProps,
+  type PromptValue,
+  type PromptValues,
+  type ReportPromptsProps,
+} from './report-prompts';
+// [8.15.29] The report renderers: the runner picks one by the definition's layout type.
+export {
+  ReportTable,
+  ReportGrouped,
+  type ReportLayoutProps,
+  type ReportRunResult,
+} from './report-view';
+export { ReportCrosstab } from './report-view/report-crosstab';
+export { ReportChart } from './report-view/report-chart';
+// [8.15.42] Colour rules and drill-through: the screen resolves a cell to a link, the renderers draw it.
+export { DrillLink } from './report-view/report-table';
+export {
+  drillQuery,
+  resolveDrill,
+  type DrillContext,
+  type DrillLinks,
+  type DrillTarget,
+  type ReportDrilling,
+} from './report-view/drill';
+export {
+  describeRule,
+  toneFor,
+  type ReportFormatting,
+  type RuleSentence,
+} from './report-view/format-cell';
+// [8.15.39] The report designer's building blocks (field picker, filters, layout, colour rules).
+export * from './report-designer';
 export {
   StatusBadge,
   humanizeStatus,

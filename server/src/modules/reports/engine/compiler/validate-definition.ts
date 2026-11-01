@@ -1,4 +1,5 @@
 import {
+  AggregateFn,
   FilterOp,
   REPORT_DEFINITION_SCHEMA_VERSION,
   ReportFieldType,
@@ -98,7 +99,7 @@ function resolveFilter(
   filter: ReportFilter,
   field: FieldDef,
   definition: ReportDefinitionJson,
-  values: Record<string, unknown>,
+  values: Record<string, unknown> | undefined,
   path: string,
 ): ResolvedFilter | null {
   const allowed = OPS_BY_TYPE[field.type];
@@ -112,6 +113,9 @@ function resolveFilter(
     const key = (raw as { param: string }).param;
     const parameter = definition.parameters.find((p) => p.key === key);
     if (!parameter) throw new ReportCompileError('UNKNOWN_PARAM', path);
+    // Structure check (saving a draft): the parameter exists and the condition fits the field; its
+    // answer is only known when someone runs the report.
+    if (values === undefined) return { field, op: filter.op, values: [] };
     raw = values[key] ?? parameter.default ?? undefined;
     if (raw === undefined || raw === null || raw === '') {
       if (parameter.required) throw new ReportCompileError('MISSING_PARAM', path);
@@ -156,14 +160,27 @@ function sortTarget(
 export function validateDefinition(
   definition: ReportDefinitionJson,
   area: SubjectAreaDef | undefined,
-  values: Record<string, unknown>,
+  /** The runner's answers; leave out to check the definition's structure only (saving a draft). */
+  values?: Record<string, unknown>,
 ): ValidatedDefinition {
   if (definition.schema !== REPORT_DEFINITION_SCHEMA_VERSION) {
     throw new ReportCompileError('UNSUPPORTED_SCHEMA', 'schema');
   }
   if (!area) throw new ReportCompileError('UNKNOWN_AREA', 'subjectArea');
 
-  const { dataset } = definition;
+  // Structure first: decorators only prove it is an object, so a missing array must be a 422, not a TypeError.
+  const raw = definition.dataset as Partial<ReportDefinitionJson['dataset']> | undefined;
+  if (
+    !raw ||
+    typeof raw !== 'object' ||
+    !Array.isArray(raw.dimensions) ||
+    !Array.isArray(raw.measures) ||
+    !Array.isArray(raw.filters) ||
+    !Array.isArray(raw.sort)
+  ) {
+    throw new ReportCompileError('BAD_VALUE', 'dataset');
+  }
+  const dataset = raw as ReportDefinitionJson['dataset'];
   const dimensions = dataset.dimensions.map((d, i) => {
     const path = `dataset.dimensions[${i}]`;
     const field = area.fields.find((f) => f.key === d.field);
@@ -184,7 +201,37 @@ export function validateDefinition(
   });
 
   const measures = dataset.measures.map((m, i) => {
-    const measure = area.measures.find((x) => x.key === m.field);
+    const registered = area.measures.find((x) => x.key === m.field);
+    // A calculated field can be added up, counted, averaged...: the author picks how.
+    const calculated = registered
+      ? undefined
+      : area.fields.find((f) => f.key === m.field && f.calculated);
+    if (calculated) {
+      const numeric = NUMERIC.has(calculated.type);
+      const unusable =
+        ((m.fn === AggregateFn.SUM || m.fn === AggregateFn.AVG) && !numeric) ||
+        ((m.fn === AggregateFn.MIN || m.fn === AggregateFn.MAX) &&
+          calculated.type === ReportFieldType.BOOLEAN);
+      if (unusable) throw new ReportCompileError('BAD_OP', `dataset.measures[${i}]`);
+    }
+    const measure: MeasureDef | undefined =
+      registered ??
+      (calculated
+        ? {
+            key: calculated.key,
+            labelEn: calculated.labelEn,
+            labelBn: calculated.labelBn,
+            fn: m.fn,
+            sql: calculated.sql,
+            entity: calculated.entity,
+            entities: calculated.entities,
+            type:
+              m.fn === AggregateFn.COUNT || m.fn === AggregateFn.COUNT_DISTINCT
+                ? ReportFieldType.NUMBER
+                : calculated.type,
+            sensitivity: calculated.sensitivity,
+          }
+        : undefined);
     if (!measure) throw new ReportCompileError('UNKNOWN_MEASURE', `dataset.measures[${i}]`);
     return { measure, alias: measure.key };
   });
@@ -203,9 +250,9 @@ export function validateDefinition(
     if (resolved) filters.push(resolved);
   });
 
-  // Required parameters must be answered even if no filter uses them.
-  for (const parameter of definition.parameters) {
-    const answer = values[parameter.key] ?? parameter.default;
+  // Required parameters must be answered even if no filter uses them (not when only checking structure).
+  for (const parameter of values ? definition.parameters : []) {
+    const answer = values?.[parameter.key] ?? parameter.default;
     if (parameter.required && (answer === undefined || answer === null || answer === '')) {
       throw new ReportCompileError('MISSING_PARAM', `parameters.${parameter.key}`);
     }

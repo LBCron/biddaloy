@@ -1,0 +1,10 @@
+%% title: Where the student count comes from
+%% desc: Students with an active enrolment in the chosen academic year are counted once each into the class and gender table. Teachers and staff are counted as of today in a separate table by type. A committee member sees a dash in any cell under five, while the totals are true.
+flowchart TD
+  Y["Academic year<br/>current or chosen"]:::note --> S["Active enrolments<br/>each student once"]
+  S --> T["Class × gender<br/>table"]
+  K["Teachers and staff<br/>as of today"]:::note --> U["By type<br/>table"]
+  T --> V["Committee member<br/>under 5: —"]:::admin
+  U --> V
+  classDef admin fill:#fff4e6,stroke:#e8590c,color:#7a2e05
+  classDef note fill:#f1f3f5,stroke:#868e96,color:#343a40

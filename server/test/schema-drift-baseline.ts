@@ -1305,22 +1305,19 @@ export const DRIFT_BASELINE: DriftGroup[] = [
   },
   {
     reason:
-      'The entity declares a tenant_id index the DB does not have; a composite index leading with tenant_id covers it (guardians, fee_structures, payments).',
+      'The entity declares a tenant_id index the DB does not have; a composite index leading with tenant_id covers it (fee_structures, payments). guardians got its own in [8.15.48].',
     owner: 'unowned, see #2343',
     statements: [
-      'CREATE INDEX "IDX_24430fa0e9c48d2ba41cf6312f" ON "guardians" ("tenant_id") ',
       'CREATE INDEX "IDX_9109b53fca5cef7720aca72974" ON "payments" ("tenant_id") ',
       'CREATE INDEX "IDX_e25a5bebd3d7ca85860cf9ede3" ON "fee_structures" ("tenant_id") ',
     ],
   },
   {
     reason:
-      'The entity declares an index the DB does not have and no index leads with its columns (classes.tenant_id, class_sections tenant_id and (class_id, tenant_id), teachers.tenant_id). Performance only.',
+      'The entity declares an index the DB does not have and no index leads with its columns (class_sections (class_id, tenant_id), teachers.tenant_id). classes.tenant_id and class_sections.tenant_id got theirs in [8.15.48]. Performance only.',
     owner: 'unowned, see #2343',
     statements: [
       'CREATE INDEX "IDX_59eaaec324d70a1e337f31db40" ON "class_sections" ("class_id", "tenant_id") ',
-      'CREATE INDEX "IDX_5d6fa6a7e8bca2439a922182f0" ON "class_sections" ("tenant_id") ',
-      'CREATE INDEX "IDX_80e98e9a9146352f155f0bd3ad" ON "classes" ("tenant_id") ',
       'CREATE INDEX "IDX_8b2981d62fb0165dc2719af0f0" ON "teachers" ("tenant_id") ',
     ],
   },

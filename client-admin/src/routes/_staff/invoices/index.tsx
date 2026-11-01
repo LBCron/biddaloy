@@ -1,5 +1,6 @@
 import { InvoiceStatus, Permission } from '@biddaloy/shared';
 import {
+  ExportMenu,
   RoutePending,
   StatusBadge,
   statusLabelKey,
@@ -7,6 +8,7 @@ import {
   type DataTableColumn,
 } from '@biddaloy/ui/components';
 import {
+  downloadListExport,
   invoicesQueryOptions,
   openPrintableInvoice,
   useHasPermission,
@@ -134,15 +136,17 @@ function InvoicesListPage() {
   // emptied the URL while the query still used the stale value.
   const filters = state.filters as InvoiceFilters;
   const canPrint = useHasPermission(Permission.INVOICE_PRINT);
+  const canExportAll = useHasPermission(Permission.REPORTS_EXPORT);
 
   const sortField = state.sorting ? SORT_FIELD_BY_COLUMN[state.sorting.id] : undefined;
-  const invoicesQuery = useInvoices({
+  const invoiceListFilters: InvoiceListFilters = {
     page: state.page,
     limit: state.limit,
     ...toInvoiceListFilters(filters),
     ...(sortField !== undefined ? { sort: sortField } : {}),
     ...(state.sorting ? { order: state.sorting.desc ? 'desc' : 'asc' } : {}),
-  });
+  };
+  const invoicesQuery = useInvoices(invoiceListFilters);
 
   const filterFields: FilterFieldDescriptor[] = [
     {
@@ -243,6 +247,16 @@ function InvoicesListPage() {
     <ListShell
       title={t('invoices.title')}
       subtitle={t('invoices.subtitle', { ns: 'payments' })}
+      // [8.15.17] Everything matching the filters below, as Excel (or CSV from the arrow).
+      tabs={
+        <ExportMenu
+          totalCount={invoicesQuery.data?.total ?? 0}
+          canExportAll={canExportAll}
+          onExportAll={(format) =>
+            downloadListExport('/invoices/export', { ...invoiceListFilters }, format)
+          }
+        />
+      }
       filters={{ fields: filterFields, values: state.filters, onChange: actions.setFilters }}
       tableId="invoices-list"
       caption={t('invoices.caption')}

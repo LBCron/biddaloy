@@ -933,7 +933,9 @@ describe('new role grants [#1358]', () => {
     ],
     [UserRole.COMMITTEE]: [
       Permission.DASHBOARD_VIEW,
+      Permission.REPORTS_VIEW, // [8.15.53] D14: counts only, small cells hidden
       Permission.COMMITTEE_REPORT_READ, // [8.10.7] D44
+      Permission.REPORTS_VIEW, // [8.15.53] D14
       Permission.ACR_READ,
       Permission.ACADEMIC_STRUCTURE_READ,
       Permission.CALENDAR_READ,
@@ -1082,5 +1084,21 @@ describe('REPORTS_DESIGN [8.15.8]', () => {
     UserRole.PARENT,
   ])('%s does not hold it (D9: authoring is ADMIN only)', (role) => {
     expect(roleHasPermission(role, Permission.REPORTS_DESIGN)).toBe(false);
+  });
+});
+
+describe('REPORTS_VIEW for COMMITTEE [8.15.53]', () => {
+  it('COMMITTEE can open reports but cannot export or design them', () => {
+    expect(roleHasPermission(UserRole.COMMITTEE, Permission.REPORTS_VIEW)).toBe(true);
+    expect(roleHasPermission(UserRole.COMMITTEE, Permission.REPORTS_EXPORT)).toBe(false);
+    expect(roleHasPermission(UserRole.COMMITTEE, Permission.REPORTS_DESIGN)).toBe(false);
+  });
+});
+
+describe('REPORTS_VIEW for TEACHER [8.15.24]', () => {
+  it('a TEACHER can run reports but not export or design them (D9)', () => {
+    expect(roleHasPermission(UserRole.TEACHER, Permission.REPORTS_VIEW)).toBe(true);
+    expect(roleHasPermission(UserRole.TEACHER, Permission.REPORTS_EXPORT)).toBe(false);
+    expect(roleHasPermission(UserRole.TEACHER, Permission.REPORTS_DESIGN)).toBe(false);
   });
 });

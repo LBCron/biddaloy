@@ -116,7 +116,7 @@ export class ReportExportProcessor extends WorkerHost {
     query: Record<string, unknown>,
   ): Promise<number> {
     const file = createWriteStream(path);
-    const header = source.header();
+    const header = await source.header(tenantId, userId, query);
     const xlsx = format === ExportFormat.XLSX ? new XlsxStreamWriter(file, header) : undefined;
     const csv = format === ExportFormat.CSV ? new CsvStreamWriter() : undefined;
     const csvDone = csv

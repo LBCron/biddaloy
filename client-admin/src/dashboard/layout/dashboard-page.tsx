@@ -27,6 +27,7 @@ import * as React from 'react';
 
 import { AttendancePendingCard } from '../../components/attendance-pending-card';
 import { ConnectHintCard } from '../../features/onboarding/connect-hint-card';
+import { PinnedReportCards, UsefulReportsCard } from '../report-cards/report-cards';
 
 import { BriefingSlot } from './briefing-slot';
 import { CommitteeSummary } from './committee-summary';
@@ -151,6 +152,10 @@ export function DashboardPage({ customize = false }: { customize?: boolean }) {
                     (dismissed / no ATTENDANCE_READ / nothing to show). */}
                 <ConnectHintCard />
                 <AttendancePendingCard />
+                {/* [8.15.47] Not registry widgets (a widget key lives in `shared/`): the page
+                    renders them itself. Each shows nothing until it has something to say. */}
+                <UsefulReportsCard />
+                <PinnedReportCards />
               </>
             )}
             {checklistOnly ? (

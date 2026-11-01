@@ -1,3 +1,5 @@
+import { UnprocessableEntityException } from '@nestjs/common';
+
 /**
  * [8.15.15] Why a definition could not be compiled. Messages are fixed sentences:
  * no field name, value or parameter the author typed is ever echoed back (Security
@@ -17,6 +19,7 @@ export const COMPILE_ERROR_CODES = [
   'UNKNOWN_PARAM',
   'MISSING_PARAM',
   'NOTHING_TO_SHOW',
+  'BAD_CALCULATION',
 ] as const;
 
 export type CompileErrorCode = (typeof COMPILE_ERROR_CODES)[number];
@@ -34,14 +37,15 @@ const MESSAGES: Record<CompileErrorCode, string> = {
   UNKNOWN_PARAM: 'This report asks for an answer that it does not define.',
   MISSING_PARAM: 'Please answer every required question before running this report.',
   NOTHING_TO_SHOW: 'There is nothing to show: pick at least one field to show or add up.',
+  BAD_CALCULATION: 'A calculation in this report cannot be used.',
 };
 
-export class ReportCompileError extends Error {
+export class ReportCompileError extends UnprocessableEntityException {
   constructor(
     readonly code: CompileErrorCode,
     readonly path: string,
   ) {
-    super(MESSAGES[code]);
+    super({ message: MESSAGES[code], details: { code, path } });
     this.name = 'ReportCompileError';
   }
 }

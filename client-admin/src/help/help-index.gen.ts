@@ -10,7 +10,7 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'dashboard/dashboard',
     anchor: '',
-    knownIssues: 0,
+    knownIssues: 1,
   },
   applications: {
     title: { bn: 'আবেদনপত্র', en: 'Applications' },
@@ -242,6 +242,19 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'more',
     knownIssues: 0,
     field: { ns: 'students', key: 'preferredCommunication' },
+  },
+  'people.students.section.statement': {
+    title: {
+      bn: 'শিক্ষার্থী যোগ করা ও তাদের তথ্য দেখা',
+      en: 'Adding students and viewing their details',
+    },
+    summary: {
+      bn: 'নতুন শিক্ষার্থী যোগ করুন, একসাথে অনেককে আমদানি করুন, আর প্রত্যেকের প্রোফাইল থেকে শ্রেণি, অভিভাবক, ফি, নোট ও স্কুল ছাড়ার তথ্য সামলান।',
+      en: "Add a new student, import many at once, and use each student's profile to handle class, guardians, fees, notes and leaving the school.",
+    },
+    path: 'people/students',
+    anchor: 'task-fees',
+    knownIssues: 0,
   },
   'people.guardians': {
     title: {
@@ -3008,6 +3021,162 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'task-main',
     knownIssues: 0,
   },
+  'reports.hub': {
+    title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+    summary: {
+      bn: 'স্কুলের সব রিপোর্ট এক জায়গায় খুঁজে খুলুন, ফল দেখুন, Excel-এ নামান, A4 কাগজে প্রিন্ট করুন, আর মতামত জানান। অ্যাডমিন তালিকাকে রিপোর্ট হিসেবে রাখতেও পারেন।',
+      en: 'Find every school report in one place, open it, download it to Excel, print it on A4 and say if it helped. An admin can also keep a list as a report.',
+    },
+    path: 'reports/hub',
+    anchor: '',
+    knownIssues: 1,
+  },
+  'reports.hub.action.newReport': {
+    title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+    summary: {
+      bn: 'স্কুলের সব রিপোর্ট এক জায়গায় খুঁজে খুলুন, ফল দেখুন, Excel-এ নামান, A4 কাগজে প্রিন্ট করুন, আর মতামত জানান। অ্যাডমিন তালিকাকে রিপোর্ট হিসেবে রাখতেও পারেন।',
+      en: 'Find every school report in one place, open it, download it to Excel, print it on A4 and say if it helped. An admin can also keep a list as a report.',
+    },
+    path: 'reports/hub',
+    anchor: 'task-design',
+    knownIssues: 1,
+  },
+  'reports.hub.field.search': {
+    title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+    summary: { bn: '', en: '' },
+    path: 'reports/hub',
+    anchor: 'task-main',
+    knownIssues: 1,
+    field: { ns: 'reports', key: 'search' },
+  },
+  'reports.hub.section.questions': {
+    title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+    summary: {
+      bn: 'স্কুলের সব রিপোর্ট এক জায়গায় খুঁজে খুলুন, ফল দেখুন, Excel-এ নামান, A4 কাগজে প্রিন্ট করুন, আর মতামত জানান। অ্যাডমিন তালিকাকে রিপোর্ট হিসেবে রাখতেও পারেন।',
+      en: 'Find every school report in one place, open it, download it to Excel, print it on A4 and say if it helped. An admin can also keep a list as a report.',
+    },
+    path: 'reports/hub',
+    anchor: 'task-answer',
+    knownIssues: 1,
+  },
+  'reports.hub.action.showReport': {
+    title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+    summary: {
+      bn: 'স্কুলের সব রিপোর্ট এক জায়গায় খুঁজে খুলুন, ফল দেখুন, Excel-এ নামান, A4 কাগজে প্রিন্ট করুন, আর মতামত জানান। অ্যাডমিন তালিকাকে রিপোর্ট হিসেবে রাখতেও পারেন।',
+      en: 'Find every school report in one place, open it, download it to Excel, print it on A4 and say if it helped. An admin can also keep a list as a report.',
+    },
+    path: 'reports/hub',
+    anchor: 'task-answer',
+    knownIssues: 1,
+  },
+  'reports.hub.action.downloadExcel': {
+    title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+    summary: {
+      bn: 'স্কুলের সব রিপোর্ট এক জায়গায় খুঁজে খুলুন, ফল দেখুন, Excel-এ নামান, A4 কাগজে প্রিন্ট করুন, আর মতামত জানান। অ্যাডমিন তালিকাকে রিপোর্ট হিসেবে রাখতেও পারেন।',
+      en: 'Find every school report in one place, open it, download it to Excel, print it on A4 and say if it helped. An admin can also keep a list as a report.',
+    },
+    path: 'reports/hub',
+    anchor: 'task-download',
+    knownIssues: 1,
+  },
+  'reports.hub.action.print': {
+    title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+    summary: {
+      bn: 'স্কুলের সব রিপোর্ট এক জায়গায় খুঁজে খুলুন, ফল দেখুন, Excel-এ নামান, A4 কাগজে প্রিন্ট করুন, আর মতামত জানান। অ্যাডমিন তালিকাকে রিপোর্ট হিসেবে রাখতেও পারেন।',
+      en: 'Find every school report in one place, open it, download it to Excel, print it on A4 and say if it helped. An admin can also keep a list as a report.',
+    },
+    path: 'reports/hub',
+    anchor: 'task-print',
+    knownIssues: 1,
+  },
+  'reports.hub.action.emailRegularly': {
+    title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+    summary: {
+      bn: 'স্কুলের সব রিপোর্ট এক জায়গায় খুঁজে খুলুন, ফল দেখুন, Excel-এ নামান, A4 কাগজে প্রিন্ট করুন, আর মতামত জানান। অ্যাডমিন তালিকাকে রিপোর্ট হিসেবে রাখতেও পারেন।',
+      en: 'Find every school report in one place, open it, download it to Excel, print it on A4 and say if it helped. An admin can also keep a list as a report.',
+    },
+    path: 'reports/hub',
+    anchor: 'task-email',
+    knownIssues: 1,
+  },
+  'reports.hub.action.keepCopy': {
+    title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+    summary: {
+      bn: 'স্কুলের সব রিপোর্ট এক জায়গায় খুঁজে খুলুন, ফল দেখুন, Excel-এ নামান, A4 কাগজে প্রিন্ট করুন, আর মতামত জানান। অ্যাডমিন তালিকাকে রিপোর্ট হিসেবে রাখতেও পারেন।',
+      en: 'Find every school report in one place, open it, download it to Excel, print it on A4 and say if it helped. An admin can also keep a list as a report.',
+    },
+    path: 'reports/hub',
+    anchor: 'task-copy',
+    knownIssues: 1,
+  },
+  'reports.hub.action.showOnDashboard': {
+    title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+    summary: {
+      bn: 'স্কুলের সব রিপোর্ট এক জায়গায় খুঁজে খুলুন, ফল দেখুন, Excel-এ নামান, A4 কাগজে প্রিন্ট করুন, আর মতামত জানান। অ্যাডমিন তালিকাকে রিপোর্ট হিসেবে রাখতেও পারেন।',
+      en: 'Find every school report in one place, open it, download it to Excel, print it on A4 and say if it helped. An admin can also keep a list as a report.',
+    },
+    path: 'reports/hub',
+    anchor: 'task-pin',
+    knownIssues: 1,
+  },
+  'reports.hub.section.feedback': {
+    title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+    summary: {
+      bn: 'স্কুলের সব রিপোর্ট এক জায়গায় খুঁজে খুলুন, ফল দেখুন, Excel-এ নামান, A4 কাগজে প্রিন্ট করুন, আর মতামত জানান। অ্যাডমিন তালিকাকে রিপোর্ট হিসেবে রাখতেও পারেন।',
+      en: 'Find every school report in one place, open it, download it to Excel, print it on A4 and say if it helped. An admin can also keep a list as a report.',
+    },
+    path: 'reports/hub',
+    anchor: 'task-feedback',
+    knownIssues: 1,
+  },
+  'reports.hub.section.designTrays': {
+    title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+    summary: {
+      bn: 'স্কুলের সব রিপোর্ট এক জায়গায় খুঁজে খুলুন, ফল দেখুন, Excel-এ নামান, A4 কাগজে প্রিন্ট করুন, আর মতামত জানান। অ্যাডমিন তালিকাকে রিপোর্ট হিসেবে রাখতেও পারেন।',
+      en: 'Find every school report in one place, open it, download it to Excel, print it on A4 and say if it helped. An admin can also keep a list as a report.',
+    },
+    path: 'reports/hub',
+    anchor: 'task-design',
+    knownIssues: 1,
+  },
+  'reports.hub.section.designFilters': {
+    title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+    summary: {
+      bn: 'স্কুলের সব রিপোর্ট এক জায়গায় খুঁজে খুলুন, ফল দেখুন, Excel-এ নামান, A4 কাগজে প্রিন্ট করুন, আর মতামত জানান। অ্যাডমিন তালিকাকে রিপোর্ট হিসেবে রাখতেও পারেন।',
+      en: 'Find every school report in one place, open it, download it to Excel, print it on A4 and say if it helped. An admin can also keep a list as a report.',
+    },
+    path: 'reports/hub',
+    anchor: 'task-design',
+    knownIssues: 1,
+  },
+  'reports.hub.section.designLayout': {
+    title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+    summary: {
+      bn: 'স্কুলের সব রিপোর্ট এক জায়গায় খুঁজে খুলুন, ফল দেখুন, Excel-এ নামান, A4 কাগজে প্রিন্ট করুন, আর মতামত জানান। অ্যাডমিন তালিকাকে রিপোর্ট হিসেবে রাখতেও পারেন।',
+      en: 'Find every school report in one place, open it, download it to Excel, print it on A4 and say if it helped. An admin can also keep a list as a report.',
+    },
+    path: 'reports/hub',
+    anchor: 'task-design',
+    knownIssues: 1,
+  },
+  'reports.hub.section.designMore': {
+    title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+    summary: {
+      bn: 'স্কুলের সব রিপোর্ট এক জায়গায় খুঁজে খুলুন, ফল দেখুন, Excel-এ নামান, A4 কাগজে প্রিন্ট করুন, আর মতামত জানান। অ্যাডমিন তালিকাকে রিপোর্ট হিসেবে রাখতেও পারেন।',
+      en: 'Find every school report in one place, open it, download it to Excel, print it on A4 and say if it helped. An admin can also keep a list as a report.',
+    },
+    path: 'reports/hub',
+    anchor: 'task-design',
+    knownIssues: 1,
+  },
+  'reports.hub.field.whoCanSee': {
+    title: { bn: 'সব রিপোর্ট', en: 'All reports' },
+    summary: { bn: '', en: '' },
+    path: 'reports/hub',
+    anchor: 'task-design',
+    knownIssues: 1,
+    field: { ns: 'reportDesigner', key: 'whoCanSee' },
+  },
   'reports.collectionsReport': {
     title: { bn: 'ফি আদায়ের প্রতিবেদন', en: 'Fee collection report' },
     summary: {
@@ -3083,6 +3252,16 @@ export const HELP_INDEX: HelpIndex = {
     path: 'reports/collections-report',
     anchor: 'task-main',
     knownIssues: 0,
+  },
+  'reports.studentCount': {
+    title: { bn: 'ছাত্রসংখ্যা (BANBEIS)', en: 'Student count (BANBEIS)' },
+    summary: {
+      bn: 'শ্রেণি ও লিঙ্গ অনুযায়ী ছাত্রসংখ্যা আর শিক্ষক ও কর্মচারীর সংখ্যা দেখুন। BANBEIS বার্ষিক জরিপের জন্য Excel-এ নামান বা প্রিন্ট করুন।',
+      en: 'See students by class and gender and the number of teachers and staff. Download to Excel or print the numbers for the BANBEIS annual survey.',
+    },
+    path: 'reports/student-count',
+    anchor: '',
+    knownIssues: 1,
   },
   'reports.printables': {
     title: { bn: 'প্রিন্ট ও ডকুমেন্ট', en: 'Print & documents' },
@@ -3793,6 +3972,26 @@ export const HELP_INDEX: HelpIndex = {
     },
     path: 'portal/fees',
     anchor: 'task-main',
+    knownIssues: 0,
+  },
+  'portal.statement': {
+    title: { bn: 'হিসাব দেখুন ও প্রিন্ট করুন', en: 'See and print the statement' },
+    summary: {
+      bn: 'সন্তানের কত বিল হয়েছে, কত জমা হয়েছে আর এখন কত বাকি, তারিখ ধরে দেখুন; আর হিসাবটি ডাউনলোড বা প্রিন্ট করুন।',
+      en: 'See what was charged, what was paid and what is still owed for your child, by date, and download or print the statement.',
+    },
+    path: 'portal/statement',
+    anchor: '',
+    knownIssues: 0,
+  },
+  'portal.statement.action.print': {
+    title: { bn: 'হিসাব দেখুন ও প্রিন্ট করুন', en: 'See and print the statement' },
+    summary: {
+      bn: 'সন্তানের কত বিল হয়েছে, কত জমা হয়েছে আর এখন কত বাকি, তারিখ ধরে দেখুন; আর হিসাবটি ডাউনলোড বা প্রিন্ট করুন।',
+      en: 'See what was charged, what was paid and what is still owed for your child, by date, and download or print the statement.',
+    },
+    path: 'portal/statement',
+    anchor: 'task-print',
     knownIssues: 0,
   },
   'portal.attendance': {
@@ -4854,7 +5053,13 @@ export const HELP_ROUTES = {
   '/i/$token': 'finance.invoices',
   '/invoices': 'finance.invoices',
   '/invoices/$invoiceId': 'finance.invoices',
+  '/reports': 'reports.hub',
+  '/reports/$reportId': 'reports.hub',
+  '/reports/$reportId/edit': 'reports.hub',
+  '/reports/new': 'reports.hub',
+  '/reports/runs/$runId': 'reports.hub',
   '/reports/collections': 'reports.collectionsReport',
+  '/reports/student-count': 'reports.studentCount',
   '/reports/printables': 'reports.printables',
   '/applications/reports': 'reports.applications',
   '/reports/alerts': 'reports.alertsReport',
@@ -4875,6 +5080,7 @@ export const HELP_ROUTES = {
   '/curriculum-preset': 'administration.curriculumPreset',
   '/portal': 'portal.overview',
   '/portal/fees': 'portal.fees',
+  '/portal/statement': 'portal.statement',
   '/portal/attendance': 'portal.attendance',
   '/portal/routine': 'portal.routine',
   '/portal/calendar': 'portal.calendar',

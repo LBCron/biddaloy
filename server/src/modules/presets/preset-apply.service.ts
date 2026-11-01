@@ -4,6 +4,7 @@ import { AuditAction } from '@biddaloy/shared';
 import type { PresetApplyOptions, PresetApplyResult } from '@biddaloy/shared';
 import { StorageService } from '../storage/storage.service';
 import { AuditService } from '../audit/audit.service';
+import { seedSystemReports } from '../reports/system/system-reports.seeder';
 import type { RequestContext } from '../../common/request-context.util';
 import { School } from '../schools/entities/school.entity';
 import { TenantSettingsCache } from '../schools/settings/tenant-settings-cache.service';
@@ -123,6 +124,9 @@ export class PresetApplyService {
           counts[RESULT_KEYS[k] ?? k] = n;
         }
       }
+
+      // The ready-made reports ship with the preset so a new school's Reports page is never empty (8.15 D12).
+      await seedSystemReports(manager, tenantId, userId);
 
       await this.audit.record(
         {

@@ -133,13 +133,28 @@ describe('report registry', () => {
       joins: [
         {
           from: 's',
-          to: { alias: 'x', table: 'things', tenantColumn: null, tenantVia: 's' },
+          to: { alias: 'x', table: 'things', tenantColumn: null, tenantVia: 'elsewhere' },
           on: 'x.s_id = s.id',
           kind: 'left',
         },
       ],
     };
-    expect(() => assertRegistryValid([area])).toThrow(/must have its own tenant_id/);
+    expect(() => assertRegistryValid([area])).toThrow(/needs its own tenant_id/);
+  });
+
+  it('a lookup table without tenant_id is fine when it joins from a school-scoped table', () => {
+    const area: SubjectAreaDef = {
+      ...students,
+      joins: [
+        {
+          from: 's',
+          to: { alias: 'u', table: 'users', tenantColumn: null, tenantVia: 's' },
+          on: 'u.id = s.user_id',
+          kind: 'left',
+        },
+      ],
+    };
+    expect(() => assertRegistryValid([area])).not.toThrow();
   });
 
   it('a root scoped through a LEFT join to its tenant table throws (the join must be inner)', () => {
@@ -153,7 +168,7 @@ describe('report registry', () => {
 
   it('the registry service looks areas up and refuses to start when invalid', () => {
     const registry = new ReportRegistry();
-    expect(registry.area(ReportSubjectArea.STUDENTS)?.root.table).toBe('students');
+    expect(registry.area(ReportSubjectArea.STUDENTS)?.root.table).toBe('enrollments');
     expect(registry.areas()).toHaveLength(6);
     expect(() => registry.onModuleInit()).not.toThrow();
   });

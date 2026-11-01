@@ -361,6 +361,11 @@ export async function resolvePath(
     if (!plans[0]) test.skip(true, 'no seat plan seeded: building one needs a scheduled exam');
     return route.path.replace('$planId', plans[0]!.id);
   }
+  if (route.path === '/reports/runs/$runId') {
+    // [8.15.47] The page a regular report email opens. A run is private to the person it was made
+    // for and no run is seeded, so this opens the real "we cannot find this file" screen.
+    return route.path.replace('$runId', '00000000-0000-4000-8000-000000000000');
+  }
   if (route.path.includes('$runId')) {
     const runs = await get<{ id: string }[]>(request, session, '/promotions');
     if (!runs[0]) test.skip(true, 'no promotion run seeded: needs published exam results');
@@ -476,6 +481,19 @@ export async function resolvePath(
     // The seed always creates applications: none means the seed broke, so fail, never skip.
     if (!id) throw new Error('no application seeded (server/src/scripts/seed.applications.ts)');
     return route.path.replace('$applicationId', id);
+  }
+  if (route.path.includes('$reportId')) {
+    // [8.15.29] Opens the first ready report; a school with none (the ready reports land in 8.15.32)
+    // still gets a real screen to scan: the "this report is not available" state.
+    const catalogue = await get<{ reports: { id: string }[] }[]>(
+      request,
+      session,
+      '/reports/catalogue',
+    );
+    const id =
+      catalogue.flatMap((folder) => folder.reports)[0]?.id ??
+      '00000000-0000-4000-8000-000000000000';
+    return route.path.replace('$reportId', id);
   }
   throw new Error(`no resolver for ${route.path}`);
 }

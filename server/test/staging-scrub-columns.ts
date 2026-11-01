@@ -200,7 +200,7 @@ const BY_TABLE: Record<string, Partial<Record<ScrubHandling, string[]>>> = {
   promotion_runs: { 'kept-public': ['exam_ids'] },
   // [8.15.9] Report definitions are school configuration (titles, role codes, field keys).
   report_definition_versions: { 'kept-public': ['definition'] },
-  report_definitions: { 'kept-public': ['name_bn', 'name_en', 'visible_roles'] },
+  report_definitions: { 'kept-public': ['draft', 'name_bn', 'name_en', 'visible_roles'] },
   // Run and schedule params can hold a typed search term; the feedback comment is free text.
   report_runs: { null: ['feedback_comment', 'params'] },
   report_schedules: { null: ['params'], 'kept-public': ['recipient_roles'] },

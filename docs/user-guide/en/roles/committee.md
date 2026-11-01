@@ -49,6 +49,11 @@ All your features, in the order of the left menu. The list is built automaticall
 - [Calendar](../people/calendar.md) — See school holidays, exams, meetings and events in a month calendar. The Admin adds them, imports them from a file or copies them from last year. Everyone can subscribe in their own phone calendar app.
 - [Evaluations](../people/evaluations.md) — Write a staff member's Annual Confidential Report (ACR), run teacher surveys with students and guardians, and report staff incidents. This page is not for everyone.
 
+**Reports**
+
+- [All reports](../reports/hub.md) — Find every school report in one place, open it, download it to Excel, print it on A4 and say if it helped. An admin can also keep a list as a report.
+- [Student count (BANBEIS)](../reports/student-count.md) — See students by class and gender and the number of teachers and staff. Download to Excel or print the numbers for the BANBEIS annual survey.
+
 <!-- /guide:generated -->
 
 ---

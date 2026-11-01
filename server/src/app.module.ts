@@ -479,6 +479,7 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
     RestoreModule,
     TemplateModule,
     ReportsModule,
+    // [8.15.53] Early BANBEIS count (temporary, D23); removed at the epic close.
     DashboardInsightsModule,
     SearchModule,
     GradingModule,

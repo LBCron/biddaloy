@@ -180,6 +180,12 @@ const REVIEWED_INTERPOLATIONS: Record<string, string[]> = {
   'modules/reports/collections-report.service.ts': ['clause', 'clause'],
   // [8.15.15] sort.key is a registry key (snake_case, checked when the app starts), quoted as an output column name
   'modules/reports/engine/compiler/sql-builder.ts': ['sort.key'],
+  // [8.15.22] sql is the compiler's own text with $n placeholders (DECLARE CURSOR); the other two are numeric constants
+  'modules/reports/engine/runner/report-runner.service.ts': [
+    'CURSOR_BATCH',
+    'Math.trunc(timeoutMs)',
+    'sql',
+  ],
   // [58.0.03] actorIsStaffIn: code-constant role list + literal $n / column refs
   'modules/routines/routine-slots.service.ts': ["actorIsStaffIn('$2', 'ft.tenant_id')"],
   'modules/routines/teacher-busy.service.ts': ["actorIsStaffIn('$3', 's.id')"],

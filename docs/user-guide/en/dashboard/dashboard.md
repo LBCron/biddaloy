@@ -9,6 +9,8 @@ sources:
   - client-admin/src/dashboard/layout/dashboard-grid.tsx
   - client-admin/src/dashboard/layout/widget-slot.tsx
   - client-admin/src/dashboard/layout/committee-summary.tsx
+  - client-admin/src/dashboard/report-cards/report-cards.tsx
+  - client-admin/src/dashboard/report-cards/report-prefs.ts
   - client-admin/src/routes/portal/index.tsx
   - shared/src/dashboard/widget-catalogue.ts
 labels:
@@ -20,6 +22,8 @@ labels:
     attention:bar.*,
     attention:modal.empty,
     attention:modal.seeAll,
+    reports:pinned.*,
+    reports:usefulCard.*,
     portal:today.*,
     portal:heatmap.title,
     portal:homeworkCard.title,
@@ -35,8 +39,9 @@ entry: [sidebar, palette, notification:morning-digest]
 keywords: [dashboard, home, first page, today's work, to-do, widgets, briefing]
 appVersion: 0.1.0 (6b36c2549)
 owner: tareq89
-lastVerified: 2026-10-24
-knownIssues: []
+lastVerified: 2026-10-31
+knownIssues:
+  - { id: report-cards-this-browser-only, checked: 2026-10-31, issue: null }
 -->
 
 # Seeing today's work on the dashboard
@@ -48,7 +53,7 @@ See on the first page after sign-in what needs your attention today, and go to t
 
 The **dashboard** ([glossary](../help/glossary.md#dashboard)) is a page of **widgets**. A widget is a small card: it holds a number or a short list, and a link to the place where you do that work. Your role decides which widgets you get; a teacher and an accountant do not see the same page.
 
-[See today's work](#task-main) · [Dashboard by role](#task-roles) · [On a phone](#task-phone) · [Problems and fixes](#trouble)
+[See today's work](#task-main) · [Dashboard by role](#task-roles) · [Report cards](#task-report-cards) · [On a phone](#task-phone) · [Problems and fixes](#trouble)
 
 **On this page**
 
@@ -57,11 +62,13 @@ The **dashboard** ([glossary](../help/glossary.md#dashboard)) is a page of **wid
 - [How to know the dashboard loaded properly](#confirm)
 - [Other situations](#other)
   - [Dashboard by role](#task-roles)
+  - [Report cards](#task-report-cards)
   - [The committee member's dashboard](#task-committee)
   - [The dashboard on a phone](#task-phone)
   - [The guardian's Overview page](#task-portal)
 - [Problems and fixes](#trouble)
 - [Who can do what](#roles)
+- [Known issues](#known-issues)
 - [Learn more](#more)
 
 ---
@@ -212,6 +219,56 @@ If you have more than one role, you see the dashboard of the role you are in now
 
 In a new school where not one setup step is done yet, the admin first sees only the setup list. What the steps are: [How everything in the school fits together](../admin/how-it-works.md) and [The order to set up your school](../admin/setup-order.md).
 
+### Report cards <a href="#task-report-cards" id="task-report-cards"></a>
+
+Two kinds of report card can appear above the widget grid. Neither is a widget, so **Customise** cannot show or hide them. When a card has nothing to show, it is simply not on the page.
+
+| Card                                                  | What it shows                                       | Who sees it                                                                                       |
+| ----------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Reports you may need**                              | Up to three ready reports you have not opened yet   | Admin, accountant, academic coordinator                                                           |
+| A card for a report you kept (named after the report) | A report you put here with **Show on my dashboard** | Everyone who can open reports: admin, accountant, academic coordinator, teacher, committee member |
+
+Office staff and exam controllers cannot open reports, so they get no report cards. In a brand-new school where not one setup step is done, the admin first sees only the setup checklist, and these cards do not appear either.
+
+**On the Reports you may need card:**
+
+1. Open the **Dashboard** and find the **Reports you may need** card.
+
+   → Under the title it says **Ready reports you have not opened yet.** Below are up to three reports, each with its name and one line on what it shows. If you have not opened the BANBEIS student count this academic year, it comes first; if you opened it before, it also says **Not opened this academic year yet.**
+
+2. Press a report's name.
+
+   → The report opens. Once opened, it no longer appears on this card. Only the BANBEIS student count comes back in a new academic year, if you have not opened it by then.
+
+3. If you do not want the card any more, press the **×** at the top right (its name is **Hide this card**).
+
+   → The card goes and does not come back. It also goes by itself once you have opened all the ready reports.
+
+**On a card for a report you kept:**
+
+1. Open a report, press **More actions**, then press **Show on my dashboard**. More detail: [All reports](../reports/hub.md#task-pin).
+
+   → **Shown on your dashboard.** appears.
+
+2. Open the **Dashboard**.
+
+   → A card named after the report appears. It shows each row of the report with its first count, up to 50 rows. Below it are the **Open the full report** link and the **Remove from my dashboard** button. If you keep several reports, the cards can sit side by side in two columns.
+
+3. To take a card off, press **Remove from my dashboard**.
+
+   → The card goes.
+
+The card runs for your own role, so you only see what you are allowed to see. These messages can also appear on a card:
+
+| What you see                                    | What it means                                                            |
+| ----------------------------------------------- | ------------------------------------------------------------------------ |
+| **Showing the first 50 rows.**                  | The report has more rows. Press **Open the full report** to see them all |
+| **Some numbers are hidden to protect privacy.** | Small numbers could identify a person, so they are not shown             |
+| **Nothing to show yet.**                        | The report is empty right now                                            |
+| **This report could not be shown.**             | Press **Try again**. The rest of the dashboard is fine                   |
+
+A report that is no longer open to your role loses its card. Which reports you have opened, which you have kept, and whether you hid the **Reports you may need** card are remembered only in the browser of this computer or phone ([Known issues](#known-issues)).
+
 ### The committee member's dashboard <a href="#task-committee" id="task-committee"></a>
 
 A committee member does not see today's summary like the others. On their page:
@@ -253,13 +310,14 @@ The guardian's app has no dashboard. Instead it has an **Overview** page with a 
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                               | What to do                                                                                                | Who can help |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------------- | ------------ |
-| **This widget could not load.**            | Press **Try again**. If it keeps happening, reload the page.                                              | Admin        |
-| **All widgets are hidden**                 | Press **Customise**, then show the ones you want — [Customising the dashboard](customise.md).             | Yourself     |
-| The summary row is missing                 | If the summary cannot be fetched, the row stays hidden and the rest of the page is fine. Reload the page. | Admin        |
-| **Showing the last saved figures.**        | You are offline. The numbers may be old; they refresh by themselves when you are back online.             | Yourself     |
-| A widget that was there before is now gone | You probably hid it, or your role changed. Open **Customise** and look at the **Hidden** list.            | Admin        |
+| What you see                                 | What to do                                                                                                                                                                                                                  | Who can help |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| **This widget could not load.**              | Press **Try again**. If it keeps happening, reload the page.                                                                                                                                                                | Admin        |
+| **All widgets are hidden**                   | Press **Customise**, then show the ones you want — [Customising the dashboard](customise.md).                                                                                                                               | Yourself     |
+| The **Reports you may need** card is missing | It does not show once you have opened all the ready reports, or after you hide it. Another computer or browser keeps its own list of opened reports, so the card may show again there — [Report cards](#task-report-cards). | Yourself     |
+| The summary row is missing                   | If the summary cannot be fetched, the row stays hidden and the rest of the page is fine. Reload the page.                                                                                                                   | Admin        |
+| **Showing the last saved figures.**          | You are offline. The numbers may be old; they refresh by themselves when you are back online.                                                                                                                               | Yourself     |
+| A widget that was there before is now gone   | You probably hid it, or your role changed. Open **Customise** and look at the **Hidden** list.                                                                                                                              | Admin        |
 
 ---
 
@@ -273,6 +331,18 @@ The guardian's app has no dashboard. Instead it has an **Overview** page with a 
 | Parent, student                                                          | No, the **Overview** page | No              | No                  | No                     |
 
 A widget shows only when it is set aside for your role and you have permission to see that data.
+
+Report cards are not widgets. Which role gets which card is in the list under [Report cards](#task-report-cards).
+
+---
+
+## Known issues <a href="#known-issues" id="known-issues"></a>
+
+Checked in version 0.1.0, 2026-10-31. This part is removed once it is fixed.
+
+| Problem                                                                                                                                                                                                                                                                      | Whose, and when                            | Is data saved?                                   | What to do for now                                                                                                            |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| Reports kept on the dashboard, the record of opened reports and a hidden **Reports you may need** card stay only in the browser where you did them. They do not appear on another computer, phone or browser, and are lost if browser data is cleared or in a private window | Everyone who gets report cards, every time | Only in that browser, not in the school's system | In a new browser press **Show on my dashboard** again; to hide **Reports you may need** there, press **Hide this card** again |
 
 ---
 
@@ -313,4 +383,4 @@ A widget shows only when it is set aside for your role and you have permission t
 
 ---
 
-_Version 0.1.0 · Last verified 2026-10-24_
+_Version 0.1.0 · Last verified 2026-10-31_

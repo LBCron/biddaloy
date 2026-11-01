@@ -104,6 +104,13 @@ export const PORTAL_NAV_ITEMS: readonly PortalNavItemDef[] = [
     permission: Permission.INVOICE_READ,
   },
   {
+    to: '/portal/statement',
+    labelKey: 'items.portalStatement',
+    // [8.15.38] `GET /portal/students/:id/statement` gates on `FEE_READ`, which PARENT and STUDENT
+    // both hold. Not a bottom-bar cell: it lives under "More".
+    permission: Permission.FEE_READ,
+  },
+  {
     to: '/portal/attendance',
     labelKey: 'items.portalAttendance',
     // [9.9] No `permission`: attendance's family-facing reads

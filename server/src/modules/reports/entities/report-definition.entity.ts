@@ -9,14 +9,14 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import type { ReportDefinitionStatus } from '@biddaloy/shared';
+import type { ReportDefinitionJson, ReportDefinitionStatus } from '@biddaloy/shared';
 import { School } from '../../schools/entities/school.entity';
 import { User } from '../../users/entities/user.entity';
 
 /**
- * [8.15.9] A tenant's report: the editable draft lives in the latest
- * `ReportDefinitionVersion` row until published; publishing points
- * `current_version_id` at an immutable version (Epic 8.15 D3). `key` is unique
+ * [8.15.9] A tenant's report: the editable `draft` lives here (as print templates do);
+ * publishing copies it into an immutable `ReportDefinitionVersion` and points
+ * `current_version_id` at it (Epic 8.15 D3). `key` is unique
  * per tenant among live rows (partial unique index in the migration).
  * `system_template_key` marks a clone of a seeded system report (D12).
  */
@@ -55,6 +55,10 @@ export class ReportDefinition {
   /** Roles that may run it; empty means every role holding `REPORTS_VIEW`. */
   @Column({ type: 'text', array: true, default: () => "'{}'" })
   visible_roles: string[];
+
+  /** The editable copy. Publishing freezes it as a new immutable version; it stays here to keep editing. */
+  @Column({ type: 'jsonb', nullable: true })
+  draft: ReportDefinitionJson | null;
 
   @Column({ type: 'uuid', nullable: true })
   current_version_id: string | null;
