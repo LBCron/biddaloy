@@ -91,6 +91,42 @@ describe('buildMessagingProvidersResponse (real providers)', () => {
     expect(res?.selected).toBeNull();
     expect(res?.configured).toBe(false);
   });
+
+  // #3338: same rule as the resolver. On the platform account a company the school holds nothing
+  // of is not "selected", so the form stops re-saving it.
+  it('PLATFORM SMS owning nothing: selected null; a saved value or OFF metering keeps it', () => {
+    const sms = messagingDescriptors().filter((x) => x.medium === CommunicationMedium.SMS);
+    const [d, other] = sms;
+    const res = (block: Record<string, unknown>) =>
+      buildMessagingProvidersResponse({
+        version: 1,
+        communications: { sms: block },
+      } as unknown as TenantSettings)[CommunicationMedium.SMS];
+    const nulls = Object.fromEntries(d.fields.map((f) => [f.key, null]));
+
+    expect(res({ provider: d.name, metering: 'PLATFORM', [d.name]: nulls })?.selected).toBeNull();
+    expect(res({ provider: d.name, metering: 'PLATFORM' })?.selected).toBeNull();
+    expect(res({ provider: d.name, [d.name]: nulls })?.selected).toBe(d.name);
+    expect(res({ provider: d.name, metering: 'PLATFORM', [d.name]: filled(d) })?.selected).toBe(
+      d.name,
+    );
+    if (other) {
+      // Review round 1 on #3347: only the stored company's own block counts. A draft for another
+      // company does not keep a stale name selected (the resolver ignores it the same way).
+      expect(
+        res({ provider: d.name, metering: 'PLATFORM', [d.name]: {}, [other.name]: filled(other) })
+          ?.selected,
+      ).toBeNull();
+      expect(
+        res({
+          provider: d.name,
+          metering: 'PLATFORM',
+          [d.name]: filled(d),
+          [other.name]: filled(other),
+        })?.selected,
+      ).toBe(d.name);
+    }
+  });
 });
 
 describe('whatsappConfigured', () => {

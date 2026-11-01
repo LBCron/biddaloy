@@ -1,7 +1,7 @@
 import '@biddaloy/ui/test';
 
 import { cleanupTestState, renderWithProviders, server } from '@biddaloy/ui/test';
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -122,6 +122,184 @@ describe('ProviderConfigForm', () => {
 
     await waitFor(() => expect(body).toHaveBeenCalled());
     expect(body.mock.calls[0]![0].communications.sms.greenweb.apiKey).toBeNull();
+  });
+
+  // #3331: the PATCH keeps a left-out field, so a cleared saved optional field must go out as null.
+  describe('clearing a saved optional field', () => {
+    const SAVED_OCS = {
+      provider: 'onecodesoft',
+      onecodesoft: {
+        senderId: 'OLD',
+        apiUrl: 'https://sms.example/api',
+        apiKey: { configured: true, hint: '••••ocs1' },
+      },
+    };
+
+    it('sends null for a cleared saved field, and leaves out one that was never saved', async () => {
+      server.use(providersHandler({ SMS: true }, 'onecodesoft'));
+      const body = captureSave();
+      const { user } = renderForm('SMS', SAVED_OCS);
+
+      await user.clear(await screen.findByLabelText(/^Sender name/));
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() => expect(body).toHaveBeenCalledTimes(1));
+      expect(body.mock.calls[0]![0].communications.sms).toEqual({
+        provider: 'onecodesoft',
+        onecodesoft: { senderId: null, apiUrl: 'https://sms.example/api' },
+      });
+    });
+
+    // #3338: Remove plus clearing the saved address leaves nothing of the school's own, which the
+    // server reads as "back on the platform account".
+    it('Remove + clear the saved address sends a block of nulls', async () => {
+      const body = captureSave();
+      const { user, container } = renderForm('SMS', {
+        provider: 'greenweb',
+        greenweb: {
+          apiKey: { configured: true, hint: '••••key1' },
+          apiUrl: 'https://g.example/api',
+        },
+      });
+
+      await user.click(await screen.findByRole('button', { name: 'Remove' }));
+      await user.click(container.querySelector('summary')!);
+      await user.clear(screen.getByLabelText('API address (optional)'));
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() => expect(body).toHaveBeenCalledTimes(1));
+      expect(body.mock.calls[0]![0].communications.sms).toEqual({
+        provider: 'greenweb',
+        greenweb: { apiKey: null, apiUrl: null },
+      });
+    });
+
+    it('a value saved in this session and then cleared also goes out as null', async () => {
+      server.use(providersHandler({ SMS: true }, 'onecodesoft'));
+      const body = captureSave();
+      const { user } = renderForm('SMS', {
+        provider: 'onecodesoft',
+        onecodesoft: { apiUrl: 'https://sms.example/api' },
+      });
+
+      const sender = await screen.findByLabelText(/^Sender name/);
+      await user.type(sender, 'NEW');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(() => expect(body).toHaveBeenCalledTimes(1));
+      expect(body.mock.calls[0]![0].communications.sms.onecodesoft.senderId).toBe('NEW');
+
+      await user.clear(sender);
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(() => expect(body).toHaveBeenCalledTimes(2));
+      expect(body.mock.calls[1]![0].communications.sms.onecodesoft.senderId).toBeNull();
+    });
+  });
+
+  // #3338: MimSMS's senderId is required, so clearing fields one by one can never empty the block.
+  // "Remove saved details" drops every company of the medium, which puts the school back on the
+  // platform account.
+  describe('remove saved details', () => {
+    it('after a confirm, sends provider null and null for every company, then closes the dialog', async () => {
+      server.use(providersHandler({ SMS: true }, 'mimsms'));
+      const body = captureSave();
+      const { user } = renderForm('SMS', {
+        provider: 'mimsms',
+        mimsms: { senderId: 'OLD', apiKey: { configured: true, hint: '••••mim1' } },
+      });
+
+      await user.click(await screen.findByRole('button', { name: 'Remove saved details' }));
+      const dialog = await screen.findByRole('alertdialog');
+      expect(body).not.toHaveBeenCalled();
+      server.use(providersHandler({ SMS: false }, null));
+      await user.click(within(dialog).getByRole('button', { name: 'Remove' }));
+
+      await waitFor(() => expect(body).toHaveBeenCalledTimes(1));
+      expect(body.mock.calls[0]![0].communications.sms).toEqual({
+        provider: null,
+        greenweb: null,
+        mimsms: null,
+        onecodesoft: null,
+      });
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    });
+
+    // Review round 1 on #3347: the settings are fetched once after a removal, not twice.
+    it('fetches the providers once after a removal', async () => {
+      server.use(providersHandler({ SMS: true }, 'mimsms'));
+      captureSave();
+      const { user } = renderForm('SMS', {
+        provider: 'mimsms',
+        mimsms: { senderId: 'OLD', apiKey: { configured: true, hint: '••••mim1' } },
+      });
+      await user.click(await screen.findByRole('button', { name: 'Remove saved details' }));
+      const dialog = await screen.findByRole('alertdialog');
+      let gets = 0;
+      server.use(
+        http.get('/api/v1/schools/:id/settings/messaging/providers', () => {
+          gets += 1;
+          return HttpResponse.json(providersResponse({ SMS: false }, null));
+        }),
+      );
+      await user.click(within(dialog).getByRole('button', { name: 'Remove' }));
+
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      // The form remounts (its "Saved" line goes) only after the refetch has answered, so by then
+      // every GET this removal caused has been made.
+      await waitFor(() => expect(gets).toBeGreaterThan(0));
+      await waitFor(() => expect(screen.queryByText('Saved')).toBeNull());
+      expect(gets).toBe(1);
+    });
+
+    // Review round 2 on #3347 (nit 7): when the refetch after a removal fails, the card shows the
+    // load error. It never redraws the form from the old answer (the removed company as saved).
+    it('shows the load error, not the old form, when the refetch after a removal fails', async () => {
+      server.use(providersHandler({ SMS: true }, 'mimsms'));
+      captureSave();
+      const { user } = renderForm('SMS', {
+        provider: 'mimsms',
+        mimsms: { senderId: 'OLD', apiKey: { configured: true, hint: '••••mim1' } },
+      });
+      await user.click(await screen.findByRole('button', { name: 'Remove saved details' }));
+      const dialog = await screen.findByRole('alertdialog');
+      server.use(
+        http.get('/api/v1/schools/:id/settings/messaging/providers', () =>
+          HttpResponse.json({ message: 'down' }, { status: 500 }),
+        ),
+      );
+      await user.click(within(dialog).getByRole('button', { name: 'Remove' }));
+
+      expect(
+        await screen.findByText("Couldn't load the company settings. Try again."),
+      ).toBeTruthy();
+      expect(screen.queryByLabelText('SMS company')).toBeNull();
+    });
+
+    // Review round 1 on #3347: a failed removal says so inside the open dialog, not behind it.
+    it('shows a failed removal inside the dialog and keeps it open', async () => {
+      server.use(providersHandler({ SMS: true }, 'mimsms'));
+      server.use(
+        http.patch('/api/v1/schools/:id/settings', () =>
+          HttpResponse.json({ message: 'boom' }, { status: 500 }),
+        ),
+      );
+      const { user } = renderForm('SMS', {
+        provider: 'mimsms',
+        mimsms: { senderId: 'OLD', apiKey: { configured: true, hint: '••••mim1' } },
+      });
+      await user.click(await screen.findByRole('button', { name: 'Remove saved details' }));
+      const dialog = await screen.findByRole('alertdialog');
+      await user.click(within(dialog).getByRole('button', { name: 'Remove' }));
+
+      expect(await within(dialog).findByText(/Couldn't save\. Try again\./)).toBeTruthy();
+      expect(screen.getByRole('alertdialog')).toBe(dialog);
+    });
+
+    it('is not offered when nothing is saved', async () => {
+      server.use(providersHandler({ SMS: false }, null));
+      renderForm('SMS', undefined);
+      expect(await screen.findByLabelText('SMS company')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Remove saved details' })).toBeNull();
+    });
   });
 
   it('shows an inline required error and does not save', async () => {
@@ -298,7 +476,7 @@ describe('ProviderConfigForm', () => {
     });
   });
 
-  it('sends a cleared optional field as an empty string, so the saved value does not stay', async () => {
+  it('sends a cleared optional field as null, so the saved value does not stay', async () => {
     const body = captureSave();
     const { user } = renderForm('WHATSAPP', {
       'meta-cloud': {
@@ -312,7 +490,7 @@ describe('ProviderConfigForm', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(body).toHaveBeenCalled());
     expect(body.mock.calls[0]![0].communications.whatsapp).toEqual({
-      'meta-cloud': { phoneNumberId: '123', apiVersion: '' },
+      'meta-cloud': { phoneNumberId: '123', apiVersion: null },
     });
   });
 
@@ -636,6 +814,22 @@ describe('ProviderConfigForm', () => {
     await user.click(await screen.findByRole('button', { name: 'Save' }));
     expect(await screen.findByText('Check this value.')).toBeTruthy();
     expect(body).not.toHaveBeenCalled();
+  });
+
+  // The '' branch of PR #3325 round 5 guarded Number('') = 0; with null for a cleared field, a
+  // cleared port must still never go out as 0.
+  it('sends a cleared saved port as null, never 0', async () => {
+    const body = captureSave();
+    const { user } = renderForm('EMAIL', {
+      smtp: { host: 'h', port: 587, user: 'u', from: 'a@x.com', password: { configured: true } },
+    });
+
+    await user.clear(await screen.findByLabelText(/^Port/));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(body).toHaveBeenCalled());
+    expect(body.mock.calls[0]![0].communications.email).toEqual({
+      smtp: { host: 'h', port: null, user: 'u', from: 'a@x.com' },
+    });
   });
 
   it('shows a loading skeleton, then the form', async () => {

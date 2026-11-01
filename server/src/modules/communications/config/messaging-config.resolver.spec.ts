@@ -470,7 +470,8 @@ describe('MessagingConfigResolver', () => {
     });
 
     // Review round 2, item 5: '' is "not filled in", so it neither sets a destination nor claims
-    // the medium; only an explicit null is the "cleared" marker that fails closed.
+    // the medium. #3338 changed the stored null the same way: the merge now removes a cleared key,
+    // and an older stored null reads as unset, as the validator already did.
     it("a blank override destination ('') does not count as a new destination", async () => {
       const stored = settingsWith('email', {
         smtp: { host: 'smtp.example', user: 'u', password: 'pw', from: 'a@x.com' },
@@ -486,7 +487,7 @@ describe('MessagingConfigResolver', () => {
       });
     });
 
-    it("a stored blank optional destination ('') does not claim the medium; null still does", async () => {
+    it("a stored blank ('') or null field does not claim the medium", async () => {
       const env = {
         SMTP_HOST: 'env.example',
         SMTP_USER: 'eu',
@@ -498,9 +499,9 @@ describe('MessagingConfigResolver', () => {
       expect(r.config.host).toBe('env.example');
 
       const cleared = settingsWith('email', { smtp: { password: null } });
-      await expect(
-        resolverFor({ t1: cleared }, env).resolve(CommunicationMedium.EMAIL, 't1'),
-      ).rejects.toThrow(/never falls back to the platform account/);
+      const r2 = await resolverFor({ t1: cleared }, env).resolve(CommunicationMedium.EMAIL, 't1');
+      expect(r2.source).toBe('platform');
+      expect(r2.config.password).toBe('epw');
     });
 
     // Review round 2, item 12: a school that saved only its sender id owns the medium (same as
@@ -521,6 +522,188 @@ describe('MessagingConfigResolver', () => {
       expect(err).toBeInstanceOf(ProviderNotConfiguredError);
       expect(err.message).toMatch(/never falls back to the platform account/);
       expect(err.message).not.toContain('env-k');
+    });
+
+    // #3331: a field the form cleared is sent as null. It is unset: never the stored value, never env.
+    it('an override null on an optional field resolves without it (tenant-owned medium)', async () => {
+      const settings = settingsWith('sms', {
+        provider: 'mimsms',
+        mimsms: { apiKey: 'tk', senderId: 'OLD', apiUrl: 'https://m.example/api' },
+      });
+      const r = await resolverFor(
+        { t1: settings },
+        { MIMSMS_API_URL: 'https://env.example' },
+      ).resolve(CommunicationMedium.SMS, 't1', {
+        override: { provider: 'mimsms', mimsms: { senderId: 'OLD', apiUrl: null } },
+      });
+      expect(r.config).toEqual({ apiKey: 'tk', senderId: 'OLD' });
+      expect(r.source).toBe('tenant');
+    });
+
+    it('an override null on a non-owned optional field neither keeps the stored value nor uses env', async () => {
+      const settings = settingsWith('whatsapp', {
+        'meta-cloud': { phoneNumberId: '1', accessToken: 'tk', apiVersion: 'v99.0' },
+      });
+      const r = await resolverFor({ t1: settings }, { WHATSAPP_API_VERSION: 'v1.0' }).resolve(
+        CommunicationMedium.WHATSAPP,
+        't1',
+        { override: { 'meta-cloud': { phoneNumberId: '1', apiVersion: null } } },
+      );
+      expect(r.config).toEqual({ phoneNumberId: '1', accessToken: 'tk' });
+    });
+
+    // #3338: a PLATFORM school that removed its own key is back on the platform account, and the
+    // platform's SMS_PROVIDER (not the stale stored company) picks the company.
+    describe('a PLATFORM school that owns nothing', () => {
+      const env = {
+        SMS_PROVIDER: 'mimsms',
+        MIMSMS_API_KEY: 'env-k',
+        MIMSMS_SENDER_ID: 'PLATFORM-ID',
+      };
+
+      it('a stored company with only nulls left sends on the platform company', async () => {
+        const settings = settingsWith('sms', {
+          provider: 'greenweb',
+          metering: 'PLATFORM',
+          greenweb: { apiKey: null, apiUrl: null },
+        });
+        const r = await resolverFor({ t1: settings }, env).resolve(CommunicationMedium.SMS, 't1');
+        expect(r.provider.descriptor.name).toBe('mimsms');
+        expect(r.config).toEqual({ apiKey: 'env-k', senderId: 'PLATFORM-ID' });
+        expect(r.source).toBe('platform');
+      });
+
+      it('an empty stored company block also yields to SMS_PROVIDER', async () => {
+        const settings = settingsWith('sms', {
+          provider: 'greenweb',
+          metering: 'PLATFORM',
+          greenweb: {},
+        });
+        const r = await resolverFor({ t1: settings }, env).resolve(CommunicationMedium.SMS, 't1');
+        expect(r.provider.descriptor.name).toBe('mimsms');
+      });
+
+      it("a caller's override provider still comes first", async () => {
+        const settings = settingsWith('sms', { provider: 'greenweb', metering: 'PLATFORM' });
+        const r = await resolverFor(
+          { t1: settings },
+          { ...env, GREENWEB_API_KEY: 'g-env' },
+        ).resolve(CommunicationMedium.SMS, 't1', { override: { provider: 'greenweb' } });
+        expect(r.provider.descriptor.name).toBe('greenweb');
+        expect(r.config.apiKey).toBe('g-env');
+      });
+
+      // Review round 1 on #3347: only the stored company's OWN block decides. A draft for another
+      // company does not keep a stale `greenweb`, and when the platform's SMS_PROVIDER picks that
+      // other company, the school's draft for it is not used either (a partial draft would fail
+      // closed, a full one would send on the school's keys while on platform credit).
+      const platformCompany = async (sms: Record<string, unknown>) => {
+        const r = await resolverFor(
+          { t1: settingsWith('sms', sms) },
+          { ...env, GREENWEB_API_KEY: 'g-env' },
+        ).resolve(CommunicationMedium.SMS, 't1');
+        expect(r.provider.descriptor.name).toBe('mimsms');
+        expect(r.config).toEqual({ apiKey: 'env-k', senderId: 'PLATFORM-ID' });
+        expect(r.source).toBe('platform');
+      };
+
+      it('a draft of another company (before the #3339 migration): platform company and keys', async () => {
+        await platformCompany({
+          provider: 'greenweb',
+          metering: 'PLATFORM',
+          greenweb: {},
+          mimsms: { senderId: 'DRAFT' },
+        });
+      });
+
+      it('a draft of another company (after the #3339 migration): platform company and keys', async () => {
+        await platformCompany({ metering: 'PLATFORM', mimsms: { senderId: 'DRAFT' } });
+      });
+
+      it('a full draft of the platform company: platform company and keys', async () => {
+        await platformCompany({
+          provider: 'greenweb',
+          metering: 'PLATFORM',
+          greenweb: {},
+          mimsms: { apiKey: 'school-k', senderId: 'DRAFT' },
+        });
+      });
+
+      // #3350: Check status of a message sent on the platform account asks the platform account,
+      // even when the school saved a full draft for that company (the send ignored that draft).
+      it('platformProvider: resolves that company on the platform keys, never the school draft', async () => {
+        const settings = settingsWith('sms', {
+          metering: 'PLATFORM',
+          mimsms: { apiKey: 'school-k', senderId: 'DRAFT' },
+        });
+        const r = await resolverFor({ t1: settings }, env).resolve(CommunicationMedium.SMS, 't1', {
+          platformProvider: 'mimsms',
+        });
+        expect(r.provider.descriptor.name).toBe('mimsms');
+        expect(r.config).toEqual({ apiKey: 'env-k', senderId: 'PLATFORM-ID' });
+        expect(r.source).toBe('platform');
+      });
+
+      it('platformProvider: a company the platform has no keys for fails closed', async () => {
+        const settings = settingsWith('sms', {
+          metering: 'PLATFORM',
+          greenweb: { apiKey: 'school-g' },
+        });
+        await expect(
+          resolverFor({ t1: settings }, env).resolve(CommunicationMedium.SMS, 't1', {
+            platformProvider: 'greenweb',
+          }),
+        ).rejects.toBeInstanceOf(ProviderNotConfiguredError);
+      });
+
+      it("an override naming the draft's company still reads the school's saved draft", async () => {
+        const settings = settingsWith('sms', {
+          provider: 'greenweb',
+          metering: 'PLATFORM',
+          greenweb: {},
+          mimsms: { apiKey: 'school-k', senderId: 'DRAFT' },
+        });
+        const r = await resolverFor({ t1: settings }, env).resolve(CommunicationMedium.SMS, 't1', {
+          override: { provider: 'mimsms' },
+        });
+        expect(r.config).toEqual({ apiKey: 'school-k', senderId: 'DRAFT' });
+        expect(r.source).toBe('tenant');
+      });
+
+      it('a stored company that owns its own block keeps it on platform credit', async () => {
+        const settings = settingsWith('sms', {
+          provider: 'greenweb',
+          metering: 'PLATFORM',
+          greenweb: { apiKey: 'school-g' },
+          mimsms: { senderId: 'DRAFT' },
+        });
+        const r = await resolverFor({ t1: settings }, env).resolve(CommunicationMedium.SMS, 't1');
+        expect(r.provider.descriptor.name).toBe('greenweb');
+        expect(r.config.apiKey).toBe('school-g');
+        expect(r.source).toBe('tenant');
+      });
+
+      it('a partly removed block (apiUrl still saved) still fails closed, the platform key is not borrowed', async () => {
+        const settings = settingsWith('sms', {
+          provider: 'greenweb',
+          metering: 'PLATFORM',
+          greenweb: { apiKey: null, apiUrl: 'https://g.example/api' },
+        });
+        const err = await resolverFor({ t1: settings }, { GREENWEB_API_KEY: 'g-env' })
+          .resolve(CommunicationMedium.SMS, 't1')
+          .catch((e) => e);
+        expect(err).toBeInstanceOf(ProviderNotConfiguredError);
+        expect(err.message).toMatch(/never falls back to the platform account/);
+      });
+
+      it('not PLATFORM-metered: the stored company is kept and nothing reaches the platform keys', async () => {
+        const settings = settingsWith('sms', { provider: 'greenweb', greenweb: {} });
+        const err = await resolverFor({ t1: settings }, env)
+          .resolve(CommunicationMedium.SMS, 't1')
+          .catch((e) => e);
+        expect(err).toBeInstanceOf(ProviderNotConfiguredError);
+        expect(err.message).not.toContain('env-k');
+      });
     });
 
     // PR #3325 review, finding 1: an override that sets an owned field on a school with no config of
@@ -550,7 +733,9 @@ describe('MessagingConfigResolver', () => {
           { t1: settings },
           { MIMSMS_API_KEY: 'env-k', MIMSMS_SENDER_ID: 'PLATFORM-ID' },
         )
-          .resolve(CommunicationMedium.SMS, 't1', { override: { mimsms: { senderId: 'ANYBANK' } } })
+          .resolve(CommunicationMedium.SMS, 't1', {
+            override: { provider: 'mimsms', mimsms: { senderId: 'ANYBANK' } },
+          })
           .catch((e) => e);
         expect(err).toBeInstanceOf(ProviderNotConfiguredError);
         expect(err.message).toMatch(/must carry .* themselves/);
@@ -562,7 +747,7 @@ describe('MessagingConfigResolver', () => {
           { t1: settings },
           { MIMSMS_API_KEY: 'env-k', MIMSMS_SENDER_ID: 'PLATFORM-ID' },
         ).resolve(CommunicationMedium.SMS, 't1', {
-          override: { mimsms: { apiKey: 'own-k', senderId: 'OWN' } },
+          override: { provider: 'mimsms', mimsms: { apiKey: 'own-k', senderId: 'OWN' } },
         });
         expect(r.config).toEqual({ apiKey: 'own-k', senderId: 'OWN' });
         expect(r.source).toBe('override');

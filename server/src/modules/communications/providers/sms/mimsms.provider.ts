@@ -12,7 +12,7 @@ import {
   DestinationBlockedError,
   OutboundDestinationError,
 } from '../shared/outbound-destination-guard';
-import { fetchPinnedJson } from '../shared/pinned-http';
+import { fetchPinnedJsonWithStatus } from '../shared/pinned-http';
 export interface ResolvedMimSmsConfig {
   apiKey: string;
   senderId: string;
@@ -27,6 +27,13 @@ const DEFAULT_BASE_URL = 'https://api.mimsms.com/api/SmsSending/SMS';
 // apply here.
 const BALANCE_URL = 'https://api.mimsms.com/api/User/Balance';
 const REQUEST_TIMEOUT_MS = 10_000;
+const UNREACHABLE_ERROR = 'Could not reach MimSMS; the message may or may not have been sent.';
+// Rule 23: fixed sentences for a status-decided failure (#3320).
+const SEND_TEXT = {
+  auth: 'MimSMS rejected the API key.',
+  rejected: 'MimSMS rejected the message.',
+  ambiguous: UNREACHABLE_ERROR,
+};
 
 /**
  * MimSMS BD gateway. POST-JSON REST API, keyed by api_key + senderid.
@@ -71,7 +78,7 @@ export class MimsmsProvider extends MessagingProvider<ResolvedMimSmsConfig> {
       const baseUrl = config.apiUrl ?? DEFAULT_BASE_URL;
       const destination = await assertSafeHttpDestination(baseUrl);
 
-      const data = (await fetchPinnedJson(destination, baseUrl, {
+      const { status, body } = await fetchPinnedJsonWithStatus(destination, baseUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -82,7 +89,10 @@ export class MimsmsProvider extends MessagingProvider<ResolvedMimSmsConfig> {
           message,
           type: segmentInfo.encoding === 'UCS_2' ? 'unicode' : 'text',
         }),
-      })) as Record<string, any>;
+      });
+      const failed = this.failureForHttpStatus(status, SEND_TEXT, segmentInfo.segments, body);
+      if (failed) return failed;
+      const data = body as Record<string, any>;
 
       if (data?.status === 'success') {
         return {
@@ -98,7 +108,8 @@ export class MimsmsProvider extends MessagingProvider<ResolvedMimSmsConfig> {
       return {
         success: false,
         providerMessageId: null,
-        error: data?.message ?? 'Unknown MimSMS error',
+        // Rule 23: a fixed sentence; the vendor's text stays in `raw`.
+        error: SEND_TEXT.rejected,
         raw: data,
         segments: segmentInfo.segments,
         retryable: false,
@@ -110,15 +121,12 @@ export class MimsmsProvider extends MessagingProvider<ResolvedMimSmsConfig> {
         providerMessageId: null,
         // Rule 23: fixed text only. The guard's message carries the address and a fetch error the
         // request URL (Greenweb's carries the token).
-        error:
-          err instanceof OutboundDestinationError
-            ? err.publicMessage
-            : 'Could not reach MimSMS; the message may or may not have been sent.',
+        error: err instanceof OutboundDestinationError ? err.publicMessage : UNREACHABLE_ERROR,
         segments: segmentInfo.segments,
-        // Only a resolved-to-a-blocked-destination is permanent; a DNS
-        // hiccup or network blip may succeed on retry — and might have
-        // reached MimSMS anyway, so it's AMBIGUOUS, not REJECTED.
-        retryable: err instanceof DestinationBlockedError ? false : undefined,
+        // A blocked destination is permanent and REJECTED. A DNS hiccup or network blip may
+        // succeed on retry, and might have reached MimSMS anyway, so it's AMBIGUOUS. A 2xx body
+        // that is not JSON is AMBIGUOUS too, but never retried (`retryAfterThrow`).
+        retryable: this.retryAfterThrow(err),
         outcome: err instanceof DestinationBlockedError ? 'REJECTED' : 'AMBIGUOUS',
       };
     }
@@ -130,25 +138,26 @@ export class MimsmsProvider extends MessagingProvider<ResolvedMimSmsConfig> {
    */
   async testConnection(config: ResolvedMimSmsConfig): Promise<ConnectionTestResult> {
     try {
+      // Check the bare address, then add the key: the guard and the pinned fetch put the URL they
+      // are given in their error text, which must never carry the school's key (Rule 13).
+      const destination = await assertSafeHttpDestination(BALANCE_URL);
       const params = new URLSearchParams({ api_key: config.apiKey });
-      // BALANCE_URL is a hardcoded constant, not tenant-controlled, so
-      // there's nothing to pin — routing it through the guard/dispatcher
-      // would just add a pointless extra DNS round-trip. `redirect: 'error'`
-      // still applies directly since plain `fetch` doesn't get it for free.
-      const response = await fetch(`${BALANCE_URL}?${params.toString()}`, {
+      const url = `${BALANCE_URL}?${params.toString()}`;
+      // Status first (#3342): a vendor 5xx with a JSON body is an outage, not a bad key. A 429
+      // (rate limited, RFC 6585) is temporary too, never "check the API key".
+      const { status, body } = await fetchPinnedJsonWithStatus(destination, url, {
         method: 'GET',
-        redirect: 'error',
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
-      const data = await response.json();
+      if (status >= 500 || status === 429) {
+        return { success: false, message: 'Could not reach the MimSMS API.' };
+      }
+      const data = body as Record<string, any>;
 
-      if (data?.status === 'success') {
+      if (status < 400 && data?.status === 'success') {
         return { success: true, message: 'Connected — MimSMS account credentials verified.' };
       }
-      return {
-        success: false,
-        message: 'Authentication rejected — check the API key.',
-      };
+      return { success: false, message: 'Authentication rejected — check the API key.' };
     } catch {
       return { success: false, message: 'Could not reach the MimSMS API.' };
     }

@@ -589,7 +589,11 @@
   "messaging": {
     "loadError": "Couldn't load the company settings. Try again.",
     "required": "Fill in this field.",
-    "invalid": "Check this value."
+    "invalid": "Check this value.",
+    "removeSaved": "Remove saved details",
+    "removeConfirm": "Remove this channel's saved details?",
+    "removeConfirmDescription": "Every saved company, key and address for this channel is removed. A school on platform credit then sends its messages through the platform's company.",
+    "removeConfirmYes": "Remove"
   },
   "sendTestMessage": {
     "label": "Send a test message",

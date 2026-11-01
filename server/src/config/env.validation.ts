@@ -512,6 +512,10 @@ export function assertProductionConfig(config: Record<string, unknown>): void {
     problems.push('TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY must be set together or not at all');
   }
 
+  if (str('OUTBOUND_TEST_ALLOW_LOOPBACK')) {
+    problems.push('OUTBOUND_TEST_ALLOW_LOOPBACK is a test-only flag and must not be set');
+  }
+
   if (problems.length > 0) {
     throw new Error(`Refusing to start with unsafe production config:\n- ${problems.join('\n- ')}`);
   }

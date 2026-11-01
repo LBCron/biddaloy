@@ -31,7 +31,8 @@ import { TENANT_STATUS_REDIS } from '../../modules/schools/tenant-status.service
  *
  * Decorated: communications `send`, `reminder/bulk`, `reminder/single/:studentId`,
  * `invoices/:id/send`, `promotions` (create), `students` (create), `schools/:id/settings/test`
- * (the key is required only with `sendTo`, which sends a real test message).
+ * (the key is required only with `sendTo`, which sends a real test message),
+ * `communications/logs/:id/check-status` (a double click asks the vendor once).
  *
  * Exempt, with the reason (D23):
  * - `POST exams/:examId/results/sms`: deduped by the unique `reference_key` (result-sms.service.ts).

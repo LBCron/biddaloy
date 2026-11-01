@@ -12,7 +12,7 @@ import {
   DestinationBlockedError,
   OutboundDestinationError,
 } from '../shared/outbound-destination-guard';
-import { fetchPinnedJson } from '../shared/pinned-http';
+import { fetchPinnedJsonWithStatus } from '../shared/pinned-http';
 export interface ResolvedGreenwebSmsConfig {
   apiKey: string;
   apiUrl?: string;
@@ -22,6 +22,13 @@ export interface ResolvedGreenwebSmsConfig {
 
 const DEFAULT_BASE_URL = 'https://api.greenweb.com.bd/api.php';
 const REQUEST_TIMEOUT_MS = 10_000;
+const UNREACHABLE_ERROR = 'Could not reach Greenweb; the message may or may not have been sent.';
+// Rule 23: fixed sentences for a status-decided failure (#3320).
+const SEND_TEXT = {
+  auth: 'Greenweb rejected the API key.',
+  rejected: 'Greenweb rejected the message.',
+  ambiguous: UNREACHABLE_ERROR,
+};
 
 /**
  * Greenweb BD SMS gateway. GET-based REST API, keyed by an account token.
@@ -68,10 +75,14 @@ export class GreenwebProvider extends MessagingProvider<ResolvedGreenwebSmsConfi
         query.set('unicode', '1');
       }
 
-      const data = (await fetchPinnedJson(destination, `${baseUrl}?${query.toString()}`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      })) as Record<string, any>;
+      const { status, body } = await fetchPinnedJsonWithStatus(
+        destination,
+        `${baseUrl}?${query.toString()}`,
+        { method: 'GET', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) },
+      );
+      const failed = this.failureForHttpStatus(status, SEND_TEXT, segmentInfo.segments, body);
+      if (failed) return failed;
+      const data = body as Record<string, any>;
 
       if (data?.status === 'success') {
         return {
@@ -88,7 +99,8 @@ export class GreenwebProvider extends MessagingProvider<ResolvedGreenwebSmsConfi
       return {
         success: false,
         providerMessageId: null,
-        error: data?.error_msg ?? 'Unknown Greenweb error',
+        // Rule 23: a fixed sentence; the vendor's text (it can repeat the token) stays in `raw`.
+        error: SEND_TEXT.rejected,
         raw: data,
         segments: segmentInfo.segments,
         retryable: false,
@@ -100,15 +112,12 @@ export class GreenwebProvider extends MessagingProvider<ResolvedGreenwebSmsConfi
         providerMessageId: null,
         // Rule 23: fixed text only. The guard's message carries the address and a fetch error the
         // request URL (Greenweb's carries the token).
-        error:
-          err instanceof OutboundDestinationError
-            ? err.publicMessage
-            : 'Could not reach Greenweb; the message may or may not have been sent.',
+        error: err instanceof OutboundDestinationError ? err.publicMessage : UNREACHABLE_ERROR,
         segments: segmentInfo.segments,
-        // Only a resolved-to-a-blocked-destination is permanent; a DNS
-        // hiccup or network blip may succeed on retry — and might have
-        // reached Greenweb anyway, so it's AMBIGUOUS, not REJECTED.
-        retryable: err instanceof DestinationBlockedError ? false : undefined,
+        // A blocked destination is permanent and REJECTED. A DNS hiccup or network blip may
+        // succeed on retry, and might have reached Greenweb anyway, so it's AMBIGUOUS. A 2xx body
+        // that is not JSON is AMBIGUOUS too, but never retried (`retryAfterThrow`).
+        retryable: this.retryAfterThrow(err),
         outcome: err instanceof DestinationBlockedError ? 'REJECTED' : 'AMBIGUOUS',
       };
     }
@@ -124,13 +133,23 @@ export class GreenwebProvider extends MessagingProvider<ResolvedGreenwebSmsConfi
       const destination = await assertSafeHttpDestination(baseUrl);
       const params = new URLSearchParams({ token: config.apiKey, type: 'balance' });
 
-      const data = (await fetchPinnedJson(destination, `${baseUrl}?${params.toString()}`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      })) as Record<string, any>;
+      const { status, body } = await fetchPinnedJsonWithStatus(
+        destination,
+        `${baseUrl}?${params.toString()}`,
+        { method: 'GET', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) },
+      );
+      if (status >= 500) return { success: false, message: 'Could not reach the Greenweb API.' };
+      const data = body as Record<string, any>;
 
-      if (data?.status === 'success') {
+      if (status < 400 && data?.status === 'success') {
         return { success: true, message: 'Connected — Greenweb account token verified.' };
+      }
+      // A 404/400 is a wrong address (a mistyped custom apiUrl), not a wrong token.
+      if (status >= 400 && status !== 401 && status !== 403) {
+        return {
+          success: false,
+          message: 'Greenweb did not accept the request — check the API address.',
+        };
       }
       return {
         success: false,

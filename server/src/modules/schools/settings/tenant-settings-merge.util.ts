@@ -34,11 +34,12 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * patch never sent is left exactly as it was stored — the general form
  * of "omitting a secret leaves it unchanged" (#8.7.9's PATCH contract):
  * that's true for every field at every depth here, not something special
- * about secret fields specifically. `null` and every non-object value
- * (a fresh plaintext secret about to be encrypted, an already-encrypted
- * string carried over untouched, a number, ...) replace the existing
- * value outright rather than merging into it — there's nothing to merge
- * a scalar with.
+ * about secret fields specifically. An explicit `null` removes the key
+ * (#3331: how a form clears a saved optional field or a secret; the
+ * validator only lets `null` through at field depth, never for a required
+ * text field). Every other non-object value (a fresh plaintext secret about
+ * to be encrypted, an already-encrypted string carried over untouched, a
+ * number, ...) replaces the existing value outright.
  */
 function deepMergeOmittingUnset(existing: unknown, patch: unknown): unknown {
   if (!isPlainObject(patch)) return patch;
@@ -46,7 +47,8 @@ function deepMergeOmittingUnset(existing: unknown, patch: unknown): unknown {
   const base = isPlainObject(existing) ? existing : {};
   const merged: Record<string, unknown> = { ...base };
   for (const [key, value] of Object.entries(patch)) {
-    merged[key] = deepMergeOmittingUnset(base[key], value);
+    if (value === null) delete merged[key];
+    else merged[key] = deepMergeOmittingUnset(base[key], value);
   }
   return merged;
 }

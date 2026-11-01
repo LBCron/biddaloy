@@ -132,3 +132,23 @@ test('comms W12: reminder history', async ({ browser }, info) => {
     await snap(page, f('reminder-history-02'), []);
   });
 });
+
+test('comms W12: message log', async ({ browser }, info) => {
+  test.skip(info.project.metadata.device !== 'desktop');
+  test.setTimeout(900_000);
+  const page = await asRole(browser, info, 'admin');
+  await step('message-log-01', async () => {
+    await go(page, '/communications/message-log');
+    await page.waitForTimeout(3000);
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await snap(page, f('message-log-01'), []);
+  });
+  await step('message-log-02', async () => {
+    await page
+      .getByRole('button', { name: tr('communications', 'messageLog.viewDetail') })
+      .first()
+      .click();
+    await page.waitForTimeout(1500);
+    await snap(page, f('message-log-02'), []);
+  });
+});

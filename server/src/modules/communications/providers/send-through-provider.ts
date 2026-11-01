@@ -44,16 +44,42 @@ export async function sendThroughProvider<TConfig>(
   provider: MessagingProvider<TConfig>,
   params: CommunicationSendParams,
   config: TConfig,
+  source?: CommunicationSendResult['source'],
 ): Promise<CommunicationSendResult> {
-  const medium = provider.descriptor.medium;
+  const { medium, name } = provider.descriptor;
+  const from = source ? { source } : {};
   try {
     const result = await provider.send(params, config);
     const segments = segmentsFor(medium, params);
-    return segments !== undefined && result.segments === undefined
-      ? { ...result, segments }
-      : result;
+    return {
+      ...result,
+      ...(segments !== undefined && result.segments === undefined ? { segments } : {}),
+      provider: name,
+      ...from,
+    };
   } catch (err) {
     // Unknown whether it reached the network: AMBIGUOUS, never the REJECTED a config error gets.
-    return { ...failedResult(err, medium, params), retryable: undefined, outcome: 'AMBIGUOUS' };
+    return {
+      ...failedResult(err, medium, params),
+      retryable: undefined,
+      outcome: 'AMBIGUOUS',
+      provider: name,
+      ...from,
+    };
   }
+}
+
+/**
+ * What a log row records about who sent it, so Check status asks the right account (#3344, #3350):
+ * the vendor's name and, for a send on the platform's own keys, `source: 'platform'`. Names only,
+ * never a key or message text (Rule 13). One place, so every writer stays in step.
+ */
+export function sendOriginMetadata(result: Pick<CommunicationSendResult, 'provider' | 'source'>): {
+  provider?: string;
+  source?: CommunicationSendResult['source'];
+} {
+  return {
+    ...(result.provider ? { provider: result.provider } : {}),
+    ...(result.source ? { source: result.source } : {}),
+  };
 }

@@ -29,8 +29,13 @@ describe('ConnectionTestService', () => {
   let logs: {
     create: ReturnType<typeof vi.fn>;
     save: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
     createQueryBuilder: ReturnType<typeof vi.fn>;
+    manager: { transaction: ReturnType<typeof vi.fn> };
   };
+  // #3326: the claim row is written inside the locked transaction, through its own repository.
+  let claimRepo: { create: ReturnType<typeof vi.fn>; save: ReturnType<typeof vi.fn> };
+  let txQuery: ReturnType<typeof vi.fn>;
   let usedToday: number;
   let credits: {
     reserve: ReturnType<typeof vi.fn>;
@@ -48,16 +53,28 @@ describe('ConnectionTestService', () => {
     provider = {
       testConnection: vi.fn().mockResolvedValue({ success: true, message: 'ok' }),
       send: sendSpy,
-      descriptor: { medium: CommunicationMedium.SMS, supportsTestMessage: true },
+      descriptor: { medium: CommunicationMedium.SMS, name: 'stub-sms', supportsTestMessage: true },
     } as any;
     registry = { resolveFor: vi.fn().mockResolvedValue({ provider, config: { k: 'v' } }) };
+    const createQueryBuilder = vi.fn(() => {
+      const qb: any = { where: () => qb, andWhere: () => qb, getCount: async () => usedToday };
+      return qb;
+    });
+    claimRepo = {
+      create: vi.fn((x) => x),
+      save: vi.fn(async (x) => ({ id: 'log-1', ...x })),
+    };
+    txQuery = vi.fn().mockResolvedValue(undefined);
     logs = {
       create: vi.fn((x) => x),
       save: vi.fn(async (x) => ({ id: 'log-1', ...x })),
-      createQueryBuilder: vi.fn(() => {
-        const qb: any = { where: () => qb, andWhere: () => qb, getCount: async () => usedToday };
-        return qb;
-      }),
+      delete: vi.fn().mockResolvedValue(undefined),
+      createQueryBuilder,
+      manager: {
+        transaction: vi.fn(async (fn: (m: unknown) => unknown) =>
+          fn({ query: txQuery, getRepository: () => ({ ...claimRepo, createQueryBuilder }) }),
+        ),
+      },
     };
     usedToday = 0;
     credits = {
@@ -170,10 +187,25 @@ describe('ConnectionTestService', () => {
           sent_by_user_id: 'user-1',
           trigger: 'MANUAL',
           status: 'SENT',
-          metadata: expect.objectContaining({ test: true }),
+          // Review round 1 on #3347: the sending company, so Check status and the provider
+          // filter work on test sends too (D23).
+          metadata: expect.objectContaining({ test: true, provider: 'stub-sms' }),
         }),
       );
       expect(result.testMessage).toEqual({ logId: 'log-1', status: 'SENT' });
+    });
+
+    // #3350: a test send records whose account it went out on, as the worker does.
+    it('records metadata.source from the resolved config', async () => {
+      registry.resolveFor.mockResolvedValue({ provider, config: { k: 'v' }, source: 'platform' });
+
+      await service.test(tenantId, CommunicationMedium.SMS as never, undefined, req);
+
+      expect(logs.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({ provider: 'stub-sms', source: 'platform' }),
+        }),
+      );
     });
 
     it('debits a reserved credit on success and releases it on a rejected send', async () => {
@@ -246,8 +278,12 @@ describe('ConnectionTestService', () => {
         service.test(tenantId, CommunicationMedium.SMS as never, undefined, req),
       ).rejects.toBeInstanceOf(InternalServerErrorException);
       expect(credits.releaseForLog).toHaveBeenCalledTimes(1);
+      // #3326: nothing went out, so the claim row does not keep a cap slot.
+      expect(logs.delete).toHaveBeenCalledWith({ id: 'log-1', tenant_id: tenantId });
     });
 
+    // #3326: an error here would free the Idempotency-Key and the retry would send again, so an
+    // AMBIGUOUS send that cannot be recorded answers its outcome with the claim row's id.
     it('alerts ops (Sentry, ids only) and keeps the reservation when an AMBIGUOUS send cannot be logged', async () => {
       credits.isMetered.mockResolvedValue(true);
       sendSpy.mockResolvedValue({
@@ -259,9 +295,8 @@ describe('ConnectionTestService', () => {
       logs.save.mockRejectedValue(new Error('db'));
       const tags = vi.fn();
       vi.mocked(Sentry.withScope).mockImplementation(((cb: any) => cb({ setTags: tags })) as never);
-      await expect(
-        service.test(tenantId, CommunicationMedium.SMS as never, undefined, req),
-      ).rejects.toBeInstanceOf(InternalServerErrorException);
+      const result = await service.test(tenantId, CommunicationMedium.SMS as never, undefined, req);
+      expect(result.testMessage).toEqual({ logId: 'log-1', status: 'FAILED' });
       expect(credits.releaseForLog).not.toHaveBeenCalled();
       expect(tags).toHaveBeenCalledWith(
         expect.objectContaining({ needs_reconciliation: 'true', tenant_id: tenantId }),
@@ -498,6 +533,96 @@ describe('ConnectionTestService', () => {
         message: 'Enter a valid number or address for this channel.',
         details: { code: INVALID_TEST_ADDRESS },
       });
+    });
+  });
+
+  // #3326: the cap is checked again, under a per-tenant lock, while the claim row is inserted.
+  // The real concurrency proof (two requests, a latch) is in provider-connection-test.e2e-spec.ts.
+  describe('daily-cap claim and a send that cannot be recorded (#3326)', () => {
+    const req = { sendTo: '01712345678', userId: 'user-1' };
+
+    it('claims a QUEUED test row inside a per-tenant advisory lock, before the send', async () => {
+      await service.test(tenantId, CommunicationMedium.SMS as never, undefined, req);
+      expect(txQuery).toHaveBeenCalledWith('SELECT pg_advisory_xact_lock(hashtext($1))', [
+        `test-send:${tenantId}`,
+      ]);
+      expect(claimRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenant_id: tenantId,
+          status: 'QUEUED',
+          metadata: expect.objectContaining({ test: true }),
+        }),
+      );
+      // The final write updates the claim (same id), it does not add a second row.
+      expect(logs.create).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'log-1', status: 'SENT' }),
+      );
+      expect(claimRepo.save.mock.invocationCallOrder[0]).toBeLessThan(
+        sendSpy.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('a request that passed the early count but finds the cap full under the lock gets the 429 and sends nothing', async () => {
+      let counts = 0;
+      usedToday = TEST_SENDS_PER_DAY - 1;
+      logs.createQueryBuilder.mockImplementation(() => {
+        const qb: any = {
+          where: () => qb,
+          andWhere: () => qb,
+          // Early check sees 19; the locked check sees the other request's claim (20).
+          getCount: async () => (++counts === 1 ? usedToday : TEST_SENDS_PER_DAY),
+        };
+        return qb;
+      });
+      const err = await service
+        .test(tenantId, CommunicationMedium.SMS as never, undefined, req)
+        .catch((e) => e);
+      expect(err.getStatus()).toBe(429);
+      expect(err.getResponse().details).toEqual({ code: TEST_SEND_DAILY_CAP });
+      expect(claimRepo.save).not.toHaveBeenCalled();
+      expect(sendSpy).not.toHaveBeenCalled();
+    });
+
+    it('a sent message whose row cannot be recorded answers its outcome (no 500) and alerts ops', async () => {
+      logs.save.mockRejectedValue(new Error('db down'));
+      const tags = vi.fn();
+      vi.mocked(Sentry.withScope).mockImplementation(((cb: any) => cb({ setTags: tags })) as never);
+      const result = await service.test(tenantId, CommunicationMedium.SMS as never, undefined, req);
+      // A 200 is stored by the Idempotency interceptor: the same-key retry replays, never resends.
+      expect(result.testMessage).toEqual({ logId: 'log-1', status: 'SENT' });
+      expect(sendSpy).toHaveBeenCalledTimes(1);
+      expect(tags).toHaveBeenCalledWith(
+        expect.objectContaining({ communication_log_id: 'log-1', needs_reconciliation: 'true' }),
+      );
+      expect(JSON.stringify(tags.mock.calls)).not.toContain('01712345678');
+    });
+
+    it('drops the claim when credit is short (nothing sent, the cap is not used up)', async () => {
+      credits.isMetered.mockResolvedValue(true);
+      credits.reserve.mockResolvedValue({ ok: false, available: 0 });
+      await expect(
+        service.test(tenantId, CommunicationMedium.SMS as never, undefined, req),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(logs.delete).toHaveBeenCalledWith({ id: 'log-1', tenant_id: tenantId });
+      expect(sendSpy).not.toHaveBeenCalled();
+    });
+
+    it('drops the claim when the reservation itself fails', async () => {
+      credits.isMetered.mockResolvedValue(true);
+      credits.reserve.mockRejectedValue(new Error('ledger down'));
+      await expect(
+        service.test(tenantId, CommunicationMedium.SMS as never, undefined, req),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+      expect(logs.delete).toHaveBeenCalledWith({ id: 'log-1', tenant_id: tenantId });
+    });
+
+    it('carries the batch id on the claim row so a stranded row links to its reservation', async () => {
+      credits.isMetered.mockResolvedValue(true);
+      await service.test(tenantId, CommunicationMedium.SMS as never, undefined, req);
+      const batchId = credits.reserve.mock.calls[0][3].id;
+      expect(claimRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ metadata: { test: true, batch_id: batchId } }),
+      );
     });
   });
 

@@ -84,10 +84,11 @@ describe('a new vendor is one class + one line', () => {
       version: 1,
       communications: { sms: { provider: 'stub', metering: 'PLATFORM' } },
     } as unknown as TenantSettings;
-    const r = await resolverFor(settings, { STUB_API_KEY: 'platform-key' }).resolve(
-      CommunicationMedium.SMS,
-      't1',
-    );
+    // #3338: a school that owns nothing is on the platform account, so SMS_PROVIDER picks the company.
+    const r = await resolverFor(settings, {
+      SMS_PROVIDER: 'stub',
+      STUB_API_KEY: 'platform-key',
+    }).resolve(CommunicationMedium.SMS, 't1');
     expect(r.config).toMatchObject({ apiKey: 'platform-key' });
   });
 

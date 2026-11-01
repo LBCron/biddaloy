@@ -14,6 +14,12 @@ test.describe('Communications (admin)', () => {
     await expectReachableInMain(page);
   });
 
+  // [97.4.03] Opening the log reads only; nothing is sent.
+  test('message log', async ({ page }) => {
+    await openFromSidebar(page, t('nav.items.messageLog'));
+    await expectReachableInMain(page);
+  });
+
   // [67.6.02] Send an alert opens as a full-page dialog, so focus lands inside it (on its close
   // button), not on the h1 `openFromSidebar` waits for. Opening the page sends nothing.
   test('send an alert', async ({ page }) => {

@@ -83,6 +83,7 @@
   - [সতর্কতা পাঠান](communications/send-alert.md)
   - [ফি রিমাইন্ডার](communications/fee-reminders.md)
   - [রিমাইন্ডার ইতিহাস](communications/reminder-history.md)
+  - [বার্তার তালিকা](communications/message-log.md)
 - [প্রতিবেদন](reports/collections-report.md)
   - [ফি আদায়ের প্রতিবেদন](reports/collections-report.md)
   - [আবেদনপত্রের প্রতিবেদন](reports/applications.md)

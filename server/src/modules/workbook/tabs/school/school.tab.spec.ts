@@ -3,7 +3,13 @@ import { School } from '../../../schools/entities/school.entity';
 import { cellText, toCell } from '../../codec/cell-format';
 import { assertRegistryValid } from '../../codec/registry';
 import type { ExportContext, ImportContext } from '../../codec/tab-spec';
-import { deepMergePresent, schoolTab, stripSecretPaths, type SchoolRow } from './school.tab';
+import {
+  deepMergePresent,
+  mergeImportedSettings,
+  schoolTab,
+  stripSecretPaths,
+  type SchoolRow,
+} from './school.tab';
 import { schoolTabs } from './index';
 
 const SCHOOL_ID = '7f3e4b2a-1c5d-4e8f-9a6b-2d1c3e4f5a6b';
@@ -436,5 +442,61 @@ describe('upsert: flat-stored messaging settings + a nested import', () => {
     });
 
     expect(schoolTab.diffFields(nestedImport(existing), existing)).toEqual(['settings']);
+  });
+});
+
+// #3346: a school ADMIN can restore a workbook (BACKUP_MANAGE), so an imported file must never move
+// the school on or off the platform SMS account. The destination keeps its own value.
+describe('sms.metering is never imported', () => {
+  const file = (metering: string) => ({
+    communications: { sms: { metering, provider: 'greenweb' } },
+  });
+
+  it('drops a PLATFORM value from the file when the school has none', () => {
+    const merged = mergeImportedSettings({ communications: { sms: {} } }, file('PLATFORM'));
+    expect(merged).toEqual({ communications: { sms: { provider: 'greenweb' } } });
+  });
+
+  it('keeps the stored PLATFORM value when the file says OFF', () => {
+    const merged = mergeImportedSettings(
+      { communications: { sms: { metering: 'PLATFORM' } } },
+      file('OFF'),
+    );
+    expect(merged).toEqual({
+      communications: { sms: { metering: 'PLATFORM', provider: 'greenweb' } },
+    });
+  });
+
+  it('works when the school has no settings yet', () => {
+    expect(mergeImportedSettings(null, file('PLATFORM'))).toEqual({
+      communications: { sms: { provider: 'greenweb' } },
+    });
+  });
+  const stored = () => ({
+    communications: {
+      sms: { metering: 'PLATFORM', provider: 'greenweb', greenweb: { apiKey: 'enc:key' } },
+      email: { provider: 'smtp' },
+    },
+  });
+
+  it('a null communications.sms cannot wipe the stored metering or credentials', () => {
+    const merged = mergeImportedSettings(stored(), {
+      communications: { sms: null, email: { provider: 'ses' } },
+    });
+    expect(merged).toEqual({
+      communications: {
+        sms: { metering: 'PLATFORM', provider: 'greenweb', greenweb: { apiKey: 'enc:key' } },
+        email: { provider: 'ses' },
+      },
+    });
+  });
+
+  it('a null communications cannot wipe the stored block', () => {
+    const merged = mergeImportedSettings(stored(), { communications: null, region: 'BD' });
+    expect(merged).toEqual({ ...stored(), region: 'BD' });
+  });
+
+  it('a non-object communications.sms (a string) is dropped the same way', () => {
+    expect(mergeImportedSettings(stored(), { communications: { sms: 'OFF' } })).toEqual(stored());
   });
 });

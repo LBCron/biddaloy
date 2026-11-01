@@ -11,6 +11,7 @@ import { TENANT_SETTINGS_SCHEMA_VERSION, UserRole, countSmsSegments } from '@bid
 import { TenantSettingsCache } from '../../schools/settings/tenant-settings-cache.service';
 import { SmsCreditService } from '../credits/sms-credit.service';
 import { INSUFFICIENT_SMS_CREDIT } from '../credits/insufficient-sms-credit.constants';
+import { TEST_SEND_DAILY_CAP } from './connection-test.service';
 import {
   SEED_TENANT_ID,
   SEED_ADMIN_EMAIL,
@@ -20,7 +21,17 @@ import {
 
 // OneCodeSoft calls go through the SSRF guard + pinned undici client (not global fetch). Stub both so
 // the SMS case needs no DNS or network; every other export of the guard module stays real.
-vi.mock('../providers/shared/pinned-http', () => ({ fetchPinnedJson: vi.fn() }));
+// The cases mock only the body (`fetchPinnedJson`); it answers as HTTP 200 (#3320).
+vi.mock('../providers/shared/pinned-http', () => {
+  const fetchPinnedJson = vi.fn();
+  return {
+    fetchPinnedJson,
+    fetchPinnedJsonWithStatus: vi.fn(async (...args: unknown[]) => ({
+      status: 200,
+      body: await fetchPinnedJson(...args),
+    })),
+  };
+});
 vi.mock('../providers/shared/outbound-destination-guard', async (importActual) => ({
   ...(await importActual<typeof import('../providers/shared/outbound-destination-guard')>()),
   assertSafeHttpDestination: vi.fn(async (rawUrl: string) => ({
@@ -338,6 +349,64 @@ describe('Provider connection test E2E', () => {
       const second = await post(smsBody('01712345679'), 'test-send-replay').expect(200);
       expect(second.body.testMessage.logId).toBe(first.body.testMessage.logId);
       expect(vi.mocked(fetchPinnedJson).mock.calls.length).toBe(calls);
+    });
+
+    // #3326: two sends in flight at 19/20 used both passed the count, ending at 21. Both requests
+    // are held at the vendor connection check (after the early count), then released together:
+    // exactly one may send, the other gets the daily-cap 429. A latch, not timing.
+    it('two concurrent test sends at 19/20 used: exactly one is sent, the other gets the cap 429', async () => {
+      const usedSql = `SELECT count(*)::int AS n FROM communication_logs
+        WHERE tenant_id = $1 AND metadata->>'test' = 'true' AND created_at > now() - interval '24 hours'`;
+      const [{ n: used }] = await dataSource.query(usedSql, [TENANT_ID]);
+      expect(used).toBeLessThanOrEqual(19);
+      for (let i = used; i < 19; i++) {
+        await dataSource.query(
+          `INSERT INTO communication_logs
+             (tenant_id, medium, recipient_address, recipient_name, message_body, status, trigger, metadata)
+           VALUES ($1, 'SMS', '01712340000', 'Test', 'filler', 'SENT', 'MANUAL', $2)`,
+          [TENANT_ID, JSON.stringify({ test: true, filler: 'cap-race' })],
+        );
+      }
+      let arrived = 0;
+      let bothArrived!: () => void;
+      let release!: () => void;
+      const bothAtCheck = new Promise<void>((r) => (bothArrived = r));
+      const gate = new Promise<void>((r) => (release = r));
+      let sends = 0;
+      vi.mocked(fetchPinnedJson).mockImplementation(async (_dest, url) => {
+        if (String(url).includes('/v3/balance')) {
+          if (++arrived === 2) bothArrived();
+          await gate;
+          return { status: 'success', data: { balance: 250 } };
+        }
+        sends += 1;
+        return {
+          status: 'success',
+          data: { results: [{ status: 'sent', message_id: `race-${sends}`, sms_count: 1 }] },
+        };
+      });
+      try {
+        // Two keys: one key twice would get the interceptor's 409, which proves nothing here.
+        const a = post(smsBody('01712345601'), 'cap-race-a').then((r) => r);
+        const b = post(smsBody('01712345602'), 'cap-race-b').then((r) => r);
+        await bothAtCheck;
+        release();
+        const results = await Promise.all([a, b]);
+
+        expect(results.map((r) => r.status).sort()).toEqual([200, 429]);
+        const capped = results.find((r) => r.status === 429)!;
+        expect(capped.body.details).toEqual({ code: TEST_SEND_DAILY_CAP });
+        expect(sends).toBe(1);
+        const [{ n: after }] = await dataSource.query(usedSql, [TENANT_ID]);
+        expect(after).toBe(20);
+      } finally {
+        vi.mocked(fetchPinnedJson).mockReset();
+        await dataSource.query(
+          `DELETE FROM communication_logs WHERE tenant_id = $1 AND metadata->>'test' = 'true'
+             AND (metadata->>'filler' = 'cap-race' OR recipient_address IN ('01712345601', '01712345602'))`,
+          [TENANT_ID],
+        );
+      }
     });
 
     it('rejects sendTo without an Idempotency-Key (400)', async () => {

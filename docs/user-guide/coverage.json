@@ -48,6 +48,7 @@
   "reports.alertsReport": "done",
   "communications.feeReminders": "done",
   "communications.reminderHistory": "done",
+  "communications.messageLog": "done",
   "administration.printTemplates": "done",
   "reports.printables": "done",
   "reports.applications": "done",

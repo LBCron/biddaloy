@@ -81,6 +81,7 @@
     "forbidden": "You don't have permission to view this.",
     "loadError": "Couldn't load this student.",
     "actions": {
+      "messages": "Messages",
       "edit": "Edit",
       "collectFees": "Collect fees",
       "sendReminder": "Send reminder",

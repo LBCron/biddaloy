@@ -91,14 +91,91 @@ describe('problemWith', () => {
     expect(problemWith(with_(5), SMS)).toBe('apiKey must be text.');
   });
 
-  it('non-secret: null rejected, number only for text kind', () => {
+  it('non-secret: number only for text kind', () => {
     const with_ = (k: string, v: unknown) => ({
       provider: 'alpha',
       alpha: { apiKey: 'k', senderId: 's', [k]: v },
     });
-    expect(problemWith(with_('apiUrl', null), SMS)).toBe('apiUrl must be text.');
     expect(problemWith(with_('apiUrl', 5), SMS)).toBe('apiUrl must be text.');
     expect(problemWith({ solo: { ...okWa.solo, port: 587 } }, WA)).toBeNull();
+  });
+
+  // #3331: null is how the form clears a saved optional field (the merge then removes the key).
+  // A required field cannot be cleared this way, on the chosen company or a draft.
+  it('non-secret null: accepted for an optional field, refused for a required one', () => {
+    const alpha = (extra: object) => ({
+      provider: 'alpha',
+      alpha: { apiKey: 'k', senderId: 's', ...extra },
+    });
+    expect(problemWith(alpha({ apiUrl: null }), SMS)).toBeNull();
+    expect(problemWith({ solo: { ...okWa.solo, port: null } }, WA)).toBeNull();
+    expect(problemWith(alpha({ senderId: null }), SMS)).toBe(
+      'senderId is required and cannot be cleared.',
+    );
+    expect(
+      problemWith(
+        { ...okSms, provider: 'beta', beta: { token: 't' }, alpha: { senderId: null } },
+        SMS,
+      ),
+    ).toBe('senderId is required and cannot be cleared.');
+  });
+
+  // #3338: a PLATFORM school removing its own key (null) owns nothing, so the save is accepted
+  // (the resolver then sends on the platform account, see messaging-config.resolver.spec).
+  it('PLATFORM: a block of nulls owns nothing and is accepted', () => {
+    expect(
+      problemWith(
+        { provider: 'alpha', metering: 'PLATFORM', alpha: { apiKey: null, apiUrl: null } },
+        SMS,
+      ),
+    ).toBeNull();
+  });
+
+  // Review round 1 on #3347: the same ownership rule as the resolver and the #3339 migration. Only
+  // the chosen company's own block counts; a draft for another company is not checked as complete.
+  it('PLATFORM: an empty chosen block next to another company draft owns nothing and is accepted', () => {
+    expect(
+      problemWith(
+        { provider: 'beta', metering: 'PLATFORM', beta: {}, alpha: { senderId: 'DRAFT' } },
+        SMS,
+      ),
+    ).toBeNull();
+    // The chosen block started: it must be complete, the draft does not matter.
+    expect(
+      problemWith(
+        { provider: 'alpha', metering: 'PLATFORM', alpha: { apiKey: 'k' }, beta: {} },
+        SMS,
+      ),
+    ).toMatch(/missing the required field senderId/);
+  });
+
+  // #3338: a school whose company has a required text field (senderId) can still remove
+  // everything it saved, and so get back to the platform account.
+  it('remove saved details: provider null with null company blocks is accepted; anything else is not', () => {
+    expect(problemWith({ provider: null, alpha: null, beta: null }, SMS)).toBeNull();
+    expect(
+      problemWith({ provider: null, alpha: null, beta: null, metering: 'PLATFORM' }, SMS),
+    ).toBeNull();
+    expect(problemWith({ solo: null }, WA)).toBeNull();
+    expect(problemWith({ provider: null, alpha: { senderId: 's' } }, SMS)).toBe(
+      'removes the saved company, so every other value sent must be null.',
+    );
+    expect(problemWith({ provider: null, metering: 'X' }, SMS)).toMatch(/OFF or PLATFORM/);
+    expect(problemWith({ provider: null, rogue: null }, SMS)).toMatch(/does not use/);
+    // A company block null without provider null is not a removal.
+    expect(problemWith({ provider: 'alpha', alpha: null }, SMS)).not.toBeNull();
+  });
+
+  // Review round 2 on #3347: a removal that leaves a company block saved is not a removal. The
+  // merge would delete only `provider`, and the resolver could still send on the saved block.
+  it('remove saved details: a removal that leaves out a company block is rejected', () => {
+    const missingBlock =
+      'removes the saved company, so every company block must be sent as null too.';
+    expect(problemWith({ provider: null }, SMS)).toBe(missingBlock);
+    expect(problemWith({ provider: null, alpha: null }, SMS)).toBe(missingBlock);
+    expect(problemWith({ provider: null, alpha: null, metering: 'PLATFORM' }, SMS)).toBe(
+      missingBlock,
+    );
   });
 
   // #3322: a port field must be a real TCP port, or the save would store a config that never sends.

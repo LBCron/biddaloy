@@ -131,6 +131,7 @@ export class ConnectionTestService {
           medium as CommunicationMedium,
           provider,
           config,
+          source,
           testMessage,
           message,
         ),
@@ -160,14 +161,14 @@ export class ConnectionTestService {
 
   /**
    * Rolling-24h cap on real test sends per tenant, counted from the logs the sends themselves wrote.
-   *
-   * ponytail: count-then-insert, not atomic. Requests in flight at the same moment (two tabs, two
-   * admins) can each pass at 19 and end at 20 + n. Bounded by the per-user 3/min throttle, and each
-   * send is still logged and credit-checked. Upgrade (#3326): a per-tenant
-   * advisory lock around count + insert of a claim row written before the send.
+   * Called twice: once early, so a capped school gets its 429 before any outbound call, and once
+   * inside `claimTestSend`'s lock, which is the check that holds under concurrency (#3326).
    */
-  private async assertDailyCap(tenantId: string): Promise<void> {
-    const used = await this.logs
+  private async assertDailyCap(
+    tenantId: string,
+    logs: Repository<CommunicationLog> = this.logs,
+  ): Promise<void> {
+    const used = await logs
       .createQueryBuilder('l')
       .where('l.tenant_id = :tenantId', { tenantId })
       .andWhere(`l.metadata->>'test' = 'true'`)
@@ -225,6 +226,49 @@ export class ConnectionTestService {
   }
 
   /**
+   * #3326: lock, count and insert the test row in one short transaction, before the send. The row
+   * is the claim: a second request counts it while this one is still at the vendor. The lock is
+   * per tenant and is never held across the vendor call (no pool connection waits on a vendor).
+   * QUEUED is safe for a row with no BullMQ job: nothing re-dispatches QUEUED rows (only a job
+   * does). A claim still QUEUED after an hour was stranded (crash, failed final save): the credit
+   * reconcile lists it as TEST_CLAIM_STRANDED for a human (held, never released by itself).
+   */
+  private claimTestSend(
+    tenantId: string,
+    medium: CommunicationMedium,
+    req: TestMessageRequest,
+    body: string,
+    subject: string | undefined,
+    batchId: string | undefined,
+  ): Promise<CommunicationLog> {
+    return this.logs.manager.transaction(async (m) => {
+      await m.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`test-send:${tenantId}`]);
+      const repo = m.getRepository(CommunicationLog);
+      await this.assertDailyCap(tenantId, repo);
+      return repo.save(
+        repo.create({
+          tenant_id: tenantId,
+          medium,
+          recipient_address: req.sendTo,
+          recipient_name: 'Test',
+          message_body: body,
+          subject: subject ?? null,
+          sent_by_user_id: req.userId,
+          status: CommunicationStatus.QUEUED,
+          trigger: CommunicationTrigger.MANUAL,
+          metadata: { test: true, ...(batchId ? { batch_id: batchId } : {}) },
+        }),
+      );
+    });
+  }
+
+  /** Nothing was sent (no credit, or the reservation failed): the claim must not use up the cap. */
+  private async dropClaim(tenantId: string, logId: string): Promise<void> {
+    // ponytail: best effort; a leftover QUEUED row only costs one of the day's 20 test sends.
+    await this.logs.delete({ id: logId, tenant_id: tenantId }).catch(() => undefined);
+  }
+
+  /**
    * Sends straight through the resolved (possibly unsaved) config, not the queue: the queue worker
    * re-reads SAVED settings, and unsaved secrets must never sit in Redis. Writes one terminal log
    * row like any message, and settles credit the way the worker does.
@@ -244,19 +288,26 @@ export class ConnectionTestService {
     medium: CommunicationMedium,
     provider: Parameters<typeof sendThroughProvider>[0],
     config: unknown,
+    source: ConfigSource,
     req: TestMessageRequest,
     { body, subject, metered, segments }: TestMessageBody,
   ) {
+    const batchId = metered && segments !== undefined ? randomUUID() : undefined;
+    const claim = await this.claimTestSend(tenantId, medium, req, body, subject, batchId);
     // Metered SMS: reserve first, exactly as CommunicationsService.enqueue does. `metered` was
     // already decided in prepareTestMessage, so this does not read the settings again.
     let reservation: { batchId: string; segments: number } | undefined;
-    if (metered && segments !== undefined) {
-      const batchId = randomUUID();
-      const res = await this.smsCredits.reserve(tenantId, segments, `batch:${batchId}`, {
-        type: 'batch',
-        id: batchId,
-      });
-      if (!res.ok) throw insufficientCredit(segments, res.available);
+    if (batchId && segments !== undefined) {
+      const res = await this.smsCredits
+        .reserve(tenantId, segments, `batch:${batchId}`, { type: 'batch', id: batchId })
+        .catch(async (err: unknown) => {
+          await this.dropClaim(tenantId, claim.id);
+          throw err;
+        });
+      if (!res.ok) {
+        await this.dropClaim(tenantId, claim.id);
+        throw insufficientCredit(segments, res.available);
+      }
       reservation = { batchId, segments };
     }
 
@@ -264,26 +315,25 @@ export class ConnectionTestService {
       provider,
       { to: req.sendTo, body, subject },
       config as never,
+      source,
     );
     // AMBIGUOUS (the provider threw): the message may have gone out, so the credit stays reserved.
     const unsettled = reservation && !result.success && result.outcome !== 'REJECTED';
+    const status = result.success ? CommunicationStatus.SENT : CommunicationStatus.FAILED;
     let log: CommunicationLog;
     try {
       log = await this.logs.save(
         this.logs.create({
-          tenant_id: tenantId,
-          medium,
-          recipient_address: req.sendTo,
-          recipient_name: 'Test',
-          message_body: body,
-          subject: subject ?? null,
-          sent_by_user_id: req.userId,
-          status: result.success ? CommunicationStatus.SENT : CommunicationStatus.FAILED,
-          trigger: CommunicationTrigger.MANUAL,
+          ...claim,
+          status,
           provider_message_id: result.success ? result.providerMessageId : null,
           metadata: {
             test: true,
             ...(result.segments !== undefined ? { segments: result.segments } : {}),
+            // D23: which company sent it, so Check status asks the same one (as the worker does).
+            ...(result.provider ? { provider: result.provider } : {}),
+            // #3350: and whose account, so Check status asks the same one.
+            ...(result.source ? { source: result.source } : {}),
             ...(result.success ? {} : { error: result.error }),
             ...(reservation ? { batch_id: reservation.batchId } : {}),
             ...(unsettled ? { credit: 'UNSETTLED' } : {}),
@@ -291,33 +341,34 @@ export class ConnectionTestService {
         }),
       );
     } catch (err) {
-      if (reservation && !(!result.success && result.outcome === 'REJECTED')) {
-        // The send may have gone out and there is no log row: alert ops (ids only, no recipient/body).
-        this.logger.error({
-          msg: 'test sms send left credit reserved and no log row',
-          tenant_id: tenantId,
-          batch_id: reservation.batchId,
-          needs_reconciliation: 'true',
-        });
-        Sentry.withScope((scope) => {
-          scope.setTags({
-            tenant_id: tenantId,
-            batch_id: reservation.batchId,
-            needs_reconciliation: 'true',
-          });
-          Sentry.captureException(err instanceof Error ? err : new Error(String(err)));
-        });
+      if (!result.success && result.outcome === 'REJECTED') {
+        // Nothing went out: give the reservation back and the cap slot; a retry may send.
+        await this.dropClaim(tenantId, claim.id);
+        if (reservation) {
+          await this.smsCredits.releaseForLog(
+            tenantId,
+            reservation.batchId,
+            reservation.segments,
+            reservation.batchId,
+          );
+        }
+        throw new InternalServerErrorException('The test message could not be recorded.');
       }
-      // No row to settle against: give the reservation back unless the send may have gone out.
-      if (reservation && !result.success && result.outcome === 'REJECTED') {
-        await this.smsCredits.releaseForLog(
-          tenantId,
-          reservation.batchId,
-          reservation.segments,
-          reservation.batchId,
-        );
-      }
-      throw new InternalServerErrorException('The test message could not be recorded.');
+      // #3326: the message may have gone out. Answer its outcome (200), never a 500: an error frees
+      // the Idempotency-Key and the same-key retry would send again. The claim row stays QUEUED (it
+      // still counts toward the cap) and any credit stays reserved: alert ops, ids only (Rule 13).
+      const tags = {
+        communication_log_id: claim.id,
+        tenant_id: tenantId,
+        ...(reservation ? { batch_id: reservation.batchId } : {}),
+        needs_reconciliation: 'true',
+      };
+      this.logger.error({ msg: 'test send outcome not recorded; log row left QUEUED', ...tags });
+      Sentry.withScope((scope) => {
+        scope.setTags(tags);
+        Sentry.captureException(err instanceof Error ? err : new Error(String(err)));
+      });
+      return { logId: claim.id, status };
     }
 
     // AMBIGUOUS never settles: the reservation waits for reconciliation, same as the worker's

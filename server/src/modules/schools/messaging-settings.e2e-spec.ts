@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import supertest = require('supertest');
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { DataSource } from 'typeorm';
 import { CommunicationMedium, UserRole } from '@biddaloy/shared';
 import type { MessagingProvidersResponse, ProviderDescriptor } from '@biddaloy/shared';
@@ -16,6 +17,7 @@ import {
   SEED_ADMIN_EMAIL,
   SEED_ADMIN_USER_ID,
   SEED_ADMIN_PASSWORD,
+  SEED_ADMIN_PASSWORD_HASH,
 } from '@test/constants';
 
 const API = '/api/v1';
@@ -34,6 +36,10 @@ describe('Messaging settings (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
   let token: string;
+  // A genuine platform SUPER_ADMIN (a membership on the platform school), unlike the seed user,
+  // who is a tenant-local SUPER_ADMIN of the seed school (#3346).
+  let platformToken: string;
+  let platformTenantId: string;
 
   const req = (
     method: 'get' | 'patch',
@@ -49,6 +55,13 @@ describe('Messaging settings (e2e)', () => {
   };
   const providers = (tenant: string, school = tenant) =>
     req('get', `/schools/${school}/settings/messaging/providers`, tenant);
+  /** The platform's own SUPER_ADMIN writing `school`'s settings. */
+  const platformPatch = (body: object, school = SEED_TENANT_ID) =>
+    supertest(app.getHttpServer())
+      .patch(`${API}/schools/${school}/settings`)
+      .set('Authorization', `Bearer ${platformToken}`)
+      .set('X-Tenant-ID', platformTenantId)
+      .send({ version: VERSION, ...body });
   const patch = (tenant: string, body: object, school = tenant) =>
     req('patch', `/schools/${school}/settings`, tenant).send({ version: VERSION, ...body });
   const storedBlock = async (school: string, key: string) =>
@@ -114,6 +127,33 @@ describe('Messaging settings (e2e)', () => {
       await supertest(app.getHttpServer())
         .post(`${API}/auth/login`)
         .send({ email: SEED_ADMIN_EMAIL, password: SEED_ADMIN_PASSWORD })
+        .expect(200)
+    ).body.access_token;
+
+    // Platform authority = SUPER_ADMIN on the 'default-school' tenant (ContextGuard, no
+    // PLATFORM_TENANT_ID in tests); same setup as school-admins.controller.e2e-spec.ts.
+    await dataSource.query(
+      `INSERT INTO schools (id, name, slug, created_at, updated_at)
+       SELECT gen_random_uuid(), 'Platform', 'default-school', NOW(), NOW()
+       WHERE NOT EXISTS (SELECT 1 FROM schools WHERE slug = 'default-school')`,
+    );
+    [{ id: platformTenantId }] = await dataSource.query(
+      `SELECT id FROM schools WHERE slug = 'default-school'`,
+    );
+    const platformEmail = `metering-platform-${randomUUID().slice(0, 8)}@example.test`;
+    const [{ id: platformUserId }] = await dataSource.query(
+      `INSERT INTO users (email, password_hash, full_name, status)
+       VALUES ($1, $2, 'Metering Platform Admin', 'ACTIVE') RETURNING id`,
+      [platformEmail, SEED_ADMIN_PASSWORD_HASH],
+    );
+    await dataSource.query(
+      `INSERT INTO user_tenants (user_id, tenant_id, role) VALUES ($1, $2, $3)`,
+      [platformUserId, platformTenantId, UserRole.SUPER_ADMIN],
+    );
+    platformToken = (
+      await supertest(app.getHttpServer())
+        .post(`${API}/auth/login`)
+        .send({ email: platformEmail, password: SEED_ADMIN_PASSWORD })
         .expect(200)
     ).body.access_token;
   }, 60000);
@@ -198,12 +238,112 @@ describe('Messaging settings (e2e)', () => {
     );
     expect((await storedBlock(SEED_TENANT_ID, key))[d.name][secret]).toBe(before);
 
-    // null: cleared; masked as not configured and providers says not configured.
+    // null: cleared (#3331: the key is removed); masked as absent and providers says not configured.
     const cleared = { provider: d.name, [d.name]: { ...withoutSecret[d.name], [secret]: null } };
     const res = await patch(SEED_TENANT_ID, { communications: { [key]: cleared } }).expect(200);
-    expect(res.body.communications[key][d.name][secret]).toEqual({ configured: false });
+    expect(res.body.communications[key][d.name]).not.toHaveProperty(secret);
+    expect(await storedBlock(SEED_TENANT_ID, key)).not.toHaveProperty([d.name, secret]);
     const after = (await providers(SEED_TENANT_ID).expect(200)).body as MessagingProvidersResponse;
     expect(after[medium]?.configured).toBe(false);
+  });
+
+  // #3331: a PATCH keeps a left-out field, so the form sends null for a cleared saved optional
+  // field. It must be gone from the stored row and from both GETs; a required one cannot be cleared.
+  it('null removes a saved optional field; a required field cannot be cleared', async () => {
+    const schema = (await providers(SEED_TENANT_ID).expect(200)).body as MessagingProvidersResponse;
+    const { communications } = fullBody(schema);
+    const found = Object.values(CommunicationMedium)
+      .map((m) => ({ m, d: schema[m]?.providers[0] }))
+      .find(({ d }) => d?.fields.some((f) => f.kind !== 'secret' && !f.required));
+    if (!found) return; // no first provider has an optional text field
+    const { m, d } = found as { m: CommunicationMedium; d: ProviderDescriptor };
+    const key = m.toLowerCase();
+    const optional = d.fields.find((f) => f.kind !== 'secret' && !f.required)!.key;
+    await patch(SEED_TENANT_ID, { communications: { [key]: communications[key] } }).expect(200);
+    expect((await storedBlock(SEED_TENANT_ID, key))[d.name]).toHaveProperty(optional);
+
+    const res = await patch(SEED_TENANT_ID, {
+      communications: { [key]: { provider: d.name, [d.name]: { [optional]: null } } },
+    }).expect(200);
+    expect(res.body.communications[key][d.name]).not.toHaveProperty(optional);
+    expect((await storedBlock(SEED_TENANT_ID, key))[d.name]).not.toHaveProperty(optional);
+    const get = await req('get', `/schools/${SEED_TENANT_ID}/settings`, SEED_TENANT_ID).expect(200);
+    expect(get.body.communications[key][d.name]).not.toHaveProperty(optional);
+    // The rest of the block (secrets included) is untouched.
+    for (const f of d.fields.filter((x) => x.key !== optional)) {
+      expect((await storedBlock(SEED_TENANT_ID, key))[d.name]).toHaveProperty(f.key);
+    }
+
+    const required = d.fields.find((f) => f.kind !== 'secret' && f.required);
+    if (required) {
+      await patch(SEED_TENANT_ID, {
+        communications: { [key]: { provider: d.name, [d.name]: { [required.key]: null } } },
+      }).expect(400);
+      expect((await storedBlock(SEED_TENANT_ID, key))[d.name]).toHaveProperty(required.key);
+    }
+  });
+
+  // #3338: "Remove saved details" — provider null plus null for every company. Only `metering`
+  // survives, so a PLATFORM school is back on the platform account (selected: null).
+  it('provider null with null company blocks removes every saved company and keeps metering', async () => {
+    const schema = (await providers(SEED_TENANT_ID).expect(200)).body as MessagingProvidersResponse;
+    const sms = schema[CommunicationMedium.SMS];
+    if (!sms || sms.providers.length < 2) return; // removal by provider null is the multi-company shape
+    const { communications } = fullBody(schema);
+    // #3346: only the platform (SUPER_ADMIN) may switch a school onto the platform account.
+    await platformPatch({
+      communications: { sms: { ...(communications.sms as object), metering: 'PLATFORM' } },
+    }).expect(200);
+
+    // Review round 2 on #3347: `provider: null` alone would leave the saved blocks behind, so it
+    // is refused and nothing changes.
+    const saved = await storedBlock(SEED_TENANT_ID, 'sms');
+    await patch(SEED_TENANT_ID, { communications: { sms: { provider: null } } }).expect(400);
+    expect(await storedBlock(SEED_TENANT_ID, 'sms')).toEqual(saved);
+
+    const nulls = Object.fromEntries(sms.providers.map((d) => [d.name, null]));
+    const res = await patch(SEED_TENANT_ID, {
+      communications: { sms: { provider: null, ...nulls } },
+    }).expect(200);
+    expect(res.body.communications.sms).toEqual({ metering: 'PLATFORM' });
+    expect(await storedBlock(SEED_TENANT_ID, 'sms')).toEqual({ metering: 'PLATFORM' });
+    const after = (await providers(SEED_TENANT_ID).expect(200)).body as MessagingProvidersResponse;
+    expect(after[CommunicationMedium.SMS]?.selected).toBeNull();
+    expect(after[CommunicationMedium.SMS]?.configured).toBe(false);
+
+    // A removal that also sends a value is refused, and nothing changes.
+    const first = sms.providers[0];
+    await patch(SEED_TENANT_ID, {
+      communications: { sms: { provider: null, [first.name]: { apiKey: 'x-abcdefgh' } } },
+    }).expect(400);
+    expect(await storedBlock(SEED_TENANT_ID, 'sms')).toEqual({ metering: 'PLATFORM' });
+  });
+
+  // Review round 1 on #3347: "Remove saved details" on a single-company channel (WhatsApp) sends
+  // `{ <sole>: null }` with no provider key. It goes through the real PATCH, the flat/nested shape
+  // alignment and the secret encryption step, and leaves no saved secret behind.
+  it('a single-company channel: { <sole>: null } removes its saved block, secret included', async () => {
+    const schema = (await providers(SEED_TENANT_ID).expect(200)).body as MessagingProvidersResponse;
+    const medium = CommunicationMedium.WHATSAPP;
+    const entry = schema[medium];
+    if (!entry || entry.providers.length !== 1) return; // the sole-company shape only
+    const d = entry.providers[0];
+    const key = medium.toLowerCase();
+    const { communications } = fullBody(schema);
+    await patch(SEED_TENANT_ID, { communications: { [key]: communications[key] } }).expect(200);
+    expect((await providers(SEED_TENANT_ID).expect(200)).body[medium].configured).toBe(true);
+
+    const res = await patch(SEED_TENANT_ID, { communications: { [key]: { [d.name]: null } } });
+    expect(res.status).toBe(200);
+    expect(res.body.communications[key] ?? {}).not.toHaveProperty(d.name);
+    const stored = (await storedBlock(SEED_TENANT_ID, key)) ?? {};
+    expect(stored).not.toHaveProperty(d.name);
+    for (const f of d.fields) expect(stored).not.toHaveProperty(f.key);
+    const after = (await providers(SEED_TENANT_ID).expect(200)).body as MessagingProvidersResponse;
+    expect(after[medium]?.configured).toBe(false);
+
+    // Removing again (nothing saved) is still a clean 200.
+    await patch(SEED_TENANT_ID, { communications: { [key]: { [d.name]: null } } }).expect(200);
   });
 
   it('an old flat PATCH on a sole-provider medium is accepted; a later nested PATCH keeps the secret', async () => {
@@ -271,6 +411,83 @@ describe('Messaging settings (e2e)', () => {
     await patch(SEED_TENANT_ID, {
       communications: { [key]: { ...(communications[key] as object), metering: 'PLATFORM' } },
     }).expect(400);
+  });
+
+  // #3346: `sms.metering` is the platform's. A school ADMIN cannot change it; a SUPER_ADMIN can.
+  describe('sms.metering is platform-only', () => {
+    const storedMetering = async () =>
+      (await storedBlock(SEED_TENANT_ID, 'sms'))?.metering as string | undefined;
+    const setStored = (metering: string | null) =>
+      dataSource.query(
+        `UPDATE schools SET settings = jsonb_set(coalesce(settings, '{}'), '{communications}', coalesce(settings->'communications', '{}') || jsonb_build_object('sms', $2::jsonb)) WHERE id = $1`,
+        [SEED_TENANT_ID, JSON.stringify(metering ? { metering } : {})],
+      );
+    // SMS has several companies, so a valid body names one. PLATFORM needs nothing else (owns nothing);
+    // OFF needs a complete block of the school's own.
+    // No X-Role means the test user acts as SUPER_ADMIN, so a school caller must say ADMIN.
+    const adminPatch = (body: object, school = SEED_TENANT_ID, tenant = SEED_TENANT_ID) =>
+      req('patch', `/schools/${school}/settings`, tenant, UserRole.ADMIN).send({
+        version: VERSION,
+        ...body,
+      });
+    const sms = (metering: string) => ({
+      communications: {
+        sms: {
+          provider: 'greenweb',
+          metering,
+          ...(metering === 'OFF' ? { greenweb: { apiKey: 'x-abcdefgh' } } : {}),
+        },
+      },
+    });
+
+    it('a school ADMIN cannot switch an OFF school to PLATFORM (fixed 403, nothing echoed)', async () => {
+      await setStored(null);
+      const res = await adminPatch(sms('PLATFORM')).expect(403);
+      expect(JSON.stringify(res.body)).not.toContain('PLATFORM"');
+      expect(await storedMetering()).toBeUndefined();
+    });
+
+    it('a school ADMIN cannot switch a PLATFORM school to OFF, but may resend the stored value', async () => {
+      await setStored('PLATFORM');
+      await adminPatch(sms('OFF')).expect(403);
+      expect(await storedMetering()).toBe('PLATFORM');
+      await adminPatch(sms('PLATFORM')).expect(200);
+      expect(await storedMetering()).toBe('PLATFORM');
+    });
+
+    it('an absent stored value counts as OFF: resending OFF is allowed and writes nothing', async () => {
+      await setStored(null);
+      await adminPatch(sms('OFF')).expect(200);
+      expect(await storedMetering()).toBeUndefined();
+    });
+
+    it('a SUPER_ADMIN may set it', async () => {
+      await setStored(null);
+      await platformPatch(sms('PLATFORM')).expect(200);
+      expect(await storedMetering()).toBe('PLATFORM');
+    });
+
+    it('a tenant-local SUPER_ADMIN of the school (the seed user, no platform membership) may not', async () => {
+      await setStored(null);
+      await req(
+        'patch',
+        `/schools/${SEED_TENANT_ID}/settings`,
+        SEED_TENANT_ID,
+        UserRole.SUPER_ADMIN,
+      )
+        .send({ version: VERSION, ...sms('PLATFORM') })
+        .expect(403);
+      expect(await storedMetering()).toBeUndefined();
+    });
+
+    it('an invalid value is 400; missing X-Tenant-ID is 401; non-UUID id is 400; another school is 403', async () => {
+      await adminPatch(sms('EVIL')).expect(400);
+      await req('patch', `/schools/${SEED_TENANT_ID}/settings`, null)
+        .send({ version: VERSION, ...sms('PLATFORM') })
+        .expect(401);
+      await adminPatch(sms('PLATFORM'), 'not-a-uuid').expect(400);
+      await adminPatch(sms('PLATFORM'), SEED_TENANT_ID, OTHER_TENANT_ID).expect(403);
+    });
   });
 
   describe('access control and tenant isolation', () => {

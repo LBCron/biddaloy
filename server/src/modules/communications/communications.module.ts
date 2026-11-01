@@ -13,6 +13,7 @@ import { PushModule } from '../push/push.module';
 import { CommunicationsService } from './communications.service';
 import { BulkReminderService } from './reminders.service';
 import { SingleReminderService } from './single-reminder.service';
+import { DeliveryStatusService } from './delivery-status.service';
 import { CommunicationsController } from './communications.controller';
 import { CommunicationsProcessor } from './worker/communications.processor';
 import { CommunicationProviderRegistryService } from './providers/communication-provider.registry';
@@ -88,6 +89,7 @@ import { CommunicationsDashboardService } from './communications-dashboard.servi
     CommunicationsService,
     BulkReminderService,
     SingleReminderService,
+    DeliveryStatusService,
     CommunicationsProcessor,
     CommunicationProviderRegistryService,
     MessagingConfigResolver,

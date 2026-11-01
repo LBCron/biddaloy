@@ -11,7 +11,13 @@ import {
 import { CommunicationMedium, isValidPort } from '@biddaloy/shared';
 import type { ProviderDescriptor } from '@biddaloy/shared';
 import { OptionalSetting } from './optional-setting.decorator';
-import { descriptorsFor, isPlainObject, present, soleDescriptorFor } from './messaging-descriptors';
+import {
+  descriptorsFor,
+  isPlainObject,
+  ownsBlock,
+  present,
+  soleDescriptorFor,
+} from './messaging-descriptors';
 
 const MEDIUM_KEY = Symbol('messagingMedium');
 const METERING = ['OFF', 'PLATFORM'];
@@ -34,6 +40,9 @@ function blockProblem(d: ProviderDescriptor, block: unknown): string | null {
         return `${f.key} must not be empty: leave it out to keep the saved value, or send null to clear it.`;
       }
       if (!isText(v)) return `${f.key} must be text.`;
+    } else if (v === null) {
+      // #3331: null removes a saved optional field; a required one cannot be cleared.
+      if (f.required) return `${f.key} is required and cannot be cleared.`;
     } else if (!isText(v) && !(f.kind === 'text' && typeof v === 'number' && Number.isFinite(v))) {
       return `${f.key} must be text.`;
     } else if (f.format === 'port' && v !== '' && !isValidPort(v)) {
@@ -65,13 +74,25 @@ export function problemWith(value: unknown, medium: CommunicationMedium): string
     return 'mixes the old flat layout with the per-company block; send one.';
   }
   const { provider, metering } = value;
+  if (metering !== undefined && (typeof metering !== 'string' || !METERING.includes(metering))) {
+    return 'metering must be OFF or PLATFORM.';
+  }
+  // #3338: "remove saved details": provider null (or the sole company's block null) with every
+  // other sent key null too. The merge deletes them. A `metering` sent alongside is still saved:
+  // the caller check (platform-only) lives in SchoolsService.updateSettings, #3346.
+  // Review round 2 on #3347: every company block must be sent as null. `{provider: null}` alone
+  // would delete only the name and leave a saved block that the resolver can still send on.
+  if (provider === null || (sole && value[sole.name] === null)) {
+    const allNull = Object.entries(value).every(([k, v]) => k === 'metering' || v === null);
+    if (!allNull) return 'removes the saved company, so every other value sent must be null.';
+    return names.every((n) => value[n] === null)
+      ? null
+      : 'removes the saved company, so every company block must be sent as null too.';
+  }
   if (provider !== undefined && (typeof provider !== 'string' || !names.includes(provider))) {
     return 'names a company that is not available for this channel.';
   }
   if (provider === undefined && !sole) return 'must say which company to use (provider).';
-  if (metering !== undefined && (typeof metering !== 'string' || !METERING.includes(metering))) {
-    return 'metering must be OFF or PLATFORM.';
-  }
 
   for (const d of descriptors) {
     if (Object.hasOwn(value, d.name)) {
@@ -96,8 +117,8 @@ export function problemWith(value: unknown, medium: CommunicationMedium): string
   // D11: a PLATFORM-metered school with no gateway of its own sends on the platform's account, so
   // its chosen block may be missing or empty. Once it fills in a field it owns the medium (the
   // resolver never pairs a school's field with the platform key), so that block must be complete.
-  const ownsNothing = !chosen || !Object.values(chosen).some(present);
-  if (selected && metering === 'PLATFORM' && ownsNothing) return null;
+  // Only the chosen company's own block counts (`ownsBlock`, the resolver's rule too).
+  if (selected && metering === 'PLATFORM' && !ownsBlock(selected, chosen)) return null;
   if (!selected || !chosen) return 'must include the settings of the chosen company.';
   // Only the chosen company must be complete: another company's block may be a saved draft.
   for (const f of selected.fields) {
