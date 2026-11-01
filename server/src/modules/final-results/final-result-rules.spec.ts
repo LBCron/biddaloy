@@ -180,6 +180,15 @@ describe('final-result-rules', () => {
       expect(combineSubject(near, settings({ rounding: FinalResultRounding.WHOLE })).obtained).toBe(
         80,
       );
+      // 39.4967 of 50 is 39, not 39.50 -> 40.
+      const low = [
+        mark('a', 39.49, { full_marks: 50 }),
+        mark('b', 39.49, { full_marks: 50 }),
+        mark('c', 39.51, { full_marks: 50 }),
+      ];
+      expect(combineSubject(low, settings({ rounding: FinalResultRounding.WHOLE })).obtained).toBe(
+        39,
+      );
       // Thirds: float gives 80.4999..., still the exact .5 that rounds up.
       const thirds = [mark('a', 80), mark('b', 81), mark('c', 80.5)];
       expect(
