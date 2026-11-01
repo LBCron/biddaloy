@@ -7,6 +7,7 @@
  */
 export * from './components/index';
 export * from './shells/index';
+export * from './components/audience-builder/index';
 // Both barrels export a `StepIndicator` (the register card's one in
 // components, the wizard's one in shells). The root keeps the components one;
 // import the shells one from `@biddaloy/ui/shells`.
