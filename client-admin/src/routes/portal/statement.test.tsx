@@ -208,7 +208,7 @@ describe('/portal/statement', () => {
     expect(await screen.findByText(/not part of what is still owed/)).toBeTruthy();
   });
 
-  it('shows one error frame with no heading, and a way to try again', async () => {
+  it('keeps the date controls and shows one error frame with a way to try again', async () => {
     serve({});
     server.use(
       http.get('/api/v1/portal/students/:id/statement', () =>
@@ -219,8 +219,9 @@ describe('/portal/statement', () => {
     await localeReady;
     expect(await screen.findByText('Could not load the statement. Try again.')).toBeTruthy();
     expect(screen.queryByText(/internal detail/)).toBeNull();
-    expect(within(screen.getByRole('main')).queryAllByRole('heading', { level: 1 })).toHaveLength(
-      0,
+    expect(screen.getByLabelText('Show the statement from this date')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Download/ }).hasAttribute('disabled')).toBe(
+      true,
     );
   });
 

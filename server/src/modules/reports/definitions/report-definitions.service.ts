@@ -220,7 +220,7 @@ export class ReportDefinitionsService {
       .getExists();
     if (has) return;
     try {
-      await seedSystemReports(this.definitions.manager, tenantId, null);
+      await this.definitions.manager.transaction((m) => seedSystemReports(m, tenantId, null));
     } catch (e) {
       if ((e as { code?: string }).code !== '23505') throw e;
     }

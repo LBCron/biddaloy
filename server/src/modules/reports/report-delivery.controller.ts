@@ -14,7 +14,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtPayload, Permission } from '@biddaloy/shared';
 import { ApiTenantAuth } from '../../common/decorators/api-tenant-auth.decorator';
 import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.interceptor';
@@ -82,7 +82,7 @@ export class ReportDeliveryController {
   @UseInterceptors(IdempotencyInterceptor)
   @RequirePermissions(Permission.REPORTS_DESIGN)
   @ApiOperation({ summary: 'Email a link to this report to some roles, daily, weekly or monthly.' })
-  @ApiOkResponse({ type: ReportScheduleDto })
+  @ApiCreatedResponse({ type: ReportScheduleDto })
   async createSchedule(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateReportScheduleDto,
@@ -125,7 +125,7 @@ export class ReportDeliveryController {
   @UseInterceptors(IdempotencyInterceptor)
   @RequirePermissions(Permission.REPORTS_EXPORT)
   @ApiOperation({ summary: "Keep today's copy of one of your runs. It never expires." })
-  @ApiOkResponse({ type: ReportSnapshotDto })
+  @ApiCreatedResponse({ type: ReportSnapshotDto })
   freeze(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateReportSnapshotDto,

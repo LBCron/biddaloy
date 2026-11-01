@@ -177,6 +177,23 @@ describe('FilterBuilder', () => {
     expect(screen.queryByRole('switch', { name: 'Ask when running' })).toBeNull();
   });
 
+  it('drops the question when the field changes to one that cannot be asked', async () => {
+    const { user } = await open([{ field: 'class', op: 'EQ' }]);
+    await user.click(screen.getByRole('switch', { name: 'Ask when running' }));
+    await user.click(screen.getByRole('combobox', { name: 'Which detail' }));
+    await user.click(screen.getByRole('option', { name: 'Roll' }));
+    expect(state().parameters).toEqual([]);
+    expect(state().filters[0]).toMatchObject({ field: 'roll' });
+    expect((state().filters[0] as { value?: unknown }).value).toBeUndefined();
+  });
+
+  it('keeps a half-filled date range out of the filter', async () => {
+    const { user } = await open([{ field: 'due_date', op: 'BETWEEN' }]);
+    await user.click(screen.getByRole('button', { name: 'From' }));
+    await user.click(screen.getAllByRole('gridcell')[10]!.querySelector('button')!);
+    expect(state().filters[0]!.value).toBeUndefined();
+  });
+
   it('gives a date range its own kind of question', async () => {
     const { user } = await open([{ field: 'due_date', op: 'BETWEEN' }]);
     await user.click(screen.getByRole('switch', { name: 'Ask when running' }));

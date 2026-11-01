@@ -247,6 +247,46 @@ function NumberRange({
   );
 }
 
+/** Two date pickers. A half-filled range is kept here, and only a complete one is passed on. */
+function DateRange({
+  value,
+  onChange,
+  labels,
+}: {
+  value: ReportFilterValue | undefined;
+  onChange: (value: ReportFilterValue | undefined) => void;
+  labels: ConditionLabels;
+}) {
+  const config = useRegionConfig();
+  const [pair, setPair] = React.useState<[Date | undefined, Date | undefined]>(() =>
+    Array.isArray(value) ? [safeDate(value[0]), safeDate(value[1])] : [undefined, undefined],
+  );
+  function set(next: [Date | undefined, Date | undefined]) {
+    setPair(next);
+    onChange(next[0] && next[1] ? [toIsoDate(next[0]), toIsoDate(next[1])] : undefined);
+  }
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <DatePicker
+        aria-label={labels.from}
+        config={config}
+        value={pair[0]}
+        onValueChange={(d) => set([d, pair[1]])}
+        clearable={false}
+      />
+      <span className="text-body text-text-secondary">{labels.and}</span>
+      <DatePicker
+        aria-label={labels.to}
+        config={config}
+        value={pair[1]}
+        min={pair[0]}
+        onValueChange={(d) => set([pair[0], d])}
+        clearable={false}
+      />
+    </span>
+  );
+}
+
 function TextListBox({
   value,
   onChange,
@@ -327,33 +367,7 @@ function ValueEditor({ field, word, value, onChange, labels, enumLabel }: ValueE
 
   if (field.type === 'DATE') {
     const [from, to] = asList(value);
-    if (word === 'between') {
-      const text = (v: string | number | undefined) => (v === undefined ? '' : String(v));
-      const pair = (
-        a: string | number | undefined,
-        b: string | number | undefined,
-      ): ReportFilterValue => [text(a), text(b)];
-      return (
-        <span className="inline-flex flex-wrap items-center gap-2">
-          <DatePicker
-            aria-label={labels.from}
-            config={config}
-            value={safeDate(from)}
-            onValueChange={(d) => onChange(pair(d ? toIsoDate(d) : '', to))}
-            clearable={false}
-          />
-          <span className="text-body text-text-secondary">{labels.and}</span>
-          <DatePicker
-            aria-label={labels.to}
-            config={config}
-            value={safeDate(to)}
-            min={safeDate(from)}
-            onValueChange={(d) => onChange(pair(from, d ? toIsoDate(d) : ''))}
-            clearable={false}
-          />
-        </span>
-      );
-    }
+    if (word === 'between') return <DateRange value={value} onChange={onChange} labels={labels} />;
     return (
       <DatePicker
         aria-label={labels.value}
@@ -422,7 +436,8 @@ export function ConditionEditor({
   function pickField(key: string) {
     const next = fields.find((f) => f.key === key);
     if (!next) return;
-    if (field && field.type === next.type) return onChange({ ...condition, field: key });
+    // Two ENUM fields have different choices, so a kept value could match none of them.
+    if (field && field.type === next.type && next.type !== 'ENUM') return onChange({ ...condition, field: key });
     onChange({ field: key, op: 'EQ' });
   }
 
@@ -579,6 +594,13 @@ export function FilterBuilder({
     const field = usable.find((f) => f.key === condition.field);
     const put = (next: ReportFilter) => filters.map((f, i) => (i === index ? next : f));
     if (key === undefined || !field) return onChange({ filters: put(condition), parameters });
+    // A number, amount or yes/no field cannot be asked (see `canAsk`): the condition stops being asked.
+    if (!canAsk(field)) {
+      return onChange({
+        filters: put(condition),
+        parameters: parameters.filter((p) => p.key !== key),
+      });
+    }
 
     // An asked condition stays asked. Another field gets that field's own question; a date word that
     // changes the kind of question (one day, a range of days) rebuilds it but keeps the wording.

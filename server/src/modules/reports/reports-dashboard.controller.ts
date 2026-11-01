@@ -25,6 +25,7 @@ import { CollectionByMonthWidgetDto } from './dto/collection-by-month-widget.dto
 import { CommitteeFinanceDto } from './dto/committee-finance.dto';
 import { ReportWidgetDto } from './delivery/dto/report-delivery.dto';
 import { ReportDefinitionsService } from './definitions/report-definitions.service';
+import { ReportCompileError } from './engine/compiler/compiler.errors';
 import { ReportRunnerService } from './engine/runner/report-runner.service';
 
 /** A report tile shows this many rows at most, and one number per row. */
@@ -67,13 +68,21 @@ export class ReportsDashboardController {
     const entry = catalogue.flatMap((f) => f.reports).find((r) => r.id === definitionId);
     if (!entry) throw new NotFoundException('Report not found');
 
-    const result = await this.runner.run({
-      ctx: { tenantId: tenant.id, userId: user.sub, role: tenant.role as UserRole },
-      versionId: entry.version_id,
-      mode: 'RUN',
-      maxRows: REPORT_WIDGET_MAX_ROWS,
-      log: false,
-    });
+    // A tile has nobody to answer questions: a report with an unanswered required one is not a tile.
+    const result = await this.runner
+      .run({
+        ctx: { tenantId: tenant.id, userId: user.sub, role: tenant.role as UserRole },
+        versionId: entry.version_id,
+        mode: 'RUN',
+        maxRows: REPORT_WIDGET_MAX_ROWS,
+        log: false,
+      })
+      .catch((e: unknown) => {
+        if (e instanceof ReportCompileError && e.code === 'MISSING_PARAM') {
+          throw new NotFoundException('Report not found');
+        }
+        throw e;
+      });
     const firstMeasure = result.columns.find((c) => c.kind === 'measure');
     const columns = result.columns.filter((c) => c.kind === 'dimension' || c === firstMeasure);
     return {

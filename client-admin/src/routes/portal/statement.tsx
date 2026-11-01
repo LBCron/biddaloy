@@ -165,23 +165,6 @@ function PortalStatement() {
     );
   }
 
-  if (statementQuery.isPending) {
-    return (
-      <StatementSkeleton label={t('statement.portal.loading')} showPicker={students.length > 1} />
-    );
-  }
-
-  if (statementQuery.isError) {
-    // One error frame, no `<h1>`, and never the server's own message.
-    return (
-      <ErrorState
-        message={t('statement.loadError')}
-        retryLabel={tPortal('fees.error.retry')}
-        onRetry={() => void statementQuery.refetch()}
-      />
-    );
-  }
-
   const statement = statementQuery.data;
 
   return (
@@ -227,7 +210,12 @@ function PortalStatement() {
               min={from}
             />
           </div>
-          <Button type="button" className="w-full sm:ms-auto sm:w-auto" onClick={handlePrint}>
+          <Button
+            type="button"
+            className="w-full sm:ms-auto sm:w-auto"
+            onClick={handlePrint}
+            disabled={statement === undefined}
+          >
             <PrinterIcon aria-hidden className="size-4" />
             {t('statement.portal.download')}
           </Button>
@@ -236,14 +224,25 @@ function PortalStatement() {
           <p className="text-text-secondary print:hidden">{t('statement.portal.allDates')}</p>
         )}
 
-        <div className={`${STATEMENT_ROOT_CLASS} flex flex-col gap-4`}>
-          <StatementPrintHeader statement={statement} from={from} to={to} />
-          <Card className="p-4">
-            <StatementHeadline statement={statement} to={to} />
-          </Card>
-          <EntryCards statement={statement} config={config} />
-          <StatementWallet statement={statement} />
-        </div>
+        {statementQuery.isPending ? (
+          <StatementSkeleton label={t('statement.portal.loading')} showPicker={false} />
+        ) : statement === undefined ? (
+          // One error frame, no `<h1>`, and never the server's own message.
+          <ErrorState
+            message={t('statement.loadError')}
+            retryLabel={tPortal('fees.error.retry')}
+            onRetry={() => void statementQuery.refetch()}
+          />
+        ) : (
+          <div className={`${STATEMENT_ROOT_CLASS} flex flex-col gap-4`}>
+            <StatementPrintHeader statement={statement} from={from} to={to} />
+            <Card className="p-4">
+              <StatementHeadline statement={statement} to={to} />
+            </Card>
+            <EntryCards statement={statement} config={config} />
+            <StatementWallet statement={statement} />
+          </div>
+        )}
       </div>
     </PageContainer>
   );
