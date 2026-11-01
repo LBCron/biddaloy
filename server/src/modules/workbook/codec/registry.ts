@@ -34,6 +34,7 @@ import { printTabs } from '../tabs/print';
 import { arrivalNoticeSubscriptionsTab, attendanceTabs } from '../tabs/attendance';
 import { hrTabs } from '../tabs/hr';
 import { applicationsTabs } from '../tabs/applications';
+import { noticesTabs } from '../tabs/notices';
 import { acrTabs } from '../tabs/people/acr.tab';
 import { incidentsTabs } from '../tabs/people/incidents.tab';
 import { surveysTabs } from '../tabs/people/surveys.tab';
@@ -210,6 +211,10 @@ export const EXPECTED_TABS = [
   // [84.2.3] Epic 84.0 arrival-notice subscriptions. Depend on `students` and
   // `guardians`, both earlier in this list.
   'arrival_notice_subscriptions',
+  // [53.6.02] Epic 53.0 notice board. Depend on `users`, `students`, `guardians`.
+  'notices',
+  'notice_attachments',
+  'notice_recipients',
 ] as const;
 
 export type ExpectedTabName = (typeof EXPECTED_TABS)[number];
@@ -286,6 +291,8 @@ export const ALL_TABS: readonly TabSpec<any, any>[] = [
   lessonDeliveriesTab,
   // [84.2.3]
   arrivalNoticeSubscriptionsTab,
+  // [53.6.02]
+  ...noticesTabs,
 ];
 
 export class RegistryError extends Error {
