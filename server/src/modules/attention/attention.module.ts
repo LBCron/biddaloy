@@ -26,6 +26,7 @@ import { AlertsReportController } from './report/alerts-report.controller';
 import { AlertsReportService } from './report/alerts-report.service';
 import { ManualAlertsController } from './manual/manual-alerts.controller';
 import { ManualAlertsService } from './manual/manual-alerts.service';
+import { NoticeAlertsService } from './notice/notice-alerts.service';
 import { Alert } from './entities/alert.entity';
 import { AlertRecipient } from './entities/alert-recipient.entity';
 import { RuleRegistryService } from './rules/rule-registry.service';
@@ -97,11 +98,18 @@ import { BillingRulesModule } from './rules/billing/billing-rules.module';
     AttentionScheduler,
     AttentionQueryService,
     ManualAlertsService,
+    NoticeAlertsService,
     AlertsReportService,
     AlertDeliveryService,
     GuardianSmsFallbackService,
     AttentionHealthService,
   ],
-  exports: [RuleRegistryService, RuleContextService, AlertWriterService, AttentionQueryService],
+  exports: [
+    RuleRegistryService,
+    RuleContextService,
+    AlertWriterService,
+    AttentionQueryService,
+    NoticeAlertsService,
+  ],
 })
 export class AttentionModule {}
