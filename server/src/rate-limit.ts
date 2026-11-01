@@ -71,6 +71,12 @@ export const SETTINGS_RATE_LIMIT: RateLimitTierOptions = { limit: 20, ttl: 60_00
 export const PUBLIC_INVOICE_RATE_LIMIT: RateLimitTierOptions = { limit: 30, ttl: 60_000 };
 
 /**
+ * Applied to the three `/public/notices/:token...` routes (53.2.02), reachable
+ * with no auth header and no `X-Tenant-ID`. Same reasoning as the invoice tier.
+ */
+export const PUBLIC_NOTICE_RATE_LIMIT: RateLimitTierOptions = { limit: 30, ttl: 60_000 };
+
+/**
  * Applied to `GET /public/verify/:token` (32.2.5) — the third route reachable
  * with no auth header and no `X-Tenant-ID`. Someone scanning a printed card's
  * QR code opens it a few times at most; 30/min per IP bounds a token scan.
