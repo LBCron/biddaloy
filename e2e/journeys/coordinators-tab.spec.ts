@@ -4,8 +4,8 @@ import { t } from '../i18n';
 /**
  * [83.3.4] Usability tasks T1 / T5 on the seed: the admin opens Teaching assignments ›
  * Coordinators, assigns a teacher to two classes, sees two new rows, then removes one.
- * Local e2e runs in `bn`, so every label goes through `t()`. Classes are picked by position,
- * not by name; the run cleans up the row it leaves.
+ * Local e2e runs in `bn`, so every label goes through `t()`. Classes are the last two unticked options,
+ * not picked by name; the run cleans up the row it leaves.
  */
 test.describe('admin: coordinators', () => {
   test.use(loggedIn('admin'));
@@ -14,6 +14,10 @@ test.describe('admin: coordinators', () => {
     await page.goto('/staff/teaching-assignments?tab=coordinators');
     await expect(
       page.getByRole('tab', { name: t('teacherAssignments.tabs.coordinators'), selected: true }),
+    ).toBeVisible();
+    // The seed already has coordinator rows: count only once the list has loaded.
+    await expect(
+      page.getByRole('button', { name: t('teacherAssignments.coordinators.remove') }).first(),
     ).toBeVisible();
     const rowsBefore = await page.getByRole('row').count();
 
@@ -34,9 +38,10 @@ test.describe('admin: coordinators', () => {
     const classes = dialog.getByRole('combobox', {
       name: t('teacherAssignments.fields.coordinatorClasses'),
     });
-    for (const index of [-1, -2]) {
+    for (let pick = 0; pick < 2; pick += 1) {
       await classes.click();
-      await page.getByRole('option').nth(index).click();
+      // The last option not yet ticked: two different classes, away from the ones the seed assigns.
+      await page.getByRole('option', { selected: false }).last().click({ force: true });
     }
     await dialog
       .getByRole('button', { name: t('teacherAssignments.assignCoordinatorDialog.save') })
