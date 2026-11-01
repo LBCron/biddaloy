@@ -13,8 +13,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *
  * `down()` drops the tables and enums; it works on an empty database.
  */
-export class FinalResultsAndReportCardNotes1791900002200 implements MigrationInterface {
-  name = 'FinalResultsAndReportCardNotes1791900002200';
+export class FinalResultsAndReportCardNotes1791900003000 implements MigrationInterface {
+  name = 'FinalResultsAndReportCardNotes1791900003000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

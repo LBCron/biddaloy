@@ -17,7 +17,7 @@ import { assertNoLiveDependents } from '../../../common/utils/live-dependents';
  * can see: the two NULLS NOT DISTINCT uniques, the CHECK constraints, and that the
  * live-dependents scan sees the new foreign keys (Rule 27).
  */
-describe('FinalResultsAndReportCardNotes1791900002200 (integration)', () => {
+describe('FinalResultsAndReportCardNotes1791900003000 (integration)', () => {
   let ds: DataSource;
   let examId: string;
   let subjectId: string;
