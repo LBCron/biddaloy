@@ -676,3 +676,7 @@ flowchart LR
 - `.claude/agents/issue-reviewer.md`: a diff that changes the schema without a slice change is a finding.
 - `docs/architecture/15-ux-principles.md` §2: the "Seed data" registry row.
 - [08-security.md](08-security.md#demo-seed-safety-5813), "Demo seed safety (58.1.03)": the three checks `seed:demo` runs before any write.
+
+Dated learning (2026-11-01, Epic 53 Wave 1):
+
+- **Surprise:** a new entity that is missing from `app.module.ts` `entities` or from every slice crashes the coverage guard with a `TypeError`, not a clear message. Cost: a confusing red CI job. Fix: register the entity and cover it with a slice, or stub it with `owedBy` naming the ticket. Rule candidate: a new table ticket lists both steps.
