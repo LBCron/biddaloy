@@ -38,9 +38,19 @@ import { NotifyTeachersDialog } from './-notify-dialog';
 
 const searchSchema = z.object({
   then: z.enum(['notify']).optional().catch(undefined),
+  // A real calendar day only: `2026-13-45` falls back to the school's today instead of reaching
+  // `parseDate`, which throws on it.
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine((value) => {
+      try {
+        parseDate(value);
+        return true;
+      } catch {
+        return false;
+      }
+    })
     .optional()
     .catch(undefined),
 });

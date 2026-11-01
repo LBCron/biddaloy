@@ -742,8 +742,8 @@ flowchart TD
 ## Learning: coordinator scope (Epic 83, 2026-10-31)
 
 - **Surprise:** `HomeworkService.findOne` gates both the homework detail read and its edits, so a read-only widening there would have opened writes. **Fix:** homework list and detail stay teaching-only; coordinators get the read-only analytics rollups. **Rule candidate:** before passing `includeCoordinated` to a gate, grep its callers for a write path.
-- **Surprise:** `GET /students/:id` goes through `FamilyAccessService.assertLinked`, the same gate fees and invoices use. **Fix:** an `opts.includeCoordinated` that only the student detail passes (D5 keeps money routes teaching-only).
-- **Rule:** a coordinator never reaches a write. The enforcing test is `server/src/coordinator-scope.e2e-spec.ts`; it lists every widened read and every untouched write in `server/test/helpers/coordinator-scope-routes.ts`.
+- **Surprise:** `GET /students/:id` goes through `FamilyAccessService.assertLinked`, the same gate fees and invoices use. **Fix:** an `opts.includeCoordinated` on `assertLinked` that only the student detail passes; the student list and `GET /students/ids` pass the flag to `sectionScope` (D5 keeps money routes teaching-only).
+- **Rule:** a coordinator gets the listed reads only; they never change attendance, marks or student records. Their one write is the reminder they send through `POST /coordination/alerts`. The enforcing test is `server/src/coordinator-scope.e2e-spec.ts`; it lists the widened reads and the unchanged edit routes in `server/test/helpers/coordinator-scope-routes.ts`.
 
 ## Why this deviated from the original plan
 

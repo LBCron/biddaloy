@@ -109,6 +109,19 @@ describe('/my-coordination', () => {
     expect(document.body.textContent ?? '').not.toMatch(NEVER_SAY);
   });
 
+  it('an impossible ?date= falls back to the school day instead of crashing', async () => {
+    let asked = '';
+    server.use(
+      http.get('/api/v1/coordination/overview', ({ request }) => {
+        asked = new URL(request.url).search;
+        return HttpResponse.json({ date: '2026-10-20', classes: [classX] });
+      }),
+    );
+    render('/my-coordination?date=2026-13-45');
+    expect(await screen.findByRole('heading', { level: 2, name: 'Class 6' })).toBeTruthy();
+    expect(asked).toBe('');
+  });
+
   it('?then=notify opens the dialog with every teacher of the first class pre-checked', async () => {
     mockOverview([classX]);
     render('/my-coordination?then=notify');
