@@ -20,9 +20,11 @@ import {
   type FinalResultSummary,
 } from '@biddaloy/shared';
 import { toPaisa } from '../../common/constants/money';
+import { assertNoLiveDependents } from '../../common/utils/live-dependents';
 import { RequestContext } from '../../common/request-context.util';
 import { todayInSchoolTz } from '../../common/time';
 import {
+  examInPublishedFinal,
   finalAlreadyExists,
   finalStale,
   finalNoExams,
@@ -709,6 +711,18 @@ export class FinalResultsService {
       const final = await this.lock(manager, id, tenantId);
       // Only a published result is protected; a built one is still unseen work in progress.
       if (final.status === FinalResultStatus.PUBLISHED) throw finalNotDraft();
+      // [70.3.4] A promotion run ranked on this final (draft or committed) pins it: deleting it
+      // would leave the run pointing at nothing (Rule 27). Its own rows and weights go with it
+      // below; its report-card notes stay under the soft-deleted final, like an exam's.
+      await assertNoLiveDependents(manager, FinalResult, id, {
+        code: 'FINAL_RESULT_IN_USE',
+        message: 'A promotion run uses this final result, so it cannot be deleted.',
+        exclude: [
+          'FinalResultRow.final_result',
+          'FinalResultWeight.final_result',
+          'ReportCardNote.final_result',
+        ],
+      });
       await this.dropRows(manager, id, tenantId);
       await manager
         .getRepository(FinalResultWeight)
@@ -774,7 +788,7 @@ export class FinalResultsService {
     reopenedExamId: string,
   ): Promise<void> {
     const final = await this.lock(manager, id, tenantId);
-    if (final.status === FinalResultStatus.PUBLISHED) throw finalPublished();
+    if (final.status === FinalResultStatus.PUBLISHED) throw examInPublishedFinal();
     if (final.status !== FinalResultStatus.PROCESSED) return;
     await this.dropRows(manager, id, tenantId);
     await manager
