@@ -6,9 +6,9 @@ describe('fetchAllPages', () => {
   it('pages until every row is read', async () => {
     const all = Array.from({ length: 250 }, (_, i) => i);
     const offsets: number[] = [];
-    const r = await fetchAllPages(async (offset) => {
+    const r = await fetchAllPages((offset) => {
       offsets.push(offset);
-      return { items: all.slice(offset, offset + PAGE_SIZE), total: all.length };
+      return Promise.resolve({ items: all.slice(offset, offset + PAGE_SIZE), total: all.length });
     });
     expect(r.items).toHaveLength(250);
     expect(r.truncated).toBe(false);
@@ -17,9 +17,12 @@ describe('fetchAllPages', () => {
 
   it('stops at the page cap and says the list is cut', async () => {
     let calls = 0;
-    const r = await fetchAllPages(async () => {
+    const r = await fetchAllPages(() => {
       calls++;
-      return { items: Array.from({ length: PAGE_SIZE }, () => 1), total: 1_000_000 };
+      return Promise.resolve({
+        items: Array.from({ length: PAGE_SIZE }, () => 1),
+        total: 1_000_000,
+      });
     });
     expect(calls).toBe(MAX_PAGES);
     expect(r.truncated).toBe(true);

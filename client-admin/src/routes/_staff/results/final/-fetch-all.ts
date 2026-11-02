@@ -34,7 +34,9 @@ export async function mapLimited<I, O>(
   limit: number,
   task: (item: I) => Promise<O>,
 ): Promise<Array<{ value: O } | { error: unknown }>> {
-  const out: Array<{ value: O } | { error: unknown }> = new Array(list.length);
+  const out: Array<{ value: O } | { error: unknown }> = Array.from({ length: list.length }, () => ({
+    error: undefined,
+  }));
   let next = 0;
   const worker = async () => {
     while (next < list.length) {
