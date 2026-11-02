@@ -40,6 +40,8 @@ describe('PromotionsService (unit)', () => {
   let enrollmentRepo: ReturnType<typeof makeRepo>;
   let academicYearRepo: ReturnType<typeof makeRepo>;
   let userRepo: ReturnType<typeof makeRepo>;
+  let finalResultRepo: ReturnType<typeof makeRepo>;
+  let finalRowRepo: ReturnType<typeof makeRepo>;
   let enrollmentService: { createInTransaction: ReturnType<typeof vi.fn> };
   let auditService: { record: ReturnType<typeof vi.fn> };
   let approvalService: { consume: ReturnType<typeof vi.fn> };
@@ -56,6 +58,8 @@ describe('PromotionsService (unit)', () => {
     studentRepo = makeRepo();
     enrollmentRepo = makeRepo();
     academicYearRepo = makeRepo();
+    finalResultRepo = makeRepo();
+    finalRowRepo = makeRepo();
     userRepo = makeRepo();
     enrollmentService = { createInTransaction: vi.fn() };
     auditService = { record: vi.fn() };
@@ -76,7 +80,43 @@ describe('PromotionsService (unit)', () => {
       auditService as any,
       approvalService as any,
       { recordEvent: vi.fn() } as any,
+      finalResultRepo as any,
+      finalRowRepo as any,
     );
+  });
+
+  describe('create: merit source [70.3.3]', () => {
+    const base = {
+      source_class_id: 'class-1',
+      target_academic_year_id: 'year-2',
+      algorithm: PlacementAlgorithm.BLOCK,
+    };
+
+    it('refuses both exam_ids and final_result_id with 422', async () => {
+      await expect(
+        service.create({ ...base, exam_ids: ['e1'], final_result_id: 'f1' }, TENANT_ID, 'user-1'),
+      ).rejects.toThrow(UnprocessableEntityException);
+    });
+
+    it('refuses neither with 422', async () => {
+      await expect(service.create({ ...base }, TENANT_ID, 'user-1')).rejects.toThrow(
+        UnprocessableEntityException,
+      );
+    });
+
+    it('refuses a final that is not a PUBLISHED final of the source class (422)', async () => {
+      finalResultRepo.findOne.mockResolvedValue(null);
+      await expect(
+        (service as any).assertUsableFinal('f1', 'class-1', 'year-1', TENANT_ID),
+      ).rejects.toThrow(UnprocessableEntityException);
+      // The lookup is pinned to PUBLISHED, the class, its year and the tenant.
+      expect(finalResultRepo.findOne.mock.calls[0][0].where).toMatchObject({
+        status: 'PUBLISHED',
+        class_id: 'class-1',
+        academic_year_id: 'year-1',
+        tenant_id: TENANT_ID,
+      });
+    });
   });
 
   describe('create', () => {

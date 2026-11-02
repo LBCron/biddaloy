@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { Repository, DataSource } from 'typeorm';
+import { FinalResult } from '../final-results/entities/final-result.entity';
+import { FinalResultRow } from '../final-results/entities/final-result-row.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { PromotionsService } from './promotions.service';
 import { PromotionRun } from './entities/promotion-run.entity';
@@ -31,6 +33,7 @@ import {
   PromotionRunStatus,
   PlacementAlgorithm,
   StudentLifecycleEventType,
+  FinalResultStatus,
 } from '@biddaloy/shared';
 
 const SOURCE_YEAR_ID = '00000000-0000-4000-8000-000000010001';
@@ -206,6 +209,8 @@ describe('PromotionsService (integration)', () => {
   beforeEach(async () => {
     await dataSource.query('DELETE FROM promotion_entries');
     await dataSource.query('DELETE FROM promotion_runs');
+    await dataSource.query('DELETE FROM final_result_rows');
+    await dataSource.query('DELETE FROM final_results');
     await dataSource.query('DELETE FROM results');
     await dataSource.query('DELETE FROM exams');
     await dataSource.query('DELETE FROM grading_scales');
@@ -317,6 +322,138 @@ describe('PromotionsService (integration)', () => {
       expect(passingEntry?.suggested_outcome).toBe(PromotionOutcome.PROMOTE);
       expect(missingEntry?.suggested_outcome).toBe(PromotionOutcome.RETAIN);
       expect(missingEntry?.passed_all).toBe(false);
+    });
+  });
+
+  describe('merit source: a final result [70.3.3]', () => {
+    async function makeFinal(status: FinalResultStatus) {
+      return dataSource.getRepository(FinalResult).save({
+        tenant_id: TENANT_ID,
+        class_id: SOURCE_CLASS_ID,
+        academic_year_id: SOURCE_YEAR_ID,
+        status,
+      });
+    }
+    async function addFinalRow(finalId: string, studentId: string, gpa: string, total: string) {
+      return dataSource.getRepository(FinalResultRow).save({
+        tenant_id: TENANT_ID,
+        final_result_id: finalId,
+        student_id: studentId,
+        total_marks: total,
+        gpa,
+        grade: 'A',
+        is_fail: false,
+        grading_scale_id: gradingScaleId,
+        grading_scale_revision: 1,
+        rule_version: 'v1',
+        computed_at: new Date(),
+      });
+    }
+    const create = (extra: object) =>
+      service.create(
+        {
+          source_class_id: SOURCE_CLASS_ID,
+          target_academic_year_id: TARGET_YEAR_ID,
+          algorithm: PlacementAlgorithm.BLOCK,
+          ...extra,
+        },
+        TENANT_ID,
+        ADMIN_USER_ID,
+      );
+
+    it("ranks by the final's rows, not by the exams' plain mean, and stores final_result_id", async () => {
+      const a = await buildStudent({ registration_number: 'REG-FA', roll_number: 1 });
+      const b = await buildStudent({ registration_number: 'REG-FB', roll_number: 2 });
+      await enrollActive(a.id);
+      await enrollActive(b.id);
+      // Exam plain mean says A first; the weighted final says B first.
+      await addResult(a.id, { isFail: false, gpa: 5, total: 500 });
+      await addResult(b.id, { isFail: false, gpa: 3, total: 300 });
+      const final = await makeFinal(FinalResultStatus.PUBLISHED);
+      await addFinalRow(final.id, a.id, '3.50', '350.00');
+      await addFinalRow(final.id, b.id, '4.50', '450.00');
+
+      const run = await create({ final_result_id: final.id });
+      expect(run.final_result_id).toBe(final.id);
+      expect(run.exam_ids).toEqual([]);
+      const entries = await entryRepo.find({ where: { run_id: run.id } });
+      expect(entries.find((e) => e.student_id === b.id)?.merit_rank).toBe(1);
+      expect(entries.find((e) => e.student_id === a.id)?.merit_rank).toBe(2);
+
+      // The exam_ids path is unchanged: plain mean, A first, no final stored.
+      const examRun = await create({ exam_ids: [examId] });
+      expect(examRun.final_result_id).toBeNull();
+      const examEntries = await entryRepo.find({ where: { run_id: examRun.id } });
+      expect(examEntries.find((e) => e.student_id === a.id)?.merit_rank).toBe(1);
+    });
+
+    it('refuses a final that is not PUBLISHED (422) and creates no run', async () => {
+      const student = await buildStudent();
+      await enrollActive(student.id);
+      const draft = await makeFinal(FinalResultStatus.DRAFT);
+      await expect(create({ final_result_id: draft.id })).rejects.toThrow(
+        UnprocessableEntityException,
+      );
+      expect(await runRepo.count()).toBe(0);
+    });
+
+    it("refuses another school's or another class's final (422)", async () => {
+      const otherClassFinal = await dataSource.getRepository(FinalResult).save({
+        tenant_id: TENANT_ID,
+        class_id: TARGET_CLASS_ID,
+        academic_year_id: SOURCE_YEAR_ID,
+        status: FinalResultStatus.PUBLISHED,
+      });
+      await expect(create({ final_result_id: otherClassFinal.id })).rejects.toThrow(
+        UnprocessableEntityException,
+      );
+      // Same id read as another tenant: not found, same sentence.
+      const own = await makeFinal(FinalResultStatus.PUBLISHED);
+      await expect(
+        service.create(
+          {
+            source_class_id: SOURCE_CLASS_ID,
+            target_academic_year_id: TARGET_YEAR_ID,
+            algorithm: PlacementAlgorithm.BLOCK,
+            final_result_id: own.id,
+          },
+          '00000000-0000-4000-8000-0000000000ff',
+          ADMIN_USER_ID,
+        ),
+      ).rejects.toThrow();
+    });
+
+    it('refuses both sources, and neither (422)', async () => {
+      const final = await makeFinal(FinalResultStatus.PUBLISHED);
+      await expect(create({ final_result_id: final.id, exam_ids: [examId] })).rejects.toThrow(
+        UnprocessableEntityException,
+      );
+      await expect(create({})).rejects.toThrow(UnprocessableEntityException);
+    });
+
+    it('commit refuses with 409 when the final was recomputed after the last refresh', async () => {
+      const student = await buildStudent();
+      await enrollActive(student.id);
+      const final = await makeFinal(FinalResultStatus.PUBLISHED);
+      await addFinalRow(final.id, student.id, '4.00', '400.00');
+      const run = await create({ final_result_id: final.id });
+      await dataSource
+        .getRepository(FinalResultRow)
+        .update({ final_result_id: final.id }, { computed_at: new Date(Date.now() + 60_000) });
+      await expect(
+        service.commit(run.id, TENANT_ID, ADMIN_USER_ID, 'ADMIN', { headers: {} }),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('refuses a hard delete of a final that a run uses (FK, NO ACTION)', async () => {
+      const student = await buildStudent();
+      await enrollActive(student.id);
+      const final = await makeFinal(FinalResultStatus.PUBLISHED);
+      await addFinalRow(final.id, student.id, '4.00', '400.00');
+      await create({ final_result_id: final.id });
+      await expect(
+        dataSource.query('DELETE FROM final_results WHERE id = $1', [final.id]),
+      ).rejects.toThrow();
     });
   });
 

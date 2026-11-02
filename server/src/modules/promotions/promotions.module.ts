@@ -7,6 +7,8 @@ import { ClassSection } from '../academics/entities/class-section.entity';
 import { AcademicYear } from '../academics/entities/academic-year.entity';
 import { Exam } from '../exams/entities/exam.entity';
 import { Result } from '../exams/entities/result.entity';
+import { FinalResult } from '../final-results/entities/final-result.entity';
+import { FinalResultRow } from '../final-results/entities/final-result-row.entity';
 import { Student } from '../students/entities/student.entity';
 import { Enrollment } from '../students/entities/enrollment.entity';
 import { User } from '../users/entities/user.entity';
@@ -31,6 +33,8 @@ import { PromotionsController } from './promotions.controller';
       AcademicYear,
       Exam,
       Result,
+      FinalResult,
+      FinalResultRow,
       Student,
       Enrollment,
       User,
