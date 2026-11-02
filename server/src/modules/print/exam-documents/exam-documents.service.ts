@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { FeeDuesService } from '../../fees/fee-dues.service';
+import { examSubjectObtained } from '../../final-results/final-result-rules';
 import { SchoolSettingsReader } from '../../schools/settings/school-settings-reader.service';
 import {
   AdmitCardRosterDto,
@@ -312,12 +313,9 @@ export class ExamDocumentsService {
     const resultOf = new Map<string, any>(
       examResults.map((r: any) => [`${r.exam_id}:${r.student_id}`, r]),
     );
-    // ABS with 0 = every component absent: no mark (null), not a real 0 — same rule as the build.
+    // ABS with 0 = every component absent: no mark (null), not a real 0. One rule with the build.
     const lineOf = new Map<string, number | null>(
-      examLines.map((l: any) => [
-        `${l.result_id}:${l.subject_id}`,
-        l.grade === 'ABS' && Number(l.obtained) === 0 ? null : Number(l.obtained),
-      ]),
+      examLines.map((l: any) => [`${l.result_id}:${l.subject_id}`, examSubjectObtained(l)]),
     );
     const cellsByRow = new Map<string, Record<string, any>>();
     for (const l of finalLines) {
