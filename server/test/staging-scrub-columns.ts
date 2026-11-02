@@ -156,6 +156,8 @@ const BY_TABLE: Record<string, Partial<Record<ScrubHandling, string[]>>> = {
   lesson_deliveries: { null: ['note'] },
   milestone_achievements: { null: ['remark'] },
   promotion_entries: { null: ['override_note'], 'kept-public': ['group_name'] },
+  // [70.3.4] A teacher's remark and conduct grades about a named student (Epic 70).
+  report_card_notes: { null: ['remark', 'conduct'] },
   routine_change_requests: { null: ['note', 'resolution_note'] },
   routine_substitutions: { null: ['reason'] },
   student_lifecycle_events: { null: ['reason', 'remark', 'destination'] },

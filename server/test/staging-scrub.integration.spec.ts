@@ -263,6 +263,8 @@ describe('scrub.sql', () => {
         applicant_user_id: lit(randomUUID()) + '::uuid',
         subject_student_id: lit(randomUUID()) + '::uuid',
       },
+      // CHK_report_card_notes_one_target: exactly one of exam_id / final_result_id.
+      report_card_notes: { exam_id: lit(randomUUID()) + '::uuid' },
       staff_incidents: { withdrawn_at: `'2026-01-02T00:00:00Z'::timestamptz` },
       communication_logs: { status: `'QUEUED'::"communication_logs_status_enum"` },
     };
