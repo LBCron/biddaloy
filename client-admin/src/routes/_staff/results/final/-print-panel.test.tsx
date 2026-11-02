@@ -58,11 +58,12 @@ const card = {
   logo_url: null,
 };
 
-async function open(status: Status) {
+async function open(status: Status, extra?: () => void, entry = '/results/final/fr-1?tab=print') {
   mockFinal(status);
   server.use(http.get('/api/v1/final-results/fr-1/students/st1', () => HttpResponse.json(card)));
+  extra?.();
   renderWithRouter(routeTree, {
-    initialEntries: ['/results/final/fr-1?tab=print'],
+    initialEntries: [entry],
     tenantId: 'tenant-1',
     role: 'ADMIN',
     locale: 'en',
@@ -146,8 +147,10 @@ describe('Print tab', () => {
 
   it('reads every page of the section and fetches a few cards at a time', async () => {
     const print = vi.spyOn(window, 'print').mockImplementation(() => undefined);
-    await open('PROCESSED');
-    const big = bigSection();
+    let big!: ReturnType<typeof bigSection>;
+    await open('PROCESSED', () => {
+      big = bigSection();
+    });
     await screen.findByText('Hard working');
     await userEvent.click(screen.getByRole('button', { name: /Print all cards/ }));
     await waitFor(() => expect(print).toHaveBeenCalledTimes(1), { timeout: 10_000 });
@@ -166,8 +169,7 @@ describe('Print tab', () => {
       parent = el?.parentElement ?? null;
       css = el?.querySelector('style')?.textContent ?? '';
     });
-    await open('PROCESSED');
-    bigSection('st3');
+    await open('PROCESSED', () => bigSection('st3'));
     await screen.findByText('Hard working');
     await userEvent.click(screen.getByRole('button', { name: /Print all cards/ }));
     await waitFor(() => expect(print).toHaveBeenCalledTimes(1), { timeout: 10_000 });
@@ -176,5 +178,49 @@ describe('Print tab', () => {
     // Only the sheets print: the area is a direct child of <body> and every sibling is dropped.
     expect(parent).toBe(document.body);
     expect(css).toContain('body > *:not(.final-print-area)');
+  });
+
+  it('opens on the section of the student linked from the Results tab', async () => {
+    const inB = {
+      ...card,
+      student: { full_name: 'Karim Uddin', roll_number: 7 },
+      remark: 'Needs care',
+    };
+    const rowFor = (id: string, name: string, roll: number) => ({
+      student: { id, full_name: name, roll_number: roll },
+      total_marks: 50,
+      gpa: 3,
+      grade: 'B',
+      position: roll,
+      section_position: roll,
+      is_fail: false,
+      working_days: 200,
+      present_days: 190,
+      per_exam: [],
+    });
+    await open(
+      'PROCESSED',
+      () =>
+        server.use(
+          http.get('/api/v1/classes/c7/sections', () =>
+            HttpResponse.json([
+              { id: 'sec-a', section_name: 'A', class_id: 'c7' },
+              { id: 'sec-b', section_name: 'B', class_id: 'c7' },
+            ]),
+          ),
+          http.get('/api/v1/final-results/fr-1/rows', ({ request }) => {
+            const sec = new URL(request.url).searchParams.get('section_id');
+            const data =
+              sec === 'sec-b'
+                ? [rowFor('st7', 'Karim Uddin', 7)]
+                : [rowFor('st1', 'Rima Akter', 1)];
+            return HttpResponse.json({ data, total: 1, limit: 100, offset: 0 });
+          }),
+          http.get('/api/v1/final-results/fr-1/students/st7', () => HttpResponse.json(inB)),
+        ),
+      '/results/final/fr-1?tab=print&student=st7',
+    );
+    await screen.findByText('Needs care');
+    expect(screen.queryByText('Hard working')).toBeNull();
   });
 });
