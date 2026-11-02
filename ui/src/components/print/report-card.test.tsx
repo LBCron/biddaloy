@@ -266,6 +266,22 @@ describe('ReportCard', () => {
       expect(container.textContent).not.toMatch(NEVER_SAY);
     });
 
+    it('attendance percent uses the Bangla numerals and marker for a Bangla tenant', () => {
+      const { container } = rtlRender(
+        <RegionConfigProvider value={REGION_BD_BN}>
+          <ReportCard
+            data={WITH_BLOCKS}
+            issuer={ISSUER}
+            labels={LABELS}
+            blockLabels={BLOCK_LABELS}
+          />
+        </RegionConfigProvider>,
+      );
+      const text = container.querySelector('[data-slot="report-card-attendance"]')!.textContent;
+      expect(text).toContain('(৯০ শতাংশ)');
+      expect(text).not.toContain('%');
+    });
+
     it('prints a dash for missing attendance numbers and an empty remark', () => {
       const { container } = render(
         <ReportCard
