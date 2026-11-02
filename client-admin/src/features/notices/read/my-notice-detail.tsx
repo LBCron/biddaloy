@@ -48,11 +48,21 @@ function NoticeFileItem({ noticeId, file }: { noticeId: string; file: MyNoticeFi
       type="button"
       variant="outline"
       className="min-h-11 justify-start"
-      onClick={() =>
-        void fetchNoticeFileBlob(noticeId, file.id).then((b) =>
-          window.open(URL.createObjectURL(b), '_blank', 'noopener'),
-        )
-      }
+      onClick={() => {
+        // Open in the click itself (Safari blocks a popup opened after an await), then point it
+        // at the blob. 'noopener' would make window.open return null, so the opener is cut here.
+        const popup = window.open('', '_blank');
+        if (!popup) return;
+        popup.opener = null;
+        void fetchNoticeFileBlob(noticeId, file.id)
+          .then((b) => {
+            const url = URL.createObjectURL(b);
+            popup.location.href = url;
+            // Late enough for the new tab to read it.
+            setTimeout(() => URL.revokeObjectURL(url), 60_000);
+          })
+          .catch(() => popup.close());
+      }}
     >
       {t('detail.openFile', { name: file.original_name })}
     </Button>

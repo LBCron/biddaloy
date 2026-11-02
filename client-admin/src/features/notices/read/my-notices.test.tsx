@@ -4,7 +4,7 @@ import { cleanupTestState, server } from '@biddaloy/ui/test';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { renderPortalCard } from '../../../routes/portal/-card-test-utils';
 
@@ -100,6 +100,50 @@ describe('MyNoticesList', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Winter break' }));
     await screen.findByText(/School is closed/);
     expect(screen.queryByRole('button', { name: 'I have read this' })).toBeNull();
+  });
+
+  it('a PDF opens its tab in the click itself, then points it at the blob (Safari keeps the popup)', async () => {
+    const PDF = {
+      id: '22222222-2222-4222-8222-222222222222',
+      original_name: 'Routine.pdf',
+      mime_type: 'application/pdf',
+      size_bytes: 10,
+    };
+    mockList([item()]);
+    let release: () => void = () => {};
+    server.use(
+      http.get('/api/v1/notices/mine/:id', () =>
+        HttpResponse.json({ ...item(), body: 'See the file.', files: [PDF] }),
+      ),
+      http.get('/api/v1/notices/:id/files/:fileId', async () => {
+        await new Promise<void>((r) => (release = r));
+        return new HttpResponse(new Blob(['%PDF']), {
+          headers: { 'Content-Type': 'application/pdf' },
+        });
+      }),
+    );
+    const popup = { opener: {} as unknown, location: { href: '' }, close: vi.fn() };
+    const open = vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);
+    // jsdom has no object URLs; set them for this test only (URL itself stays a constructor).
+    const saved = { create: URL.createObjectURL, revoke: URL.revokeObjectURL };
+    URL.createObjectURL = () => 'blob:pdf';
+    URL.revokeObjectURL = vi.fn();
+    try {
+      renderPortalCard(<MyNoticesList />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Winter break' }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Open Routine.pdf' }));
+      // Opened before the file arrived, with the opener cut.
+      expect(open).toHaveBeenCalledWith('', '_blank');
+      expect(popup.opener).toBeNull();
+      expect(popup.location.href).toBe('');
+      release();
+      await waitFor(() => expect(popup.location.href).toBe('blob:pdf'));
+      expect(popup.close).not.toHaveBeenCalled();
+    } finally {
+      open.mockRestore();
+      URL.createObjectURL = saved.create;
+      URL.revokeObjectURL = saved.revoke;
+    }
   });
 
   it('empty current tab says so', async () => {
