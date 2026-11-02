@@ -8,11 +8,15 @@ import { renderHookWithProviders } from '../test/render-hook-with-providers';
 import {
   finalResultKeys,
   finalResultRowsKey,
+  finalTabulationKey,
+  studentFinalCardKey,
   useBuildFinalResult,
   useCreateFinalResult,
   useFinalResults,
+  useFinalTabulation,
   usePublishFinalResult,
   useSendFinalResultSms,
+  useStudentFinalCard,
   useUpdateFinalResult,
 } from './final-results';
 import { reportCardNotesKeys } from './report-card-notes';
@@ -37,6 +41,48 @@ describe('useFinalResults', () => {
   it('does not fetch without a year', () => {
     const { result } = renderHookWithProviders(() => useFinalResults(undefined), opts);
     expect(result.current.fetchStatus).toBe('idle');
+  });
+});
+
+describe('useFinalTabulation', () => {
+  it('sends section_id and keys the cache under the final', async () => {
+    let section: string | null = null;
+    server.use(
+      http.get('/api/v1/final-results/f1/documents/tabulation', ({ request }) => {
+        section = new URL(request.url).searchParams.get('section_id');
+        return HttpResponse.json({ rows: [] });
+      }),
+    );
+    const { result, queryClient } = renderHookWithProviders(
+      () => useFinalTabulation('f1', 'sec-1'),
+      opts,
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(section).toBe('sec-1');
+    expect(queryClient.getQueryData(finalTabulationKey('f1', 'sec-1'))).toEqual({ rows: [] });
+  });
+
+  it('waits for both ids', () => {
+    const { result } = renderHookWithProviders(() => useFinalTabulation('f1', undefined), opts);
+    expect(result.current.fetchStatus).toBe('idle');
+  });
+});
+
+describe('useStudentFinalCard', () => {
+  it('sends academic_year_id to the student route and waits for both ids', async () => {
+    let year: string | null = null;
+    server.use(
+      http.get('/api/v1/students/st-1/final-result-card', ({ request }) => {
+        year = new URL(request.url).searchParams.get('academic_year_id');
+        return HttpResponse.json({ final_result_id: 'f1', exam_shares: [] });
+      }),
+    );
+    const idle = renderHookWithProviders(() => useStudentFinalCard('st-1', undefined), opts);
+    expect(idle.result.current.fetchStatus).toBe('idle');
+    const { result } = renderHookWithProviders(() => useStudentFinalCard('st-1', 'y1'), opts);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(year).toBe('y1');
+    expect(result.current.data?.final_result_id).toBe('f1');
   });
 });
 
@@ -86,11 +132,20 @@ describe('final result mutations', () => {
       const { result, queryClient } = renderHookWithProviders(() => hook('f1'), opts);
       queryClient.setQueryData(finalResultRowsKey('f1'), { data: [] });
       queryClient.setQueryData([...reportCardNotesKeys.all, 's1'], {});
+      // The transcript carries the final (D9) and the student card is the final: both go stale.
+      queryClient.setQueryData(['students', 'st-1', 'transcript', 'y1'], {});
+      queryClient.setQueryData(studentFinalCardKey('st-1', 'y1'), {});
       await result.current.mutateAsync();
       await waitFor(() =>
         expect(queryClient.getQueryState(finalResultRowsKey('f1'))?.isInvalidated).toBe(true),
       );
       expect(queryClient.getQueryState([...reportCardNotesKeys.all, 's1'])?.isInvalidated).toBe(
+        true,
+      );
+      expect(
+        queryClient.getQueryState(['students', 'st-1', 'transcript', 'y1'])?.isInvalidated,
+      ).toBe(true);
+      expect(queryClient.getQueryState(studentFinalCardKey('st-1', 'y1'))?.isInvalidated).toBe(
         true,
       );
     },
