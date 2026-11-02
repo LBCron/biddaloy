@@ -19,8 +19,9 @@ import { actorOrRestorer, nullableActor, stampActorKeys } from '../actor-keys';
  * what must not survive a restore:
  *  - `public_token_hash` / `public_token_created_at`: the public link dies with
  *    a restore, even into the same school (D40: restores often follow an
- *    incident, and a leaked link must not outlive it). `upsert` clears them on
- *    every row it writes; re-share to get a new link. Hashes never enter a workbook.
+ *    incident, and a leaked link must not outlive it). `upsert` clears them,
+ *    and every recipient's personal link, on every row it writes; re-share to get
+ *    a new link. Hashes never enter a workbook.
  *  - `alert_id` / `sms_task_alert_id`: pointers to derived attention alerts.
  *    Alerts are not backed up and no attention rule raises these two again, so
  *    after a restore they stay off: a re-created important notice has no
@@ -289,7 +290,16 @@ export const noticesTab: TabSpec<Notice, Rec> = {
     // "unchanged"; the link is not a workbook column. Alert pointers are untouched.
     n.public_token_hash = null;
     n.public_token_created_at = null;
-    return m.save(Notice, n);
+    const saved = await m.save(Notice, n);
+    // ...and every personal link on it. By notice id, not the recipients tab's
+    // rows: a recipient whose person is not exportable is never loaded there,
+    // yet its link would still open the notice.
+    await m.update(
+      NoticeRecipient,
+      { tenant_id: tenantId, notice_id: saved.id },
+      { link_token_hash: null },
+    );
+    return saved;
   },
 
   async remove(entity: Notice, m: EntityManager): Promise<void> {
