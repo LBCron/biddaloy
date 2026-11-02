@@ -131,6 +131,8 @@ function mockPeople(seen: URL[]) {
       seen.push(url);
       if (url.searchParams.get('tab') === 'CLASS' && !url.searchParams.get('classIds'))
         return HttpResponse.json({ message: 'Pick a class' }, { status: 400 });
+      if (url.searchParams.get('tab') === 'ROLE' && !url.searchParams.get('roles'))
+        return HttpResponse.json({ message: 'Pick a role' }, { status: 400 });
       return HttpResponse.json(
         page([parentRow(FATHER, 'Father A'), parentRow(MOTHER, 'Mother A')]),
       );
@@ -186,6 +188,29 @@ describe('NoticeCompose audience (#3430)', () => {
         items: [{ kind: 'GUARDIAN', userId: null, studentId: STUDENT, guardianId: FATHER }],
       }),
     );
+  });
+
+  it('the staff tab waits for a role (no 400), then asks with roles', async () => {
+    mock();
+    const seen: URL[] = [];
+    mockPeople(seen);
+    const user = userEvent.setup();
+    const { localeReady } = mount({ noticeId: ID });
+    await localeReady;
+    await toAudience(user);
+    await user.click(screen.getByRole('tab', { name: 'All teachers and staff' }));
+
+    expect(await screen.findByText('Pick a role to see people.')).toBeTruthy();
+    expect(screen.queryByText('Could not load people')).toBeNull();
+    expect(seen.filter((u) => u.searchParams.get('tab') === 'ROLE')).toEqual([]);
+
+    await user.click(screen.getByRole('combobox', { name: 'Roles' }));
+    await user.click(await screen.findByRole('option', { name: 'Teacher' }));
+    await waitFor(() =>
+      expect(seen.some((u) => u.searchParams.get('roles') === 'TEACHER')).toBe(true),
+    );
+    expect(screen.queryByText('Pick a role to see people.')).toBeNull();
+    expect(screen.queryByText('Could not load people')).toBeNull();
   });
 });
 

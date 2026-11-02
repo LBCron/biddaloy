@@ -31,12 +31,12 @@ import * as React from 'react';
 import {
   INITIAL_FILTERS,
   audienceQuery,
-  needsClass,
   personRow,
   recipientRow,
   tabKeys,
   useAudienceColumns,
   useAudienceTabs,
+  waitingFor,
   type AudienceFilterState,
   type AudienceRow,
   type TabKey,
@@ -133,11 +133,11 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
   const saveNotice = useSaveNotice();
   const upload = useUploadNoticeFiles();
   const removeFile = useRemoveNoticeFile();
-  // Guardians and students wait for a class: without one the server answers 400.
-  const waitingForClass = needsClass(tab, filters);
+  // Guardians and students wait for a class, staff for a role: without one the server answers 400.
+  const waiting = waitingFor(tab, filters);
   const people = useAudiencePeople(
     audienceQuery(tab, filters, matchPage, RECIPIENTS_PAGE),
-    step === 'audience' && id !== undefined && !waitingForClass,
+    step === 'audience' && id !== undefined && !waiting,
   );
   const recipients = useRecipients(id, chosenPage);
   const allRecipients = useAllRecipients(id, step === 'review');
@@ -455,7 +455,11 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
         ) : (
           <div className="flex flex-col gap-3">
             <p className="text-text-secondary">{t('audience.intro')}</p>
-            {waitingForClass && <p role="status">{t('audience.pickClass')}</p>}
+            {waiting && (
+              <p role="status">
+                {waiting === 'pickRole' ? t('audience.pickRole') : t('audience.pickClass')}
+              </p>
+            )}
             <AudienceBuilder<AudienceRow>
               tabs={tabs}
               activeTab={tab}
@@ -468,8 +472,8 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
                 setMatchPage(1);
               }}
               matches={{
-                rows: waitingForClass ? [] : (people.data?.items ?? []).map(personRow),
-                total: waitingForClass ? 0 : (people.data?.total ?? 0),
+                rows: waiting ? [] : (people.data?.items ?? []).map(personRow),
+                total: waiting ? 0 : (people.data?.total ?? 0),
                 page: matchPage,
                 pageSize: RECIPIENTS_PAGE,
                 loading: people.isFetching,

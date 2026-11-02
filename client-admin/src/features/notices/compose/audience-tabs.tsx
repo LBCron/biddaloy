@@ -68,9 +68,16 @@ export function tabKeys(isTeacher: boolean): TabKey[] {
 const reachOf = (hasLogin: boolean, hasPhone: boolean): AudienceRow['reach'] =>
   hasLogin ? 'app' : hasPhone ? 'sms' : 'none';
 
-/** Guardians and students list nobody until a class is picked: the server needs one (400). */
-export const needsClass = (tab: TabKey, f: AudienceFilterState) =>
-  (tab === 'guardians' || tab === 'students') && !f.classId;
+/**
+ * The hint to show instead of asking for people, or undefined when the query can go out. The
+ * server answers 400 for guardians/students without a class and for staff without a role.
+ */
+export const waitingFor = (tab: TabKey, f: AudienceFilterState) =>
+  (tab === 'guardians' || tab === 'students') && !f.classId
+    ? ('pickClass' as const)
+    : tab === 'staff' && f.roles.length === 0
+      ? ('pickRole' as const)
+      : undefined;
 
 export function personRow(p: AudiencePersonDto): AudienceRow {
   return {

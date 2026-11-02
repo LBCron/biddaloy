@@ -80,7 +80,8 @@
       "COMMITTEE": "Committee"
     },
     "loadError": "Could not load people",
-    "pickClass": "Pick a class to see people."
+    "pickClass": "Pick a class to see people.",
+    "pickRole": "Pick a role to see people."
   },
   "review": {
     "heading": "Check before publishing",
