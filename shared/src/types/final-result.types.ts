@@ -5,7 +5,7 @@ import type {
   FinalResultStatus,
 } from '../enums/exams';
 
-export interface FinalResultWeight {
+export interface FinalResultWeightDto {
   exam_id: string;
   /** null = the share applies to the whole exam, else one subject only */
   subject_id: string | null;
@@ -21,7 +21,7 @@ export interface FinalResultSummary {
   best_of_count: number | null;
   rounding: FinalResultRounding;
   fail_if_any_exam_fails: boolean;
-  weights: FinalResultWeight[];
+  weights: FinalResultWeightDto[];
   published_at: string | null;
   counts: { students: number; failed: number };
 }
@@ -82,7 +82,7 @@ export interface CreateFinalResultDto {
   best_of_count?: number | null;
   rounding?: FinalResultRounding;
   fail_if_any_exam_fails?: boolean;
-  weights: FinalResultWeight[];
+  weights: FinalResultWeightDto[];
 }
 
 export type UpdateFinalResultDto = Partial<
