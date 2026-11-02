@@ -288,6 +288,9 @@ PATCH  /api/v1/exams/:examId/marks                                              
 GET    /api/v1/exams/:examId/marks/progress                                      401 PASS PASS PASS 403 PASS 403 403 PASS 403 PASS 403
 POST   /api/v1/exams/:examId/marks/reopen                                        401 PASS PASS PASS 403 403 403 403 403 403 403 403
 POST   /api/v1/exams/:examId/marks/submit                                        401 PASS PASS PASS 403 PASS 403 403 403 403 403 403
+GET    /api/v1/exams/:examId/report-card-notes                                   401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
+PUT    /api/v1/exams/:examId/report-card-notes                                   401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
+GET    /api/v1/exams/:examId/report-card-notes/missing                           401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
 GET    /api/v1/exams/:examId/results                                             401 PASS PASS PASS 403 PASS 403 403 PASS PASS PASS 403
 GET    /api/v1/exams/:examId/results/:studentId                                  401 PASS PASS PASS 403 PASS 403 403 PASS PASS PASS 403
 POST   /api/v1/exams/:examId/results/process                                     401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
@@ -346,6 +349,9 @@ PATCH  /api/v1/final-results/:id                                                
 POST   /api/v1/final-results/:id/build                                           401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
 POST   /api/v1/final-results/:id/publish                                         401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
 POST   /api/v1/final-results/:id/reopen                                          401 403 403 403 403 403 403 403 403 403 403 403
+GET    /api/v1/final-results/:id/report-card-notes                               401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
+PUT    /api/v1/final-results/:id/report-card-notes                               401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
+GET    /api/v1/final-results/:id/report-card-notes/missing                       401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
 GET    /api/v1/final-results/:id/rows                                            401 PASS PASS PASS 403 PASS 403 403 PASS PASS PASS 403
 POST   /api/v1/final-results/:id/sms                                             401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
 GET    /api/v1/final-results/:id/students/:studentId                             401 PASS PASS PASS 403 PASS 403 403 PASS PASS PASS 403
@@ -407,6 +413,9 @@ POST   /api/v1/me/push/subscriptions                                            
 DELETE /api/v1/me/push/subscriptions/:id                                         401 PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 DELETE /api/v1/milestone-achievements/:id                                        401 PASS PASS PASS 403 PASS 403 403 PASS 403 403 403
 GET    /api/v1/my-class/sections                                                 401 PASS PASS 403 403 PASS 403 403 403 403 403 403
+GET    /api/v1/my-class/sections/:sectionId/report-card-notes                    401 PASS PASS 403 403 PASS 403 403 403 403 403 403
+PUT    /api/v1/my-class/sections/:sectionId/report-card-notes                    401 PASS PASS 403 403 PASS 403 403 403 403 403 403
+GET    /api/v1/my-class/sections/:sectionId/report-card-notes/missing            401 PASS PASS 403 403 PASS 403 403 403 403 403 403
 PATCH  /api/v1/onboarding                                                        401 PASS PASS PASS 403 403 403 403 403 403 403 403
 GET    /api/v1/onboarding/status                                                 401 PASS PASS PASS 403 403 403 403 403 403 403 403
 GET    /api/v1/payments                                                          401 PASS PASS PASS PASS 403 403 403 403 403 403 403

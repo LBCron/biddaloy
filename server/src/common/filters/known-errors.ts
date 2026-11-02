@@ -180,6 +180,14 @@ export function finalNotPublished(): ConflictException {
   });
 }
 
+/** [70.3.1] D28: notes are frozen while the exam or final result is published; reopen unlocks. */
+export function reportCardNotesLocked(): ConflictException {
+  return new ConflictException({
+    message: 'This result is published, so its remarks and conduct are locked. Reopen it first.',
+    details: { code: 'REPORT_CARD_NOTES_LOCKED' },
+  });
+}
+
 function mapInvalidDate(exception: unknown): HttpException | null {
   if (!(exception instanceof QueryFailedError)) return null;
   const { code } = exception.driverError as { code?: string };
