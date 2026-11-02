@@ -114,6 +114,14 @@ function FinalResultsListPage() {
     );
   };
 
+  // The table caches each cell by row object, so a cell that reads page state (Start's spinner,
+  // the pending lock, the exam gate) needs fresh row objects whenever that state changes.
+  const tableRows = React.useMemo(
+    () => (list.data ?? []).map((r) => ({ ...r })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the extra deps are the point
+    [list.data, startingId, create.isPending, exams.data],
+  );
+
   const columns: DataTableColumn<FinalResultListItem>[] = [
     {
       id: 'class',
@@ -157,7 +165,7 @@ function FinalResultsListPage() {
           <div className="flex flex-col items-start gap-1">
             <Button
               type="button"
-              disabled={blocked}
+              disabled={blocked || (create.isPending && startingId !== row.class.id)}
               loading={startingId === row.class.id}
               onClick={() => start(row.class.id)}
             >
@@ -183,7 +191,7 @@ function FinalResultsListPage() {
       tableId="final-results"
       caption={t('finalResults.title')}
       columns={columns}
-      data={list.data ?? []}
+      data={tableRows}
       getRowId={(row) => row.class.id}
       sorting={null}
       onSortingChange={() => undefined}
