@@ -37,7 +37,7 @@ export interface TabulationRow {
   examTotals?: Record<string, number | null>;
 }
 
-export interface TabulationSheetProps {
+interface TabulationSheetBaseProps {
   issuer: IssuerSnapshot;
   logoUrl?: string | null;
   activeLanguage?: string;
@@ -46,32 +46,42 @@ export interface TabulationSheetProps {
   section: string;
   subjects: TabulationSubject[];
   rows: TabulationRow[];
-  /** `final` adds one total column per `examColumns` entry before the final columns. */
-  variant?: 'exam' | 'final';
-  examColumns?: { id: string; label: string }[];
   /** Pre-formatted from the grading scale. */
   legend: string;
   printedOn: string;
-  labels: {
-    title: string;
-    roll: string;
-    name: string;
-    /** "Full marks" - the number is appended. */
-    fullMarks: string;
-    obtained: string;
-    grade: string;
-    total: string;
-    gpa: string;
-    merit: string;
-    /** Pre-formatted, e.g. "This section: 44 sat · 40 passed · 4 failed". */
-    summary: string;
-    classTeacher: string;
-    examController: string;
-    headTeacher: string;
-    /** Shown in an exam-total cell when the student was absent (final variant). */
-    absent?: string;
-  };
+  labels: TabulationLabels;
 }
+
+interface TabulationLabels {
+  title: string;
+  roll: string;
+  name: string;
+  /** "Full marks" - the number is appended. */
+  fullMarks: string;
+  obtained: string;
+  grade: string;
+  total: string;
+  gpa: string;
+  merit: string;
+  /** Pre-formatted, e.g. "This section: 44 sat · 40 passed · 4 failed". */
+  summary: string;
+  classTeacher: string;
+  examController: string;
+  headTeacher: string;
+  /** Shown in an exam-total cell when the student was absent (final variant). */
+  absent?: string;
+}
+
+/** `final` adds one total column per `examColumns` entry, so it needs the `absent` label. */
+export type TabulationSheetProps = TabulationSheetBaseProps &
+  (
+    | { variant?: 'exam'; examColumns?: { id: string; label: string }[] }
+    | {
+        variant: 'final';
+        examColumns: { id: string; label: string }[];
+        labels: TabulationLabels & { absent: string };
+      }
+  );
 
 export interface TranscriptExam {
   name: string;
@@ -86,15 +96,13 @@ export interface TranscriptExam {
   shareLabel?: string;
 }
 
-export interface YearlyTranscriptProps {
+interface YearlyTranscriptBaseProps {
   issuer: IssuerSnapshot;
   logoUrl?: string | null;
   activeLanguage?: string;
   student: { name: string; roll: number; className: string; section: string };
   yearName: string;
   exams: TranscriptExam[];
-  /** Final transcript: the last, চূড়ান্ত row of the summary table. */
-  final?: { total: number; gpa: number; grade: string; position: number | null; isFail?: boolean };
   printedOn: string;
   labels: {
     title: string;
@@ -108,12 +116,27 @@ export interface YearlyTranscriptProps {
     position: string;
     classTeacher: string;
     headTeacher: string;
-    /** Needed when `final` is passed. */
+    /** Required with `final`; also used when any exam has a `shareLabel`. */
     final?: string;
-    /** Needed when any exam has a `shareLabel`. */
     share?: string;
   };
 }
+
+/** Final transcript: the last, চূড়ান্ত row of the summary table; needs the `final` and `share` labels. */
+export type YearlyTranscriptProps = YearlyTranscriptBaseProps &
+  (
+    | { final?: undefined }
+    | {
+        final: {
+          total: number;
+          gpa: number;
+          grade: string;
+          position: number | null;
+          isFail?: boolean;
+        };
+        labels: YearlyTranscriptBaseProps['labels'] & { final: string; share: string };
+      }
+  );
 
 const DASH = '—';
 const th = 'border border-foreground px-1 py-0.5 text-center text-caption font-semibold';
