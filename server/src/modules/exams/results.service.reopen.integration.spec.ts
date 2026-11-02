@@ -40,7 +40,7 @@ import { MarksAuthorizationService } from './marks-authorization.util';
 /**
  * [#3409] Recompute <-> reopen coupling on a real database (also covers
  * ExamResultRecomputer's final-result handling, which needs the same fixtures).
- *  - reopening a source exam is refused (409 FINAL_PUBLISHED) while a PUBLISHED final counts it;
+ *  - reopening a source exam is refused (409 EXAM_IN_PUBLISHED_FINAL) while a PUBLISHED final counts it;
  *  - reopening one under a PROCESSED final sends that final back to DRAFT (rows gone, audited);
  *  - a grading-scale edit rebuilds a PROCESSED final pinned to the scale, and is refused
  *    (SCALE_IN_PUBLISHED_RESULTS) while a PUBLISHED final uses it.
@@ -308,7 +308,7 @@ describe('reopen + scale recompute coupling with final results (integration)', (
 
     await expect(results.reopen(exam.id, TENANT_ID, 'user-1')).rejects.toMatchObject({
       status: 409,
-      response: { details: { code: 'FINAL_PUBLISHED' } },
+      response: { details: { code: 'EXAM_IN_PUBLISHED_FINAL' } },
     });
 
     expect(await examStatus(exam.id)).toBe(ExamStatus.PUBLISHED);
@@ -362,7 +362,7 @@ describe('reopen + scale recompute coupling with final results (integration)', (
     try {
       await expect(results.reopen(exam.id, TENANT_ID, 'user-1')).rejects.toMatchObject({
         status: 409,
-        response: { details: { code: 'FINAL_PUBLISHED' } },
+        response: { details: { code: 'EXAM_IN_PUBLISHED_FINAL' } },
       });
     } finally {
       spy.mockRestore();
@@ -397,7 +397,7 @@ describe('reopen + scale recompute coupling with final results (integration)', (
     try {
       await expect(results.reopen(exam.id, TENANT_ID, 'user-1')).rejects.toMatchObject({
         status: 409,
-        response: { details: { code: 'FINAL_PUBLISHED' } },
+        response: { details: { code: 'EXAM_IN_PUBLISHED_FINAL' } },
       });
       expect(await examStatus(exam.id)).toBe(ExamStatus.PUBLISHED);
       expect(await finalStatus(processed.id)).toBe(FinalResultStatus.PROCESSED);

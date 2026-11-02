@@ -789,7 +789,7 @@ export class ResultsService {
     await this.examRepo.manager.transaction(async (manager) => {
       // Finals that count this exam. Locked (inside demoteToDraft) BEFORE the exam, the same
       // order build/publish use, so a reopen cannot deadlock with them. A PUBLISHED final
-      // refuses the reopen (409, same sentence as the final's own guards); a PROCESSED one
+      // refuses the reopen (409 EXAM_IN_PUBLISHED_FINAL: reopen the final first); a PROCESSED one
       // goes back to DRAFT because its rows would no longer match the exam (D24).
       const handled = new Set<string>();
       const demoteFinalsCountingExam = async () => {
@@ -818,7 +818,8 @@ export class ResultsService {
       // (it took the exam FOR SHARE and committed) was not in the first list. No final can be
       // built or published on this exam after this point, so this list is complete.
       // ponytail: a late final is locked exam-then-final; if its own publish holds it and waits
-      // on this exam, Postgres aborts one side (40P01, whole transaction rolled back). Rare.
+      // on this exam, Postgres aborts one side (40P01, whole transaction rolled back). Rare; the
+      // filter maps 40P01 to a retryable 409 CONCURRENT_UPDATE (known-errors.ts), never a 500.
       await demoteFinalsCountingExam();
       await manager
         .getRepository(Exam)
