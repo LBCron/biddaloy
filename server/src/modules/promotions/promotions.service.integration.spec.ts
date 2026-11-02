@@ -445,6 +445,45 @@ describe('PromotionsService (integration)', () => {
       ).rejects.toThrow(ConflictException);
     });
 
+    it('commit refuses with 409 when a row was dropped from the final after the last refresh', async () => {
+      const a = await buildStudent({ registration_number: 'REG-DA', roll_number: 1 });
+      const b = await buildStudent({ registration_number: 'REG-DB', roll_number: 2 });
+      await enrollActive(a.id);
+      await enrollActive(b.id);
+      const final = await makeFinal(FinalResultStatus.PUBLISHED);
+      await addFinalRow(final.id, a.id, '4.00', '400.00');
+      const bRow = await addFinalRow(final.id, b.id, '3.00', '300.00');
+      const run = await create({ final_result_id: final.id });
+      // A rebuild that leaves B out soft-deletes B's row and writes no new one.
+      await dataSource
+        .getRepository(FinalResultRow)
+        .update({ id: bRow.id }, { deleted_at: new Date(Date.now() + 60_000) });
+      await expect(
+        service.commit(run.id, TENANT_ID, ADMIN_USER_ID, 'ADMIN', { headers: {} }),
+      ).rejects.toMatchObject({ response: { details: { code: 'STALE_RESULTS' } } });
+    });
+
+    it('commits when a cohort student never had a row in the final (joined after the build)', async () => {
+      // Regression: a row-count check called this "stale" forever; refresh could never clear it.
+      const a = await buildStudent({ registration_number: 'REG-NA', roll_number: 1 });
+      const late = await buildStudent({ registration_number: 'REG-NL', roll_number: 2 });
+      await enrollActive(a.id);
+      await enrollActive(late.id);
+      const final = await makeFinal(FinalResultStatus.PUBLISHED);
+      await addFinalRow(final.id, a.id, '4.00', '400.00');
+      const run = await create({ final_result_id: final.id });
+      const lateEntry = (await entryRepo.find({ where: { run_id: run.id } })).find(
+        (e) => e.student_id === late.id,
+      );
+      // No row counts as not passed: ranked last, suggested RETAIN.
+      expect(lateEntry?.suggested_outcome).toBe(PromotionOutcome.RETAIN);
+      expect(lateEntry?.merit_rank).toBe(2);
+
+      await service.commit(run.id, TENANT_ID, ADMIN_USER_ID, 'ADMIN', { headers: {} });
+      const committed = await runRepo.findOneOrFail({ where: { id: run.id } });
+      expect(committed.status).toBe(PromotionRunStatus.COMMITTED);
+    });
+
     it('refuses a hard delete of a final that a run uses (FK, NO ACTION)', async () => {
       const student = await buildStudent();
       await enrollActive(student.id);
