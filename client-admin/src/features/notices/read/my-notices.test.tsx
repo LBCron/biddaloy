@@ -110,7 +110,8 @@ describe('MyNoticesList', () => {
       size_bytes: 10,
     };
     mockList([item()]);
-    let release: () => void = () => {};
+    // A held response: the file stays "downloading" until release(), which the handler sets.
+    let release: (() => void) | undefined;
     server.use(
       http.get('/api/v1/notices/mine/:id', () =>
         HttpResponse.json({ ...item(), body: 'See the file.', files: [PDF] }),
@@ -136,7 +137,8 @@ describe('MyNoticesList', () => {
       expect(open).toHaveBeenCalledWith('', '_blank');
       expect(popup.opener).toBeNull();
       expect(popup.location.href).toBe('');
-      release();
+      await waitFor(() => expect(release).toBeDefined());
+      release?.();
       await waitFor(() => expect(popup.location.href).toBe('blob:pdf'));
       expect(popup.close).not.toHaveBeenCalled();
     } finally {
