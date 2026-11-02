@@ -193,4 +193,41 @@ describe('/my-class/$sectionId/notes', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(await screen.findByRole('alertdialog')).toBeTruthy();
   });
+
+  it('a background refetch of the same target keeps unsaved typing', async () => {
+    const user = userEvent.setup();
+    mockAll();
+    let gets = 0;
+    server.use(
+      http.get(BASE, () => {
+        gets += 1;
+        const changed = gets > 1;
+        return HttpResponse.json(
+          view({
+            rows: [
+              {
+                student_id: 's1',
+                full_name: 'Rafi',
+                full_name_bn: null,
+                roll_number: 1,
+                remark: changed ? 'Changed elsewhere' : 'Good',
+                conduct: {},
+              },
+            ],
+          }),
+        );
+      }),
+    );
+    const { queryClient } = render();
+    const box = await screen.findByLabelText<HTMLTextAreaElement>("Class teacher's remark — Rafi");
+    await user.type(box, ' typed');
+    await queryClient.invalidateQueries({ queryKey: ['report-card-notes'] });
+    await waitFor(() => expect(gets).toBeGreaterThan(1));
+    expect(
+      screen.getByLabelText<HTMLTextAreaElement>("Class teacher's remark — Rafi").value,
+    ).toBe('Good typed');
+    await waitFor(() =>
+      expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Save' }).disabled).toBe(false),
+    );
+  });
 });
