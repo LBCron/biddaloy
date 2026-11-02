@@ -15,6 +15,7 @@ sources:
   - client-admin/src/components/print/history/history-item-dialog.tsx
   - server/src/modules/print/jobs/print-history.controller.ts
   - server/src/modules/print/jobs/certificates.controller.ts
+  - client-admin/src/routes/_staff/results/final/-print-panel.tsx
 labels:
   [
     printHistory:*,
@@ -38,7 +39,7 @@ keywords:
   [print, printed, print history, certificate, certificate register, admit card, id card, reprint, revoke, QR, history]
 appVersion: 0.1.0 (3f7e424fc)
 owner: tareq89
-lastVerified: 2026-10-25
+lastVerified: 2026-11-02
 knownIssues: []
 -->
 
@@ -61,6 +62,7 @@ The page has three tabs: **Print history**, **Certificate register** and **To pr
   - [Reprint a card or certificate](#task-reprint)
   - [Revoke a card or certificate](#task-revoke)
   - [See the certificate register and download it for Excel](#task-register)
+  - [Prints from Final results](#task-final-prints)
   - [Print what is still waiting](#task-to-print)
 - [Problems and fixes](#trouble)
 - [Who can do what](#roles)
@@ -93,12 +95,12 @@ The page has three tabs: **Print history**, **Certificate register** and **To pr
 
 Every print has a mark in the **Status** column:
 
-| Status          | Meaning                                                              | What next                           |
-| --------------- | -------------------------------------------------------------------- | ----------------------------------- |
-| **Printed**     | Printing is done; the card or certificate is valid                   | Nothing more to do                  |
+| Status          | Meaning                                                                            | What next                                                      |
+| --------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **Printed**     | Printing is done; the card or certificate is valid                                 | Nothing more to do                                             |
 | **Pending**     | Printing has started; nobody has answered **Did all … cards print correctly?** yet | Check the paper, then answer that question in the print window |
-| **Not printed** | Printing failed                                                      | [Reprint](#task-reprint)            |
-| **Revoked**     | Someone revoked it; scanning the QR code shows it is not valid       | Print a new one if you need one     |
+| **Not printed** | Printing failed                                                                    | [Reprint](#task-reprint)                                       |
+| **Revoked**     | Someone revoked it; scanning the QR code shows it is not valid                     | Print a new one if you need one                                |
 
 After printing, the print window asks **Did all … cards print correctly?** **Yes, all printed** makes every copy **Printed**. With **Some failed…**, the copies you tick become **Not printed** and the rest **Printed**.
 
@@ -149,6 +151,10 @@ Revoke a card if it is lost or printed by mistake. Only an Admin can do this.
 
 Certificates are not issued from here; they are issued from the student's Documents tab ([Students](../people/students.md)).
 
+### Prints from Final results <a href="#task-final-prints" id="task-final-prints"></a>
+
+The report cards and the tabulation sheet printed from the **Print** tab of a [final result](../exams-results/final-results.md) open the browser's print window straight away. They are **not** saved in the **Print history** and do not get a copy number or a QR code. If you need a record, print the exam's report card from [Processing and publishing results](../exams-results/results.md#task-card), which does record the print.
+
 ### Print what is still waiting <a href="#task-to-print" id="task-to-print"></a>
 
 Only people who can print see the **To print** tab. The tab shows the number waiting beside it.
@@ -171,28 +177,28 @@ You can filter the waiting list by type and **Class**.
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                                              | What to do                                                                       | Who can help |
-| --------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------ |
-| **Could not load the print history.**                     | Reload the page.                                                                 | Admin        |
-| **Add a printer in Settings first.**                      | Add a printer ([Printers](../administration/print-templates/printers-and-calibration.md)).             | Admin        |
-| **Your browser blocked the print window. …**              | Allow pop-ups for this site, then press **Print** again.                         | —            |
-| **Could not start printing. Nothing was printed.**        | Try again.                                                                       | Admin        |
-| **Could not revoke this card.**                           | Reload the page and check whether someone else already revoked it.               | Admin        |
-| **Enter a reason.**                                       | The **Reason** box is empty. Type a reason and press again.                      | —            |
-| No **To print** tab, or no **Reprint**                    | Your role cannot print these. See [who can do what](#roles).                     | Admin        |
-| ACR is missing from **Document type**                     | ACR is confidential; only people who can see ACRs see it.                        | Admin        |
+| What you see                                       | What to do                                                                                 | Who can help |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------ |
+| **Could not load the print history.**              | Reload the page.                                                                           | Admin        |
+| **Add a printer in Settings first.**               | Add a printer ([Printers](../administration/print-templates/printers-and-calibration.md)). | Admin        |
+| **Your browser blocked the print window. …**       | Allow pop-ups for this site, then press **Print** again.                                   | —            |
+| **Could not start printing. Nothing was printed.** | Try again.                                                                                 | Admin        |
+| **Could not revoke this card.**                    | Reload the page and check whether someone else already revoked it.                         | Admin        |
+| **Enter a reason.**                                | The **Reason** box is empty. Type a reason and press again.                                | —            |
+| No **To print** tab, or no **Reprint**             | Your role cannot print these. See [who can do what](#roles).                               | Admin        |
+| ACR is missing from **Document type**              | ACR is confidential; only people who can see ACRs see it.                                  | Admin        |
 
 ---
 
 ## Who can do what <a href="#roles" id="roles"></a>
 
-| Role                                    | View history and register, Excel | Reprint: ID and admit cards | Reprint: student certificates | To print | Revoke |
-| --------------------------------------- | -------------------------------- | --------------------------- | ----------------------------- | -------- | ------ |
-| Admin                                   | Yes                              | Yes                         | Yes                           | Yes      | Yes    |
-| Academic coordinator                    | Yes                              | No                          | Yes                           | No       | No     |
-| Office staff                            | Yes                              | Yes                         | Yes                           | Yes      | No     |
-| Exam controller                         | Yes                              | Yes                         | No                            | Yes      | No     |
-| Accountant, Teacher, Committee member   | No                               | No                          | No                            | No       | No     |
+| Role                                  | View history and register, Excel | Reprint: ID and admit cards | Reprint: student certificates | To print | Revoke |
+| ------------------------------------- | -------------------------------- | --------------------------- | ----------------------------- | -------- | ------ |
+| Admin                                 | Yes                              | Yes                         | Yes                           | Yes      | Yes    |
+| Academic coordinator                  | Yes                              | No                          | Yes                           | No       | No     |
+| Office staff                          | Yes                              | Yes                         | Yes                           | Yes      | No     |
+| Exam controller                       | Yes                              | Yes                         | No                            | Yes      | No     |
+| Accountant, Teacher, Committee member | No                               | No                          | No                            | No       | No     |
 
 **Admin:** can do everything. Only the Admin gets the **Printed by** filter, and only the Admin can revoke. The Admin also sees prints of ACRs.
 
@@ -256,6 +262,7 @@ An Accountant may have permission to print but not to view the history, so **Pri
 
 - [**Printing ID cards, certificates and exam papers**](../administration/print-templates.md) — the print designs
 - [**Issuing certificates**](../administration/print-templates/certificates.md) — designing and issuing certificates
+- [**Final results**](../exams-results/final-results.md) — print the final report cards and the tabulation sheet.
 - [**Printing ID cards**](../administration/print-templates/id-cards.md) — designing and printing ID cards
 
 ---
