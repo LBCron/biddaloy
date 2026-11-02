@@ -15,6 +15,8 @@ import { GradingService } from '../src/modules/grading/grading.service';
 import { ExamsService } from '../src/modules/exams/exams.service';
 import { ExamTemplatesService } from '../src/modules/exams/exam-templates.service';
 import { ResultsService } from '../src/modules/exams/results.service';
+import { FinalResultsService } from '../src/modules/final-results/final-results.service';
+import { AttendanceSummaryService } from '../src/modules/attendance/attendance-summary.service';
 import { SchoolSettingsReader } from '../src/modules/schools/settings/school-settings-reader.service';
 import { SchoolsService } from '../src/modules/schools/schools.service';
 import {
@@ -37,6 +39,7 @@ const PARENT_NAMES = [
   'GradingScale',
   'FeeStructure',
   'Exam',
+  'FinalResult',
 ];
 
 /**
@@ -65,6 +68,9 @@ describe('delete-guard registry (integration)', () => {
       // ExamsService.remove uses neither; stubbed so the module stays small.
       { provide: ExamTemplatesService, useValue: {} },
       { provide: ResultsService, useValue: {} },
+      FinalResultsService,
+      // FinalResultsService.remove never reads attendance.
+      { provide: AttendanceSummaryService, useValue: {} },
     ]);
     ds = module.get(DataSource);
     const tenantId = randomUUID();
@@ -86,6 +92,7 @@ describe('delete-guard registry (integration)', () => {
         grading: module.get(GradingService),
         feeStructures: module.get(FeeStructureService),
         exams: module.get(ExamsService),
+        finalResults: module.get(FinalResultsService),
       },
     };
   }, 60000);

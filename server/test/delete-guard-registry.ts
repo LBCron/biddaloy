@@ -7,6 +7,7 @@ import {
   FeeType,
   MarkStatus,
   PeriodSlotKind,
+  PlacementAlgorithm,
   RoutineState,
   SeatOrderMode,
   SlotRecurrence,
@@ -40,6 +41,7 @@ import { AcrFormVersion } from '../src/modules/acr/entities/acr-form-version.ent
 import { Survey } from '../src/modules/surveys/entities/survey.entity';
 import { SurveyTarget } from '../src/modules/surveys/entities/survey-target.entity';
 import { SurveyResponse } from '../src/modules/surveys/entities/survey-response.entity';
+import { PromotionRun } from '../src/modules/promotions/entities/promotion-run.entity';
 import { SEED_ADMIN_USER_ID } from './constants';
 import type { AcademicYearService } from '../src/modules/academics/academic-year.service';
 import type { ClassService, SectionService } from '../src/modules/classes/classes.service';
@@ -48,6 +50,7 @@ import type { FeeStructureService } from '../src/modules/fees/fees.service';
 import type { RoomsService } from '../src/modules/routines/rooms.service';
 import type { GradingService } from '../src/modules/grading/grading.service';
 import type { ExamsService } from '../src/modules/exams/exams.service';
+import type { FinalResultsService } from '../src/modules/final-results/final-results.service';
 
 /**
  * Delete-guard registry (#2655, D19'). Every many-to-one that points at one
@@ -77,6 +80,7 @@ export interface Ctx {
     feeStructures: FeeStructureService;
     grading: GradingService;
     exams: ExamsService;
+    finalResults: FinalResultsService;
   };
   /** Unique number per call, so names/codes never collide inside one school. */
   n(): number;
@@ -90,7 +94,8 @@ export type ParentKind =
   | 'Room'
   | 'GradingScale'
   | 'FeeStructure'
-  | 'Exam';
+  | 'Exam'
+  | 'FinalResult';
 
 /** Saves one live child row; `release` soft-deletes it (or deletes it when the table has no soft delete). */
 export interface MadeChild {
@@ -276,6 +281,12 @@ export const PARENTS: Record<
     },
     remove: (ctx, id) => ctx.svc.exams.remove(id, ctx.tenantId),
     isGone: async (ctx, id) => goneIn(ctx, Exam, id),
+  },
+  // [70.3.4] A final result parent too: a promotion run ranked on it pins it.
+  FinalResult: {
+    make: async (ctx) => (await finalResult(ctx)).final.id,
+    remove: (ctx, id) => ctx.svc.finalResults.remove(id, ctx.tenantId, SEED_ADMIN_USER_ID),
+    isGone: async (ctx, id) => goneIn(ctx, FinalResult, id),
   },
 };
 
@@ -635,6 +646,30 @@ export const GUARDED: Guarded[] = [
       return { release: softDelete(ctx, Result, r.id) };
     },
   },
+  {
+    // [70.3.4] FinalResultsService.remove refuses while a promotion run ranks on the final.
+    key: 'PromotionRun.final_result -> FinalResult',
+    parent: 'FinalResult',
+    softDeletable: false,
+    code: 'FINAL_RESULT_IN_USE',
+    async makeChild(ctx, finalId) {
+      const h = await host(ctx);
+      const target = await year(ctx);
+      const run = await ctx.ds.getRepository(PromotionRun).save({
+        tenant_id: ctx.tenantId,
+        source_class_id: h.klass.id,
+        source_academic_year_id: h.year.id,
+        target_academic_year_id: target.id,
+        target_class_id: null,
+        exam_ids: [],
+        final_result_id: finalId,
+        algorithm: PlacementAlgorithm.BLOCK,
+        refreshed_at: new Date(),
+        created_by_user_id: SEED_ADMIN_USER_ID,
+      });
+      return { release: hardDelete(ctx, PromotionRun, run.id) };
+    },
+  },
   auto('AdmissionIntake.class_section -> ClassSection', 'ClassSection'),
   auto('Application.academic_year -> AcademicYear', 'AcademicYear'),
   auto('AttendanceDevice.section -> ClassSection', 'ClassSection'),
@@ -767,6 +802,21 @@ export const ALLOWED: Allowed[] = [
   {
     key: 'MarkGrid.exam -> Exam',
     reason: "An exam's own mark grids: they stay under the soft-deleted exam (exams.service.ts).",
+  },
+  // [70.3.4] The final result's own parts: rows and weights go with it in
+  // FinalResultsService.remove; its notes stay under the soft-deleted final, like an exam's.
+  {
+    key: 'FinalResultRow.final_result -> FinalResult',
+    reason: 'FinalResultsService.remove soft-deletes the rows in the same transaction (dropRows).',
+  },
+  {
+    key: 'FinalResultWeight.final_result -> FinalResult',
+    reason: 'FinalResultsService.remove deletes the shares in the same transaction.',
+  },
+  {
+    key: 'ReportCardNote.final_result -> FinalResult',
+    reason:
+      "Remarks on the final's own report card: they stay under the soft-deleted final (final-results.service.ts).",
   },
   {
     key: 'ReportCardNote.exam -> Exam',
