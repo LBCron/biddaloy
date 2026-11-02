@@ -20,8 +20,23 @@ import {
   SEED_SECTION_1_ID,
   SEED_SECTION_2_ID,
 } from '@test/constants';
+import { todayInSchoolTz } from '../../common/time';
+import { addDays } from '../attendance/attendance-policy.util';
 
 const API = '/api/v1';
+
+/**
+ * Event dates count from tomorrow in the school's timezone, never a literal:
+ * `assertNotPast` refuses an event that ended before the school's "today", so
+ * a fixed date turns this spec red the day it passes (#3436). Each test keeps
+ * its own day; the list window is day(2)..day(11), so the two shape-test
+ * events (day 0 and 1) stay outside it.
+ * ponytail: the seed academic year ends on 2026-12-31 and an event must sit
+ * inside it, so from about 2026-12-20 day(11) falls past the year end; move
+ * the seed year forward (or create one here) when that day comes.
+ */
+const BASE_DAY = addDays(todayInSchoolTz(), 1);
+const day = (offset: number): string => addDays(BASE_DAY, offset);
 
 const FAMILY_KEYS = [
   'id',
@@ -225,8 +240,8 @@ describe('Calendar Visibility E2E', () => {
       const eventId = await createEvent({
         type: CalendarEventType.EXAM,
         name: 'Vis Exam Class 1',
-        start_date: '2026-11-01',
-        end_date: '2026-11-01',
+        start_date: day(0),
+        end_date: day(0),
         audience: CalendarAudience.ALL,
         class_ids: [CLASS_1_ID],
       });
@@ -250,8 +265,8 @@ describe('Calendar Visibility E2E', () => {
       const eventId = await createEvent({
         type: CalendarEventType.EXAM,
         name: 'Vis Exam Staff Full',
-        start_date: '2026-11-02',
-        end_date: '2026-11-02',
+        start_date: day(1),
+        end_date: day(1),
         audience: CalendarAudience.ALL,
         class_ids: [CLASS_1_ID],
       });
@@ -273,31 +288,31 @@ describe('Calendar Visibility E2E', () => {
       await createEvent({
         type: CalendarEventType.EXAM,
         name: 'Vis Exam A (class 1)',
-        start_date: '2026-12-01',
-        end_date: '2026-12-01',
+        start_date: day(2),
+        end_date: day(2),
         audience: CalendarAudience.ALL,
         class_ids: [CLASS_1_ID],
       });
       await createEvent({
         type: CalendarEventType.EXAM,
         name: 'Vis Exam B (class 2)',
-        start_date: '2026-12-02',
-        end_date: '2026-12-02',
+        start_date: day(3),
+        end_date: day(3),
         audience: CalendarAudience.ALL,
         class_ids: [CLASS_2_ID],
       });
       await createEvent({
         type: CalendarEventType.EXAM,
         name: 'Vis Exam C (class 3, unrelated)',
-        start_date: '2026-12-03',
-        end_date: '2026-12-03',
+        start_date: day(4),
+        end_date: day(4),
         audience: CalendarAudience.ALL,
         class_ids: [CLASS_3_ID],
       });
 
       const res = await supertest(app.getHttpServer())
         .get(`${API}/calendar/events`)
-        .query({ from: '2026-12-01', to: '2026-12-31' })
+        .query({ from: day(2), to: day(11) })
         .set('Authorization', `Bearer ${parentToken}`)
         .set('X-Tenant-ID', TENANT_ID)
         .set('X-Role', UserRole.PARENT)
@@ -311,23 +326,23 @@ describe('Calendar Visibility E2E', () => {
       await createEvent({
         type: CalendarEventType.EXAM,
         name: 'Vis Student Exam Class 1',
-        start_date: '2026-12-04',
-        end_date: '2026-12-04',
+        start_date: day(5),
+        end_date: day(5),
         audience: CalendarAudience.ALL,
         class_ids: [CLASS_1_ID],
       });
       await createEvent({
         type: CalendarEventType.EXAM,
         name: 'Vis Student Exam Class 2',
-        start_date: '2026-12-05',
-        end_date: '2026-12-05',
+        start_date: day(6),
+        end_date: day(6),
         audience: CalendarAudience.ALL,
         class_ids: [CLASS_2_ID],
       });
 
       const res = await supertest(app.getHttpServer())
         .get(`${API}/calendar/events`)
-        .query({ from: '2026-12-01', to: '2026-12-31' })
+        .query({ from: day(2), to: day(11) })
         .set('Authorization', `Bearer ${studentToken}`)
         .set('X-Tenant-ID', TENANT_ID)
         .set('X-Role', UserRole.STUDENT)
@@ -350,30 +365,30 @@ describe('Calendar Visibility E2E', () => {
       const staffEventId = await createEvent({
         type: CalendarEventType.MEETING,
         name: 'Vis Staff Meeting',
-        start_date: '2026-12-06',
-        end_date: '2026-12-06',
+        start_date: day(7),
+        end_date: day(7),
         audience: CalendarAudience.STAFF,
       });
       await createEvent({
         type: CalendarEventType.EXAM,
         name: 'Vis Teacher Exam Mapped Class',
-        start_date: '2026-12-07',
-        end_date: '2026-12-07',
+        start_date: day(8),
+        end_date: day(8),
         audience: CalendarAudience.ALL,
         class_ids: [CLASS_1_ID],
       });
       await createEvent({
         type: CalendarEventType.EXAM,
         name: 'Vis Teacher Exam Unmapped Class',
-        start_date: '2026-12-08',
-        end_date: '2026-12-08',
+        start_date: day(9),
+        end_date: day(9),
         audience: CalendarAudience.ALL,
         class_ids: [CLASS_2_ID],
       });
 
       const res = await supertest(app.getHttpServer())
         .get(`${API}/calendar/events`)
-        .query({ from: '2026-12-01', to: '2026-12-31' })
+        .query({ from: day(2), to: day(11) })
         .set('Authorization', `Bearer ${teacherToken}`)
         .set('X-Tenant-ID', TENANT_ID)
         .set('X-Role', UserRole.TEACHER)
@@ -400,8 +415,8 @@ describe('Calendar Visibility E2E', () => {
       const draftId = await createEvent({
         type: CalendarEventType.EXAM,
         name: 'Vis Draft Exam',
-        start_date: '2026-12-09',
-        end_date: '2026-12-09',
+        start_date: day(10),
+        end_date: day(10),
         audience: CalendarAudience.ALL,
         class_ids: [CLASS_1_ID],
         publish: false,
@@ -414,7 +429,7 @@ describe('Calendar Visibility E2E', () => {
       ] as const) {
         const res = await supertest(app.getHttpServer())
           .get(`${API}/calendar/events`)
-          .query({ from: '2026-12-01', to: '2026-12-31', include_drafts: 'true' })
+          .query({ from: day(2), to: day(11), include_drafts: 'true' })
           .set('Authorization', `Bearer ${token}`)
           .set('X-Tenant-ID', TENANT_ID)
           .set('X-Role', role)
@@ -435,15 +450,15 @@ describe('Calendar Visibility E2E', () => {
       await createEvent({
         type: CalendarEventType.EXAM,
         name: 'Vis Forged Class Exam',
-        start_date: '2026-12-10',
-        end_date: '2026-12-10',
+        start_date: day(11),
+        end_date: day(11),
         audience: CalendarAudience.ALL,
         class_ids: [CLASS_3_ID],
       });
 
       const res = await supertest(app.getHttpServer())
         .get(`${API}/calendar/events`)
-        .query({ from: '2026-12-01', to: '2026-12-31', class_id: CLASS_3_ID })
+        .query({ from: day(2), to: day(11), class_id: CLASS_3_ID })
         .set('Authorization', `Bearer ${parentToken}`)
         .set('X-Tenant-ID', TENANT_ID)
         .set('X-Role', UserRole.PARENT)
