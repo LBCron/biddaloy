@@ -84,6 +84,26 @@ The `billing` slice (Epic 49) gives each of the three branches one PAID seat ord
 anchor -6 months to +6 months) and one `OFFLINE_BANK` payment for the full amount (`seats * 12 * 1000` paisa).
 It leaves `schools.seat_limit` and `trial_ends_at` NULL, so the demo stays unlimited.
 
+The `exams` slice (Epic 70, #3407) also builds **final results** through `FinalResultsService`
+(`create`, `update`, `build`, `publish`), after the term exams are published:
+
+```mermaid
+flowchart LR
+  A[Past year, class with Annual results] --> B[create] --> C[update weights or mode] --> D[build] --> E[publish]
+  F[Current year, every class] --> G[create only: DRAFT]
+```
+
+| Where | Final result |
+| --- | --- |
+| Past year, most classes | Half-Yearly 30 / Annual 70, PUBLISHED |
+| Past year, one class picked by `ctx.rng` | First Term 20 / Half-Yearly 30 / Annual 50, PUBLISHED |
+| Past year, another class picked by `ctx.rng` | BEST_OF 2 (equal shares), PUBLISHED |
+| Current year | DRAFT only, because the Annual exam is not published yet |
+
+`published_at` is moved to two days after the class's Annual exam, so no date is a literal and a rerun on one
+anchor gives the same rows. `FinalResult`, `FinalResultWeight`, `FinalResultRow` and `FinalResultSubject` are in the
+slice's `covers`. `ReportCardNote` stays in `EXEMPT` until #3411.
+
 ### The demo login cards (`DEMO_CARDS`)
 
 Nine cards, defined once in `server/src/modules/demo/demo-accounts.ts`. The seed creates exactly these users and the

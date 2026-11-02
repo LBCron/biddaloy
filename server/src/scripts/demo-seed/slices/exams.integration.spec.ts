@@ -16,6 +16,8 @@ import { PromotionsService } from '../../../modules/promotions/promotions.servic
 import { EnrollmentService } from '../../../modules/enrollments/enrollments.service';
 import { StudentLifecycleService } from '../../../modules/students/student-lifecycle.service';
 import { ApprovalService } from '../../../modules/auth/guards/approval.guard';
+import { FinalResultsService } from '../../../modules/final-results/final-results.service';
+import { AttendanceSummaryService } from '../../../modules/attendance/attendance-summary.service';
 import { ResultsService } from '../../../modules/exams/results.service';
 import { MarkGridService } from '../../../modules/exams/mark-grid.service';
 import { AttendanceComponentService } from '../../../modules/exams/attendance-component.service';
@@ -51,6 +53,9 @@ describe('exams slice (integration, 2 years, scale 0.05)', () => {
       EnrollmentService,
       StudentLifecycleService,
       ResultsService,
+      FinalResultsService,
+      // Publish snapshots attendance per student; the seed has none in this slice-only run.
+      { provide: AttendanceSummaryService, useValue: { getSummariesForStudents: async () => new Map() } },
       MarkGridService,
       SeatPlansService,
       TeacherBusyService,
@@ -78,6 +83,12 @@ describe('exams slice (integration, 2 years, scale 0.05)', () => {
     await extras.run(ctx);
     facts.rows = await exams.run(ctx);
 
+    facts.finals = await q(
+      `SELECT fr.status, fr.mode, y.is_current,
+              (SELECT count(*)::int FROM final_result_rows r WHERE r.final_result_id = fr.id) AS rows
+         FROM final_results fr JOIN academic_years y ON y.id = fr.academic_year_id
+        WHERE fr.deleted_at IS NULL`,
+    );
     // Exams per class and year: names.
     facts.examsPerClass = await q(
       `SELECT e.class_id, e.academic_year_id, c.numeric_grade, count(*)::int AS n,
@@ -187,6 +198,18 @@ describe('exams slice (integration, 2 years, scale 0.05)', () => {
     }
     expect(facts.progress.some((e: any) => e.marks > 0)).toBe(true);
     expect(facts.progress.some((e: any) => e.grids < e.pairs)).toBe(true);
+  });
+
+  it('publishes past-year finals, with a best-of one, and leaves current-year finals as drafts', () => {
+    const past = facts.finals.filter((f: any) => !f.is_current);
+    expect(past.length).toBeGreaterThan(0);
+    // A class with no students in the small run publishes with no rows, so rows are checked on some.
+    for (const f of past) expect(f.status).toBe('PUBLISHED');
+    expect(past.some((f: any) => f.rows > 0)).toBe(true);
+    expect(past.some((f: any) => f.mode === 'BEST_OF' && f.rows > 0)).toBe(true);
+    const now = facts.finals.filter((f: any) => f.is_current);
+    expect(now.length).toBeGreaterThan(0);
+    for (const f of now) expect(f.status).toBe('DRAFT');
   });
 
   it('seats every active student exactly once in each sitting of the next exam', () => {

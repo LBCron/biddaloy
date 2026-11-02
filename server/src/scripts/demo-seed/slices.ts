@@ -41,15 +41,7 @@ export const EXEMPT: Record<string, string> = {
   UserIdentity: 'login state: sign-in credentials come from the seeded users',
   WorkbookJob: 'backups are off in the demo (D2)',
   AuditLog: 'written by services as a side effect, never seeded directly',
-  // [70.1.2] Temporary. The Epic 70 seed tickets (#3407 finals, #3411 notes) move these five
-  // into the exams slice's `covers` and delete these lines.
-  FinalResult:
-    'Epic 70 seed ticket #3407 owes this; FinalResultsService now writes this table; a restore loses it until the workbook tabs ship (#3422)',
-  FinalResultWeight:
-    'Epic 70 seed ticket #3407 owes this; FinalResultsService now writes this table; a restore loses it until the workbook tabs ship (#3422)',
-  FinalResultRow:
-    'Epic 70 seed ticket #3407 owes this; FinalResultsService now writes this table; a restore loses it until the workbook tabs ship (#3422)',
-  FinalResultSubject:
-    'Epic 70 seed ticket #3407 owes this; FinalResultsService now writes this table; a restore loses it until the workbook tabs ship (#3422)',
+  // [70.1.2] Temporary. Epic 70 seed ticket #3411 (notes) moves this into the exams slice's
+  // `covers` and deletes the line. The finals tables left this list in #3407.
   ReportCardNote: 'Epic 70 seed ticket #3411 owes this; no service writes it yet',
 };
