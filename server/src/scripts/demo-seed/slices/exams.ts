@@ -43,6 +43,7 @@ import { insertChunked } from '../bulk';
 import { schoolDays } from '../dates';
 import { orgIds, type OrgYear } from './org';
 import { studentIds, type DemoStudent } from './students';
+import { staffByCardKey } from './staff';
 
 /** Three term exams a year, plus a Test exam for classes X and XII (D34). */
 const TERM_EXAMS = [
@@ -666,6 +667,21 @@ export const slice: DemoSlice = {
       }
       // The current Half-Yearly (marks entry): one section per class about 80 % done, so the
       // class teacher's grid and the office's "still missing" warning show real numbers (D18).
+      // The class-teacher demo card's homeroom is always the filled one in its class.
+      const card = staffByCardKey(ctx)?.get('class-teacher-8a');
+      const cardSections = new Set(
+        card?.tenantId === tenant.id
+          ? (
+              await q<{ section_id: string }>(
+                `SELECT tcs.section_id FROM teacher_class_sections tcs
+                   JOIN teachers t ON t.id = tcs.teacher_id
+                  WHERE tcs.tenant_id = $1 AND tcs.assignment_type = 'CLASS_TEACHER'
+                    AND t.user_id = $2`,
+                [tenant.id, card.userId],
+              )
+            ).map((r) => r.section_id)
+          : [],
+      );
       const currentYear = tenant.years.find((y) => y.isCurrent)!;
       for (const cls of currentYear.classes) {
         const [halfYearly] = await q<{ id: string }>(
@@ -674,7 +690,8 @@ export const slice: DemoSlice = {
           [tenant.id, cls.id, currentYear.id],
         );
         if (!halfYearly || cls.sections.length === 0) continue;
-        const sec = cls.sections[Math.floor(u() * cls.sections.length)];
+        const picked = cls.sections[Math.floor(u() * cls.sections.length)];
+        const sec = cls.sections.find((x) => cardSections.has(x.id)) ?? picked;
         rows += await seedNotes(tenant.id, { exam_id: halfYearly.id }, sec.id, 0.8);
       }
       // The latest past year's promotions ranked on its published final (#3410 merit source):
