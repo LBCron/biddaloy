@@ -695,6 +695,7 @@ export {
   type Tabulation,
   type Transcript,
 } from './exam-documents';
+export { useStudentFinalCard, type FinalCard } from './final-results';
 export {
   seatPlanKeys,
   seatPlanDetailQueryOptions,

@@ -56,6 +56,8 @@ import { z } from 'zod';
 
 import { loadRouteNamespaces, swallowUnlessOffline } from '../../route-loaders';
 
+import { FinalResultCard } from './-final-result-card';
+
 const resultsSearchSchema = z.object({
   /** Same contract as `portal/fees.tsx`'s `student` param — not trusted to
    * widen anything, the server re-checks the link on every request. */
@@ -175,6 +177,16 @@ function PortalResults() {
               to="/portal/results"
             />
           )}
+
+          {/* [70.W5] The published final result comes first; absent when none. */}
+          <div className="mb-6 empty:hidden">
+            <FinalResultCard
+              studentId={selected.id}
+              academicYearId={selected.class_section?.class?.academic_year_id}
+              childName={selected.full_name}
+              className={selected.class_section?.class?.name ?? null}
+            />
+          </div>
 
           {resultsQuery.data.length === 0 ? (
             // Not an error: results appear once the school publishes them
