@@ -1,9 +1,7 @@
 /** [70.4.1] Final result (D6/D15): one class-year result built from the published exams.
  * `GET/POST /final-results…`. The response DTOs have no `@ApiResponse` server-side, so they
- * are typed from `@biddaloy/shared` (same gap `exams.ts` documents for `ResultRow`).
- *
- * No `useFinalTabulation` yet: its route is not in `schema.d.ts` until #3416 regenerates the
- * types; the W5 screen ticket adds it then. */
+ * are typed from `@biddaloy/shared` (same gap `exams.ts` documents for `ResultRow`). The final
+ * tabulation is the exception: its route declares `@ApiOkResponse`, so it comes from `schema.d.ts`. */
 import {
   ApprovalScope,
   type FinalResultRowView,
@@ -56,12 +54,24 @@ export interface FinalResultSmsOutcome {
 export type CreateFinalResultInput = components['schemas']['CreateFinalResultBodyDto'];
 export type FinalResultWeightInput = components['schemas']['FinalResultWeightBodyDto'];
 export type UpdateFinalResultInput = components['schemas']['UpdateFinalResultBodyDto'];
+export type FinalTabulation = components['schemas']['FinalTabulationDto'];
+
+/** The final card the student routes return (D20): the shared card plus each counted exam's
+ * whole-exam share (null = the exam only has per-subject shares). Same shape as `Transcript.final`. */
+export type FinalCard = FinalResultStudentCard & {
+  exam_shares: Array<{ exam_id: string; share_percent: number | null }>;
+};
 
 export const finalResultKeys = createEntityKeys<{ academic_year_id?: string }>('final-results');
 export const finalResultRowsKey = (id: string, filters: FinalResultRowsFilters = {}) =>
   [...finalResultKeys.detail(id), 'rows', filters] as const;
 export const finalResultCardKey = (id: string, studentId: string) =>
   [...finalResultKeys.detail(id), 'card', studentId] as const;
+export const finalTabulationKey = (id: string, sectionId: string) =>
+  [...finalResultKeys.detail(id), 'tabulation', sectionId] as const;
+/** Student-scoped like the transcript key, so a final change refreshes both (see `invalidateFinal`). */
+export const studentFinalCardKey = (studentId: string, academicYearId: string) =>
+  ['students', studentId, 'final-result-card', academicYearId] as const;
 
 export function finalResultsQueryOptions(academicYearId: string) {
   const params = { academic_year_id: academicYearId };
@@ -122,6 +132,45 @@ export function useFinalResultStudentCard(id: string | undefined, studentId: str
   });
 }
 
+/** Final tabulation of one section: per-subject exam and final marks (D21). */
+export function useFinalTabulation(id: string | undefined, sectionId: string | undefined) {
+  return useQuery({
+    queryKey: finalTabulationKey(id ?? '', sectionId ?? ''),
+    queryFn: async ({ signal }) =>
+      (
+        await apiClient.get<FinalTabulation>(`/final-results/${id}/documents/tabulation`, {
+          params: { section_id: sectionId },
+          signal,
+        })
+      ).data,
+    enabled: Boolean(id && sectionId),
+    retry: shouldRetryQuery,
+  });
+}
+
+/** A student's final card for a year. Staff see a PROCESSED final too; a family sees PUBLISHED
+ * only (the server decides). 404 when the year has no visible final for the student. */
+export function useStudentFinalCard(
+  studentId: string | undefined,
+  academicYearId: string | undefined,
+) {
+  return useQuery({
+    queryKey: studentFinalCardKey(studentId ?? '', academicYearId ?? ''),
+    queryFn: async ({ signal }) =>
+      (
+        await apiClient.get<FinalCard>(`/students/${studentId}/final-result-card`, {
+          params: { academic_year_id: academicYearId },
+          signal,
+        })
+      ).data,
+    enabled: Boolean(studentId && academicYearId),
+    retry: shouldRetryQuery,
+  });
+}
+
+/** Student-scoped reads that show a final: results, the transcript's `final`, the final card. */
+const STUDENT_FINAL_VIEWS: readonly unknown[] = ['results', 'transcript', 'final-result-card'];
+
 /** A change touches the list line, the summary, rows, the notes lock and every student's results. */
 function invalidateFinal(queryClient: QueryClient, id: string) {
   void queryClient.invalidateQueries({ queryKey: finalResultKeys.lists() });
@@ -129,7 +178,7 @@ function invalidateFinal(queryClient: QueryClient, id: string) {
   void queryClient.invalidateQueries({ queryKey: ['report-card-notes'] });
   void queryClient.invalidateQueries({ queryKey: ['promotions'] });
   void queryClient.invalidateQueries({
-    predicate: (q) => q.queryKey[0] === 'students' && q.queryKey[2] === 'results',
+    predicate: (q) => q.queryKey[0] === 'students' && STUDENT_FINAL_VIEWS.includes(q.queryKey[2]),
   });
 }
 
