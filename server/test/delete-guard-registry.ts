@@ -25,6 +25,9 @@ import { ExamSchedule } from '../src/modules/exams/entities/exam-schedule.entity
 import { Mark } from '../src/modules/exams/entities/mark.entity';
 import { Result } from '../src/modules/exams/entities/result.entity';
 import { GradingScale } from '../src/modules/grading/entities/grading-scale.entity';
+import { FinalResult } from '../src/modules/final-results/entities/final-result.entity';
+import { FinalResultRow } from '../src/modules/final-results/entities/final-result-row.entity';
+import { FinalResultWeight } from '../src/modules/final-results/entities/final-result-weight.entity';
 import { Room } from '../src/modules/routines/entities/room.entity';
 import { Routine } from '../src/modules/routines/entities/routine.entity';
 import { RoutineSlot } from '../src/modules/routines/entities/routine-slot.entity';
@@ -44,10 +47,11 @@ import type { SubjectService } from '../src/modules/academics/subjects.service';
 import type { FeeStructureService } from '../src/modules/fees/fees.service';
 import type { RoomsService } from '../src/modules/routines/rooms.service';
 import type { GradingService } from '../src/modules/grading/grading.service';
+import type { ExamsService } from '../src/modules/exams/exams.service';
 
 /**
  * Delete-guard registry (#2655, D19'). Every many-to-one that points at one
- * of seven protected parents sits in exactly one of three lists. The spec
+ * of eight protected parents sits in exactly one of three lists. The spec
  * `delete-guard-registry.integration.spec.ts` fails when a relation is in none
  * of them (or a list names a relation that no longer exists).
  *
@@ -72,13 +76,21 @@ export interface Ctx {
     rooms: RoomsService;
     feeStructures: FeeStructureService;
     grading: GradingService;
+    exams: ExamsService;
   };
   /** Unique number per call, so names/codes never collide inside one school. */
   n(): number;
 }
 
 export type ParentKind =
-  'AcademicYear' | 'Class' | 'ClassSection' | 'Subject' | 'Room' | 'GradingScale' | 'FeeStructure';
+  | 'AcademicYear'
+  | 'Class'
+  | 'ClassSection'
+  | 'Subject'
+  | 'Room'
+  | 'GradingScale'
+  | 'FeeStructure'
+  | 'Exam';
 
 /** Saves one live child row; `release` soft-deletes it (or deletes it when the table has no soft delete). */
 export interface MadeChild {
@@ -90,6 +102,8 @@ export interface Guarded {
   parent: ParentKind;
   softDeletable: boolean;
   makeChild(ctx: Ctx, parentId: string): Promise<MadeChild>;
+  /** When set, the 409 must carry this `details.code` (the screen branches on it). */
+  code?: string;
 }
 
 export interface Allowed {
@@ -164,6 +178,17 @@ async function exam(ctx: Ctx, academicYearId: string, classId: string) {
     name: `Exam ${ctx.n()}`,
     kind: ExamKind.TERM,
   });
+}
+
+/** A DRAFT final result of a fresh class and year (one live final per class-year). */
+async function finalResult(ctx: Ctx) {
+  const h = await host(ctx);
+  const f = await ctx.ds.getRepository(FinalResult).save({
+    tenant_id: ctx.tenantId,
+    class_id: h.klass.id,
+    academic_year_id: h.year.id,
+  });
+  return { ...h, final: f };
 }
 
 const softDelete = (ctx: Ctx, entity: new () => object, id: string) => async () => {
@@ -242,6 +267,15 @@ export const PARENTS: Record<
       ).id,
     remove: (ctx, id) => ctx.svc.grading.remove(id, ctx.tenantId, null),
     isGone: async (ctx, id) => goneIn(ctx, GradingScale, id),
+  },
+  // [70.2.1] An exam is a parent too: a final result's share row pins it.
+  Exam: {
+    make: async (ctx) => {
+      const h = await host(ctx);
+      return (await exam(ctx, h.year.id, h.klass.id)).id;
+    },
+    remove: (ctx, id) => ctx.svc.exams.remove(id, ctx.tenantId),
+    isGone: async (ctx, id) => goneIn(ctx, Exam, id),
   },
 };
 
@@ -532,6 +566,75 @@ export const GUARDED: Guarded[] = [
       return { release: softDelete(ctx, Result, r.id) };
     },
   },
+  {
+    // [70.2.1] GradingService.remove counts live final result rows (assertNoLiveDependents).
+    key: 'FinalResultRow.grading_scale -> GradingScale',
+    parent: 'GradingScale',
+    softDeletable: true,
+    code: 'GRADING_SCALE_IN_USE',
+    async makeChild(ctx, scaleId) {
+      const f = await finalResult(ctx);
+      const row = await ctx.ds.getRepository(FinalResultRow).save({
+        tenant_id: ctx.tenantId,
+        final_result_id: f.final.id,
+        student_id: f.student.id,
+        total_marks: '80.00',
+        gpa: '4.00',
+        grade: 'A',
+        grading_scale_id: scaleId,
+        grading_scale_revision: 1,
+        rule_version: 'test',
+        computed_at: new Date(),
+      });
+      return { release: softDelete(ctx, FinalResultRow, row.id) };
+    },
+  },
+  {
+    // [70.2.1] ExamsService.remove refuses while a final result shares this exam.
+    key: 'FinalResultWeight.exam -> Exam',
+    parent: 'Exam',
+    softDeletable: false,
+    code: 'EXAM_IN_USE',
+    async makeChild(ctx, examId) {
+      const f = await finalResult(ctx);
+      const w = await ctx.ds.getRepository(FinalResultWeight).save({
+        tenant_id: ctx.tenantId,
+        final_result_id: f.final.id,
+        exam_id: examId,
+        subject_id: null,
+        share_percent: '100.00',
+      });
+      return { release: hardDelete(ctx, FinalResultWeight, w.id) };
+    },
+  },
+  {
+    // ExamsService.remove counts live results first (EXAM_HAS_RESULTS).
+    key: 'Result.exam -> Exam',
+    parent: 'Exam',
+    softDeletable: true,
+    code: 'EXAM_HAS_RESULTS',
+    async makeChild(ctx, examId) {
+      const h = await host(ctx);
+      const scale = await ctx.ds.getRepository(GradingScale).save({
+        name: `Scale ${ctx.n()}`,
+        academic_year_id: h.year.id,
+        tenant_id: ctx.tenantId,
+      });
+      const r = await ctx.ds.getRepository(Result).save({
+        tenant_id: ctx.tenantId,
+        exam_id: examId,
+        student_id: h.student.id,
+        total_marks: '80',
+        gpa: '4.00',
+        grade: 'A',
+        grading_scale_id: scale.id,
+        grading_scale_revision: 1,
+        rule_version: 'test',
+        computed_at: new Date(),
+      });
+      return { release: softDelete(ctx, Result, r.id) };
+    },
+  },
   auto('AdmissionIntake.class_section -> ClassSection', 'ClassSection'),
   auto('Application.academic_year -> AcademicYear', 'AcademicYear'),
   auto('AttendanceDevice.section -> ClassSection', 'ClassSection'),
@@ -644,6 +747,31 @@ export const ALLOWED: Allowed[] = [
     key: 'StudentSubjectChoice.academic_year -> AcademicYear',
     reason:
       'Choices belong to the year offerings: AcademicYearService.remove deletes them with the offerings (drop-class-subjects.ts).',
+  },
+  // [70.2.1] The exam's own parts: ExamsService.remove leaves them under the soft-deleted exam
+  // (excluded from its assertNoLiveDependents), where no screen reaches them.
+  {
+    key: 'ExamComponent.exam -> Exam',
+    reason: "An exam's own components: they stay under the soft-deleted exam (exams.service.ts).",
+  },
+  {
+    key: 'ExamSchedule.exam -> Exam',
+    reason:
+      "An exam's own timetable rows: they stay under the soft-deleted exam (exams.service.ts).",
+  },
+  {
+    key: 'Mark.exam -> Exam',
+    reason:
+      "An exam's own marks: they stay under the soft-deleted exam; live results are refused first (exams.service.ts).",
+  },
+  {
+    key: 'MarkGrid.exam -> Exam',
+    reason: "An exam's own mark grids: they stay under the soft-deleted exam (exams.service.ts).",
+  },
+  {
+    key: 'ReportCardNote.exam -> Exam',
+    reason:
+      "Remarks on the exam's own report card: they stay under the soft-deleted exam, as before Epic 70 (exams.service.ts).",
   },
 ];
 
@@ -828,15 +956,7 @@ export const BARE_GUARDED: Guarded[] = [
 
 // ---- KNOWN_GAPS (each becomes a GitHub issue at wave close, D22) -------------
 
-export const KNOWN_GAPS: KnownGap[] = [
-  {
-    // GradingService.remove() counts only `results`; the grading module is outside the
-    // lane that added this FK. The Epic 70 final-results service wave must add the count.
-    key: 'FinalResultRow.grading_scale -> GradingScale',
-    reason: 'GradingService.remove() does not count live final_result_rows yet (Epic 70).',
-    followUp: 2203,
-  },
-];
+export const KNOWN_GAPS: KnownGap[] = [];
 
 /**
  * [2688] References the metadata scan cannot prove: plain uuid columns with no
