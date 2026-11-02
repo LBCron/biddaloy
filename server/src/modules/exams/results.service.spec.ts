@@ -108,6 +108,8 @@ function makeRepos(overrides: Record<string, any> = {}) {
         if (entity === ReportCardNote) return overrides.note ?? null;
         return { start_date: '2026-01-01', end_date: '2099-12-31' };
       }),
+      // [70.4.1] An exam with no term ends at its last sitting (D9).
+      query: vi.fn(async () => [{ d: overrides.lastSitting ?? null }]),
     },
     update: vi.fn(async () => undefined),
   };
@@ -1217,5 +1219,17 @@ describe('ResultsService.getStudentResultCard — attendance, remark, conduct (7
     });
     const card = await service.getStudentResultCard(EXAM_ID, 'stu-1', TENANT_ID, true);
     expect(card?.attendance).toEqual({ working_days: 100, present_days: 100 });
+  });
+
+  it('with no term, counts from the year start to the exam last sitting (D9)', async () => {
+    const { service, attendanceSummary } = await buildService({
+      exam: { status: ExamStatus.PUBLISHED, academic_term_id: null },
+      resultForStudent: RESULT,
+      lastSitting: '2026-03-15',
+    });
+    await service.getStudentResultCard(EXAM_ID, 'stu-1', TENANT_ID, true);
+    expect(attendanceSummary.getSummariesForStudents).toHaveBeenCalledWith(
+      expect.objectContaining({ from: '2026-01-01', to: '2026-03-15' }),
+    );
   });
 });

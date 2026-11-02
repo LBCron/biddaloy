@@ -264,6 +264,7 @@ export class ExamDocumentsService {
          FROM final_result_weights w
          JOIN exams e ON e.id = w.exam_id AND e.tenant_id = w.tenant_id
          LEFT JOIN exam_schedules es ON es.exam_id = e.id AND es.tenant_id = e.tenant_id
+          AND es.deleted_at IS NULL
         WHERE w.tenant_id = $1 AND w.final_result_id = $2
         GROUP BY e.id, e.name, e.created_at
         ORDER BY MIN(es.date) NULLS LAST, e.created_at, e.id`,
@@ -287,7 +288,7 @@ export class ExamDocumentsService {
       : [];
     const examLines = examResults.length
       ? await this.ds.query(
-          `SELECT result_id, subject_id, obtained FROM result_subjects
+          `SELECT result_id, subject_id, obtained, grade FROM result_subjects
             WHERE tenant_id = $1 AND deleted_at IS NULL AND result_id = ANY($2::uuid[])`,
           [tenantId, examResults.map((r: any) => r.id)],
         )
@@ -311,8 +312,12 @@ export class ExamDocumentsService {
     const resultOf = new Map<string, any>(
       examResults.map((r: any) => [`${r.exam_id}:${r.student_id}`, r]),
     );
-    const lineOf = new Map<string, number>(
-      examLines.map((l: any) => [`${l.result_id}:${l.subject_id}`, Number(l.obtained)]),
+    // ABS with 0 = every component absent: no mark (null), not a real 0 — same rule as the build.
+    const lineOf = new Map<string, number | null>(
+      examLines.map((l: any) => [
+        `${l.result_id}:${l.subject_id}`,
+        l.grade === 'ABS' && Number(l.obtained) === 0 ? null : Number(l.obtained),
+      ]),
     );
     const cellsByRow = new Map<string, Record<string, any>>();
     for (const l of finalLines) {
