@@ -127,3 +127,73 @@ export const Transcript3Exams: Story = {
     />
   ),
 };
+
+export const FinalTabulation: Story = {
+  render: () => (
+    <TabulationSheet
+      issuer={ISSUER}
+      examName="Final result 2026"
+      className="Class 6"
+      section="A"
+      variant="final"
+      examColumns={[
+        { id: 'e1', label: 'Half Yearly' },
+        { id: 'e2', label: 'Annual' },
+      ]}
+      subjects={subjects}
+      rows={rows.map((r, i) => ({
+        ...r,
+        examTotals: { e1: 300 - i, e2: i % 9 === 8 ? null : 310 - i },
+      }))}
+      legend="A+ 80-100 (5.00) · A 70-79 (4.00) · F 0-32 (0.00)"
+      printedOn="Printed: 8 Oct 2026"
+      labels={{
+        title: 'Final tabulation sheet',
+        roll: 'Roll',
+        name: 'Name',
+        fullMarks: 'Full marks',
+        obtained: 'Obt.',
+        grade: 'Gr.',
+        total: 'Final',
+        gpa: 'GPA',
+        merit: 'Merit',
+        summary: 'This section: 44 sat · 40 passed · 4 failed',
+        classTeacher: 'Class teacher',
+        examController: 'Exam controller',
+        headTeacher: 'Head teacher',
+        absent: 'Absent',
+      }}
+    />
+  ),
+};
+
+export const FinalTranscript: Story = {
+  render: () => (
+    <YearlyTranscript
+      issuer={ISSUER}
+      student={{ name: 'Ayesha Rahman', roll: 7, className: 'Class 6', section: 'A' }}
+      yearName="2026"
+      exams={[
+        { ...exam('Half Yearly'), shareLabel: '40%' },
+        { ...exam('Annual'), shareLabel: '60%' },
+      ]}
+      final={{ total: 300, gpa: 4, grade: 'A', position: 4 }}
+      printedOn="Printed: 8 Oct 2026"
+      labels={{
+        title: 'Final transcript',
+        roll: 'Roll',
+        subject: 'Subject',
+        obtained: 'Obtained',
+        grade: 'Grade',
+        gpa: 'GPA',
+        total: 'Total',
+        exam: 'Exam',
+        position: 'Position',
+        classTeacher: 'Class teacher',
+        headTeacher: 'Head teacher',
+        final: 'Final',
+        share: 'Share',
+      }}
+    />
+  ),
+};
