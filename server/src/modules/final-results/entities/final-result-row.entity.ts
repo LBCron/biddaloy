@@ -24,7 +24,9 @@ import { FinalResult } from './final-result.entity';
  * cannot silently change a printed card.
  *
  * `working_days` / `present_days` are the attendance totals printed on the report
- * card (null = not entered).
+ * card (null = not entered). `working_days` is the days the school's percentage divides
+ * by (marked days under MARKED_DAYS, less leave when leave is not a working day), so
+ * present / working = the attendance summary's percentage (D27, `attendanceFrom`).
  *
  * Soft-deletable: a recompute soft-deletes the old row and inserts a new one.
  *

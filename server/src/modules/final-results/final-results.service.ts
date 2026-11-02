@@ -38,7 +38,7 @@ import {
 import { AuditService } from '../audit/audit.service';
 import { ApprovalContext } from '../auth/guards/approval.guard';
 import { AttendanceSummaryService } from '../attendance/attendance-summary.service';
-import { loadCardNotes } from '../exams/report-card-extras';
+import { attendanceFrom, loadCardNotes } from '../exams/report-card-extras';
 import { AcademicYear } from '../academics/entities/academic-year.entity';
 import { Class } from '../academics/entities/class.entity';
 import { ClassSection } from '../academics/entities/class-section.entity';
@@ -1263,16 +1263,9 @@ export class FinalResultsService {
 
       const now = new Date();
       const snapshot = rows.map((row) => {
-        const s = summaries.get(row.student_id);
-        const working = s ? s.working_days : null;
-        const present =
-          s && working !== null
-            ? Math.min(
-                working,
-                s.present_days + (s.policy.late_counts_as_present ? s.late_days : 0),
-              )
-            : null;
-        return { id: row.id, working, present };
+        // Same pair the per-exam card prints (D27), so present/days = the summary's percentage.
+        const a = attendanceFrom(summaries.get(row.student_id));
+        return { id: row.id, working: a?.working_days ?? null, present: a?.present_days ?? null };
       });
       // One statement for the whole class instead of one round trip per row.
       if (snapshot.length > 0) {
