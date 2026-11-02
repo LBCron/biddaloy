@@ -201,10 +201,28 @@ describe('ResultCertificateResolver', () => {
       }
     });
 
-    it('refuses an unpublished final (not found: only PUBLISHED finals are looked up)', async () => {
+    it('404s an id that is neither an exam nor a final of this school', async () => {
       await expect(runFinal(DocumentKind.RESULT_CERTIFICATE, [finalRow('a')], [])).rejects.toThrow(
         'Exam not found',
       );
+    });
+
+    it('looks the final up without a status filter, so unpublished refuses per student', async () => {
+      const seen: string[] = [];
+      const mgr = finalMgr([finalRow('a', { published_at: null })]);
+      const query = mgr.query;
+      mgr.query = (sql: string, p: any[]) => (seen.push(sql), query(sql, p));
+      const d = await refusal(
+        new ResultCertificateResolver(DocumentKind.RESULT_CERTIFICATE).resolve(
+          't',
+          ['a'],
+          mgr,
+          undefined,
+          ctx,
+        ),
+      );
+      expect(d.students).toEqual([{ id: 'a', reason: 'NOT_PUBLISHED' }]);
+      expect(seen.find((q) => q.includes('FROM final_results'))).not.toMatch(/status/);
     });
 
     it('keeps the failed / unranked rules', async () => {
