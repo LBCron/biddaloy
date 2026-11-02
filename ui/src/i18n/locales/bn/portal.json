@@ -567,6 +567,11 @@
     "failed": "উন্নতি দরকার: অন্তত একটা বিষয়ে ফেল",
     "meterLabel": "{{max}}-এর মধ্যে জিপিএ",
     "link": "পুরো ফল",
-    "emptyReason": "এখনো চূড়ান্ত ফলাফল প্রকাশ হয়নি।"
+    "emptyReason": "এখনো চূড়ান্ত ফলাফল প্রকাশ হয়নি।",
+    "cardTitle": "চূড়ান্ত ফলাফল {{year}} — {{class}}",
+    "share": "{{exam}} {{percent}}%",
+    "attendance": "{{working}} দিনের মধ্যে উপস্থিত {{present}} দিন ({{percent}}%)",
+    "showDetails": "বিস্তারিত ও কার্ড দেখুন",
+    "hideDetails": "বিস্তারিত লুকান"
   }
 }
