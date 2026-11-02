@@ -90,7 +90,7 @@
       "status": {
         "NONE": "চাওয়া হয়নি",
         "PENDING": "বাকি",
-        "APPROVED": "সারিতে আছে",
+        "APPROVED": "অনুমোদিত",
         "DECLINED": "বাতিল"
       },
       "request": "SMS-এর অনুরোধ করুন",

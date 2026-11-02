@@ -225,10 +225,10 @@ An SMS never goes by itself. An admin must approve it first, and SMS costs credi
 
 4. Press **Approve and send**, or press **Decline** to send nothing.
 
-| You press            | What happens                                                                                                                                                                                                          | Credits used |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| **Approve and send** | **SMS on their way: 30.** shows. One SMS per person, each with their own link, is queued to send. The status becomes **Queued**. Whether each SMS reached the phone shows later in the [Message log](message-log.md). | Yes          |
-| **Decline**          | The box **Decline this SMS?** shows; if you confirm, **SMS declined. Nothing was sent.** shows. The status becomes **Cancelled**.                                                                                     | No           |
+| You press            | What happens                                                                                                                                                                                                            | Credits used |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| **Approve and send** | **SMS on their way: 30.** shows. One SMS per person, each with their own link, is queued to send. The status becomes **Approved**. Whether each SMS reached the phone shows later in the [Message log](message-log.md). | Yes          |
+| **Decline**          | The box **Decline this SMS?** shows; if you confirm, **SMS declined. Nothing was sent.** shows. The status becomes **Cancelled**.                                                                                       | No           |
 
 5. After a decision the request can only be read: **This request is already decided. You can only read it.**
 
