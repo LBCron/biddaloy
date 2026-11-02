@@ -310,7 +310,7 @@ export function ReportCard({
           {att.working_days === null ? '—' : num(att.working_days)}
           {' · '}
           {blockLabels.daysPresent} {att.present_days === null ? '—' : num(att.present_days)}
-          {pct !== null && ` (${num(pct)}%)`}
+          {pct !== null && ` (${formatNumber(pct, config, { percent: true })})`}
         </div>
       )}
 
