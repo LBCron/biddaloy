@@ -223,6 +223,11 @@ export const noticeRecipientsTab: TabSpec<NoticeRecipient, Rec> = {
     const changed = SCALAR_KEYS.filter((k) =>
       DATETIME_KEYS.includes(k) ? instant(row[k]) !== instant(e[k]) : row[k] !== e[k],
     );
+    // Restore matches by id first and upsert rewrites these, so a row that now
+    // points at another notice or person must not preview as "unchanged".
+    if (row.notice_id !== existing.notice_id) changed.push('notice');
+    for (const [key, fk] of REFS)
+      if ((row[fk] ?? null) !== (existing[fk] ?? null)) changed.push(key);
     return changed;
   },
 
