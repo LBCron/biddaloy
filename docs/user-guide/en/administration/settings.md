@@ -53,7 +53,7 @@ keywords:
   [সেটিংস, স্কুল প্রোফাইল, লোগো, উপস্থিতি নীতি, বিলম্ব ফি, অনুমোদন, শিফট, settings, school profile, logo, late fee, প্রিন্টার, ব্যাকআপ, পুনরুদ্ধার, সাইন-ইন, printer, backup, restore, sign-in]
 appVersion: 0.1.0 (94db6def4)
 owner: tareq89
-lastVerified: 2026-10-25
+lastVerified: 2026-11-02
 knownIssues: []
 -->
 
@@ -74,6 +74,7 @@ The **Settings** page is split into **categories**, such as **School** or **Fina
 - [How to know it was saved](#confirm)
 - [The categories](#other)
   - [School: profile, logo, shift, language and calendar](#task-school)
+    - [Conduct lines on the report card](#task-conduct)
   - [Academics: attendance, evaluations, dashboard and more](#task-academics)
   - [Finance: fee rules](#task-finance)
   - [Seats & billing](#task-billing)
@@ -169,6 +170,26 @@ Press **Advanced settings** for more fields: **Timezone**, **Currency code**, th
 Holidays and events are added on the [**Calendar**](../people/calendar.md) page.
 
 <img src="img/settings-school.png" alt="School category; 1 · School profile and logo 2 · Shift, version & group 3 · Language, numbers and dates, Advanced settings closed 4 · Calendar; admin">
+
+#### Conduct lines on the report card <a href="#task-conduct" id="task-conduct"></a>
+
+In the **School** category, below **Shift, version & group**, there is a card called **Conduct**. These are the lines the class teacher grades from A to D on every report card. At first there are four: **Discipline**, **Neatness**, **Punctuality** and **Sports & co-curricular**.
+
+1. Open **Administration → Settings** and press **School**. Scroll to the **Conduct** card.
+2. To add a line, press **Add** and write the **Bangla name** and the **English name**. Under the English name the app shows **Saved as: …**, which is the short name kept inside the system.
+3. To change a line, type over its names. Renaming keeps the grades already given.
+4. To take a line away, press **Remove**. Changed your mind? Press **Undo remove** before you save.
+5. Press **Save**.
+
+   → **Saved.** appears. The class teachers see the new lines on the [Remarks and conduct](../academics/my-class.md#task-notes) page, and the report cards of [Final results](../exams-results/final-results.md) show them.
+
+| What you see                                                                                                       | What to do                                           |
+| ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| **Keep at least one line.**                                                                                        | You cannot save an empty list. Keep or add one line. |
+| **Write both the Bangla and the English name.**                                                                    | Fill both names of the line.                         |
+| **The English name must start with a letter, be 2 to 31 letters or digits long, and differ from the other lines.** | Change the English name.                             |
+| **At most … lines.**                                                                                               | You cannot add more. Remove a line you do not need.  |
+| **Couldn't save. Try again.**                                                                                      | Check your internet and press **Save** again.        |
 
 ### Academics: attendance, evaluations, dashboard and more <a href="#task-academics" id="task-academics"></a>
 
