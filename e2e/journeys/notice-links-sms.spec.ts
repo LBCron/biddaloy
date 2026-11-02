@@ -20,7 +20,7 @@ import { t } from '../i18n';
  * off, the same address shows the one dead-link message.
  * Case 2: OFFICE_STAFF asks for an SMS; the admin sees it on the SMS page, unticks one person,
  * approves, and the message log holds n-1 SMS (the sink: `MESSAGE_SINK`, nothing leaves the
- * machine). A personal link from one of those SMS opens with no login and marks that person seen.
+ * machine). The log shows each personal link masked as `/n/••••••`, never the token.
  * Case 3: OFFICE_STAFF has no access to the SMS page (read-only guard, 403 from the API).
  *
  * Data is built through the API with a unique suffix so no other spec can change it. The three
@@ -136,10 +136,9 @@ test.describe('notice links and SMS', () => {
     }
   });
 
-  test('office staff asks for an SMS, the admin approves n-1, a personal link marks seen', async ({
+  test('office staff asks for an SMS, the admin approves n-1, the log hides personal links', async ({
     page,
     request,
-    browser,
     playwright,
   }) => {
     const admin = await adminApiSession(request);
@@ -199,28 +198,12 @@ test.describe('notice links and SMS', () => {
     // n - 1 = 2 SMS logs reach the sink, one per ticked person.
     await expect.poll(async () => (await logs()).total, { timeout: 30_000 }).toBe(2);
 
-    await test.step('a personal link opens with no login and marks that person seen', async () => {
-      const body = (await logs()).data[0]!.message_body ?? '';
-      const link = /\/n\/([\w-]+)/.exec(body);
-      expect(link, 'SMS body carries a personal /n/ link').not.toBeNull();
-      const anon = await browser.newContext();
-      try {
-        const reader = await anon.newPage();
-        const opened = reader.waitForResponse(
-          (r) => r.url().includes('/public/notices/') && r.url().endsWith('/opened'),
-        );
-        await reader.goto(`/n/${link![1]}`);
-        await expect(reader.getByRole('heading', { name: title })).toBeVisible();
-        await opened;
-      } finally {
-        await anon.close();
+    await test.step('the message log never shows a personal link', async () => {
+      // The link opens the notice with no login and marks that guardian seen, so a log reader
+      // must not be able to copy it (opening it is covered by notice-links.service.integration.spec.ts).
+      for (const row of (await logs()).data) {
+        expect(row.message_body ?? '').toMatch(/\/n\/••••••$/);
       }
-      const report = await get<{ totals: { linkOpened: number } }>(
-        request,
-        admin,
-        `/notices/${id}/report`,
-      );
-      expect(report.totals.linkOpened).toBe(1);
     });
   });
 });

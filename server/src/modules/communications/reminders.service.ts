@@ -113,6 +113,8 @@ export function canCheckStatus(log: CommunicationLog): boolean {
 
 /** A raw invoice share token in a stored body (`${PUBLIC_APP_URL}/i/<base64url>`, Rule 16). */
 const SHARE_LINK = /\/i\/[A-Za-z0-9_-]+/g;
+/** A raw personal notice link token (`${PUBLIC_APP_URL}/n/<base64url>`, notice-sms.service.ts). */
+const NOTICE_LINK = /\/n\/[A-Za-z0-9_-]+/g;
 
 /**
  * [#3351 r2] What a message-log row may show of the stored text, decided at READ time for the
@@ -123,6 +125,8 @@ const SHARE_LINK = /\/i\/[A-Za-z0-9_-]+/g;
  * | ----------------------------------------------------------------------- | ------------------------------------ |
  * | Invoice receipt / invoice send (invoice-notifications.listener.ts,      | `/i/<token>` -> `/i/••••••`, every   |
  * | invoices.controller.ts): a live 30-day share link                       | row and role                         |
+ * | Notice SMS (notices/sms/notice-sms.service.ts): a personal link that    | `/n/<token>` -> `/n/••••••`, every   |
+ * | opens with no login and marks that guardian as having read it           | row and role                         |
  * | RESULT_SMS (exams/result-sms.service.ts): a student's result            | null unless the role has RESULT_READ |
  * | ACCOUNT_ACCESS (account-access-delivery.service.ts): codes, links       | already redacted at write            |
  * | Alert SMS fallback (attention/.../guardian-sms-fallback.service.ts):    | kept: only `child.absent_today` and  |
@@ -142,7 +146,9 @@ export function visibleLogBody(
   ) {
     return null;
   }
-  return log.message_body.replace(SHARE_LINK, `/i/${REDACTED}`);
+  return log.message_body
+    .replace(SHARE_LINK, `/i/${REDACTED}`)
+    .replace(NOTICE_LINK, `/n/${REDACTED}`);
 }
 
 /** A log query with the sender's name only (D22), never the rest of the user row. */
