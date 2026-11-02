@@ -27,7 +27,7 @@ import { MilestoneAchievement } from '../programs/entities/milestone-achievement
 import { buildIssuerSnapshot, type IssuerSnapshot } from '../schools/profile/issuer-snapshot';
 import { buildLogoUrl } from '../schools/profile/logo-key';
 import { GradingBand } from '../grading/entities/grading-band.entity';
-import { resolveScale, gradeFor } from '../grading/scale-lookup';
+import { resolveScale, gradeFor, gradeForGpa } from '../grading/scale-lookup';
 import {
   computeSubjectTotal,
   gradeSubjectTotal,
@@ -244,15 +244,6 @@ export class ResultsService {
     };
   }
 
-  /** The overall grade for a computed GPA is looked up against the same
-   * scale, keyed by GPA rather than percent (the certificate's grade
-   * always mirrors the GPA scale directly). */
-  private gradeForGpa(bands: Band[], gpa: number): Band | null {
-    const eligible = bands.filter((b) => b.gpa !== null && b.gpa <= gpa);
-    if (eligible.length === 0) return null;
-    return eligible.reduce((best, b) => ((b.gpa as number) > (best.gpa as number) ? b : best));
-  }
-
   /**
    * Computes every enrolled student's result for one exam. Pure data
    * assembly + `result-rules.ts` — the only side effect here is the
@@ -457,7 +448,7 @@ export class ResultsService {
         });
       }
 
-      const overall = combineSubjects(subjectResults, (gpa) => this.gradeForGpa(bands, gpa));
+      const overall = combineSubjects(subjectResults, (gpa) => gradeForGpa(bands, gpa));
       computed.push({
         student_id: student.id,
         section_id: sectionByStudent.get(student.id) ?? null,

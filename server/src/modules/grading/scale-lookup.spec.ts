@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { gradeFor, resolveScale, roundHalfUp } from './scale-lookup';
+import { gradeFor, gradeForGpa, resolveScale, roundHalfUp } from './scale-lookup';
 
 const BANDS = [
   { percent_from: 80, percent_to: 100, grade: 'A+' },
@@ -58,5 +58,26 @@ describe('resolveScale', () => {
 
   it('returns null when neither exists', () => {
     expect(resolveScale(scales, 'other-year', CLASS)).toBeNull();
+  });
+});
+
+describe('gradeForGpa', () => {
+  const GPA_BANDS = [
+    { grade: 'A+', gpa: 5 },
+    { grade: 'A', gpa: 4 },
+    { grade: 'B', gpa: 3 },
+    { grade: 'F', gpa: 0 },
+    { grade: 'NG', gpa: null },
+  ];
+
+  it('picks the highest band at or below the GPA', () => {
+    // Single-exam and final results both grade through this one function.
+    expect(gradeForGpa(GPA_BANDS, 4.5)?.grade).toBe('A');
+    expect(gradeForGpa(GPA_BANDS, 5)?.grade).toBe('A+');
+    expect(gradeForGpa(GPA_BANDS, 0)?.grade).toBe('F');
+  });
+
+  it('returns null when no band has a GPA that low', () => {
+    expect(gradeForGpa([{ grade: 'A', gpa: 4 }], 3.9)).toBeNull();
   });
 });
