@@ -22,6 +22,7 @@ import { toPaisa } from '../../common/constants/money';
 import { RequestContext } from '../../common/request-context.util';
 import { todayInSchoolTz } from '../../common/time';
 import {
+  finalAlreadyExists,
   finalNoExams,
   finalNotDraft,
   finalNotProcessed,
@@ -442,12 +443,9 @@ export class FinalResultsService {
           deleted_at: IsNull(),
         },
       });
-      if (existing > 0) {
-        throw new ConflictException({
-          message: 'This class already has a final result for this year.',
-          details: { code: 'FINAL_ALREADY_EXISTS' },
-        });
-      }
+      // Two creates at once both pass this count; the unique index then refuses the second, and
+      // known-errors.ts maps that to the same 409.
+      if (existing > 0) throw finalAlreadyExists();
       const switches = await this.lastYearSwitches(manager, cls, year, tenantId);
       const exams = await manager.getRepository(Exam).find({
         where: {

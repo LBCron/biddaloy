@@ -10,7 +10,9 @@ import {
   FinalResultRounding,
   FinalResultStatus,
 } from '@biddaloy/shared';
+import { ConflictException } from '@nestjs/common';
 import { createTestModule } from '@test/helpers/module.helper';
+import { mapKnownError } from '../../common/filters/known-errors';
 import { ALL_ENTITIES } from '@test/all-entities';
 import { SEED_TENANT_ID } from '@test/constants';
 import { FinalResultsService } from './final-results.service';
@@ -452,6 +454,55 @@ describe('FinalResultsService (integration)', () => {
     expect(list).toEqual([
       expect.objectContaining({ final_result_id: summary.id, status: FinalResultStatus.DRAFT }),
     ]);
+  });
+
+  it('a create that loses the race to another create is FINAL_ALREADY_EXISTS, not the generic duplicate', async () => {
+    // Deterministic hold: an open transaction already inserted this class-year's final. The
+    // service's count cannot see it (not committed), so its insert waits on the unique index.
+    const qr = ds.createQueryRunner();
+    await qr.connect();
+    await qr.startTransaction();
+    let creating: Promise<unknown> | undefined;
+    try {
+      try {
+        await qr.manager.getRepository(FinalResult).save({
+          tenant_id: TENANT_ID,
+          class_id: CLASS_ID,
+          academic_year_id: YEAR_ID,
+        });
+        creating = service.create(
+          { class_id: CLASS_ID, academic_year_id: YEAR_ID },
+          TENANT_ID,
+          'user-1',
+        );
+        creating.catch(() => undefined);
+        await expect
+          .poll(
+            async () =>
+              (
+                await ds.query(
+                  `SELECT 1 FROM pg_stat_activity
+                    WHERE datname = current_database() AND wait_event_type = 'Lock'
+                      AND pid <> pg_backend_pid() AND query ILIKE '%INSERT INTO "final_results"%'`,
+                )
+              ).length,
+            { timeout: 15000, interval: 25 },
+          )
+          .toBeGreaterThan(0);
+      } finally {
+        await qr.commitTransaction();
+      }
+    } finally {
+      await qr.release();
+    }
+    const err = await creating!.then(
+      () => null,
+      (e: unknown) => e,
+    );
+    // The filter maps the unique violation through known-errors.ts (Rule 24).
+    const mapped = mapKnownError(err) ?? (err as ConflictException);
+    expect(mapped.getStatus()).toBe(409);
+    expect(mapped.getResponse()).toMatchObject({ details: { code: 'FINAL_ALREADY_EXISTS' } });
   });
 
   it("create copies last year's switches from the same-named class", async () => {
