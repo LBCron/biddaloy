@@ -576,12 +576,23 @@ PromotionRun (Class 6 -> Class 7, 2026-2027)   status: DRAFT -> COMMITTED
   `target_enrollment_id` is filled in on commit once placement has created
   the student's next-year `Enrollment`.
 
-**Composition caveat, stated plainly:** a promotion run's `mean_gpa` is a
-**plain mean** of the selected exams' GPAs (D7) — not a weighted average
-(e.g. "Second Term counts double"). Weighted cross-exam composition is the
-same gap already called out above for report cards (D3): still absent, on
-purpose, not forgotten. A future epic that adds per-exam weights to result
-composition should extend the promotion mean the same way.
+**Composition caveat, stated plainly:** a promotion run's merit source is one of two
+things, never both:
+
+```mermaid
+flowchart LR
+  A["exam_ids"] --> B["plain mean of the exams' GPAs (D7)"]
+  C["final_result_id (70.3.3)"] --> D["the final's own GPA and total, weighted (D11)"]
+  B --> E["meritOrder: same ranking, placement and commit"]
+  D --> E
+```
+
+- With `exam_ids`, `mean_gpa` is still a **plain mean** — no per-exam weights.
+- With `final_result_id`, the run reads the weighted `gpa`, `total_marks` and `is_fail`
+  straight from `final_result_rows`. The final must be `PUBLISHED`, belong to the source
+  class and its year; otherwise create answers 422. `exam_ids` is `[]` then
+  (`CHK_promotion_runs_one_merit_source`). Commit refuses (409 `STALE_RESULTS`) if the
+  final was recomputed after the last refresh.
 
 ### Calendar (`modules/calendar`) — see [16-academic-calendar.md](16-academic-calendar.md) for the full model
 
