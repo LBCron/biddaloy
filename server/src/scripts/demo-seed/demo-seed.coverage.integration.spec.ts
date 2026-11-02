@@ -187,6 +187,34 @@ async function openAlertsByCard(ds: DataSource): Promise<Record<string, number>>
   return out;
 }
 
+/**
+ * [#3411] What the two demo cards see: notes on the class teacher's homeroom for the current
+ * Half-Yearly, and notes on a PUBLISHED final card for the guardian's children.
+ */
+async function cardNotes(ds: DataSource): Promise<{ teacher: number; guardian: number }> {
+  const [{ teacher }] = await ds.query(
+    `SELECT count(*)::int AS teacher FROM report_card_notes n
+       JOIN exams e ON e.id = n.exam_id AND e.name = 'Half-Yearly Exam'
+       JOIN enrollments en ON en.student_id = n.student_id AND en.academic_year_id = e.academic_year_id
+       JOIN teacher_class_sections tcs ON tcs.section_id = en.section_id
+        AND tcs.assignment_type = 'CLASS_TEACHER'
+       JOIN teachers t ON t.id = tcs.teacher_id
+       JOIN users u ON u.id = t.user_id
+      WHERE u.email = $1`,
+    [DEMO_CARDS.find((c) => c.key === 'class-teacher-8a')!.email],
+  );
+  const [{ guardian }] = await ds.query(
+    `SELECT count(*)::int AS guardian FROM report_card_notes n
+       JOIN final_results fr ON fr.id = n.final_result_id AND fr.status = 'PUBLISHED'
+       JOIN student_guardians sg ON sg.student_id = n.student_id
+       JOIN guardians g ON g.id = sg.guardian_id
+       JOIN users u ON u.id = g.user_id
+      WHERE u.email = $1 AND n.remark IS NOT NULL`,
+    [DEMO_CARDS.find((c) => c.key === 'guardian')!.email],
+  );
+  return { teacher: Number(teacher), guardian: Number(guardian) };
+}
+
 describe('demo seed coverage', () => {
   // biddaloy_demo* so runDemoSeed's own DB-name guard passes. A hash of the base name keeps runs
   // apart and the name under Postgres's 63-char limit (longer names truncate into one database).
@@ -203,6 +231,7 @@ describe('demo seed coverage', () => {
   let fpB: Record<string, string> = {};
   let openAlerts: Record<string, number> = {};
   let finalBackedRuns = 0;
+  let cardNoteCounts = { teacher: 0, guardian: 0 };
 
   /** Seeds `db` from a freshly loaded module graph (the app caches DATABASE_URL on first load). */
   async function seedInto(db: string, args: typeof MAIN, keepOpen: boolean) {
@@ -237,6 +266,7 @@ describe('demo seed coverage', () => {
       counts: keepOpen ? await countRows(run.ds, tables) : {},
       violations: keepOpen ? await validate(run.ds) : [],
       openAlerts: keepOpen ? await openAlertsByCard(run.ds) : {},
+      cardNotes: keepOpen ? await cardNotes(run.ds) : { teacher: 0, guardian: 0 },
       // [#3411] Promotion runs ranked on a published final result (#3410's merit source).
       finalBackedRuns: keepOpen
         ? Number(
@@ -264,6 +294,7 @@ describe('demo seed coverage', () => {
     rows = main.counts;
     openAlerts = main.openAlerts;
     finalBackedRuns = main.finalBackedRuns;
+    cardNoteCounts = main.cardNotes;
     fpA = (await seedInto(dbs[1], SMALL, false)).fp;
     fpB = (await seedInto(dbs[2], SMALL, false)).fp;
   }, 600_000);
@@ -348,6 +379,9 @@ describe('demo seed coverage', () => {
     // Notes are covered by the exams slice, so (c) already needs rows; this names the ticket.
     expect(rows.ReportCardNote ?? 0, 'report_card_notes rows').toBeGreaterThan(0);
     expect(finalBackedRuns, 'promotion_runs with final_result_id').toBeGreaterThan(0);
+    // The demo class teacher's grid is partly filled; the guardian sees a remark on a final.
+    expect(cardNoteCounts.teacher, 'notes in class-teacher-8a homeroom').toBeGreaterThan(0);
+    expect(cardNoteCounts.guardian, "notes on the guardian's children's finals").toBeGreaterThan(0);
   });
 
   it('every invariant holds on the seeded data', () => {
