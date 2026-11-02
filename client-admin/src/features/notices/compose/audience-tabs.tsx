@@ -20,6 +20,7 @@ import {
   DEFAULT_BELOW_PERCENT,
   FilterField,
   hasOrgChoices,
+  parsePercent,
   validPercent,
 } from './advanced-filter-fields';
 import type {
@@ -186,13 +187,15 @@ export function audienceQuery(
       };
     case 'feeDue':
       return { ...base, target: AudienceTarget[f.target], tab: AudienceTab.FEE_DUE };
-    case 'lowAttendance':
+    case 'lowAttendance': {
+      const belowPercent = parsePercent(f.belowPercent);
       return {
         ...base,
         target: AudienceTarget[f.target],
         tab: AudienceTab.LOW_ATTENDANCE,
-        ...(validPercent(f.belowPercent) ? { belowPercent: Number(f.belowPercent) } : {}),
+        ...(belowPercent !== null ? { belowPercent } : {}),
       };
+    }
     case 'orgGroup':
       return {
         ...base,

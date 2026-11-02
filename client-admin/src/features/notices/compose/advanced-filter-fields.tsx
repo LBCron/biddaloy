@@ -6,6 +6,7 @@
 import { Combobox, Input } from '@biddaloy/ui/components';
 import { useExams } from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
+import { toLatinDigits } from '@biddaloy/ui/utils';
 import * as React from 'react';
 
 import type { AudienceFilterState } from './audience-tabs';
@@ -21,8 +22,12 @@ export interface Vocab {
 export const EMPTY_VOCAB: Vocab = { shifts: [], versions: [], groups: [] };
 export const DEFAULT_BELOW_PERCENT = '75';
 
-/** Whole number 1..100: the server's own bounds for `belowPercent`. */
-export const validPercent = (v: string) => /^\d{1,3}$/.test(v) && +v >= 1 && +v <= 100;
+/** Whole number 1..100 (the server's own bounds for `belowPercent`), Bangla digits too; else null. */
+export const parsePercent = (v: string): number | null => {
+  const d = toLatinDigits(v);
+  return /^\d{1,3}$/.test(d) && +d >= 1 && +d <= 100 ? +d : null;
+};
+export const validPercent = (v: string) => parsePercent(v) !== null;
 
 /** The org tab is worth showing only when at least one of its fields would. */
 export const hasOrgChoices = (v: Vocab | undefined) =>

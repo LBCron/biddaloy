@@ -52,6 +52,8 @@ describe('advanced audience query', () => {
   it('low attendance defaults to 75 and sends a number', () => {
     expect(audienceQuery('lowAttendance', f({}), 1, 25).belowPercent).toBe(75);
     expect(audienceQuery('lowAttendance', f({ belowPercent: '60' }), 1, 25).belowPercent).toBe(60);
+    // Bangla digits reach the server as a number, not NaN.
+    expect(audienceQuery('lowAttendance', f({ belowPercent: '৬০' }), 1, 25).belowPercent).toBe(60);
   });
 
   it('org tab sends only the picked values', () => {
@@ -78,6 +80,9 @@ describe('percent validation', () => {
     ['', false],
     ['7.5', false],
     ['abc', false],
+    // Bangla digits typed on a bn keyboard count the same as Latin ones.
+    ['৭৫', true],
+    ['১০১', false],
   ])('%s -> %s', (v, ok) => {
     expect(validPercent(v)).toBe(ok);
   });
