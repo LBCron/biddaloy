@@ -81,7 +81,7 @@ All your features, in the order of the left menu. The list is built automaticall
 
 **Communications**
 
-- Notices (coming soon)
+- [Notices](../communications/notices.md) — Write a school notice and send it to chosen people; see who has read it, run or turn off the public link, and ask for an SMS to be approved.
 
 <!-- /guide:generated -->
 

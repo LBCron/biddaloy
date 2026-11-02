@@ -1,0 +1,11 @@
+%% title: How you read a notice
+%% desc: The school's notice shows in your Current list, bold until you open it. You open it to read the text and open its files. If it is important, a warning bar stays until you press I've read it. Old notices move to Archive.
+flowchart LR
+  L["Current list<br/>(bold = not opened)"] --> O["Open the notice"]
+  O --> F["Read text,<br/>open files"]
+  F --> I{"Important?"}
+  I -- "Yes" --> A["Press<br/>I've read it"]:::done
+  I -- "No" --> E["Done"]
+  A --> V["Warning bar goes"]
+  O --> R["Later: moves to<br/>Archive"]
+  classDef done fill:#ebfbee,stroke:#2b8a3e,color:#14411d

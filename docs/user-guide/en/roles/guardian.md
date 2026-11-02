@@ -53,7 +53,7 @@ All your features, in the order of the left menu. The list is built automaticall
 - [Exam schedule](../portal/exam-schedule.md) — See the date, time, subject and venue of every exam for your child's class, with the next exam set apart, and print the admit card for an upcoming exam yourself.
 - [Syllabus](../portal/syllabus.md) — See on your phone how far each subject has been taught in class, which subject is behind, and how much of the next exam's syllabus is done. This page is view only; nothing can be changed.
 - [Homework](../portal/homework.md) — See on your phone the homework your child has to hand in today and later, grouped by due date, with the subject, the task and the day it was given. This page is view only; nothing can be changed or handed in here.
-- Notices (coming soon)
+- [Notices](../portal/notices.md) — Read the notices your school gave, open their files, and press I have read this on an important notice.
 - [Surveys](../portal/surveys.md) — Tell the school what you think of the teachers. Give stars or write once for each teacher and subject. In an anonymous survey the school does not see your name, and does not see the result if too few answers come in.
 - [Applications](../portal/applications.md) — Submit a leave, fee waiver, testimonial, transfer certificate, ID card or general application for your child from your phone, and see which step it is at. You can withdraw your own application before a decision.
 - [Account](../portal/account.md) — Change your name, phone, email and password, sign out a lost phone, and change the language. A new phone or email only takes effect once it is verified; until then the old one stays.
