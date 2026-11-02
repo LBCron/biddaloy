@@ -47,7 +47,7 @@ import { Mark } from '../exams/entities/mark.entity';
 import { Result } from '../exams/entities/result.entity';
 import { ResultSubject } from '../exams/entities/result-subject.entity';
 import { sitsSubject } from '../exams/exam-cohort';
-import { lockExam } from '../exams/results.service';
+import { lockExam } from '../exams/exam-lock';
 import {
   combineSubjects,
   gradeSubjectTotal,
@@ -746,7 +746,8 @@ export class FinalResultsService {
   /**
    * [70.3.x] Rebuild a PROCESSED final inside the caller's transaction (a grading-scale
    * edit). Same computation as `build`, so the status stays PROCESSED and `published_at`
-   * stays null; refused while PUBLISHED.
+   * stays null; refused while PUBLISHED. `scaleId` is the scale the rows are pinned to: the
+   * edited scale is rebuilt, never whatever `resolveScale` would pick today.
    */
   recompute(
     manager: EntityManager,
@@ -754,8 +755,9 @@ export class FinalResultsService {
     tenantId: string,
     userId: string | null,
     context: RequestContext = { ip: null, userAgent: null },
+    scaleId?: string,
   ): Promise<number> {
-    return this.buildIn(manager, id, tenantId, userId, context);
+    return this.buildIn(manager, id, tenantId, userId, context, scaleId);
   }
 
   /**
@@ -796,6 +798,7 @@ export class FinalResultsService {
     tenantId: string,
     userId: string | null,
     context: RequestContext,
+    pinnedScaleId?: string,
   ): Promise<number> {
     const final = await this.lock(manager, id, tenantId);
     if (final.status === FinalResultStatus.PUBLISHED) throw finalPublished();
@@ -823,7 +826,10 @@ export class FinalResultsService {
     const scales = await manager
       .getRepository(GradingScale)
       .find({ where: { tenant_id: tenantId, deleted_at: IsNull() } });
-    const scale = resolveScale(scales, final.academic_year_id, final.class_id);
+    // A rebuild keeps the pinned scale (tenant-scoped list above); a fresh build resolves one.
+    const scale = pinnedScaleId
+      ? (scales.find((s) => s.id === pinnedScaleId) ?? null)
+      : resolveScale(scales, final.academic_year_id, final.class_id);
     if (!scale) {
       throw new ConflictException({
         message: "No grading scale found for this final result's academic year (or class).",
@@ -861,7 +867,12 @@ export class FinalResultsService {
       userId,
       context,
       { status: final.status },
-      { status: FinalResultStatus.PROCESSED, student_count: computed.length },
+      {
+        status: FinalResultStatus.PROCESSED,
+        student_count: computed.length,
+        // A scale-edit rebuild says so, apart from a Build press (same shape otherwise).
+        ...(pinnedScaleId ? { reason: 'GRADING_SCALE_EDITED', grading_scale_id: scale.id } : {}),
+      },
     );
     return computed.length;
   }

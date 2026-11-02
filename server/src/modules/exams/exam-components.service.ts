@@ -10,7 +10,8 @@ import { AuditAction, ExamComponentKind, ExamComponentSource, ExamStatus } from 
 import { Exam } from './entities/exam.entity';
 import { ExamComponent } from './entities/exam-component.entity';
 import { Mark } from './entities/mark.entity';
-import { ResultsService, examPublished, lockExam } from './results.service';
+import { ResultsService, examPublished } from './results.service';
+import { lockExam } from './exam-lock';
 import { Subject } from '../academics/entities/subject.entity';
 import {
   CreateExamComponentDto,
