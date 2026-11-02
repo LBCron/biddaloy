@@ -23,15 +23,21 @@ export interface UnregisteredAction {
   readonly note: string;
 }
 
-/** Work owed to an open epic. Empty: nothing is deferred. */
-export const UNREGISTERED_ACTIONS: readonly UnregisteredAction[] = [];
-
 export interface PaletteAllowListEntry {
   readonly file: string;
   readonly reason: string;
 }
 
 const R = 'client-admin/src/routes/';
+
+/** Work owed to an open epic. */
+export const UNREGISTERED_ACTIONS: readonly UnregisteredAction[] = [
+  {
+    file: `${R}_staff/my-class/$sectionId_.notes.tsx`,
+    owningEpic: '#3421',
+    note: 'Remarks and conduct screen (#3418); #3421 registers the `my-class.notes` palette action and removes this entry',
+  },
+];
 
 export const PALETTE_ALLOW_LIST: readonly PaletteAllowListEntry[] = [
   {

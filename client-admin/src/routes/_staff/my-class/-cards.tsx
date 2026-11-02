@@ -16,6 +16,7 @@ import {
   useExams,
   useFeeDues,
   useHasPermission,
+  useReportCardNotesMissing,
   useSectionHomeworkRollup,
   useSectionRegister,
   useStudents,
@@ -29,6 +30,7 @@ import { ChevronRightIcon, PhoneIcon, RotateCcwIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 
 import { ArrivalAddDialog } from './-arrival-add-dialog';
+import { useNotesTargets } from './-notes-targets';
 
 const ROWS = 5;
 
@@ -451,6 +453,53 @@ export function ResultsCard({ sectionId, classId }: { sectionId: string; classId
           </List>
         </div>
       )}
+    </CardFrame>
+  );
+}
+
+// --- 5b. Remarks and conduct ----------------------------------------------
+
+export function NotesCard({ sectionId, classId }: { sectionId: string; classId: string }) {
+  const { t } = useTranslation('myClass');
+  const targets = useNotesTargets(classId);
+  // The card speaks for the final result; no final result yet means no card body.
+  const final = targets.options.find((o) => o.key === 'final');
+  const missing = useReportCardNotesMissing(sectionId, final?.target);
+  const noFinal = !targets.isPending && !targets.isError && final === undefined;
+  const m = missing.data;
+  return (
+    <CardFrame
+      id="my-class-notes"
+      title={t('cards.notes')}
+      state={{
+        isPending: targets.isPending || (final !== undefined && missing.isPending),
+        isError: targets.isError || missing.isError,
+        retry: () => {
+          targets.refetch();
+          if (missing.isError) void missing.refetch();
+        },
+      }}
+      empty={noFinal ? t('notes.cardNone') : undefined}
+    >
+      {m && (
+        <p>
+          {t('notes.cardSummary', {
+            target: t('notes.forFinal'),
+            done: m.total - m.missing_remark,
+            left: m.missing_remark,
+          })}
+        </p>
+      )}
+      {final?.published && <p className="mt-1 text-text-secondary">{t('notes.cardPublished')}</p>}
+      <Link
+        to="/my-class/$sectionId/notes"
+        params={{ sectionId }}
+        search={{ for: 'final' }}
+        className={SEE_ALL_CLASS}
+      >
+        {final?.published ? t('notes.cardView') : t('notes.cardOpen')}
+        {SEE_ALL_ICON}
+      </Link>
     </CardFrame>
   );
 }
