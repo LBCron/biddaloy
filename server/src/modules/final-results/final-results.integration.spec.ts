@@ -373,6 +373,28 @@ describe('FinalResultsService (integration)', () => {
     });
   });
 
+  it('the student card prints an all-absent subject (ABS, 0) as no mark, like the build', async () => {
+    const { s, e1, e2 } = await fiveStudentsTwoExams();
+    // Student 4 was absent in every component of exam 1: the stored subject is ABS with 0.
+    const absent = await ds
+      .getRepository(Result)
+      .findOneByOrFail({ exam_id: e1.id, student_id: s[3].id });
+    await ds
+      .getRepository(ResultSubject)
+      .update({ result_id: absent.id }, { grade: 'ABS', obtained: '0.00', gpa: '0.00' });
+    const final = await finalWith([
+      [e1, '30.00'],
+      [e2, '70.00'],
+    ]);
+    await service.build(final.id, TENANT_ID, 'user-1');
+
+    const card = await service.studentCard(final.id, s[3].id, TENANT_ID);
+    const perExam = card!.subjects[0].per_exam;
+    // null, never 0: a real 0 would read as "sat the paper and scored nothing".
+    expect(perExam.find((p) => p.exam_id === e1.id)?.obtained).toBeNull();
+    expect(perExam.find((p) => p.exam_id === e2.id)?.obtained).toBe(70);
+  });
+
   it('rebuilding replaces the rows instead of piling up duplicates', async () => {
     const { e1, e2 } = await fiveStudentsTwoExams();
     const final = await finalWith([
