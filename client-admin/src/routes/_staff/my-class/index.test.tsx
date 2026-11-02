@@ -77,6 +77,19 @@ describe('/my-class', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/attendance/section-1'));
   });
 
+  it('[70.5.5] redirects to the remarks grid with ?then=notes', async () => {
+    mockSections([S1]);
+    const { router } = render('/my-class?then=notes');
+    await waitFor(() => expect(router.state.location.pathname).toBe('/my-class/section-1/notes'));
+  });
+
+  it('[70.5.5] points the picker links at the remarks grid with ?then=notes', async () => {
+    mockSections([S1, S2]);
+    render('/my-class?then=notes');
+    const link = await screen.findByRole('link', { name: /Class 7 – A/ });
+    expect(link.getAttribute('href')).toBe('/my-class/section-1/notes');
+  });
+
   it('lists two sections as link cards with the role as plain text', async () => {
     mockSections([S1, S2]);
     render('/my-class');

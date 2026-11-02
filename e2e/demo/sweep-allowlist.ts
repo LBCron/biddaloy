@@ -43,6 +43,8 @@ export const EXPECTED_SKIPS: string[] = [
   '/applications/$applicationId',
   // `/my-class` redirects to the section when the teacher has one (the demo class teacher has one).
   '/my-class/$sectionId',
+  // Same redirect: the notes grid hangs off the section page, never a `/my-class` row link.
+  '/my-class/$sectionId/notes',
 ];
 
 /**

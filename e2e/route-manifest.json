@@ -249,6 +249,19 @@
       "archetype": "detail"
     },
     {
+      "path": "/results/final",
+      "role": "admin",
+      "archetype": "list"
+    },
+    {
+      "path": "/results/final/$finalResultId",
+      "params": {
+        "finalResultId": "seeded"
+      },
+      "role": "admin",
+      "archetype": "detail"
+    },
+    {
       "path": "/analysis",
       "role": "admin",
       "archetype": "list"
@@ -765,6 +778,14 @@
       "role": "teacher",
       "archetype": "detail",
       "overlays": ["add-yourself"]
+    },
+    {
+      "path": "/my-class/$sectionId/notes",
+      "params": {
+        "sectionId": "seeded"
+      },
+      "role": "teacher",
+      "archetype": "form"
     },
     {
       "path": "/my-coordination",

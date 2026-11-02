@@ -153,6 +153,13 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
   ],
   '/_staff/marks/': [{ label: { key: 'marksEntry' } }],
   '/_staff/results/': [{ label: { key: 'results' } }],
+  // [70.5.5] D12: Results › Final results › <class> <year>.
+  '/_staff/results/final/': [{ label: { key: 'results' } }, { label: { key: 'finalResults' } }],
+  '/_staff/results/final/$finalResultId': [
+    { label: { key: 'results' } },
+    { label: { key: 'finalResults' } },
+    { label: { key: 'finalResultDetail' }, dynamic: 'entity' },
+  ],
   // [26.5.1] The tab (`?tab=`) isn't a route-tree segment — `ROUTE_CRUMBS`
   // only resolves path params via `dynamic: 'entity'`, not search state —
   // so the trail stops at "Analysis"; the route itself sets
@@ -190,6 +197,12 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
   '/_staff/my-class/$sectionId': [
     { label: { key: 'myClass' } },
     { label: { key: 'myClassSection' }, dynamic: 'entity' },
+  ],
+  // [70.5.5] D13: My class › <section> › Remarks and conduct (chromeless, so the trail is the tab title).
+  '/_staff/my-class/$sectionId_/notes': [
+    { label: { key: 'myClass' } },
+    { label: { key: 'myClassSection' }, dynamic: 'entity' },
+    { label: { key: 'myClassNotes' } },
   ],
   '/_staff/attendance/': [{ label: { key: 'attendance' } }],
   '/_staff/attendance/reports': [{ label: { key: 'attendanceReports' } }],
