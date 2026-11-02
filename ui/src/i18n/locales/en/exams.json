@@ -337,7 +337,9 @@
     "presentDays": "Days present",
     "remarkLabel": "Class teacher's remark",
     "conductLabel": "Conduct",
-    "noGrade": "—"
+    "noGrade": "—",
+    "attendance": "Attendance",
+    "guardian": "Guardian"
   },
   "analysis": {
     "tabs": {
@@ -494,7 +496,8 @@
       "save": "Save",
       "saved": "Saved.",
       "saveError": "Couldn't save. Try again.",
-      "locked": "The result is published, so it cannot be changed now. Reopen it first."
+      "locked": "The result is published, so it cannot be changed now. Reopen it first.",
+      "subjectShareError": "Each subject's shares must total 100."
     },
     "rules": {
       "rounding": {
@@ -523,7 +526,8 @@
       "build": "Build results",
       "publish": "Publish",
       "reopen": "Reopen",
-      "sendSms": "Send SMS"
+      "sendSms": "Send SMS",
+      "rebuild": "Build again"
     },
     "buildDialog": {
       "title": "Build the final results?",
@@ -569,7 +573,28 @@
       "absent": "Absent",
       "fail": "Failed",
       "emptyBuilt": "Results appear here once you build them.",
-      "loadError": "Couldn't load the results."
+      "loadError": "Couldn't load the results.",
+      "noRows": "No students found",
+      "noRowsHint": "Change the section or the search."
+    },
+    "detail": {
+      "loadError": "Couldn't load this final result.",
+      "facts": {
+        "class": "Class",
+        "academicYear": "Academic year",
+        "students": "Students",
+        "failed": "Failed",
+        "publishedAt": "Published on"
+      }
+    },
+    "print": {
+      "studentLabel": "Student",
+      "printAll": "Print all cards",
+      "tabulation": "Tabulation sheet",
+      "notBuilt": "Build the results first, then you can print the cards.",
+      "noStudents": "No students in this section.",
+      "loadError": "Couldn't load the cards. Try again.",
+      "noStudentsHint": "Choose another section."
     }
   }
 }
