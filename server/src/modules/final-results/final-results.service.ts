@@ -38,6 +38,7 @@ import {
 import { AuditService } from '../audit/audit.service';
 import { ApprovalContext } from '../auth/guards/approval.guard';
 import { AttendanceSummaryService } from '../attendance/attendance-summary.service';
+import { loadCardNotes } from '../exams/report-card-extras';
 import { AcademicYear } from '../academics/entities/academic-year.entity';
 import { Class } from '../academics/entities/class.entity';
 import { ClassSection } from '../academics/entities/class-section.entity';
@@ -408,6 +409,14 @@ export class FinalResultsService {
     const nameBySubject = new Map(subjects.map((s) => [s.id, s.name_en]));
     const resultByExam = new Map(examResults.map((r) => [r.exam_id, r]));
     const examName = new Map(exams.map((e) => [e.id, e.name]));
+    // Both card routes (here and the family transcript) print the same note.
+    const notes = await loadCardNotes(
+      this.manager,
+      tenantId,
+      studentId,
+      { final_result_id: id },
+      school.settings ?? null,
+    );
     return {
       final_result_id: id,
       academic_year_name: year?.name ?? '',
@@ -450,9 +459,8 @@ export class FinalResultsService {
         comment: b.comment,
       })),
       attendance: { working_days: row.working_days, present_days: row.present_days },
-      // Remarks and conduct belong to the report-card-notes tickets.
-      remark: null,
-      conduct: [],
+      remark: notes.remark,
+      conduct: notes.conduct,
       issuer: buildIssuerSnapshot(school) as unknown as Record<string, unknown>,
       logo_url: buildLogoUrl(school.id, school.logo_key),
     };
