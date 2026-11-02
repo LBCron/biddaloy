@@ -283,17 +283,62 @@ describe('ReportCard', () => {
       );
     });
 
+    it('final card: exam_cells are matched by exam id, not by position', () => {
+      const { container } = render(
+        <ReportCard
+          data={{
+            ...WITH_BLOCKS,
+            subjects: [
+              {
+                ...MATH_SUBJECT,
+                components: [],
+                // Reverse order vs exam_columns, and e3 has no cell at all.
+                exam_cells: [
+                  { exam_id: 'e2', value: 60 },
+                  { exam_id: 'e1', value: null },
+                ],
+              },
+            ],
+            final: { label: 'Final result', section_position: 3 },
+            exam_columns: [
+              { id: 'e1', label: 'Half Yearly', share_label: '40%' },
+              { id: 'e2', label: 'Annual', share_label: '60%' },
+              { id: 'e3', label: 'Pre-test', share_label: '0%' },
+            ],
+          }}
+          issuer={ISSUER}
+          labels={LABELS}
+          blockLabels={BLOCK_LABELS}
+        />,
+      );
+      const row = container.querySelector('tbody tr')!;
+      expect([...row.querySelectorAll('td')].slice(1, 4).map((t) => t.textContent)).toEqual([
+        'Absent',
+        '60',
+        '—',
+      ]);
+    });
+
     it('final card: one column per counted exam, Absent cell, final column, section position', () => {
       const { container } = render(
         <ReportCard
           data={{
             ...WITH_BLOCKS,
             exam_name: 'Final result 2026',
-            subjects: [{ ...MATH_SUBJECT, components: [], exam_cells: [70, null] }],
+            subjects: [
+              {
+                ...MATH_SUBJECT,
+                components: [],
+                exam_cells: [
+                  { exam_id: 'e1', value: 70 },
+                  { exam_id: 'e2', value: null },
+                ],
+              },
+            ],
             final: { label: 'Final result', section_position: 3 },
             exam_columns: [
-              { label: 'Half Yearly', share_label: '40%' },
-              { label: 'Annual', share_label: '60%' },
+              { id: 'e1', label: 'Half Yearly', share_label: '40%' },
+              { id: 'e2', label: 'Annual', share_label: '60%' },
             ],
           }}
           issuer={ISSUER}
