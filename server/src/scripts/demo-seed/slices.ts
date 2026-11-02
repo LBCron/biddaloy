@@ -45,7 +45,4 @@ export const EXEMPT: Record<string, string> = {
   AuditLog: 'written by services as a side effect, never seeded directly',
   ReportSnapshot: 'runtime output: a stored copy of one run (Epic 8.15)',
   ReportSchedule: 'runtime output: schedules are set up by the school (Epic 8.15)',
-  // [70.1.2] Temporary. Epic 70 seed ticket #3411 (notes) moves this into the exams slice's
-  // `covers` and deletes the line. The finals tables left this list in #3407.
-  ReportCardNote: 'Epic 70 seed ticket #3411 owes this; no service writes it yet',
 };
