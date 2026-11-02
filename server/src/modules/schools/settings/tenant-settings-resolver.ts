@@ -6,6 +6,7 @@ import {
   DEFAULT_AUTH_SETTINGS,
   DEFAULT_BACKUP_SETTINGS,
   DEFAULT_DOCUMENTS_SETTINGS,
+  DEFAULT_EXAMS_SETTINGS,
   DEFAULT_FEES_SETTINGS,
   DEFAULT_ORGANISATION_SETTINGS,
   DEFAULT_REGION_SETTINGS,
@@ -159,6 +160,33 @@ function overlayStudyPlansSettings(stored: unknown): StudyPlansSettings {
     result.guardianDigestSms = stored.guardianDigestSms;
   }
   return result;
+}
+
+const CONDUCT_KEY = /^[a-z][a-z0-9_]{1,30}$/;
+
+/** [70.2.01] Read-side guard mirroring `ExamsSettingsDto`: a stored list that is not
+ * entirely well-formed (bad item, duplicate key, over 12) reads as the defaults. */
+function overlayExamsSettings(stored: unknown): NonNullable<TenantSettings['exams']> {
+  const list = isPlainObject(stored) ? stored.conductItems : undefined;
+  const text = (v: unknown) => typeof v === 'string' && v.trim().length > 0 && v.length <= 60;
+  if (
+    !Array.isArray(list) ||
+    list.length > 12 ||
+    new Set(list.map((i) => (isPlainObject(i) ? i.key : i))).size !== list.length ||
+    !list.every(
+      (i) =>
+        isPlainObject(i) &&
+        typeof i.key === 'string' &&
+        CONDUCT_KEY.test(i.key) &&
+        text(i.name_bn) &&
+        text(i.name_en),
+    )
+  ) {
+    return DEFAULT_EXAMS_SETTINGS;
+  }
+  return {
+    conductItems: list.map((i) => ({ key: i.key, name_bn: i.name_bn, name_en: i.name_en })),
+  };
 }
 
 /**
@@ -353,6 +381,7 @@ export function resolveTenantSettings(stored: Record<string, unknown> | null): T
     studyPlans: overlayStudyPlansSettings(stored?.studyPlans),
     attention: overlayAttentionSettings(stored?.attention),
     dashboard,
+    exams: overlayExamsSettings(stored?.exams),
     ...(communications ? { communications } : {}),
     ...(preset ? { preset } : {}),
     ...(evaluations ? { evaluations } : {}),

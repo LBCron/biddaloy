@@ -22,7 +22,8 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+import { SanitizeText } from '../../../common/decorators/sanitize-text.decorator';
 import { ApiExtraModels, ApiProperty, ApiPropertyOptional, getSchemaPath } from '@nestjs/swagger';
 import { NestedSettings } from '../settings/nested-settings.decorator';
 import { OptionalSetting } from '../settings/optional-setting.decorator';
@@ -45,6 +46,7 @@ import type {
   MediumSettings,
   BackupScheduleMode,
   StudyPlansSettings,
+  ConductItem,
 } from '@biddaloy/shared';
 
 /**
@@ -869,6 +871,54 @@ export class StudyPlansSettingsDto implements Partial<StudyPlansSettings> {
   guardianDigestSms?: boolean;
 }
 
+/** [70.2.01] Slug a conduct item is stored under in `report_card_notes.conduct`. */
+export const CONDUCT_KEY_PATTERN = /^[a-z][a-z0-9_]{1,30}$/;
+export const CONDUCT_ITEMS_MAX = 12;
+const trimText = ({ value }: { value: unknown }) =>
+  typeof value === 'string' ? value.trim() : value;
+
+/** One conduct line. Messages are fixed sentences: a 400 never echoes what was sent. */
+export class ConductItemDto implements ConductItem {
+  @IsString({ message: 'key must be a string' })
+  @Matches(CONDUCT_KEY_PATTERN, {
+    message: 'key must be 2-31 characters: a lowercase letter, then lowercase letters, digits or _',
+  })
+  key: string;
+
+  // Transforms run in the order written here: strip markup first, then trim what is left.
+  @SanitizeText()
+  @Transform(trimText)
+  @IsString({ message: 'name_bn must be a string' })
+  @IsNotEmpty({ message: 'name_bn is required' })
+  @MaxLength(60, { message: 'name_bn must be at most 60 characters' })
+  name_bn: string;
+
+  // Transforms run in the order written here: strip markup first, then trim what is left.
+  @SanitizeText()
+  @Transform(trimText)
+  @IsString({ message: 'name_en must be a string' })
+  @IsNotEmpty({ message: 'name_en is required' })
+  @MaxLength(60, { message: 'name_en must be at most 60 characters' })
+  name_en: string;
+}
+
+/**
+ * [70.2.01] `settings.exams` (D8, D30) — the conduct lines of a report card.
+ * The array is replaced whole on PATCH (see `mergeTenantSettings`). Removing an
+ * item here leaves old `report_card_notes.conduct` keys untouched: they still
+ * print, with the key itself as the fallback label.
+ */
+export class ExamsSettingsDto {
+  @IsArray({ message: 'conductItems must be a list' })
+  @ArrayMaxSize(CONDUCT_ITEMS_MAX, {
+    message: `conductItems can have at most ${CONDUCT_ITEMS_MAX} items`,
+  })
+  @ArrayUnique((i: ConductItemDto) => i?.key, { message: 'conductItems keys must be unique' })
+  @ValidateNested({ each: true })
+  @Type(() => ConductItemDto)
+  conductItems: ConductItemDto[];
+}
+
 /**
  * [33.3.1] An explicit rename instruction for one `organisation` vocabulary
  * list, carried alongside a settings PATCH rather than inferred from the
@@ -965,4 +1015,8 @@ export class TenantSettingsDto {
   @OptionalSetting()
   @NestedSettings(() => DashboardSettingsDto)
   dashboard?: DashboardSettingsDto;
+
+  @OptionalSetting()
+  @NestedSettings(() => ExamsSettingsDto)
+  exams?: ExamsSettingsDto;
 }
