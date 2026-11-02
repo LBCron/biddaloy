@@ -106,6 +106,40 @@ describe('/results/final', () => {
     expect(screen.getAllByRole('link', { name: 'Go to results' }).length).toBeGreaterThan(0);
   });
 
+  it('finds a published exam past the first page of exams', async () => {
+    mock([row('c8', 'Class 8', 'NOT_SET_UP')], []);
+    const pages: string[] = [];
+    server.use(
+      http.get('/api/v1/exams', ({ request }) => {
+        const page = new URL(request.url).searchParams.get('page') ?? '1';
+        pages.push(page);
+        const data =
+          page === '1'
+            ? Array.from({ length: 100 }, (_, i) =>
+                examFactory({ id: `d${i}`, class_id: 'c1', status: 'DRAFT' }),
+              )
+            : [examFactory({ id: 'p1', class_id: 'c8', status: 'PUBLISHED' })];
+        return HttpResponse.json({
+          data,
+          total: 101,
+          page: Number(page),
+          limit: 100,
+          totalPages: 2,
+        });
+      }),
+    );
+    render();
+
+    await screen.findByText('Class 8');
+    await waitFor(() => expect(pages).toEqual(['1', '2']));
+    await waitFor(() =>
+      expect(
+        (screen.getAllByRole('button', { name: 'Start' })[0] as HTMLButtonElement).disabled,
+      ).toBe(false),
+    );
+    expect(screen.queryByText(/No exam result of this class is published yet/)).toBeNull();
+  });
+
   it('shows the empty state when the year has no classes', async () => {
     mock([], []);
     render();
