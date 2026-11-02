@@ -1350,7 +1350,7 @@ describe('attendanceFrom matches computeAttendancePercentage (D27)', () => {
         },
       })!;
       const pct = Math.round((pair.present_days / pair.working_days) * 100 * 100) / 100;
-      expect(pct).toBe(computeAttendancePercentage(counts, p));
+      expect(pct, JSON.stringify(p)).toBe(computeAttendancePercentage(counts, p));
     }
   });
 });
