@@ -5,8 +5,8 @@
  * audience is read-only (D5). The route files mount this; they are not part of this ticket.
  */
 import { NoticeStatus, NOTICE_LIMITS, UserRole } from '@biddaloy/shared';
-import { AudienceBuilder } from '@biddaloy/ui';
 import {
+  AudienceBuilder,
   Button,
   Dialog,
   DialogContent,

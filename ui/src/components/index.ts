@@ -489,3 +489,4 @@ export {
 } from './exam-marker-row';
 export { SchoolInvitesCard, type SchoolInvitesCardProps } from './school-invites-card';
 export * from './dashboard/index';
+export * from './audience-builder/index';

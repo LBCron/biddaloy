@@ -4,8 +4,13 @@
  * A teacher sees only the student and guardian tabs (their reads are scoped, Rule 2).
  */
 import { AudienceTab, AudienceTarget, UserRole } from '@biddaloy/shared';
-import type { AudienceBuilderTab } from '@biddaloy/ui';
-import { Combobox, Input, MultiCombobox, type DataTableColumn } from '@biddaloy/ui/components';
+import {
+  Combobox,
+  Input,
+  MultiCombobox,
+  type AudienceBuilderTab,
+  type DataTableColumn,
+} from '@biddaloy/ui/components';
 import { useAllClasses, useClassSections } from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
 import * as React from 'react';
