@@ -1145,8 +1145,10 @@ export class ResultsService {
     if (exam.status !== ExamStatus.PUBLISHED) return null;
     const manager = this.examRepo.manager;
     const range = exam.academic_term_id
-      ? await manager.findOne(AcademicTerm, {
+      ? // A term deleted after the exam still bounds that exam's attendance.
+        await manager.findOne(AcademicTerm, {
           where: { id: exam.academic_term_id, tenant_id: tenantId },
+          withDeleted: true,
         })
       : await manager.findOne(AcademicYear, {
           where: { id: exam.academic_year_id, tenant_id: tenantId },
