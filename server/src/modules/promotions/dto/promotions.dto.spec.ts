@@ -45,6 +45,14 @@ describe('CreatePromotionRunDto merit source [70.3.3]', () => {
 
   it('refuses neither source', async () => {
     expect((await check({})).length).toBeGreaterThan(0);
+    expect((await check({ exam_ids: null, final_result_id: null })).length).toBeGreaterThan(0);
+  });
+
+  it('treats an explicit null on the other field as absent', async () => {
+    // A form that always sends both keys sends null for the unused one.
+    const examId = '11111111-1111-4111-8111-111111111111';
+    expect(await check({ exam_ids: [examId], final_result_id: null })).toHaveLength(0);
+    expect(await check({ exam_ids: null, final_result_id: STUDENT_ID })).toHaveLength(0);
   });
 
   it('refuses a non-UUID final_result_id', async () => {
