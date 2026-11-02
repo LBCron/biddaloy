@@ -33029,6 +33029,7 @@ export interface operations {
             query?: {
                 academic_year_id?: string;
                 class_id?: string;
+                status?: "DRAFT" | "PROCESSED" | "PUBLISHED";
                 page?: number;
                 limit?: number;
             };

@@ -63,13 +63,12 @@ function TargetField({ f, set }: { f: AudienceFilterState; set: Set }) {
 
 function ExamFailedFields({ f, set }: { f: AudienceFilterState; set: Set }) {
   const { t } = useTranslation('noticeCompose');
-  // The list API has no status filter, so the page is filtered here; `partial` tells the admin
-  // when older exams did not fit in the page.
-  const exams = useExams({ limit: 100 });
+  // The server filters PUBLISHED before paging, so drafts never push a published exam off the
+  // page; `partial` tells the admin when older published exams did not fit.
+  const exams = useExams({ status: 'PUBLISHED', limit: 100 });
   const partial = (exams.data?.total ?? 0) > (exams.data?.data.length ?? 0);
-  // Published exams only, newest first.
-  const options = (exams.data?.data ?? [])
-    .filter((e) => e.status === 'PUBLISHED')
+  // Newest first (a copy: never sort the query cache in place).
+  const options = [...(exams.data?.data ?? [])]
     .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
     .map((e) => ({ value: e.id, label: e.class?.name ? `${e.name} · ${e.class.name}` : e.name }));
   return (

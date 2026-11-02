@@ -135,12 +135,25 @@ const listExams = (data: unknown[], total = data.length) =>
   );
 
 describe('exam picker', () => {
-  it('lists published exams only', async () => {
-    listExams([exam('a', 'Final', 'PUBLISHED'), exam('b', 'Draft test', 'DRAFT')]);
+  it('asks the server for published exams only (filtered before the 100-row page)', async () => {
+    let asked: URLSearchParams | undefined;
+    server.use(
+      http.get('/api/v1/exams', ({ request }) => {
+        asked = new URL(request.url).searchParams;
+        return HttpResponse.json({
+          data: [exam('a', 'Final', 'PUBLISHED')],
+          total: 1,
+          page: 1,
+          limit: 100,
+          totalPages: 1,
+        });
+      }),
+    );
     renderExam();
     await userEvent.click(await screen.findByRole('combobox', { name: 'Exam' }));
     expect(await screen.findByRole('option', { name: 'Final' })).toBeTruthy();
-    expect(screen.queryByRole('option', { name: 'Draft test' })).toBeNull();
+    expect(asked?.get('status')).toBe('PUBLISHED');
+    expect(asked?.get('limit')).toBe('100');
   });
 
   it('shows a loading line, then a partial-list hint', async () => {
@@ -200,7 +213,11 @@ describe('stale org values', () => {
       useAudienceTabs(false, f({ shift: 'Morning' }), set);
       return null;
     }
-    renderWithRouter(createRootRoute({ component: Probe }), { tenantId: 'tenant-1', role: 'ADMIN', locale: 'en' });
+    renderWithRouter(createRootRoute({ component: Probe }), {
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+      locale: 'en',
+    });
     await waitFor(() => expect(set).toHaveBeenCalledWith({ shift: null }));
   });
 });
