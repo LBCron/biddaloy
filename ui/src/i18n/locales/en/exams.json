@@ -533,7 +533,7 @@
       "title": "Build the final results?",
       "description": "Each student's final result is worked out from the published exams.",
       "confirm": "Build results",
-      "done": "Results built for {{count}} students.",
+      "done": "Results built for {{n}} students.",
       "errorMessage": "Couldn't build the final results."
     },
     "publishDialog": {
@@ -555,7 +555,7 @@
       "name": "Final result {{year}}",
       "disabledUnpublished": "Publish the result before sending SMS.",
       "send": "Send",
-      "sent": "Sent to {{count}} guardians.",
+      "sent": "Sent to {{n}} guardians.",
       "errorMessage": "Couldn't send the SMS."
     },
     "results": {

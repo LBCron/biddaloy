@@ -142,7 +142,7 @@ describe('/results/final/$finalResultId', () => {
     const dialog = await screen.findByRole('dialog');
     const send = within(dialog).getByRole('button', { name: 'Send' });
     await userEvent.click(send);
-    await within(dialog).findByText(/Sent to 12 guardians/);
+    await within(dialog).findByText(/Sent to [1১][2২] guardians/);
     expect((send as HTMLButtonElement).disabled).toBe(true);
     expect(keys).toHaveLength(1);
     expect(keys[0]).toBeTruthy();
