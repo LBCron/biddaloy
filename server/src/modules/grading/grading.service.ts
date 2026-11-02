@@ -15,6 +15,7 @@ import { Result } from '../exams/entities/result.entity';
 import { AuditService } from '../audit/audit.service';
 import { CreateGradingScaleDto, UpdateGradingScaleDto } from './dto/grading.dto';
 import { RequestContext } from '../../common/request-context.util';
+import { assertNoLiveDependents } from '../../common/utils/live-dependents';
 
 /**
  * [20.2.1] `GradingScale` CRUD (name/existence only — band writes go
@@ -195,6 +196,13 @@ export class GradingService {
     }
 
     await this.dataSource.transaction(async (manager) => {
+      // [70.2.1] A final result row pins the scale too (NO ACTION FK). Results are counted
+      // above (with their count) and the scale's own bands go with it.
+      await assertNoLiveDependents(manager, GradingScale, id, {
+        code: 'GRADING_SCALE_IN_USE',
+        message: 'Published or processed results use this grading scale. It cannot be deleted.',
+        exclude: ['GradingBand.scale', 'Result.grading_scale'],
+      });
       const repo = manager.getRepository(GradingScale);
       await repo.softDelete({ id, tenant_id: tenantId });
       await manager.getRepository(GradingBand).softDelete({ scale_id: id, tenant_id: tenantId });

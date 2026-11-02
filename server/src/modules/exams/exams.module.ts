@@ -164,6 +164,8 @@ import {
     ExamsDashboardService,
     // [83.3.2] My coordination's pending grids use `progress()` (D22).
     MarkGridService,
+    // [70.2.1] The final-result SMS reuses the exam send path (`sendForFinal`).
+    ResultSmsService,
   ],
 })
 export class ExamsModule {}
