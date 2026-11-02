@@ -89,6 +89,16 @@ describe('FinalResultCard', () => {
     expect(screen.getByRole('cell', { name: 'Annual' })).toBeTruthy();
   });
 
+  it('shows Absent, not 0 or a dash, for an exam with no marks', async () => {
+    renderCard(
+      finalCard({
+        exams: [{ exam_id: 'e1', exam_name: 'Half-yearly', total_marks: null, gpa: null }],
+      }),
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Details and card' }));
+    expect(screen.getByRole('cell', { name: 'Absent' })).toBeTruthy();
+  });
+
   it('renders nothing when no final is published (404)', async () => {
     const { container } = renderCard(null);
     await new Promise((resolve) => setTimeout(resolve, 50));
