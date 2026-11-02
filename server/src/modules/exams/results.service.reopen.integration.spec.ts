@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { DataSource, IsNull } from 'typeorm';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { DataSource, EntityManager, IsNull } from 'typeorm';
 import {
   EnrollmentStatus,
   ExamComponentKind,
@@ -220,8 +220,8 @@ describe('reopen + scale recompute coupling with final results (integration)', (
     return s;
   }
 
-  /** A PUBLISHED exam, one 100-mark component, one result of 90 for the student. */
-  async function publishedExam(name: string, s: Student): Promise<Exam> {
+  /** A PUBLISHED exam, one 100-mark component, one result of 90 for each student. */
+  async function publishedExam(name: string, ...students: Student[]): Promise<Exam> {
     const exam = await ds.getRepository(Exam).save({
       tenant_id: TENANT_ID,
       academic_year_id: YEAR_ID,
@@ -241,6 +241,11 @@ describe('reopen + scale recompute coupling with final results (integration)', (
       full_marks: '100',
       sequence: 1,
     } as Partial<ExamComponent>);
+    for (const s of students) await examResult(exam, s);
+    return exam;
+  }
+
+  async function examResult(exam: Exam, s: Student): Promise<void> {
     const result = await ds.getRepository(Result).save({
       tenant_id: TENANT_ID,
       exam_id: exam.id,
@@ -265,7 +270,6 @@ describe('reopen + scale recompute coupling with final results (integration)', (
       is_fail: false,
       is_fourth_subject: false,
     } as Partial<ResultSubject>);
-    return exam;
   }
 
   /** A final over one exam (100%), built so it is PROCESSED with rows pinned to `scale`. */
@@ -331,6 +335,79 @@ describe('reopen + scale recompute coupling with final results (integration)', (
     });
   });
 
+  it('a final built after the first finals read is still caught, under the exam lock', async () => {
+    // The race: a final is built (and commits) between reopen's first finals read and its
+    // exam lock. Deterministic stand-in: the first read returns nothing, as if the final did
+    // not count the exam yet. The re-read under the exam lock must still demote it.
+    const exam = await publishedExam('Term 1', await student(1));
+    const final = await processedFinal(exam);
+    const spy = vi.spyOn(EntityManager.prototype, 'query').mockImplementationOnce(async () => []);
+    try {
+      await results.reopen(exam.id, TENANT_ID, 'user-1');
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(await examStatus(exam.id)).toBe(ExamStatus.PROCESSED);
+    // Without the re-read this final would stay PROCESSED with rows from the old exam.
+    expect(await finalStatus(final.id)).toBe(FinalResultStatus.DRAFT);
+    expect(await liveRows(final.id)).toHaveLength(0);
+  });
+
+  it('a late-found PUBLISHED final still refuses the reopen and rolls everything back', async () => {
+    const exam = await publishedExam('Term 1', await student(1));
+    const final = await processedFinal(exam);
+    await finals.publish(final.id, TENANT_ID, 'user-1');
+    const spy = vi.spyOn(EntityManager.prototype, 'query').mockImplementationOnce(async () => []);
+    try {
+      await expect(results.reopen(exam.id, TENANT_ID, 'user-1')).rejects.toMatchObject({
+        status: 409,
+        response: { details: { code: 'FINAL_PUBLISHED' } },
+      });
+    } finally {
+      spy.mockRestore();
+    }
+    expect(await examStatus(exam.id)).toBe(ExamStatus.PUBLISHED);
+    expect(await finalStatus(final.id)).toBe(FinalResultStatus.PUBLISHED);
+  });
+
+  it('a PUBLISHED final behind a PROCESSED one rolls back the demote already done', async () => {
+    // Money tier: nothing commits partially. The PROCESSED final (lower id) is demoted first,
+    // then the PUBLISHED one (id sorts last) throws; the demote must roll back with it.
+    const exam = await publishedExam('Term 1', await student(1));
+    const processed = await processedFinal(exam);
+    // One live final per class and year, so the published one sits in the old year. Inserted
+    // directly: reopen only reads its status and its weight on the exam.
+    const publishedId = 'ffffffff-ffff-4fff-bfff-ffffffffffff';
+    expect(processed.id < publishedId).toBe(true);
+    await ds.getRepository(FinalResult).save({
+      id: publishedId,
+      tenant_id: TENANT_ID,
+      class_id: CLASS_ID,
+      academic_year_id: OLD_YEAR_ID,
+      status: FinalResultStatus.PUBLISHED,
+    } as Partial<FinalResult>);
+    await ds.getRepository(FinalResultWeight).save({
+      tenant_id: TENANT_ID,
+      final_result_id: publishedId,
+      exam_id: exam.id,
+      subject_id: null,
+      share_percent: '100.00',
+    });
+    try {
+      await expect(results.reopen(exam.id, TENANT_ID, 'user-1')).rejects.toMatchObject({
+        status: 409,
+        response: { details: { code: 'FINAL_PUBLISHED' } },
+      });
+      expect(await examStatus(exam.id)).toBe(ExamStatus.PUBLISHED);
+      expect(await finalStatus(processed.id)).toBe(FinalResultStatus.PROCESSED);
+      expect(await liveRows(processed.id)).toHaveLength(1);
+    } finally {
+      await ds.getRepository(FinalResultWeight).delete({ final_result_id: publishedId });
+      await ds.getRepository(FinalResult).softDelete({ id: publishedId });
+    }
+  });
+
   it('reopens an exam no final counts exactly as before', async () => {
     const exam = await publishedExam('Term 1', await student(1));
     await results.reopen(exam.id, TENANT_ID, 'user-1');
@@ -366,6 +443,57 @@ describe('reopen + scale recompute coupling with final results (integration)', (
     const [row] = await liveRows(final.id);
     expect(row).toMatchObject({ gpa: '4.00', grading_scale_revision: 2, published_at: null });
     expect(await finalStatus(final.id)).toBe(FinalResultStatus.PROCESSED);
+  });
+
+  it('counts and recomputes a final in student rows, the same unit as exams', async () => {
+    // Two students: one-per-final would say 1, the preview must say 2 (rows regraded).
+    const exam = await publishedExam('Term 1', await student(1), await student(2));
+    const final = await processedFinal(exam);
+    expect(await liveRows(final.id)).toHaveLength(2);
+    expect(await recomputer.countAffected(TENANT_ID, scale.id)).toBe(2);
+    const n = await ds.transaction((m) => recomputer.recompute(TENANT_ID, scale.id, m));
+    expect(n).toBe(2);
+  });
+
+  it('a scale edit rebuilds the final on the scale its rows pin, not a newer override', async () => {
+    const exam = await publishedExam('Term 1', await student(1));
+    const final = await processedFinal(exam);
+    expect((await liveRows(final.id))[0]).toMatchObject({ grading_scale_id: scale.id });
+    // A class override added after the build: resolveScale would now pick it for this final.
+    const override = await ds.getRepository(GradingScale).save({
+      tenant_id: TENANT_ID,
+      academic_year_id: YEAR_ID,
+      class_id: CLASS_ID,
+      name: 'Class Nine override',
+      revision: 1,
+    });
+    await ds
+      .getRepository(GradingBand)
+      .save([
+        band(override.id, 33, 100, 'A', '3.00', false, 1),
+        band(override.id, 0, 32, 'F', '0.00', true, 2),
+      ]);
+    try {
+      await ds
+        .getRepository(GradingBand)
+        .update({ scale_id: scale.id, grade: 'A+' }, { gpa: '4.00' });
+      await ds.getRepository(GradingScale).update({ id: scale.id }, { revision: 2 });
+      await ds.transaction((m) => recomputer.recompute(TENANT_ID, scale.id, m));
+
+      // Still the edited scale, with its new band; never silently moved to the override.
+      const [row] = await liveRows(final.id);
+      expect(row).toMatchObject({ grading_scale_id: scale.id, gpa: '4.00' });
+      // The audit row tells a scale-edit rebuild apart from a Build press.
+      const rebuild = auditCalls.findLast(
+        (a) => a.entity_type === 'FinalResult' && a.entity_id === final.id,
+      );
+      expect(rebuild).toMatchObject({
+        new_values: { reason: 'GRADING_SCALE_EDITED', grading_scale_id: scale.id },
+      });
+    } finally {
+      // The override would win for every later test in this file: take it away.
+      await ds.getRepository(GradingScale).softDelete({ id: override.id });
+    }
   });
 
   it('a scale edit is refused while a PUBLISHED final uses the scale', async () => {

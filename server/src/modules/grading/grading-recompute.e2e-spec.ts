@@ -22,7 +22,8 @@ import {
   SEED_ADMIN_PASSWORD,
   SEED_ADMIN_PASSWORD_HASH,
 } from '@test/constants';
-import { ResultsService, lockExam } from '../exams/results.service';
+import { ResultsService } from '../exams/results.service';
+import { lockExam } from '../exams/exam-lock';
 import { RecomputeService } from './recompute.service';
 import { GradingScale } from './entities/grading-scale.entity';
 import { GradingBand } from './entities/grading-band.entity';
