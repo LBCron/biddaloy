@@ -8,7 +8,11 @@ import { NoticesService } from '../../../modules/notices/notices.service';
 import { NoticeRecipientsService } from '../../../modules/notices/notice-recipients.service';
 import { NoticeLinksService } from '../../../modules/notices/links/notice-links.service';
 import { NoticeFilesService } from '../../../modules/notices/access/notice-files.service';
-import { NoticeSmsService } from '../../../modules/notices/sms/notice-sms.service';
+import {
+  NOTICE_SMS_NOT_LIVE,
+  NoticeSmsService,
+} from '../../../modules/notices/sms/notice-sms.service';
+import { SchoolsService } from '../../../modules/schools/schools.service';
 import { NoticeReaderService } from '../../../modules/notices/access/notice-reader.service';
 import { orgIds } from './org';
 import { staffByCardKey, teachersByTenant } from './staff';
@@ -252,14 +256,25 @@ export const slice: DemoSlice = {
     // Expired and closed: the notice expired while the request waited. Approve answers 409 and
     // the service closes the dead request itself (declined by the system, no deciding user).
     const smsExpired = await smsNotice('মেয়াদোত্তীর্ণ এসএমএস অনুরোধ', 25);
+    // approve checks expiry against the school's real today (same call isLive makes), so the
+    // date is 5 days before the earlier of the anchor and real today: expired for any --anchor.
+    const realToday = await ctx.app.get(SchoolsService).todayFor(T);
     await ctx.ds.query(`UPDATE notices SET expires_on = $2::date WHERE id = $1`, [
       smsExpired,
-      addDays(ctx.anchor, -5),
+      addDays(ctx.anchor < realToday ? ctx.anchor : realToday, -5),
     ]);
-    // Only the expected 409 is swallowed: any other failure breaks the seed.
-    await sms.approve(T, smsExpired, org.adminUserId).catch((e: unknown) => {
-      if (!(e instanceof ConflictException)) throw e;
-    });
+    // Only the expected not-live 409 is accepted: an approval that goes through, or any other
+    // failure (insufficient credit, not pending), breaks the seed.
+    const expiredOutcome = await sms.approve(T, smsExpired, org.adminUserId).then(
+      () => 'approved',
+      (e: unknown) => {
+        const body = e instanceof ConflictException ? e.getResponse() : null;
+        if ((body as { details?: { code?: string } } | null)?.details?.code !== NOTICE_SMS_NOT_LIVE)
+          throw e;
+        return 'not-live';
+      },
+    );
+    if (expiredOutcome !== 'not-live') throw new Error('demo seed: expired SMS request was approved');
 
     await notices.idle();
 
