@@ -8,6 +8,7 @@ import {
   IsString,
   IsNotEmpty,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 import { PlacementAlgorithm, PromotionOutcome } from '@biddaloy/shared';
 
@@ -30,10 +31,21 @@ export class CreatePromotionRunDto {
   @IsUUID()
   target_class_id?: string;
 
+  // Exactly one merit source: the exam list or a PUBLISHED final result (70.3.3).
+  // A field that is sent is always validated; the service enforces the XOR (422, fixed sentence).
+  @ValidateIf(
+    (o: CreatePromotionRunDto) => o.exam_ids !== undefined || o.final_result_id === undefined,
+  )
   @IsArray()
   @ArrayMinSize(1)
   @IsUUID('4', { each: true })
-  exam_ids: string[];
+  exam_ids?: string[];
+
+  @ValidateIf(
+    (o: CreatePromotionRunDto) => o.final_result_id !== undefined || o.exam_ids === undefined,
+  )
+  @IsUUID()
+  final_result_id?: string;
 
   @IsEnum(PlacementAlgorithm)
   algorithm: PlacementAlgorithm;
