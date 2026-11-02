@@ -20,7 +20,8 @@
     "homework": "Homework",
     "results": "Results",
     "roster": "Students",
-    "arrival": "Arrival notices"
+    "arrival": "Arrival notices",
+    "notes": "Remarks and conduct"
   },
   "flagGroups": {
     "ABSENT": "Absent 3 or more days in a row",
@@ -120,6 +121,13 @@
     "saved": "Saved.",
     "saveError": "Couldn't save. Try again.",
     "loadError": "Couldn't load the students.",
-    "empty": "This section has no students."
+    "empty": "This section has no students.",
+    "cancel": "Cancel",
+    "cardSummary": "{{target}} — {{done}} given, {{left}} to do",
+    "cardNone": "No final result yet.",
+    "cardOpen": "Write remarks",
+    "cardView": "View",
+    "cardPublished": "Published — changes closed",
+    "lockedMark": "{{name}} (published)"
   }
 }

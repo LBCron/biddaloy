@@ -100,6 +100,8 @@ export const NOT_IN_NAV: Record<string, string> = {
   '/_staff/guardians/$guardianId': 'detail route reached from the guardians list',
   '/_staff/my-class/$sectionId':
     'detail route reached from the My class section picker (or its single-section redirect)',
+  '/_staff/my-class/$sectionId_/notes':
+    'action reached from the My class section card, not its own nav item',
   '/_staff/routines/$sectionId': 'detail route reached from the routine builder section list',
   '/_staff/invoices/$invoiceId': 'detail route reached from the invoices list',
   '/_staff/fees/':

@@ -72,10 +72,33 @@ function mockAll(overrides: Parameters<typeof server.use> = []) {
             status: 'PUBLISHED',
             published_at: '2026-09-30T00:00:00Z',
             academic_year_id: 'year-1',
+            academic_year: { is_current: true },
+            created_at: '2026-09-01T00:00:00Z',
           },
-          { id: 'exam-0', name: 'Draft Test', status: 'DRAFT', published_at: null },
+          {
+            id: 'exam-0',
+            name: 'Draft Test',
+            status: 'DRAFT',
+            published_at: null,
+            academic_year_id: 'year-1',
+            academic_year: { is_current: true },
+            created_at: '2026-08-01T00:00:00Z',
+          },
         ]),
       ),
+    ),
+    http.get('/api/v1/final-results', () =>
+      HttpResponse.json([
+        {
+          class: { id: 'class-7', name: 'Class 7' },
+          final_result_id: 'final-1',
+          status: 'DRAFT',
+          published_at: null,
+        },
+      ]),
+    ),
+    http.get('/api/v1/my-class/sections/section-1/report-card-notes/missing', () =>
+      HttpResponse.json({ total: 8, missing_remark: 2, missing_conduct: 3 }),
     ),
     http.get('/api/v1/performance/classes/class-7', () =>
       HttpResponse.json({
@@ -189,6 +212,17 @@ describe('/my-class/$sectionId', () => {
     expect(tel.getAttribute('href')).toBe('tel:01700000000');
     // formatPhone output; digits are Latin or Bangla depending on the (async) region config.
     expect(tel.textContent).toMatch(/^(01700-000000|০১৭০০-০০০০০০)$/);
+  });
+
+  it('shows how many remarks are missing and links to the notes screen', async () => {
+    mockAll();
+    render();
+    const card = (await screen.findByRole('heading', { name: 'Remarks and conduct' })).closest(
+      'section',
+    )!;
+    expect(await within(card).findByText('Final result — 6 given, 2 to do')).toBeTruthy();
+    const link = within(card).getByRole('link', { name: /Write remarks/ });
+    expect(link.getAttribute('href')).toBe('/my-class/section-1/notes?for=final');
   });
 
   it('badges the absent count on the Absent today card', async () => {
