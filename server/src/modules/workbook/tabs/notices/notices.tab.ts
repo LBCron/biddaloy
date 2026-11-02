@@ -12,18 +12,24 @@ import type {
   TabSpec,
 } from '../../codec/tab-spec';
 import { optionalKeyOf } from '../../codec/tab-spec';
-import { actorOrRestorer } from '../actor-keys';
+import { actorOrRestorer, nullableActor, stampActorKeys } from '../actor-keys';
 
 /**
  * [53.6.02] The `notices` tab (D28). Everything about a notice is kept except
  * what must not survive a restore:
  *  - `public_token_hash` / `public_token_created_at`: the public link dies with
- *    a restore (re-share to get a new one). Hashes never enter a workbook.
+ *    a restore, even into the same school (D40: restores often follow an
+ *    incident, and a leaked link must not outlive it). `upsert` clears them on
+ *    every row it writes; re-share to get a new link. Hashes never enter a workbook.
  *  - `alert_id` / `sms_task_alert_id`: pointers to derived attention alerts.
- *    A restore leaves the alerts off, like the other derived rows (alerts are
- *    not backed up; the attention sweep raises them again).
- *  - `withdrawn_by_user_id`, `sms_requested_by_user_id`, `sms_decided_by_user_id`:
- *    who-did-it attribution only; the statuses and timestamps are kept.
+ *    Alerts are not backed up and no attention rule raises these two again, so
+ *    after a restore they stay off: a re-created important notice has no
+ *    alert, and a restored PENDING SMS notice has no approval task.
+ *    Known gap (follow-up filed): a restore that turns a live important notice
+ *    WITHDRAWN or DRAFT keeps its old `alert_id`, so that alert goes stale.
+ *
+ * `withdrawn_by`, `sms_requested_by`, `sms_decided_by` (D41) are optional actor
+ * refs: an actor who left exports blank and the stored one is kept (actor-keys.ts).
  *
  * A notice has no business key, so the natural key is `(created_at, title)`:
  * stable across restores because `created_at` is restored as written.
@@ -84,11 +90,38 @@ const columns: readonly ColumnSpec[] = [
     type: 'datetime',
     label: label('SMS decided at', 'এসএমএস সিদ্ধান্তের সময়'),
   },
+  {
+    key: 'withdrawn_by',
+    type: 'ref',
+    ref: 'users',
+    label: label('Withdrawn by', 'প্রত্যাহারকারী'),
+  },
+  {
+    key: 'sms_requested_by',
+    type: 'ref',
+    ref: 'users',
+    label: label('SMS requested by', 'এসএমএস অনুরোধকারী'),
+  },
+  {
+    key: 'sms_decided_by',
+    type: 'ref',
+    ref: 'users',
+    label: label('SMS decided by', 'এসএমএস সিদ্ধান্তদাতা'),
+  },
   { key: 'recipient_count', type: 'int', required: true, label: label('Recipients', 'প্রাপক') },
   { key: 'created_at', type: 'datetime', required: true, label: label('Created at', 'তৈরির সময়') },
 ];
 
-const SCALARS = columns.filter((c) => c.key !== 'id' && c.key !== 'author');
+/** D41: cell key -> stored id column -> load-time stamp of the actor's key ('' = left). */
+const ACTORS = [
+  ['withdrawn_by', 'withdrawn_by_user_id', 'withdrawn_by_key'],
+  ['sms_requested_by', 'sms_requested_by_user_id', 'sms_requested_by_key'],
+  ['sms_decided_by', 'sms_decided_by_user_id', 'sms_decided_by_key'],
+] as const;
+const ACTOR_CELLS: readonly string[] = ACTORS.map(([cell]) => cell);
+const SCALARS = columns.filter(
+  (c) => c.key !== 'id' && c.key !== 'author' && !ACTOR_CELLS.includes(c.key),
+);
 const DATETIMES = SCALARS.filter((c) => c.type === 'datetime').map((c) => c.key);
 
 export const rowError = (
@@ -111,7 +144,8 @@ export async function keysById(
 export const noticeKey = (createdAt: unknown, title: unknown) =>
   `${formatDateTime(createdAt)}|${String(title ?? '')}`;
 
-const instant = (v: unknown): string =>
+/** A datetime cell or column as comparable text ('' when empty). */
+export const instant = (v: unknown): string =>
   v === null || v === undefined || v === '' ? '' : formatDateTime(v);
 
 export const noticesTab: TabSpec<Notice, Rec> = {
@@ -119,11 +153,11 @@ export const noticesTab: TabSpec<Notice, Rec> = {
   entity: Notice,
   excluded: [
     'author_user_id', // exported instead as the `author` ref column
-    'withdrawn_by_user_id', // attribution only; status and timestamps are kept
-    'sms_requested_by_user_id', // attribution only
-    'sms_decided_by_user_id', // attribution only
-    'public_token_hash', // D28: links do not survive a restore, hashes never leave the database
-    'public_token_created_at', // D28: goes with the token hash
+    'withdrawn_by_user_id', // D41: exported instead as the optional `withdrawn_by` ref column
+    'sms_requested_by_user_id', // D41: exported instead as the optional `sms_requested_by` ref column
+    'sms_decided_by_user_id', // D41: exported instead as the optional `sms_decided_by` ref column
+    'public_token_hash', // D28/D40: links do not survive a restore, hashes never leave the database
+    'public_token_created_at', // D28/D40: goes with the token hash
     'alert_id', // D28: derived attention alert, left off on restore
     'sms_task_alert_id', // D28: derived attention alert, left off on restore
     'updated_at', // set by the database on write
@@ -134,8 +168,11 @@ export const noticesTab: TabSpec<Notice, Rec> = {
   naturalKey: ['created_at', 'title'],
   deleteByAbsence: true,
 
-  load(tenantId: string, m: EntityManager): Promise<Notice[]> {
-    return m.find(Notice, { where: { tenant_id: tenantId } });
+  async load(tenantId: string, m: EntityManager): Promise<Notice[]> {
+    const rows = await m.find(Notice, { where: { tenant_id: tenantId } });
+    for (const [, idProp, keyProp] of ACTORS)
+      await stampActorKeys(tenantId, rows, idProp, keyProp, m);
+    return rows;
   },
 
   toRow(entity: Notice, ctx: ExportContext): Rec {
@@ -146,6 +183,10 @@ export const noticesTab: TabSpec<Notice, Rec> = {
       author: optionalKeyOf(ctx, 'users', entity.author_user_id),
     };
     for (const c of SCALARS) out[c.key] = e[c.key];
+    for (const [cell, idProp] of ACTORS) {
+      const id = entity[idProp];
+      out[cell] = id ? optionalKeyOf(ctx, 'users', id) : null;
+    }
     return out;
   },
 
@@ -183,8 +224,19 @@ export const noticesTab: TabSpec<Notice, Rec> = {
           authorKey,
         ),
       );
+    const actorIds: Rec = {};
+    for (const [cell, idProp] of ACTORS) {
+      const key = (v[cell] as string | null) ?? '';
+      const id = key ? ctx.ref('users', key) : null;
+      // One fixed sentence per column; the key goes in `value`, never the message.
+      if (key && !id)
+        errors.push(
+          rowError(NOTICES, rowNo, cell, `Column "${cell}": no such user was found.`, key),
+        );
+      actorIds[idProp] = id;
+    }
     if (errors.length > 0) return { errors };
-    return { row: { ...v, author_user_id: authorId } };
+    return { row: { ...v, author_user_id: authorId, ...actorIds } };
   },
 
   keyOf(x: Rec | Notice): string {
@@ -200,6 +252,11 @@ export const noticesTab: TabSpec<Notice, Rec> = {
     const changed = SCALARS.map((c) => c.key).filter((k) => k !== 'created_at' && !same(k));
     if (row.author_user_id && row.author_user_id !== existing.author_user_id)
       changed.push('author');
+    // A blank cell clears a current actor; a departed one is kept (#2687).
+    for (const [cell, idProp, keyProp] of ACTORS) {
+      const next = nullableActor(row[idProp] as string | null, existing, idProp, keyProp);
+      if (next !== (existing[idProp] ?? null)) changed.push(cell);
+    }
     return changed;
   },
 
@@ -224,8 +281,14 @@ export const noticesTab: TabSpec<Notice, Rec> = {
       const val = row[c.key] ?? null;
       e[c.key] = c.type === 'datetime' && val !== null ? new Date(val as string) : val;
     }
-    // The token hash and alert pointers are never touched: a restore over a live notice
-    // keeps its link; a new row starts without one.
+    for (const [, idProp, keyProp] of ACTORS) {
+      n[idProp] = nullableActor(row[idProp] as string | null, existing, idProp, keyProp);
+    }
+    // D40: every restored notice loses its public link, a live one too (a leaked
+    // link must not outlive the restore). The diff preview still calls such a row
+    // "unchanged"; the link is not a workbook column. Alert pointers are untouched.
+    n.public_token_hash = null;
+    n.public_token_created_at = null;
     return m.save(Notice, n);
   },
 
