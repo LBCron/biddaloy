@@ -80,6 +80,7 @@ export function PrintPanel({ summary }: PrintPanelProps) {
   const sections = useClassSections(summary.class.id);
   const [pickedSection, setPickedSection] = React.useState<string | undefined>(undefined);
   const sectionId = pickedSection ?? sections.data?.[0]?.id;
+  const [tried, setTried] = React.useState<string[]>([]);
   // Every student of the section, paged 100 at a time: a section can be larger than one page.
   const rowsQuery = useQuery({
     queryKey: [...finalResultKeys.detail(summary.id), 'rows-all', sectionId],
@@ -104,6 +105,16 @@ export function PrintPanel({ summary }: PrintPanelProps) {
   const wanted = pickedStudent ?? search.student;
   const studentId = rows.find((r) => r.student.id === wanted)?.student.id ?? rows[0]?.student.id;
   const cardQuery = useFinalResultStudentCard(summary.id, studentId);
+  // The Results tab links a student by id only. If this section does not hold them, move on to
+  // the next section until found (each section is tried once).
+  React.useEffect(() => {
+    if (!wanted || pickedStudent || !sectionId || !rowsQuery.isSuccess) return;
+    if (rows.some((r) => r.student.id === wanted)) return;
+    const next = sections.data?.find((s) => s.id !== sectionId && !tried.includes(s.id));
+    if (!next) return;
+    setTried((prev) => [...prev, sectionId]);
+    setPickedSection(next.id);
+  }, [wanted, pickedStudent, sectionId, rowsQuery.isSuccess, rows, sections.data, tried]);
 
   const [job, setJob] = React.useState<Job>(null);
   const [printed, setPrinted] = React.useState<PrintedCard[] | null>(null);
@@ -273,6 +284,8 @@ export function PrintPanel({ summary }: PrintPanelProps) {
             onValueChange={(v) => {
               setPickedSection(v);
               setPickedStudent(undefined);
+              // A hand-picked section ends the search for the linked student.
+              setTried((sections.data ?? []).map((x) => x.id));
             }}
           >
             <SelectTrigger id="final-print-section" className="w-full">
