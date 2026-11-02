@@ -14,7 +14,9 @@ const STUDENT = 's1';
 const CLASS = 'c1';
 const YEAR = 'y1';
 
-function build(opts: { status?: FinalResultStatus; note?: object | null } = {}) {
+function build(
+  opts: { status?: FinalResultStatus; note?: object | null; deletedStudent?: boolean } = {},
+) {
   const finals: object[] = opts.status
     ? [
         {
@@ -45,10 +47,13 @@ function build(opts: { status?: FinalResultStatus; note?: object | null } = {}) 
         ? [{ exam_id: 'e1', subject_id: null, share_percent: '30.00' }]
         : [],
     ),
+    // Sitting order of the counted exams: e2 sat before e1.
+    query: vi.fn(async () => [{ id: 'e2' }, { id: 'e1' }]),
   };
   const studentCard = vi.fn(async () => ({
     final_result_id: 'f1',
     exams: [{ exam_id: 'e1', exam_name: 'Half-yearly', total_marks: 70, gpa: 4 }],
+    subjects: [] as unknown[],
     remark: null,
     conduct: [],
   }));
@@ -59,7 +64,11 @@ function build(opts: { status?: FinalResultStatus; note?: object | null } = {}) 
     section: { section_name: 'A' },
   };
   const service = new TranscriptService(
-    { findOne: async () => ({ id: STUDENT, full_name: 'Stu', roll_number: 1 }) } as any,
+    {
+      // `deleted_at: IsNull()` is in the where; a soft-deleted student is simply not found.
+      findOne: async () =>
+        opts.deletedStudent ? null : { id: STUDENT, full_name: 'Stu', roll_number: 1 },
+    } as any,
     { findOne: async () => enrollment } as any,
     { findOne: async () => ({ id: YEAR, name: '2027' }) } as any,
     { find: async () => [], manager } as any,
@@ -134,5 +143,43 @@ describe('TranscriptService.getFinalResultCard', () => {
       remark: null,
       conduct: [],
     });
+  });
+});
+
+describe('TranscriptService.getFinalResultCard — order and deleted rows (70.4.1 review)', () => {
+  it('404s a soft-deleted student, like the transcript', async () => {
+    const { service, studentCard } = build({
+      status: FinalResultStatus.PUBLISHED,
+      deletedStudent: true,
+    });
+    await expect(service.getFinalResultCard(TENANT, STUDENT, YEAR, false)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(studentCard).not.toHaveBeenCalled();
+  });
+
+  it('prints exams, shares and per-subject columns in sitting order, not id order', async () => {
+    const { service, studentCard } = build({ status: FinalResultStatus.PUBLISHED });
+    studentCard.mockResolvedValueOnce({
+      final_result_id: 'f1',
+      exams: [
+        { exam_id: 'e1', exam_name: 'Annual', total_marks: 70, gpa: 4 },
+        { exam_id: 'e2', exam_name: 'Half-yearly', total_marks: 60, gpa: 3.5 },
+      ],
+      subjects: [
+        {
+          per_exam: [
+            { exam_id: 'e1', obtained: 70 },
+            { exam_id: 'e2', obtained: 60 },
+          ],
+        },
+      ],
+      remark: null,
+      conduct: [],
+    });
+    const card: any = await service.getFinalResultCard(TENANT, STUDENT, YEAR, true);
+    expect(card.exams.map((e: any) => e.exam_id)).toEqual(['e2', 'e1']);
+    expect(card.exam_shares.map((e: any) => e.exam_id)).toEqual(['e2', 'e1']);
+    expect(card.subjects[0].per_exam.map((e: any) => e.exam_id)).toEqual(['e2', 'e1']);
   });
 });

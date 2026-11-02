@@ -155,10 +155,20 @@ export class TranscriptService {
     yearId: string,
     publishedOnly: boolean,
   ): Promise<FinalCard> {
-    const enrollment = await this.enrollmentRepo.findOne({
-      where: { student_id: studentId, academic_year_id: yearId, tenant_id: tenantId },
-      order: { enrolled_at: 'DESC' },
-    });
+    // Same gate as the transcript: a deleted student or year has no card.
+    const [student, year] = await Promise.all([
+      this.studentRepo.findOne({
+        where: { id: studentId, tenant_id: tenantId, deleted_at: IsNull() },
+      }),
+      this.yearRepo.findOne({ where: { id: yearId, tenant_id: tenantId, deleted_at: IsNull() } }),
+    ]);
+    const enrollment =
+      student && year
+        ? await this.enrollmentRepo.findOne({
+            where: { student_id: studentId, academic_year_id: yearId, tenant_id: tenantId },
+            order: { enrolled_at: 'DESC' },
+          })
+        : null;
     const card = enrollment
       ? await this.finalCardOf(tenantId, studentId, enrollment.class_id, yearId, publishedOnly)
       : null;
@@ -189,12 +199,27 @@ export class TranscriptService {
     const finals = this.moduleRef.get(FinalResultsService, { strict: false });
     const card = await finals.studentCard(final.id, studentId, tenantId);
     if (!card) return null;
-    const [school, weights] = await Promise.all([
+    const [school, weights, sittingOrder] = await Promise.all([
       manager.findOne(School, { where: { id: tenantId } }),
       manager.find(FinalResultWeight, {
         where: { final_result_id: final.id, tenant_id: tenantId },
       }),
+      // `studentCard` orders exams by id; print them in sitting order like the transcript's exams
+      // and the final tabulation (unscheduled last, then created).
+      manager.query(
+        `SELECT e.id FROM exams e
+           LEFT JOIN exam_schedules es ON es.exam_id = e.id AND es.tenant_id = e.tenant_id
+            AND es.deleted_at IS NULL
+          WHERE e.tenant_id = $1 AND e.id = ANY($2::uuid[])
+          GROUP BY e.id, e.created_at
+          ORDER BY MIN(es.date) NULLS LAST, e.created_at, e.id`,
+        [tenantId, card.exams.map((e) => e.exam_id)],
+      ) as Promise<Array<{ id: string }>>,
     ]);
+    const rank = new Map(sittingOrder.map((r, i) => [r.id, i]));
+    const bySitting = <T extends { exam_id: string }>(xs: T[]) =>
+      [...xs].sort((a, b) => (rank.get(a.exam_id) ?? 1e9) - (rank.get(b.exam_id) ?? 1e9));
+    const exams = bySitting(card.exams);
     // `studentCard` leaves remark/conduct empty; the notes live in report_card_notes.
     const notes = await loadCardNotes(
       manager,
@@ -205,9 +230,11 @@ export class TranscriptService {
     );
     return {
       ...card,
+      exams,
+      subjects: card.subjects.map((sub) => ({ ...sub, per_exam: bySitting(sub.per_exam) })),
       remark: notes.remark,
       conduct: notes.conduct,
-      exam_shares: card.exams.map((e) => {
+      exam_shares: exams.map((e) => {
         const whole = weights.find((w) => w.exam_id === e.exam_id && w.subject_id === null);
         return { exam_id: e.exam_id, share_percent: whole ? Number(whole.share_percent) : null };
       }),
