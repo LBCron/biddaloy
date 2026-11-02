@@ -569,8 +569,8 @@
     "link": "Full result",
     "emptyReason": "The final result is not published yet.",
     "cardTitle": "Final result {{year}} — {{class}}",
-    "share": "{{exam}} {{percent}}%",
-    "attendance": "Present {{present}} of {{working}} days ({{percent}}%)",
+    "share": "{{exam}} {{percent}}",
+    "attendance": "Present {{present}} of {{working}} days ({{percent}})",
     "showDetails": "Details and card",
     "hideDetails": "Hide details"
   }

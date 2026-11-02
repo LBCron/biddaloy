@@ -41,7 +41,7 @@ export function FinalResultCardView({ card, childName, className }: FinalResultC
       ? [
           t('finalResult.share', {
             exam: exam.exam_name,
-            percent: formatNumber(share.share_percent, config),
+            percent: formatNumber(share.share_percent, config, { percent: true }),
           }),
         ]
       : [];
@@ -53,7 +53,7 @@ export function FinalResultCardView({ card, childName, className }: FinalResultC
       ? t('finalResult.attendance', {
           present: formatNumber(present, config),
           working: formatNumber(working, config),
-          percent: formatNumber((present / working) * 100, config),
+          percent: formatNumber((present / working) * 100, config, { percent: true }),
         })
       : null;
 
@@ -161,7 +161,9 @@ export function FinalResultCardView({ card, childName, className }: FinalResultC
                   <tr key={exam.exam_id} className="border-t border-border-subtle">
                     <td className="py-1">{exam.exam_name}</td>
                     <td className="py-1 text-end tabular-nums">
-                      {exam.total_marks === null ? '—' : formatScore(exam.total_marks, config)}
+                      {exam.total_marks === null
+                        ? tExams('reportCard.absent')
+                        : formatScore(exam.total_marks, config)}
                     </td>
                     <td className="py-1 text-end tabular-nums">
                       {exam.gpa === null ? '—' : formatNumber(exam.gpa, config, { decimals: 2 })}
