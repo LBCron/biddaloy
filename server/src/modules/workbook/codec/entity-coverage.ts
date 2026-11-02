@@ -145,13 +145,25 @@ export const ENTITY_COVERAGE_EXEMPT: ReadonlyMap<EntityTarget<unknown>, string> 
   ],
 
   // --- Epic 70 final results (temporary) ---
-  // No service writes these yet; the workbook tabs ship in Epic 70 wave 4 (#3422),
-  // which deletes these five entries.
-  [FinalResult, 'Epic 70 final results: workbook tab owed by #3422; nothing writes it yet.'],
-  [FinalResultWeight, 'Epic 70 final result weights: workbook tab owed by #3422.'],
-  [FinalResultRow, 'Epic 70 final result rows: workbook tab owed by #3422.'],
-  [FinalResultSubject, 'Epic 70 final result subjects: workbook tab owed by #3422.'],
-  [ReportCardNote, 'Epic 70 report card notes: workbook tab owed by #3422.'],
+  // FinalResultsService (#3405) writes the four final-result tables; a restore loses them until
+  // the workbook tabs ship in Epic 70 wave 4 (#3422), which deletes these five entries.
+  [
+    FinalResult,
+    'FinalResultsService now writes this table; a restore loses it until the workbook tabs ship (#3422).',
+  ],
+  [
+    FinalResultWeight,
+    'FinalResultsService now writes this table; a restore loses it until the workbook tabs ship (#3422).',
+  ],
+  [
+    FinalResultRow,
+    'FinalResultsService now writes this table; a restore loses it until the workbook tabs ship (#3422).',
+  ],
+  [
+    FinalResultSubject,
+    'FinalResultsService now writes this table; a restore loses it until the workbook tabs ship (#3422).',
+  ],
+  [ReportCardNote, 'Epic 70 report card notes: workbook tab owed by #3422; nothing writes it yet.'],
 
   // Epic 19.0's exams/marks/results spine got a workbook tab in [19.10.1]
   // (#906). No exemption entries left for them.
