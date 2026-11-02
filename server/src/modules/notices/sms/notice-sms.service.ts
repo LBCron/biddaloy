@@ -322,7 +322,6 @@ export class NoticeSmsService {
     const batchKey = `batch:${batchId}`;
     let reserved = false;
     let taskId: string | null = null;
-    let linkedIds: string[] = [];
     let notLive = false;
     const jobs: { logId: string; segments: number }[] = [];
     try {
@@ -380,15 +379,14 @@ export class NoticeSmsService {
           tx,
         );
 
-        // Last step before commit: createPersonalLinks writes outside this transaction (it lives
-        // in notices/links), so only the log inserts can still fail after it, and the catch
-        // below clears the hashes if they do.
-        // ponytail: links commit on their own; give createPersonalLinks a tx param to drop the cleanup.
         if (will.length === 0) return;
-        // Every id asked for, not only the ones answered: a hash written without a returned
-        // token would otherwise survive the cleanup.
-        linkedIds = will.map((r) => r.recipient.id);
-        const tokens = await this.links.createPersonalLinks(id, linkedIds);
+        // Hashes are written in this transaction: a later failure rolls them back with the rest,
+        // so no cleanup can ever clear the hashes a later, successful approve wrote.
+        const tokens = await this.links.createPersonalLinks(
+          id,
+          will.map((r) => r.recipient.id),
+          tx,
+        );
         const tokenOf = new Map(tokens.map((t) => [t.recipientId, t.token]));
         for (const r of will) {
           const token = tokenOf.get(r.recipient.id);
@@ -421,24 +419,12 @@ export class NoticeSmsService {
         }
       });
     } catch (e) {
-      // Reservation and links are committed on their own: undo both when the rest rolled back.
+      // The reservation is committed on its own: give it back when the rest rolled back.
       if (reserved) {
         try {
           await this.credits.settle(tenantId, batchKey, 'RELEASE');
         } catch (re) {
           this.logger.error(`notice sms credit release failed: ${(re as Error).message}`);
-        }
-      }
-      if (linkedIds.length > 0) {
-        try {
-          await this.ds
-            .getRepository(NoticeRecipient)
-            .update(
-              { tenant_id: tenantId, notice_id: id, id: In(linkedIds) },
-              { link_token_hash: null },
-            );
-        } catch (le) {
-          this.logger.error(`notice sms link cleanup failed: ${(le as Error).message}`);
         }
       }
       // The 409's transaction rolled back (lock released); close the dead request on its own.

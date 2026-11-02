@@ -365,7 +365,7 @@ describe('NoticeSmsService (integration)', () => {
     expect([available, reserved]).toEqual([100 - s * 2, s * 2]);
   });
 
-  it('a failure after createPersonalLinks clears every new link hash and releases all credit', async () => {
+  it('a failure after createPersonalLinks rolls every new link hash back and releases all credit', async () => {
     await meter(10);
     const id = await notice([await guardian('01711000020'), await guardian('01711000021')]);
     const before = await ledgerIds();
@@ -391,7 +391,7 @@ describe('NoticeSmsService (integration)', () => {
       save.mockRestore();
       links.mockRestore();
     }
-    // the links really were made before the failure, so the cleanup below is real
+    // the links really were made before the failure, so the rollback below is real
     expect(made).toHaveLength(1);
     expect(made[0]).toHaveLength(2);
     const linked = await ds.query(
@@ -440,23 +440,23 @@ describe('NoticeSmsService (integration)', () => {
     expect(add).not.toHaveBeenCalled();
   });
 
-  it('createPersonalLinks throwing midway clears the hash it already wrote and releases all credit', async () => {
+  it('createPersonalLinks throwing midway: its hash lived only in the approve transaction and rolled back', async () => {
     await meter(10);
     const id = await notice([await guardian('01711000024'), await guardian('01711000025')]);
     const before = await ledgerIds();
     const service = (svc as unknown as { links: NoticeLinksService }).links;
     const real = service.createPersonalLinks.bind(service);
-    let writtenBeforeThrow = -1;
-    // writes the first recipient's hash for real, then dies before returning any token
+    let insideTx = -1;
+    let outsideTx = -1;
+    const countLinked = `SELECT count(*)::int c FROM notice_recipients WHERE notice_id = $1 AND link_token_hash IS NOT NULL`;
+    // writes the first recipient's hash for real (with the approve's own manager), then dies
     const links = vi
       .spyOn(service, 'createPersonalLinks')
-      .mockImplementation(async (noticeId, ids) => {
-        await real(noticeId, ids.slice(0, 1));
-        const [{ c }] = await ds.query(
-          `SELECT count(*)::int c FROM notice_recipients WHERE notice_id = $1 AND link_token_hash IS NOT NULL`,
-          [noticeId],
-        );
-        writtenBeforeThrow = c;
+      .mockImplementation(async (noticeId, ids, em) => {
+        expect(em).toBeDefined();
+        await real(noticeId, ids.slice(0, 1), em);
+        insideTx = (await em!.query(countLinked, [noticeId]))[0].c;
+        outsideTx = (await ds.query(countLinked, [noticeId]))[0].c;
         throw new Error('link write down');
       });
     try {
@@ -464,8 +464,10 @@ describe('NoticeSmsService (integration)', () => {
     } finally {
       links.mockRestore();
     }
-    // the half-written hash was real, so the cleanup below is real
-    expect(writtenBeforeThrow).toBe(1);
+    // The hash was really written, but only inside the transaction: nobody else could see it, so
+    // a failed attempt has nothing to clean up and can never clear a later approve's hashes.
+    expect(insideTx).toBe(1);
+    expect(outsideTx).toBe(0);
     const linked = await ds.query(
       `SELECT count(*)::int c FROM notice_recipients WHERE notice_id = $1 AND link_token_hash IS NOT NULL`,
       [id],

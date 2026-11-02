@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Not, Repository } from 'typeorm';
+import { EntityManager, In, IsNull, Not, Repository } from 'typeorm';
 import { createHash, randomBytes } from 'node:crypto';
 import type { Readable } from 'node:stream';
 import { NoticeStatus } from '@biddaloy/shared';
@@ -66,20 +66,25 @@ export class NoticeLinksService {
     );
   }
 
-  /** Only recipients of this notice get a link; other ids are skipped. */
+  /**
+   * Only recipients of this notice get a link; other ids are skipped. Pass `em` to write the
+   * hashes inside the caller's transaction, so they commit or roll back with it.
+   */
   async createPersonalLinks(
     noticeId: string,
     recipientIds: string[],
+    em?: EntityManager,
   ): Promise<{ recipientId: string; token: string }[]> {
     if (recipientIds.length === 0) return [];
-    const rows = await this.recipients.find({
+    const recipients = em ? em.getRepository(NoticeRecipient) : this.recipients;
+    const rows = await recipients.find({
       select: { id: true },
       where: { notice_id: noticeId, id: In(recipientIds) },
     });
     const out: { recipientId: string; token: string }[] = [];
     for (const { id } of rows) {
       const token = generateRawToken();
-      await this.recipients.update(
+      await recipients.update(
         { id, notice_id: noticeId },
         { link_token_hash: hashToken(token) },
       );
