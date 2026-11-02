@@ -125,10 +125,9 @@ describe('MyNoticesList', () => {
     );
     const popup = { opener: {} as unknown, location: { href: '' }, close: vi.fn() };
     const open = vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);
-    // jsdom has no object URLs; set them for this test only (URL itself stays a constructor).
-    const saved = { create: URL.createObjectURL, revoke: URL.revokeObjectURL };
-    URL.createObjectURL = () => 'blob:pdf';
-    URL.revokeObjectURL = vi.fn();
+    // Fake object URLs for this test only (URL itself stays a constructor).
+    const create = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:pdf');
+    const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
     try {
       renderPortalCard(<MyNoticesList />);
       await userEvent.click(await screen.findByRole('button', { name: 'Winter break' }));
@@ -143,8 +142,8 @@ describe('MyNoticesList', () => {
       expect(popup.close).not.toHaveBeenCalled();
     } finally {
       open.mockRestore();
-      URL.createObjectURL = saved.create;
-      URL.revokeObjectURL = saved.revoke;
+      create.mockRestore();
+      revoke.mockRestore();
     }
   });
 
