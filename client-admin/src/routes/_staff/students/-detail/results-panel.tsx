@@ -10,7 +10,6 @@
  * Mounted as a tab the same way [19.6.1]'s `SubjectChoicesPanel` is
  * (`$studentId.tsx`).
  */
-import { Permission } from '@biddaloy/shared';
 import {
   DataTable,
   ErrorState,
@@ -19,11 +18,9 @@ import {
   type DataTableColumn,
 } from '@biddaloy/ui/components';
 import {
-  useAcademicYears,
   useFinalResults,
-  useFinalResultStudentCard,
-  useHasPermission,
-  useStudent,
+  useStudentEnrollments,
+  useStudentFinalCard,
   useStudentResults,
 } from '@biddaloy/ui/hooks';
 import { useRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
@@ -35,27 +32,18 @@ export interface ResultsPanelProps {
 }
 
 /**
- * [70.5.x] The final result of the student's class for the current year, shown
- * above the per-exam rows. Only a PUBLISHED one, or a PROCESSED one for staff
- * who may process results; otherwise renders nothing and the panel is as before.
+ * [70.5.x] One year's final result of this student, shown above the per-exam rows. The server
+ * decides what staff may see (PUBLISHED, or PROCESSED for those who may process); a year with
+ * no visible final answers 404 and the row renders nothing.
  * ponytail: no link to the final card, `/results/final/...` has no route yet.
  */
-function FinalResultRow({ studentId }: { studentId: string }) {
+function FinalResultRow({ studentId, yearId }: { studentId: string; yearId: string }) {
   const { t } = useTranslation('exams');
   const regionConfig = useRegionConfig();
-  const canSeeProcessed = useHasPermission(Permission.RESULT_PROCESS);
-  const classId = useStudent(studentId).data?.class_section.class_id;
-  const years = useAcademicYears();
-  const yearId = years.data?.data.find((y) => y.is_current)?.id;
+  const card = useStudentFinalCard(studentId, yearId);
   const finals = useFinalResults(yearId);
-  const final = finals.data?.find(
-    (f) =>
-      f.class.id === classId &&
-      f.final_result_id !== null &&
-      (f.status === 'PUBLISHED' || (canSeeProcessed && f.status === 'PROCESSED')),
-  );
-  const card = useFinalResultStudentCard(final?.final_result_id ?? undefined, studentId);
-  if (!final || !card.data) return null;
+  if (!card.data) return null;
+  const status = finals.data?.find((f) => f.final_result_id === card.data.final_result_id)?.status;
   const { final: result, academic_year_name } = card.data;
   return (
     <section
@@ -64,7 +52,7 @@ function FinalResultRow({ studentId }: { studentId: string }) {
     >
       <h3 className="flex flex-wrap items-center gap-2 text-h3">
         {t('studentResultsPanel.finalTitle', { year: academic_year_name })}
-        {final.status !== 'PUBLISHED' && (
+        {status !== undefined && status !== 'PUBLISHED' && (
           <StatusBadge tone="warning" label={t('studentResultsPanel.notPublished')} />
         )}
         {result.is_fail && <StatusBadge tone="danger" label={t('studentResultsPanel.failTag')} />}
@@ -98,6 +86,15 @@ export function ResultsPanel({ studentId }: ResultsPanelProps) {
   const { t: tStudents } = useTranslation('students');
   const regionConfig = useRegionConfig();
   const resultsQuery = useStudentResults(studentId);
+  // Every year the student was enrolled in, newest first: a promoted student keeps last year's final.
+  const enrollments = useStudentEnrollments(studentId);
+  const yearIds = [
+    ...new Map(
+      [...(enrollments.data ?? [])]
+        .sort((a, b) => b.academic_year.start_date.localeCompare(a.academic_year.start_date))
+        .map((e) => [e.academic_year_id, e.academic_year_id]),
+    ).values(),
+  ];
 
   if (resultsQuery.isPending) return <Skeleton className="h-24 w-full" />;
   if (resultsQuery.isError) {
@@ -148,7 +145,9 @@ export function ResultsPanel({ studentId }: ResultsPanelProps) {
 
   return (
     <>
-      <FinalResultRow studentId={studentId} />
+      {yearIds.map((yearId) => (
+        <FinalResultRow key={yearId} studentId={studentId} yearId={yearId} />
+      ))}
       <DataTable
         tableId="student-results"
         caption={t('studentResultsPanel.caption')}
