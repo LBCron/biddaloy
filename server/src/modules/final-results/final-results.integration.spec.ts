@@ -745,6 +745,122 @@ describe('FinalResultsService (integration)', () => {
     });
   });
 
+  it("create pre-fills last year's whole-exam shares when every exam name matches (D17)", async () => {
+    const prev = await ds.getRepository(FinalResult).save({
+      tenant_id: TENANT_ID,
+      class_id: PREV_CLASS_ID,
+      academic_year_id: PREV_YEAR_ID,
+    } as Partial<FinalResult>);
+    const lastYearExam = (name: string) =>
+      ds.getRepository(Exam).save({
+        tenant_id: TENANT_ID,
+        academic_year_id: PREV_YEAR_ID,
+        class_id: PREV_CLASS_ID,
+        name,
+        kind: ExamKind.TERM,
+        status: ExamStatus.PUBLISHED,
+      } as Partial<Exam>);
+    const [h, a] = [await lastYearExam('Half-yearly'), await lastYearExam('Annual')];
+    await ds.getRepository(FinalResultWeight).save([
+      {
+        tenant_id: TENANT_ID,
+        final_result_id: prev.id,
+        exam_id: h.id,
+        subject_id: null,
+        share_percent: '40.00',
+      },
+      {
+        tenant_id: TENANT_ID,
+        final_result_id: prev.id,
+        exam_id: a.id,
+        subject_id: null,
+        share_percent: '60.00',
+      },
+    ]);
+    const s1 = await student(1);
+    // Same names in another case: still the same exams of the school's year plan.
+    const annual = await publishedExam('ANNUAL', ExamKind.TERM, [[s1, 80]]);
+    const half = await publishedExam('half-yearly', ExamKind.TERM, [[s1, 70]]);
+
+    const summary = await service.create(
+      { class_id: CLASS_ID, academic_year_id: YEAR_ID },
+      TENANT_ID,
+      'user-1',
+    );
+    const shareOf = (examId: string) =>
+      Number(summary.weights.find((w) => w.exam_id === examId)?.share_percent);
+    // 40/60 carried over, not the equal 50/50 default.
+    expect(shareOf(half.id)).toBe(40);
+    expect(shareOf(annual.id)).toBe(60);
+  });
+
+  it('create falls back to equal shares when an exam name has no share last year (D17)', async () => {
+    const prev = await ds.getRepository(FinalResult).save({
+      tenant_id: TENANT_ID,
+      class_id: PREV_CLASS_ID,
+      academic_year_id: PREV_YEAR_ID,
+    } as Partial<FinalResult>);
+    const old = await ds.getRepository(Exam).save({
+      tenant_id: TENANT_ID,
+      academic_year_id: PREV_YEAR_ID,
+      class_id: PREV_CLASS_ID,
+      name: 'Half-yearly 2025',
+      kind: ExamKind.TERM,
+      status: ExamStatus.PUBLISHED,
+    } as Partial<Exam>);
+    await ds.getRepository(FinalResultWeight).save({
+      tenant_id: TENANT_ID,
+      final_result_id: prev.id,
+      exam_id: old.id,
+      subject_id: null,
+      share_percent: '100.00',
+    });
+    const s1 = await student(1);
+    const t1 = await publishedExam('Half-yearly 2026', ExamKind.TERM, [[s1, 70]]);
+    const t2 = await publishedExam('Annual 2026', ExamKind.TERM, [[s1, 80]]);
+
+    const summary = await service.create(
+      { class_id: CLASS_ID, academic_year_id: YEAR_ID },
+      TENANT_ID,
+      'user-1',
+    );
+    expect(summary.weights.map((w) => [w.exam_id, Number(w.share_percent)])).toEqual(
+      expect.arrayContaining([
+        [t1.id, 50],
+        [t2.id, 50],
+      ]),
+    );
+  });
+
+  it("create never copies another version's final (Bangla vs English version of a class)", async () => {
+    // Last year has only an English-version "Class Nine"; this year's Class Nine has no version.
+    const prevEnglish = await ds.getRepository(Class).save({
+      name: 'Class Nine',
+      version: 'English',
+      academic_year_id: PREV_YEAR_ID,
+      tenant_id: TENANT_ID,
+    } as Partial<Class>);
+    await ds.getRepository(FinalResult).save({
+      tenant_id: TENANT_ID,
+      class_id: prevEnglish.id,
+      academic_year_id: PREV_YEAR_ID,
+      mode: FinalResultMode.BEST_OF,
+      best_of_count: 2,
+    } as Partial<FinalResult>);
+    const nine = await ds.getRepository(Class).save({
+      name: 'Class Nine',
+      academic_year_id: YEAR_ID,
+      tenant_id: TENANT_ID,
+    } as Partial<Class>);
+
+    const summary = await service.create(
+      { class_id: nine.id, academic_year_id: YEAR_ID },
+      TENANT_ID,
+      'user-1',
+    );
+    expect(summary).toMatchObject({ mode: 'WEIGHTED', best_of_count: null });
+  });
+
   it('update replaces the shares as a set and refuses an exam of another class', async () => {
     const s1 = await student(1);
     const t1 = await publishedExam('Term 1', ExamKind.TERM, [[s1, 90]]);

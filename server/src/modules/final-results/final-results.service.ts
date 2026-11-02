@@ -92,6 +92,25 @@ export type FinalResultListItem = {
 const iso = (d: Date | string): string =>
   typeof d === 'string' ? d.slice(0, 10) : d.toISOString().slice(0, 10);
 
+const examNameKey = (name: string) => name.trim().toLowerCase();
+
+/**
+ * D17: last year's whole-exam shares mapped onto this year's exams by name, or null (equal shares)
+ * unless every exam matches a distinct share and they still sum to exactly 100.
+ * ponytail: matching is by exact exam name (trimmed, any case); a renamed exam ("Half-yearly 2025")
+ * falls back to equal shares. Map by exam kind or schedule order if schools ask for it.
+ */
+export function lastYearShares(
+  exams: Array<{ name: string }>,
+  sharesByName: Map<string, number>,
+): number[] | null {
+  if (exams.length === 0 || exams.length !== sharesByName.size) return null;
+  const keys = exams.map((e) => examNameKey(e.name));
+  if (new Set(keys).size !== keys.length || !keys.every((k) => sharesByName.has(k))) return null;
+  const shares = keys.map((k) => sharesByName.get(k)!);
+  return shares.reduce((sum, x) => sum + toPaisa(x), 0) === 10_000 ? shares : null;
+}
+
 /** Equal shares in whole hundredths that sum to exactly 100.00 (33.34 / 33.33 / 33.33). */
 export function equalShares(count: number): number[] {
   if (count === 0) return [];
@@ -469,8 +488,9 @@ export class FinalResultsService {
   // ---- create / edit / delete -------------------------------------------------------------
 
   /**
-   * New DRAFT for (class, year). Switches copy last year's final of the same-named class; shares
-   * start equal over this year's PUBLISHED TERM exams of the class (D3, D17).
+   * New DRAFT for (class, year) over this year's PUBLISHED TERM exams of the class (D3). Last
+   * year's final of the same class (name, shift, version) pre-fills the switches and, when every
+   * exam's name matches one of its whole-exam shares, those shares too; else shares start equal (D17).
    */
   async create(
     dto: { class_id: string; academic_year_id: string },
@@ -502,7 +522,7 @@ export class FinalResultsService {
       // Two creates at once both pass this count; the unique index then refuses the second, and
       // known-errors.ts maps that to the same 409.
       if (existing > 0) throw finalAlreadyExists();
-      const switches = await this.lastYearSwitches(manager, cls, year, tenantId);
+      const { switches, sharesByName } = await this.lastYearFinal(manager, cls, year, tenantId);
       const exams = await manager.getRepository(Exam).find({
         where: {
           class_id: cls.id,
@@ -523,7 +543,7 @@ export class FinalResultsService {
           ...switches,
         }),
       );
-      const shares = equalShares(exams.length);
+      const shares = lastYearShares(exams, sharesByName) ?? equalShares(exams.length);
       if (exams.length > 0) {
         await manager.getRepository(FinalResultWeight).save(
           exams.map((e, i) =>
@@ -547,22 +567,29 @@ export class FinalResultsService {
     return this.get(id, tenantId);
   }
 
-  private async lastYearSwitches(
+  /** D17: last year's final of the same class: its switches and its whole-exam shares by exam name. */
+  private async lastYearFinal(
     manager: EntityManager,
     cls: Class,
     year: AcademicYear,
     tenantId: string,
   ): Promise<{
-    mode: FinalResultMode;
-    best_of_count: number | null;
-    rounding: FinalResultRounding;
-    fail_if_any_exam_fails: boolean;
+    switches: {
+      mode: FinalResultMode;
+      best_of_count: number | null;
+      rounding: FinalResultRounding;
+      fail_if_any_exam_fails: boolean;
+    };
+    sharesByName: Map<string, number>;
   }> {
     const defaults = {
-      mode: FinalResultMode.WEIGHTED,
-      best_of_count: null,
-      rounding: FinalResultRounding.WHOLE,
-      fail_if_any_exam_fails: false,
+      switches: {
+        mode: FinalResultMode.WEIGHTED,
+        best_of_count: null,
+        rounding: FinalResultRounding.WHOLE,
+        fail_if_any_exam_fails: false,
+      },
+      sharesByName: new Map<string, number>(),
     };
     const prevYear = await manager
       .getRepository(AcademicYear)
@@ -582,18 +609,33 @@ export class FinalResultsService {
         yearId: prevYear.id,
       })
       .andWhere('lower(c.name) = lower(:name)', { name: cls.name })
+      // Same identity as the class unique index (name, shift, version): a Bangla and an English
+      // version of one class are two classes, each with its own final.
       .andWhere('c.shift IS NOT DISTINCT FROM CAST(:shift AS varchar)', { shift: cls.shift })
+      .andWhere('c.version IS NOT DISTINCT FROM CAST(:version AS varchar)', {
+        version: cls.version,
+      })
       .getOne();
     if (!prevClass) return defaults;
     const prev = await manager.getRepository(FinalResult).findOne({
       where: { class_id: prevClass.id, tenant_id: tenantId, deleted_at: IsNull() },
     });
     if (!prev) return defaults;
+    const whole: Array<{ name: string; share_percent: string }> = await manager.query(
+      `SELECT e.name, w.share_percent
+         FROM final_result_weights w
+         JOIN exams e ON e.id = w.exam_id AND e.tenant_id = w.tenant_id
+        WHERE w.final_result_id = $1 AND w.tenant_id = $2 AND w.subject_id IS NULL`,
+      [prev.id, tenantId],
+    );
     return {
-      mode: prev.mode,
-      best_of_count: prev.best_of_count,
-      rounding: prev.rounding,
-      fail_if_any_exam_fails: prev.fail_if_any_exam_fails,
+      switches: {
+        mode: prev.mode,
+        best_of_count: prev.best_of_count,
+        rounding: prev.rounding,
+        fail_if_any_exam_fails: prev.fail_if_any_exam_fails,
+      },
+      sharesByName: new Map(whole.map((w) => [examNameKey(w.name), Number(w.share_percent)])),
     };
   }
 
