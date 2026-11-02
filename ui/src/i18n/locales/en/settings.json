@@ -619,6 +619,9 @@
     "undoRemove": "Undo remove",
     "emptyList": "Keep at least one line.",
     "nameRequired": "Write both the Bangla and the English name.",
+    "keyHint": "Saved as: {{key}}",
+    "keyInvalid": "The English name must start with a letter, be 2 to 31 letters or digits long, and differ from the other lines.",
+    "maxItems": "At most {{count}} lines.",
     "save": "Save",
     "saved": "Saved.",
     "saveError": "Couldn't save. Try again."
