@@ -1,6 +1,8 @@
 import type { EntityManager } from 'typeorm';
 import { NoticeSmsStatus, NoticeStatus } from '@biddaloy/shared';
 import { Notice } from '../../../notices/entities/notice.entity';
+import { NoticeAttachment } from '../../../notices/entities/notice-attachment.entity';
+import { NoticeRecipient } from '../../../notices/entities/notice-recipient.entity';
 import { formatDateTime, fromCell } from '../../codec/cell-format';
 import type {
   ColumnSpec,
@@ -228,6 +230,13 @@ export const noticesTab: TabSpec<Notice, Rec> = {
   },
 
   async remove(entity: Notice, m: EntityManager): Promise<void> {
+    // #3388: both child FKs are ON DELETE RESTRICT and this tab runs before
+    // theirs, so the files and recipients go first (as NoticesService.remove
+    // does). By notice id, not by the child tabs' rows: a recipient whose
+    // person is not exportable is never loaded there, yet still holds the FK.
+    const where = { tenant_id: entity.tenant_id, notice_id: entity.id };
+    await m.delete(NoticeAttachment, where);
+    await m.delete(NoticeRecipient, where);
     await m.remove(Notice, entity);
   },
 };
