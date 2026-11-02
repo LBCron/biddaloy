@@ -48,6 +48,8 @@
   "reports.studentCount": "done",
   "communications.sendMessage": "done",
   "communications.sendAlert": "done",
+  "communications.notices": "done",
+  "portal.notices": "done",
   "reports.alertsReport": "done",
   "communications.feeReminders": "done",
   "communications.reminderHistory": "done",
