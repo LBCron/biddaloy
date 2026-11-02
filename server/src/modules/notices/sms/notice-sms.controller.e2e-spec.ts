@@ -182,7 +182,9 @@ describe('Notice SMS API E2E', () => {
   it('ADMIN declines; a later approve is 409', async () => {
     const id = await pending();
     await call('post', `/notices/${id}/sms/decline`).expect(200);
-    await call('post', `/notices/${id}/sms/approve`).expect(409);
+    const res = await call('post', `/notices/${id}/sms/approve`).expect(409);
+    // the page tells "already decided" apart from an in-flight duplicate (no code) by this
+    expect(res.body.details).toEqual({ code: 'NOTICE_SMS_NOT_PENDING' });
   });
 
   it('approve on an expired notice is 409 and the request is DECLINED after the response', async () => {
@@ -190,6 +192,7 @@ describe('Notice SMS API E2E', () => {
     await ds.query(`UPDATE notices SET expires_on = '2000-01-01' WHERE id = $1`, [id]);
     const res = await call('post', `/notices/${id}/sms/approve`).expect(409);
     expect(JSON.stringify(res.body)).not.toContain('2000-01-01');
+    expect(res.body.details).toEqual({ code: 'NOTICE_SMS_NOT_LIVE' });
     // the close commits on its own, so it survives the 409
     const [n] = await ds.query(`SELECT sms_status FROM notices WHERE id = $1`, [id]);
     expect(n.sms_status).toBe('DECLINED');

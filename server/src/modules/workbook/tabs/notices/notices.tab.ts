@@ -217,13 +217,7 @@ export const noticesTab: TabSpec<Notice, Rec> = {
     const authorId = authorKey ? ctx.ref('users', authorKey) : null;
     if (authorKey && !authorId)
       errors.push(
-        rowError(
-          NOTICES,
-          rowNo,
-          'author',
-          `Column "author": no user with the key "${authorKey}" was found.`,
-          authorKey,
-        ),
+        rowError(NOTICES, rowNo, 'author', 'Column "author": no such user was found.', authorKey),
       );
     const actorIds: Rec = {};
     for (const [cell, idProp] of ACTORS) {

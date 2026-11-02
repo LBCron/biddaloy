@@ -193,7 +193,7 @@ After you turn the link off, to get a link again, **Edit** the notice and tick *
 
 A link always lasts as long as the notice. At any time you can make a new link, turn the link off, or withdraw the notice.
 
-**When the school's data is restored from a backup:** the earlier links stop working, and so do the personal links sent by SMS. If someone says a link does not open, check the notice and make a new link ([Restore from a backup](../administration/settings.md#task-restore)).
+**When the school's data is restored from a backup:** the earlier links of the notices in that backup stop working, and so do the personal links sent by SMS for them. A backup made before the notice board existed has no notices, so restoring it leaves notices and their links as they are. If someone says a link does not open, check the notice and make a new link ([Restore from a backup](../administration/settings.md#task-restore)).
 
 ### What a person sees who gets the link <a href="#task-public-page" id="task-public-page"></a>
 
@@ -250,18 +250,20 @@ In the **Notices** list you can search by title and filter by **Status**. A teac
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                                                        | What to do                                                                                                    | Who can help |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------ |
-| **Write a title** / **Write the notice text**                       | Fill in the box.                                                                                              | —            |
-| **Choose at least one person**                                      | Add someone in the **Who gets it** step.                                                                      | —            |
-| **At most 3 files**                                                 | Remove one file.                                                                                              | —            |
-| **This file type is not allowed**                                   | Use PDF, JPG, PNG or WebP.                                                                                    | —            |
-| **Make it JPG**                                                     | Save the file as JPG and add it again.                                                                        | —            |
-| **Could not publish. Try again.**                                   | Press **Retry**.                                                                                              | Admin        |
-| **The notice is published, but the public link could not be made.** | Press **Retry**. The notice has gone; only the link is missing.                                               | Admin        |
-| Many people under **Cannot be reached**                             | They have no phone number or account. Add a phone number to the guardian's details.                           | Admin        |
-| Someone says the link does not open                                 | The link is off, the notice is withdrawn, or the school's data was restored. See [Public link](#task-public). | Admin        |
-| **Only an admin can look at the SMS request.**                      | Ask an Admin or Academic coordinator who can approve.                                                         | Admin        |
+| What you see                                                                                               | What to do                                                                                                    | Who can help |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------ |
+| **Write a title** / **Write the notice text**                                                              | Fill in the box.                                                                                              | —            |
+| **Choose at least one person**                                                                             | Add someone in the **Who gets it** step.                                                                      | —            |
+| **At most 3 files**                                                                                        | Remove one file.                                                                                              | —            |
+| **This file type is not allowed**                                                                          | Use PDF, JPG, PNG or WebP.                                                                                    | —            |
+| **Make it JPG**                                                                                            | Save the file as JPG and add it again.                                                                        | —            |
+| **Could not publish. Try again.**                                                                          | Press **Retry**.                                                                                              | Admin        |
+| **The notice is published, but the public link could not be made.**                                        | Press **Retry**. The notice has gone; only the link is missing.                                               | Admin        |
+| Many people under **Cannot be reached**                                                                    | They have no phone number or account. Add a phone number to the guardian's details.                           | Admin        |
+| Someone says the link does not open                                                                        | The link is off, the notice is withdrawn, or the school's data was restored. See [Public link](#task-public). | Admin        |
+| **Only an admin can look at the SMS request.**                                                             | Ask an Admin or Academic coordinator who can approve.                                                         | Admin        |
+| **Not enough SMS credit. Nothing was sent, and the request is still waiting. Top up, then approve again.** | Buy SMS credit, then open the SMS page and press **Approve and send** again.                                  | Admin        |
+| **Your earlier click is still being worked on. Wait a moment, then open the page again.**                  | Do not press again. Wait, then open the notice again to see what happened.                                    | —            |
 
 ---
 

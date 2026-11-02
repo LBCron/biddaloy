@@ -39,6 +39,15 @@ const M = {
   credit: 'এসএমএস ক্রেডিট যথেষ্ট নয়',
 };
 
+/** `details.code` on the two decision 409s, so the page can tell them apart from
+ * the idempotency interceptor's in-flight 409 (which has no code). */
+export const NOTICE_SMS_NOT_PENDING = 'NOTICE_SMS_NOT_PENDING';
+export const NOTICE_SMS_NOT_LIVE = 'NOTICE_SMS_NOT_LIVE';
+const notPending = () =>
+  new ConflictException({ message: M.notPending, details: { code: NOTICE_SMS_NOT_PENDING } });
+const notLiveError = () =>
+  new ConflictException({ message: M.notLive, details: { code: NOTICE_SMS_NOT_LIVE } });
+
 /** `01712345234` -> `01•••••234`. */
 export function maskSmsPhone(phone: string): string {
   if (phone.length <= 5) return `${phone.slice(0, 1)}••••`;
@@ -249,11 +258,11 @@ export class NoticeSmsService {
     try {
       return await this.ds.transaction(async (tx) => {
         const n = await this.lockNotice(tx, tenantId, id);
-        if (n.sms_status !== NoticeSmsStatus.PENDING) throw new ConflictException(M.notPending);
+        if (n.sms_status !== NoticeSmsStatus.PENDING) throw notPending();
         // Same answer as approve: a dead request takes no ticks.
         if (!(await this.isLive(tenantId, n))) {
           notLive = true;
-          throw new ConflictException(M.notLive);
+          throw notLiveError();
         }
         const res = await tx.update(
           NoticeRecipient,
@@ -279,7 +288,7 @@ export class NoticeSmsService {
     let taskId: string | null = null;
     await this.ds.transaction(async (tx) => {
       const n = await this.lockNotice(tx, tenantId, id);
-      if (n.sms_status !== NoticeSmsStatus.PENDING) throw new ConflictException(M.notPending);
+      if (n.sms_status !== NoticeSmsStatus.PENDING) throw notPending();
       taskId = n.sms_task_alert_id;
       if (taskId) await this.alerts.closeTask(tx, tenantId, taskId);
       await tx.update(
@@ -319,10 +328,10 @@ export class NoticeSmsService {
     try {
       await this.ds.transaction(async (tx) => {
         const n = await this.lockNotice(tx, tenantId, id);
-        if (n.sms_status !== NoticeSmsStatus.PENDING) throw new ConflictException(M.notPending);
+        if (n.sms_status !== NoticeSmsStatus.PENDING) throw notPending();
         if (!(await this.isLive(tenantId, n))) {
           notLive = true;
-          throw new ConflictException(M.notLive);
+          throw notLiveError();
         }
         taskId = n.sms_task_alert_id;
 

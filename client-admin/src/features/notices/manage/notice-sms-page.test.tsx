@@ -41,7 +41,7 @@ const view = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-const err = (status: number) =>
+const err = (status: number, code?: string) =>
   new HttpResponse(
     JSON.stringify({
       statusCode: status,
@@ -49,6 +49,7 @@ const err = (status: number) =>
       timestamp: new Date().toISOString(),
       path: '/x',
       requestId: 'r',
+      ...(code ? { details: { code } } : {}),
     }),
     { status, headers: { 'Content-Type': 'application/json' } },
   );
@@ -135,12 +136,12 @@ describe('NoticeSmsPage', () => {
     await waitFor(() => expect(declined).toBe(1));
   });
 
-  it('a 409 on approve says it was already decided and stays open', async () => {
+  it('a 409 NOTICE_SMS_NOT_PENDING on approve says it was already decided and stays open', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     server.use(
       http.get(`*/notices/${ID}/sms`, () => HttpResponse.json(view())),
-      http.post(`*/notices/${ID}/sms/approve`, () => err(409)),
+      http.post(`*/notices/${ID}/sms/approve`, () => err(409, 'NOTICE_SMS_NOT_PENDING')),
     );
     renderPage(onClose);
 
@@ -148,6 +149,79 @@ describe('NoticeSmsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Approve and send' }));
     expect(await screen.findByText('This request was already decided.')).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('a 409 INSUFFICIENT_SMS_CREDIT says nothing was sent and the request still waits', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    server.use(
+      http.get(`*/notices/${ID}/sms`, () => HttpResponse.json(view())),
+      http.post(`*/notices/${ID}/sms/approve`, () => err(409, 'INSUFFICIENT_SMS_CREDIT')),
+    );
+    renderPage(onClose);
+
+    await screen.findByText('Rahim Uddin');
+    await user.click(screen.getByRole('button', { name: 'Approve and send' }));
+    // Not "already decided": the admin must know to top up, the request is still open.
+    expect(
+      await screen.findByText(
+        'Not enough SMS credit. Nothing was sent, and the request is still waiting. Top up, then approve again.',
+      ),
+    ).toBeTruthy();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('a 409 with no code (the same click still in flight) says to wait, not that someone decided', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(`*/notices/${ID}/sms`, () => HttpResponse.json(view())),
+      http.post(`*/notices/${ID}/sms/approve`, () => err(409)),
+    );
+    renderPage();
+
+    await screen.findByText('Rahim Uddin');
+    await user.click(screen.getByRole('button', { name: 'Approve and send' }));
+    expect(
+      await screen.findByText(
+        'Your earlier click is still being worked on. Wait a moment, then open the page again.',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('a failed tick shows an error instead of quietly snapping back', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(`*/notices/${ID}/sms`, () => HttpResponse.json(view())),
+      http.patch(`*/notices/${ID}/sms/recipients`, () => err(500)),
+    );
+    renderPage();
+
+    await screen.findByText('Rahim Uddin');
+    await user.click(screen.getByRole('checkbox', { name: 'Send an SMS to Rahim Uddin' }));
+    expect(await screen.findByText('Something went wrong. Please try again.')).toBeTruthy();
+  });
+
+  it('Approve waits while an untick is still on its way', async () => {
+    const user = userEvent.setup();
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    server.use(
+      http.get(`*/notices/${ID}/sms`, () => HttpResponse.json(view())),
+      http.patch(`*/notices/${ID}/sms/recipients`, async () => {
+        await held;
+        return HttpResponse.json({ updated: 1 });
+      }),
+    );
+    renderPage();
+
+    await screen.findByText('Rahim Uddin');
+    const approve = screen.getByRole('button', { name: 'Approve and send' });
+    expect(approve.hasAttribute('disabled')).toBe(false);
+    await user.click(screen.getByRole('checkbox', { name: 'Send an SMS to Rahim Uddin' }));
+    // Approving now would still send to the person just unticked.
+    await waitFor(() => expect(approve.hasAttribute('disabled')).toBe(true));
+    release();
+    await waitFor(() => expect(approve.hasAttribute('disabled')).toBe(false));
   });
 
   it('a decided request is read only: no approve, decline or ticking', async () => {

@@ -129,6 +129,7 @@ const OWNED: Record<string, string[]> = {
   dashboard: ['/print/committee-report'],
   'administration.printTemplates': ['/print/document', '/print/preview', '/v/$token'],
   'finance.invoices': ['/i/$token'],
+  'communications.notices': ['/n/$token'],
   'academics.syllabus': ['/academics/study-plans/$planId'],
   'people.evaluations': ['/staff/$userId/acr/$assessmentId'],
   'people.admissionIntakes': ['/admission/$slug', '/admission/$slug/status'],

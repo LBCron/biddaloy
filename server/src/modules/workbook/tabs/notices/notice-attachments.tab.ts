@@ -128,7 +128,7 @@ export const noticeAttachmentsTab: TabSpec<NoticeAttachment, Rec> = {
           TAB,
           rowNo,
           'notice',
-          `Column "notice": no notice with the key "${String(v.notice)}" was found.`,
+          'Column "notice": no such notice was found.',
           v.notice as string,
         ),
       );
