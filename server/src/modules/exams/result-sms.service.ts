@@ -339,8 +339,7 @@ export class ResultSmsService {
 
     await this.auditService.record({
       action: AuditAction.REMINDER_SENT,
-      // 'FinalResult' is not in the shared audit catalog yet: see FINAL_AUDIT_ENTITY.
-      entity_type: 'Exam',
+      entity_type: kind === 'final-result' ? ('FinalResult' as const) : ('Exam' as const),
       entity_id: sourceId,
       tenant_id: tenantId,
       performed_by_user_id: userId,
