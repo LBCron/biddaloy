@@ -126,6 +126,8 @@ describe('Exams conduct items settings (e2e)', () => {
       .get(url(TENANT_ID))
       .set('Authorization', `Bearer ${token}`)
       .set('X-Tenant-ID', 'not-a-uuid');
-    expect([400, 401, 403]).toContain(bad.status);
+    // context.guard: a tenant id the caller holds no membership in is 401, exactly.
+    expect(bad.status).toBe(401);
+    expect(JSON.stringify(bad.body)).not.toContain('not-a-uuid');
   });
 });
