@@ -157,6 +157,36 @@ describe('/results/final/$finalResultId', () => {
     expect(screen.getAllByText('Absent').length).toBeGreaterThan(0);
   });
 
+  it('says the name search only covers the loaded page when there are more rows', async () => {
+    mockFinal('PROCESSED');
+    server.use(
+      http.get('/api/v1/final-results/fr-1/rows', () =>
+        HttpResponse.json({
+          data: [
+            {
+              student: { id: 'st1', full_name: 'Rima Akter', roll_number: 1 },
+              total_marks: 91,
+              gpa: 5,
+              grade: 'A+',
+              position: 1,
+              section_position: 1,
+              is_fail: false,
+              per_exam: [],
+            },
+          ],
+          total: 150,
+          limit: 100,
+          offset: 0,
+        }),
+      ),
+    );
+    render('/results/final/fr-1?tab=results');
+    await screen.findByText('Rima Akter');
+    expect(screen.queryByText(/Searching only the/)).toBeNull();
+    await userEvent.type(screen.getByRole('textbox', { name: 'Name' }), 'Rima');
+    await screen.findByText(/Searching only the [1১] students on this page/);
+  });
+
   it('never shows the words the glossary bans', async () => {
     await open('PROCESSED', '/results/final/fr-1?tab=setup');
     const main = document.querySelector('main') as HTMLElement;
