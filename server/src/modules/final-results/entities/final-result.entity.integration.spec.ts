@@ -57,6 +57,24 @@ describe('FinalResultsAndReportCardNotes1791900003000 (integration)', () => {
       [SEED_TENANT_ID, finalResultId, examId, subject],
     );
 
+  // Row with the given attendance totals; the scale is the seeded one or made once.
+  const addRow = async (working: number | null, present: number | null) => {
+    let [scale] = await q(`SELECT id FROM grading_scales WHERE tenant_id = $1 LIMIT 1`, [
+      SEED_TENANT_ID,
+    ]);
+    if (!scale) {
+      [scale] = await q(
+        `INSERT INTO grading_scales (id, tenant_id, academic_year_id, name) VALUES (gen_random_uuid(), $1, $2, 'FR Scale') RETURNING id`,
+        [SEED_TENANT_ID, SEED_ACADEMIC_YEAR_ID],
+      );
+    }
+    return q(
+      `INSERT INTO "final_result_rows" (tenant_id, final_result_id, student_id, total_marks, gpa, grade, grading_scale_id, grading_scale_revision, rule_version, computed_at, working_days, present_days)
+       VALUES ($1, $2, $3, 80, 4, 'A', $4, 1, 'final-1', now(), $5, $6)`,
+      [SEED_TENANT_ID, finalResultId, studentId, scale.id, working, present],
+    );
+  };
+
   const addNote = (exam: string | null, finalResult: string | null) =>
     q(
       `INSERT INTO "report_card_notes" (tenant_id, student_id, exam_id, final_result_id) VALUES ($1, $2, $3, $4)`,

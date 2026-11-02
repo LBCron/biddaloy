@@ -8,6 +8,7 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
+  Check,
 } from 'typeorm';
 import { School } from '../../schools/entities/school.entity';
 import { Student } from '../../students/entities/student.entity';
@@ -34,6 +35,10 @@ import { FinalResult } from './final-result.entity';
  * - Referenced-by → FinalResultSubject
  */
 @Entity('final_result_rows')
+@Check(
+  'CHK_final_result_rows_days',
+  `("working_days" IS NULL OR "working_days" >= 0) AND ("present_days" IS NULL OR "present_days" >= 0) AND ("working_days" IS NULL OR "present_days" IS NULL OR "present_days" <= "working_days")`,
+)
 @Index(['tenant_id', 'final_result_id'])
 @Index(['final_result_id', 'student_id'], { unique: true, where: '"deleted_at" IS NULL' })
 @Index(['final_result_id', 'section_id'])
