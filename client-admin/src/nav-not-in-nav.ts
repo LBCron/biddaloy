@@ -24,6 +24,8 @@ export const NOT_IN_NAV: Record<string, string> = {
   '/select-school': 'tenant/role switcher, reached before the staff sidebar itself renders',
   '/i/$token': 'invitation-accept route reached via a tokenized email link, not signed-in nav',
   '/v/$token': "[32.3.9] public verify page opened by scanning an ID card's QR code, signed-out",
+  '/n/$token':
+    '[53] public notice page, opened signed-out via a shared link, not in any nav',
   '/admission/$slug/':
     '[27.11] public admission-form route, opened signed-out via a school-specific link',
   '/admission/$slug/status':
