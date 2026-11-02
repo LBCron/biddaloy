@@ -1,7 +1,7 @@
 /** [67.2.04] The shared attention hook: bar, modal, seen, navigation, `?alerts=1`, error state. */
 import '@biddaloy/ui/test';
 
-import { AlertRecipientState, AlertSeverity } from '@biddaloy/shared';
+import { AlertCategory, AlertRecipientState, AlertSeverity, AlertSource } from '@biddaloy/shared';
 import { NotificationBell } from '@biddaloy/ui/components';
 import {
   alertItemFactory,
@@ -141,6 +141,42 @@ describe('useAttentionCenter', () => {
     await userEvent.click(await screen.findByRole('button', { name: /1 warning/i }));
     await userEvent.click(await screen.findByRole('button', { name: 'Close: Trial ends soon' }));
     expect((await screen.findByRole('alert')).textContent).toBe('That did not work. Try again.');
+  });
+
+  it('a failed acknowledge shows on the important card, not on the SMS task of the same notice', async () => {
+    const noticeUrl = '/communications/notices/11111111-1111-4111-8111-111111111111';
+    // SMS task first: the old lookup by notice id in actionUrl picked the first match
+    mockAttention({ critical: 0, warning: 1, reminder: 1, activeTotal: 2 }, [
+      item({
+        recipientId: 'r-sms',
+        title: 'SMS task',
+        source: AlertSource.NOTICE,
+        category: AlertCategory.NOTICE,
+        ruleKey: 'notice.sms-approval',
+        severity: AlertSeverity.REMINDER,
+        actionUrl: `${noticeUrl}?sms=1`,
+      }),
+      item({
+        recipientId: 'r-imp',
+        title: 'Important notice',
+        source: AlertSource.NOTICE,
+        category: AlertCategory.NOTICE,
+        ruleKey: 'notice.important',
+        severity: AlertSeverity.WARNING,
+        actionUrl: noticeUrl,
+      }),
+    ]);
+    server.use(
+      http.post('*/notices/mine/*/acknowledge', () => new HttpResponse(null, { status: 500 })),
+    );
+    renderCenter();
+    await userEvent.click(await screen.findByRole('button', { name: /1 warning/i }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Mark as read: Important notice' }),
+    );
+    const line = await screen.findByRole('alert');
+    expect(line.textContent).toBe('That did not work. Try again.');
+    expect(line.closest('[data-alert-item]')?.getAttribute('data-alert-item')).toBe('r-imp');
   });
 
   it('?alerts=1 opens the modal and closing removes only that flag', async () => {

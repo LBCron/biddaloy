@@ -107,6 +107,7 @@ What **Message** never shows:
 
 - A **Sign-in codes** message never shows the code or link; the log keeps only the rest of the text.
 - An invoice link (the receipt after a payment, or **Send to guardian** on a receipt) shows as `…/i/••••••`. The guardian got the working link; the log never shows it, because anyone with the link can open the invoice for 30 days.
+- A notice's personal link (the SMS sent after an SMS is approved) shows as `…/n/••••••`. The guardian got the working link; the log never shows it, because the link opens the notice with no login and counts as that guardian reading it.
 - An **Exam result** message shows **Not shown: only staff who can see exam results can read this message.** to an Accountant. Admin and Office staff see it.
 
 This page does not keep anything on your phone or computer, so there is no "saved on this device" state.

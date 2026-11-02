@@ -92,7 +92,7 @@ export class AttentionController {
     @Param('recipientId', ParseUUIDPipe) recipientId: string,
     @Query() query: LocaleQueryDto,
   ) {
-    return this.attention.hide(tenant.id, user.sub, recipientId, query.locale);
+    return this.attention.hide(tenant.id, user.sub, recipientId, query.locale, tenant.role);
   }
 
   @AuthenticatedOnly()
@@ -108,7 +108,15 @@ export class AttentionController {
     @Body() dto: SnoozeDto,
     @Query() query: LocaleQueryDto,
   ) {
-    return this.attention.snooze(tenant.id, user.sub, recipientId, dto, new Date(), query.locale);
+    return this.attention.snooze(
+      tenant.id,
+      user.sub,
+      recipientId,
+      dto,
+      new Date(),
+      query.locale,
+      tenant.role,
+    );
   }
 
   @Get('students/:studentId')

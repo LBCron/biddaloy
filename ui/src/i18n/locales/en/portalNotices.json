@@ -1,0 +1,39 @@
+{
+  "title": "Notices",
+  "forStudents": "For {{names}}",
+  "tabs": {
+    "current": "Current",
+    "archive": "Archive"
+  },
+  "badge": {
+    "important": "Important",
+    "edited": "Edited"
+  },
+  "list": {
+    "colTitle": "Notice",
+    "colBadges": "Status",
+    "colDate": "Date",
+    "search": "Search title",
+    "searchPlaceholder": "Search by title",
+    "year": "Year",
+    "allYears": "All years",
+    "emptyCurrent": "No current notices",
+    "emptyArchive": "No old notices",
+    "emptyExplanation": "Notices posted for you will appear here."
+  },
+  "detail": {
+    "description": "Read the notice",
+    "loading": "Loading notice",
+    "acknowledge": "I have read this",
+    "openFile": "Open {{name}}"
+  },
+  "card": {
+    "title": "Latest notices",
+    "link": "All notices",
+    "empty": "No new notices"
+  },
+  "error": {
+    "message": "Could not load notices.",
+    "retry": "Try again"
+  }
+}

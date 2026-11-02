@@ -265,6 +265,8 @@ describe('scrub.sql', () => {
       },
       staff_incidents: { withdrawn_at: `'2026-01-02T00:00:00Z'::timestamptz` },
       communication_logs: { status: `'QUEUED'::"communication_logs_status_enum"` },
+      // CHK_notice_recipients_target: a STAFF row needs a user
+      notice_recipients: { user_id: lit(randomUUID()) + '::uuid' },
     };
     const tables = [
       ...new Set(

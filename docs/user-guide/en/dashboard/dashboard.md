@@ -150,6 +150,7 @@ Every role has its own starting layout. The list below is generated from the app
 9. [SMS balance](widgets.md#widget.sms-balance) — How many more SMS can be sent
 10. [Failed messages](widgets.md#widget.failed-messages) — SMS that failed in the last 7 days
 11. [Setup checklist](widgets.md#widget.setup-checklist) — What is left to set up for your school
+12. [Latest notices](widgets.md#widget.latest-notices) — The newest notices addressed to you
 
 ### Accountant
 
@@ -161,6 +162,7 @@ Every role has its own starting layout. The list below is generated from the app
 6. [Unpaid bills by age](widgets.md#widget.dues-ageing) — Unpaid amount by how long it is overdue (shown as a small tile on a phone)
 7. [Recent payments](widgets.md#widget.recent-payments) — The latest payments received
 8. [Dues by class](widgets.md#widget.dues-by-class) — Which classes owe the most
+9. [Latest notices](widgets.md#widget.latest-notices) — The newest notices addressed to you
 
 ### Teacher
 
@@ -171,6 +173,7 @@ Every role has its own starting layout. The list below is generated from the app
 5. [My leave balance](widgets.md#widget.my-leave-balance) — Leave you have taken and what is left (shown as a small tile on a phone)
 6. [My class streaks](widgets.md#widget.class-teacher-streaks) — Students absent several days in a row
 7. [My syllabus progress](widgets.md#widget.my-syllabus-progress) — How far you have taught in each class
+8. [Latest notices](widgets.md#widget.latest-notices) — The newest notices addressed to you
 
 ### Academic coordinator
 
@@ -182,6 +185,7 @@ Every role has its own starting layout. The list below is generated from the app
 6. [Mark entry](widgets.md#widget.mark-entry-progress) — Which classes still have marks to submit
 7. [Syllabus progress](widgets.md#widget.syllabus-progress) — Which classes are behind in teaching
 8. [What's coming up](widgets.md#widget.upcoming) — Next holiday and upcoming events
+9. [Latest notices](widgets.md#widget.latest-notices) — The newest notices addressed to you
 
 ### Office staff
 
@@ -192,6 +196,7 @@ Every role has its own starting layout. The list below is generated from the app
 5. [Teachers and staff](widgets.md#widget.staff-today) — Who is present, who is on leave
 6. [Print queue](widgets.md#widget.print-queue) — Documents waiting to be printed
 7. [What's coming up](widgets.md#widget.upcoming) — Next holiday and upcoming events
+8. [Latest notices](widgets.md#widget.latest-notices) — The newest notices addressed to you
 
 ### Exam controller
 
@@ -200,6 +205,7 @@ Every role has its own starting layout. The list below is generated from the app
 3. [Seat plans](widgets.md#widget.seat-plan-status) — Which exams have a seat plan and which do not
 4. [Print queue](widgets.md#widget.print-queue) — Documents waiting to be printed
 5. [What's coming up](widgets.md#widget.upcoming) — Next holiday and upcoming events
+6. [Latest notices](widgets.md#widget.latest-notices) — The newest notices addressed to you
 
 ### Committee member
 

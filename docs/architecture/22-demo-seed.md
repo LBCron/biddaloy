@@ -676,3 +676,11 @@ flowchart LR
 - `.claude/agents/issue-reviewer.md`: a diff that changes the schema without a slice change is a finding.
 - `docs/architecture/15-ux-principles.md` §2: the "Seed data" registry row.
 - [08-security.md](08-security.md#demo-seed-safety-5813), "Demo seed safety (58.1.03)": the three checks `seed:demo` runs before any write.
+
+Dated learning (2026-11-01, Epic 53 Wave 1):
+
+- **Surprise:** a new entity that is missing from `app.module.ts` `entities` or from every slice crashes the coverage guard with a `TypeError`, not a clear message. Cost: a confusing red CI job. Fix: register the entity and cover it with a slice, or stub it with `owedBy` naming the ticket. Rule candidate: a new table ticket lists both steps.
+
+Dated learning (2026-11-02, Epic 53 Wave 4 close):
+
+- **Surprise:** the e2e seed (`yarn seed`) and the demo seed are separate, and the route manifest's `"seeded"` notice params only resolve from the e2e seed. Cost: three sweep entries had nothing to open. Fix: `server/src/scripts/seed.notices.ts` writes one published notice through `NoticesService`. Rule candidate: a manifest `"seeded"` param names the seed file that writes it.

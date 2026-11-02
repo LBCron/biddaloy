@@ -256,6 +256,7 @@ export class ExamsService {
     const where: any = { tenant_id: tenantId, deleted_at: IsNull() };
     if (query.academic_year_id) where.academic_year_id = query.academic_year_id;
     if (query.class_id) where.class_id = query.class_id;
+    if (query.status) where.status = query.status;
 
     const [data, total] = await this.repo.findAndCount({
       where,

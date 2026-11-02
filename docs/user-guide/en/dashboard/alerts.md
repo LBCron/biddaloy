@@ -319,6 +319,8 @@ Arranged by the name in the **Type** filter. Only the alerts that really arrive 
 
 An alert **Sent by the school**: it does not come from a rule; someone at the school writes it by hand. It can be a **Warning** or a **Reminder**, not **Urgent**.
 
+An alert of the type **Notices** comes from the school's notice board. An **important** notice is a **Warning** for everyone it was sent to, until they mark it as read or the notice ends. When a notice's author asks for an SMS copy, the Admin and the Academic coordinator get a **Reminder** to approve it. Both go away by themselves when the notice is withdrawn.
+
 ---
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>

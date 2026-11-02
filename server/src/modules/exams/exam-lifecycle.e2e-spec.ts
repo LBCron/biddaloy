@@ -244,4 +244,54 @@ describe('[ACAD-05] Exam lifecycle guards', () => {
 
     await patchComponent(as(UserRole.ADMIN), { name: 'Theory' }).expect(200);
   });
+
+  describe('GET /exams?status= (notice "failed last exam" picker)', () => {
+    /** 100 DRAFT exams newer than the fixture's PUBLISHED one: they fill the whole first page. */
+    const fillPageWithDrafts = () =>
+      ds.query(
+        `INSERT INTO exams (academic_year_id, class_id, name, kind, status, tenant_id, created_at, updated_at)
+         SELECT $1, $2, 'Draft ' || g, 'TERM', 'DRAFT', $3, NOW() + interval '1 minute', NOW()
+           FROM generate_series(1, 100) g`,
+        [SEED_ACADEMIC_YEAR_ID, SEED_CLASS_1_ID, SEED_TENANT_ID],
+      );
+
+    it('status=PUBLISHED filters before the page: an older published exam is still found', async () => {
+      await fillPageWithDrafts();
+      // without the filter the published exam falls off the 100-row page
+      const all = await http().get(`${API}/exams?limit=100`).set(as(UserRole.ADMIN)).expect(200);
+      expect(all.body.data.map((e: any) => e.id)).not.toContain(examId);
+
+      const res = await http()
+        .get(`${API}/exams?limit=100&status=PUBLISHED`)
+        .set(as(UserRole.ADMIN))
+        .expect(200);
+      expect(res.body.data.map((e: any) => e.id)).toContain(examId);
+      expect(res.body.data.every((e: any) => e.status === 'PUBLISHED')).toBe(true);
+      // the partial-list hint reads this total, so it counts published exams only
+      const [{ c }] = await ds.query(
+        `SELECT count(*)::int c FROM exams WHERE tenant_id = $1 AND status = 'PUBLISHED' AND deleted_at IS NULL`,
+        [SEED_TENANT_ID],
+      );
+      expect(res.body.total).toBe(c);
+    });
+
+    it('an unknown status is 400 and the message does not echo it', async () => {
+      const res = await http()
+        .get(`${API}/exams?status=NOPE_${randomUUID().slice(0, 6)}`)
+        .set(as(UserRole.ADMIN))
+        .expect(400);
+      expect(JSON.stringify(res.body)).not.toContain('NOPE_');
+    });
+
+    it('missing, foreign or malformed X-Tenant-ID is 401', async () => {
+      const auth = { Authorization: `Bearer ${tokens.get(UserRole.ADMIN)}` };
+      await http().get(`${API}/exams?status=PUBLISHED`).set(auth).expect(401);
+      for (const tenant of ['00000000-0000-4000-8000-00000000dead', 'not-a-uuid']) {
+        await http()
+          .get(`${API}/exams?status=PUBLISHED`)
+          .set({ ...auth, 'X-Tenant-ID': tenant })
+          .expect(401);
+      }
+    });
+  });
 });

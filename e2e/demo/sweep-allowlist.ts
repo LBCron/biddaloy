@@ -70,4 +70,6 @@ export const NOT_SWEPT: Record<string, string> = {
   '/reports/runs/$runId': 'opened from the link in a report email: no list page links to it',
   '/i/$token': 'the seed stores only the share token hash, so no link can be rebuilt',
   '/v/$token': 'the seed stores only the ID card verify token hash, so no link can be rebuilt',
+  '/n/$token':
+    'the seed stores only public/personal notice link token hashes, so no link can be rebuilt',
 };

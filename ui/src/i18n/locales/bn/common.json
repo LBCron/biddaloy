@@ -484,5 +484,22 @@
     "noAccess": "এই রিপোর্টটি প্রিন্ট করার অনুমতি আপনার নেই।",
     "noAccessHint": "রিপোর্ট দেখার অনুমতির জন্য স্কুলের অ্যাডমিনকে বলুন।",
     "missingHint": "রিপোর্টটি খুলে সেখান থেকে প্রিন্ট করুন।"
+  },
+  "audienceBuilder": {
+    "addSelected": "নির্বাচিত তালিকায় নিন",
+    "addAll": "মিল পাওয়া সবাইকে যোগ করুন ({{count}})",
+    "max": "সর্বোচ্চ {{max}} জন",
+    "matchesTitle": "মিলে যাওয়া মানুষ",
+    "emptyTitle": "এই ফিল্টারে কেউ নেই",
+    "emptyExplanation": "মানুষ দেখতে ফিল্টার বদলান।",
+    "filters": "ফিল্টার",
+    "chosenBar": "নির্বাচিত ({{count}})",
+    "backToMatches": "তালিকায় ফিরুন",
+    "chosenTitle": "নির্বাচিত তালিকা",
+    "chosenCaption": "নির্বাচিত মানুষ",
+    "chosenTotal": "মোট {{total}}",
+    "chosenEmptyTitle": "এখনো কাউকে নির্বাচন করা হয়নি",
+    "chosenEmptyExplanation": "তালিকা থেকে মানুষ যোগ করুন।",
+    "remove": "নির্বাচিত তালিকা থেকে সরান"
   }
 }

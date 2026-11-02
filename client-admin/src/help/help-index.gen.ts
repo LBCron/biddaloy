@@ -3388,6 +3388,56 @@ export const HELP_INDEX: HelpIndex = {
     anchor: '',
     knownIssues: 0,
   },
+  'communications.notices': {
+    title: { bn: 'নোটিশ দিন ও দেখুন', en: 'Give and follow notices' },
+    summary: {
+      bn: 'স্কুলের নোটিশ লিখে বাছাই করা মানুষকে পাঠান; কে পড়েছে দেখুন, পাবলিক লিংক চালান বা বন্ধ করুন, আর SMS-এর জন্য অনুমোদন চান।',
+      en: 'Write a school notice and send it to chosen people; see who has read it, run or turn off the public link, and ask for an SMS to be approved.',
+    },
+    path: 'communications/notices',
+    anchor: '',
+    knownIssues: 0,
+  },
+  'communications.notices.field.important': {
+    title: { bn: 'নোটিশ দিন ও দেখুন', en: 'Give and follow notices' },
+    summary: { bn: '', en: '' },
+    path: 'communications/notices',
+    anchor: 'more',
+    knownIssues: 0,
+    field: { ns: 'noticeCompose', key: 'important' },
+  },
+  'communications.notices.field.pinned': {
+    title: { bn: 'নোটিশ দিন ও দেখুন', en: 'Give and follow notices' },
+    summary: { bn: '', en: '' },
+    path: 'communications/notices',
+    anchor: 'more',
+    knownIssues: 0,
+    field: { ns: 'noticeCompose', key: 'pinned' },
+  },
+  'communications.notices.field.isPublic': {
+    title: { bn: 'নোটিশ দিন ও দেখুন', en: 'Give and follow notices' },
+    summary: { bn: '', en: '' },
+    path: 'communications/notices',
+    anchor: 'more',
+    knownIssues: 0,
+    field: { ns: 'noticeCompose', key: 'isPublic' },
+  },
+  'communications.notices.field.sms': {
+    title: { bn: 'নোটিশ দিন ও দেখুন', en: 'Give and follow notices' },
+    summary: { bn: '', en: '' },
+    path: 'communications/notices',
+    anchor: 'more',
+    knownIssues: 0,
+    field: { ns: 'noticeCompose', key: 'sms' },
+  },
+  'communications.notices.field.expires': {
+    title: { bn: 'নোটিশ দিন ও দেখুন', en: 'Give and follow notices' },
+    summary: { bn: '', en: '' },
+    path: 'communications/notices',
+    anchor: 'more',
+    knownIssues: 0,
+    field: { ns: 'noticeCompose', key: 'expires' },
+  },
   'communications.sendMessage': {
     title: { bn: 'বার্তা পাঠান', en: 'Send a message' },
     summary: {
@@ -4167,6 +4217,16 @@ export const HELP_INDEX: HelpIndex = {
     anchor: '',
     knownIssues: 0,
   },
+  'portal.notices': {
+    title: { bn: 'নোটিশ (অভিভাবক ও শিক্ষার্থী)', en: 'Notices (parent and student)' },
+    summary: {
+      bn: 'স্কুলের দেওয়া নোটিশ পড়ুন, ফাইল খুলুন, আর জরুরি নোটিশে পড়েছি চাপুন।',
+      en: 'Read the notices your school gave, open their files, and press I have read this on an important notice.',
+    },
+    path: 'portal/notices',
+    anchor: '',
+    knownIssues: 0,
+  },
   'portal.surveys': {
     title: { bn: 'জরিপ (অভিভাবক ও শিক্ষার্থী)', en: 'Surveys (parent and student)' },
     summary: {
@@ -4857,6 +4917,16 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'widget.my-lessons-to-mark',
     knownIssues: 0,
   },
+  'widget.latest-notices': {
+    title: { bn: 'উইজেটগুলোর মানে বোঝা', en: 'What the widgets mean' },
+    summary: {
+      bn: 'ড্যাশবোর্ডের প্রতিটি উইজেট কী বলে, সংখ্যাটি কোথা থেকে আসে, আর দেখে কী করবেন।',
+      en: 'What each dashboard widget says, where its number comes from, and what to do after you read it.',
+    },
+    path: 'dashboard/widgets',
+    anchor: 'widget.latest-notices',
+    knownIssues: 0,
+  },
   'dashboard.customise': {
     title: { bn: 'ড্যাশবোর্ড নিজের মতো সাজানো', en: 'Customising your dashboard' },
     summary: {
@@ -5077,6 +5147,11 @@ export const HELP_ROUTES = {
   '/reports/printables': 'reports.printables',
   '/applications/reports': 'reports.applications',
   '/reports/alerts': 'reports.alertsReport',
+  '/communications/notices': 'communications.notices',
+  '/communications/notices/$noticeId': 'communications.notices',
+  '/communications/notices/$noticeId/edit': 'communications.notices',
+  '/communications/notices/new': 'communications.notices',
+  '/n/$token': 'communications.notices',
   '/communications/send': 'communications.sendMessage',
   '/communications/send-alert': 'communications.sendAlert',
   '/communications/reminders': 'communications.feeReminders',
@@ -5103,6 +5178,8 @@ export const HELP_ROUTES = {
   '/portal/exam-schedule': 'portal.examSchedule',
   '/portal/syllabus': 'portal.syllabus',
   '/portal/homework': 'portal.homework',
+  '/portal/notices': 'portal.notices',
+  '/portal/notices/$noticeId': 'portal.notices',
   '/portal/surveys': 'portal.surveys',
   '/portal/applications': 'portal.applications',
   '/portal/applications/$applicationId': 'portal.applications',

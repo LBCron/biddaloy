@@ -7,6 +7,7 @@ export enum AlertSeverity {
 export enum AlertSource {
   RULE = 'RULE',
   MANUAL = 'MANUAL',
+  NOTICE = 'NOTICE',
 }
 
 export enum AlertStatus {
@@ -47,6 +48,7 @@ export enum AlertCategory {
   PLATFORM = 'PLATFORM',
   BILLING = 'BILLING',
   MANUAL = 'MANUAL',
+  NOTICE = 'NOTICE',
 }
 
 export type AlertSnoozeChoice = 'TWO_HOURS' | 'TOMORROW_MORNING' | 'NEXT_SCHOOL_DAY' | 'DATE'; // D28

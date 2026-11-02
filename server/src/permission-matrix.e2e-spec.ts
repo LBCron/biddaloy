@@ -854,6 +854,10 @@ export const UI_ONLY_PERMISSIONS: Permission[] = [
   // [10.4] G17 — no route deletes a user account; SUPER_ADMIN-only via
   // Object.values(Permission), never granted to a staff role.
   Permission.USER_DELETE,
+  // [53.1.01] NOTICE_MANAGE is read in code (`canManage`: see and edit anyone's notice), never a
+  // route gate. [53.5.01] NOTICE_SMS_APPROVE now gates the four `/notices/:id/sms*` routes, so it
+  // left this list. `POST /notices/:id/sms/request` is gated by NOTICE_POST.
+  Permission.NOTICE_MANAGE,
   // Pre-existing UI-only gates, unaffected by [10.4]: no route requires
   // these — they gate a button/action inline rather than a whole route
   // (invoice print button, correcting a mark outside the window, collecting

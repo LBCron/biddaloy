@@ -9508,6 +9508,404 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notices/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Notices addressed to me (current or archive) */
+        get: operations["NoticeReaderController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/mine/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Open one of my notices; marks it seen */
+        get: operations["NoticeReaderController_open_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/mine/{id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acknowledge an important notice (পড়েছি) */
+        post: operations["NoticeReaderController_acknowledge_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attach up to 3 files (PDF, JPG, PNG, WebP; 5 MB each) */
+        post: operations["NoticeFilesController_upload_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/files/{fileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream one file (author, manager, or a recipient) */
+        get: operations["NoticeFilesController_download_v1"];
+        put?: never;
+        post?: never;
+        /** Remove a file from a notice */
+        delete: operations["NoticeFilesController_remove_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My notices (all notices for NOTICE_MANAGE) */
+        get: operations["NoticesController_list_v1"];
+        put?: never;
+        /** Create a draft notice */
+        post: operations["NoticesController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One notice with its counts */
+        get: operations["NoticesController_get_v1"];
+        put?: never;
+        post?: never;
+        /** Delete a DRAFT notice (a published one answers 409: withdraw it) */
+        delete: operations["NoticesController_remove_v1"];
+        options?: never;
+        head?: never;
+        /** Edit a draft or a published notice (published: stamps edited_at, no push) */
+        patch: operations["NoticesController_update_v1"];
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** New draft with the same text, flags and Chosen list (no files) */
+        post: operations["NoticesController_copy_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The Chosen list, paged */
+        get: operations["NoticesController_listRecipients_v1"];
+        put?: never;
+        /** Add people from audience results (DRAFT only) */
+        post: operations["NoticesController_addRecipients_v1"];
+        /** Remove rows from the Chosen list (DRAFT only) */
+        delete: operations["NoticesController_removeRecipients_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/recipients/matching": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add everyone an audience filter matches (max 5,000 people; a guardian of several children counts once) */
+        post: operations["NoticesController_addMatching_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish: snapshot the list, push, alert, link. Never sends SMS. */
+        post: operations["NoticesController_publish_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw: links, alert and pending SMS request stop */
+        post: operations["NoticesController_withdraw_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/sms/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask an admin to approve an SMS copy. Sends nothing. */
+        post: operations["NoticesController_requestSms_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/public-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make a new public link (the old one stops). Token shown once. */
+        post: operations["NoticesController_newPublicLink_v1"];
+        /** Turn the public link off */
+        delete: operations["NoticesController_turnOffPublicLink_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Per-person delivery report with totals */
+        get: operations["NoticesController_report_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audience/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A page of people a notice could reach. */
+        get: operations["AudienceController_people_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/notices/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public view of a notice via a link token. No auth; one 404 for any dead link. */
+        get: operations["PublicNoticeController_get_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/notices/{token}/files/{fileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream one of the notice's files inline. 404 for a dead link or a foreign file. */
+        get: operations["PublicNoticeController_file_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/notices/{token}/opened": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A personal link marks its recipient seen, once. A public link writes nothing. */
+        post: operations["PublicNoticeController_opened_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/sms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The SMS request: people, counts, text and credit cost */
+        get: operations["NoticeSmsController_view_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/sms/recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Tick or untick people while the request is pending */
+        patch: operations["NoticeSmsController_setRecipients_v1"];
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/sms/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve: reserve credit, make personal links, queue one SMS each */
+        post: operations["NoticeSmsController_approve_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/sms/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline: nothing is sent */
+        post: operations["NoticeSmsController_decline_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/surveys/mine": {
         parameters: {
             query?: never;
@@ -12994,12 +13392,12 @@ export interface components {
             end: string;
         };
         NotificationPrefsDto: {
-            mutedCategories: ("SETUP" | "SYSTEM" | "STRUCTURE" | "ATTENDANCE" | "PERIOD" | "HOMEWORK" | "CLASS" | "STUDY_PLAN" | "FEES" | "EXAMS" | "OFFICE" | "FAMILY" | "COMMON" | "PLATFORM" | "BILLING" | "MANUAL")[];
+            mutedCategories: ("SETUP" | "SYSTEM" | "STRUCTURE" | "ATTENDANCE" | "PERIOD" | "HOMEWORK" | "CLASS" | "STUDY_PLAN" | "FEES" | "EXAMS" | "OFFICE" | "FAMILY" | "COMMON" | "PLATFORM" | "BILLING" | "MANUAL" | "NOTICE")[];
             /** @description The school's setting; read-only here. */
             quietHours: components["schemas"]["QuietHoursDto"];
         };
         UpdateNotificationPrefsDto: {
-            mutedCategories: ("SETUP" | "SYSTEM" | "STRUCTURE" | "ATTENDANCE" | "PERIOD" | "HOMEWORK" | "CLASS" | "STUDY_PLAN" | "FEES" | "EXAMS" | "OFFICE" | "FAMILY" | "COMMON" | "PLATFORM" | "BILLING" | "MANUAL")[];
+            mutedCategories: ("SETUP" | "SYSTEM" | "STRUCTURE" | "ATTENDANCE" | "PERIOD" | "HOMEWORK" | "CLASS" | "STUDY_PLAN" | "FEES" | "EXAMS" | "OFFICE" | "FAMILY" | "COMMON" | "PLATFORM" | "BILLING" | "MANUAL" | "NOTICE")[];
         };
         UpdateOwnProfileDto: {
             full_name?: string;
@@ -13007,7 +13405,7 @@ export interface components {
         };
         DashboardLayoutItemDto: {
             /** @enum {string} */
-            key: "attendance-today" | "staff-today" | "collection-month" | "mark-entry-progress" | "syllabus-progress" | "at-risk-students" | "sms-balance" | "failed-messages" | "upcoming" | "homework-submission-rate" | "recent-activity" | "my-routine-today" | "my-pending-sections" | "my-mark-deadlines" | "homework-to-check" | "class-teacher-streaks" | "my-leave-balance" | "my-syllabus-progress" | "collection-today" | "collection-by-month" | "dues-ageing" | "dues-by-class" | "fee-generation-status" | "reminders-pending" | "recent-payments" | "committee-enrollment" | "committee-attendance" | "committee-finance" | "committee-pass-rate" | "seat-plan-status" | "results-state" | "admissions-today" | "guardians-incomplete" | "students-added-today" | "approvals-pending" | "print-queue" | "setup-checklist" | "syllabus-vs-plan" | "my-lessons-to-mark";
+            key: "attendance-today" | "staff-today" | "collection-month" | "mark-entry-progress" | "syllabus-progress" | "at-risk-students" | "sms-balance" | "failed-messages" | "upcoming" | "homework-submission-rate" | "recent-activity" | "my-routine-today" | "my-pending-sections" | "my-mark-deadlines" | "homework-to-check" | "class-teacher-streaks" | "my-leave-balance" | "my-syllabus-progress" | "collection-today" | "collection-by-month" | "dues-ageing" | "dues-by-class" | "fee-generation-status" | "reminders-pending" | "recent-payments" | "committee-enrollment" | "committee-attendance" | "committee-finance" | "committee-pass-rate" | "seat-plan-status" | "results-state" | "admissions-today" | "guardians-incomplete" | "students-added-today" | "approvals-pending" | "print-queue" | "setup-checklist" | "syllabus-vs-plan" | "my-lessons-to-mark" | "latest-notices";
             hidden?: boolean;
             /** @enum {string} */
             size?: "S" | "M" | "L";
@@ -14019,11 +14417,11 @@ export interface components {
             data: components["schemas"]["PlatformSchoolBackupHealthDto"][];
         };
         /** @enum {string} */
-        AlertSource: "RULE" | "MANUAL";
+        AlertSource: "RULE" | "MANUAL" | "NOTICE";
         /** @enum {string} */
         AlertSeverity: "CRITICAL" | "WARNING" | "REMINDER";
         /** @enum {string} */
-        AlertCategory: "SETUP" | "SYSTEM" | "STRUCTURE" | "ATTENDANCE" | "PERIOD" | "HOMEWORK" | "CLASS" | "STUDY_PLAN" | "FEES" | "EXAMS" | "OFFICE" | "FAMILY" | "COMMON" | "PLATFORM" | "BILLING" | "MANUAL";
+        AlertCategory: "SETUP" | "SYSTEM" | "STRUCTURE" | "ATTENDANCE" | "PERIOD" | "HOMEWORK" | "CLASS" | "STUDY_PLAN" | "FEES" | "EXAMS" | "OFFICE" | "FAMILY" | "COMMON" | "PLATFORM" | "BILLING" | "MANUAL" | "NOTICE";
         /** @enum {string} */
         AlertRecipientState: "OPEN" | "HIDDEN" | "RESOLVED" | "EXPIRED";
         AlertItemDto: {
@@ -17632,6 +18030,286 @@ export interface components {
         };
         WithdrawIncidentDto: {
             reason: string;
+        };
+        NoticeMineItemDto: {
+            id: string;
+            title: string;
+            important: boolean;
+            pinned: boolean;
+            published_at: string | null;
+            expires_on: string | null;
+            edited: boolean;
+            seen: boolean;
+            acknowledged: boolean;
+            forStudents: string[];
+        };
+        NoticeMineListDto: {
+            data: components["schemas"]["NoticeMineItemDto"][];
+            total: number;
+            page: number;
+            limit: number;
+        };
+        NoticeFileDto: {
+            id: string;
+            original_name: string;
+            mime_type: string;
+            size_bytes: number;
+        };
+        NoticeMineDetailDto: {
+            id: string;
+            title: string;
+            important: boolean;
+            pinned: boolean;
+            published_at: string | null;
+            expires_on: string | null;
+            edited: boolean;
+            seen: boolean;
+            acknowledged: boolean;
+            forStudents: string[];
+            body: string;
+            files: components["schemas"]["NoticeFileDto"][];
+        };
+        CreateNoticeDto: {
+            title: string;
+            body: string;
+            important?: boolean;
+            pinned?: boolean;
+            isPublic?: boolean;
+            /** Format: date */
+            expiresOn?: string | null;
+        };
+        /** @enum {string} */
+        NoticeStatus: "DRAFT" | "PUBLISHED" | "WITHDRAWN";
+        /** @enum {string} */
+        NoticeSmsStatus: "NONE" | "PENDING" | "APPROVED" | "DECLINED";
+        NoticeDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            /** @description Detail only. */
+            body?: string;
+            status: components["schemas"]["NoticeStatus"];
+            important: boolean;
+            pinned: boolean;
+            isPublic: boolean;
+            expiresOn: string | null;
+            /** Format: uuid */
+            authorUserId: string;
+            authorName: string | null;
+            publishedAt: string | null;
+            editedAt: string | null;
+            withdrawnAt: string | null;
+            smsStatus: components["schemas"]["NoticeSmsStatus"];
+            /** @description People (a guardian with three children counts once). */
+            recipientCount: number;
+            seenCount: number;
+            createdAt: string;
+            /** @description PATCH only: returned once when that edit turned the public link on. Publish never returns it (its answer is cached for idempotency); use POST :id/public-link. */
+            publicLinkToken?: string | null;
+            /** @description Single-notice answers only, not the list. */
+            files?: components["schemas"]["NoticeFileDto"][];
+        };
+        NoticePageDto: {
+            items: components["schemas"]["NoticeDto"][];
+            total: number;
+            page: number;
+            limit: number;
+        };
+        UpdateNoticeDto: {
+            title?: string;
+            body?: string;
+            important?: boolean;
+            pinned?: boolean;
+            isPublic?: boolean;
+            /** Format: date */
+            expiresOn?: string | null;
+        };
+        /** @enum {string} */
+        NoticeRecipientKind: "STAFF" | "STUDENT" | "GUARDIAN";
+        NoticeRecipientDto: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["NoticeRecipientKind"];
+            name: string;
+            /** @description The student a guardian hears about. */
+            forStudent: string | null;
+            hasLogin: boolean;
+            seenAt: string | null;
+            linkOpenedAt: string | null;
+            acknowledgedAt: string | null;
+            /** @description No login and no phone: nothing can reach this person. */
+            unreachable: boolean;
+        };
+        NoticeRecipientPageDto: {
+            items: components["schemas"]["NoticeRecipientDto"][];
+            total: number;
+            page: number;
+            limit: number;
+        };
+        RecipientRefDto: {
+            kind: components["schemas"]["NoticeRecipientKind"];
+            /** Format: uuid */
+            userId?: string | null;
+            /** Format: uuid */
+            studentId?: string | null;
+            /** Format: uuid */
+            guardianId?: string | null;
+        };
+        AddRecipientsDto: {
+            items: components["schemas"]["RecipientRefDto"][];
+        };
+        AddRecipientsResultDto: {
+            /** @description Rows actually added (duplicates and unknown people are skipped). */
+            added: number;
+            total: number;
+        };
+        /** @enum {string} */
+        AudienceTarget: "STAFF" | "STUDENTS" | "GUARDIANS";
+        /** @enum {string} */
+        AudienceTab: "ROLE" | "NAMED_STAFF" | "CLASS" | "SECTION" | "NAMED_STUDENT" | "EXAM_FAILED" | "FEE_DUE" | "LOW_ATTENDANCE" | "ORG_GROUP";
+        AudienceQueryDto: {
+            target: components["schemas"]["AudienceTarget"];
+            tab: components["schemas"]["AudienceTab"];
+            roles?: components["schemas"]["UserRole"][];
+            classIds?: string[];
+            sectionIds?: string[];
+            /**
+             * Format: uuid
+             * @description EXAM_FAILED: a published exam.
+             */
+            examId?: string;
+            /** @description LOW_ATTENDANCE: current-year % below this. */
+            belowPercent?: number;
+            /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+            shift?: string;
+            /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+            version?: string;
+            /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+            group?: string;
+            /** @description Name search. */
+            q?: string;
+            /** @default 1 */
+            page: number;
+            /** @default 25 */
+            limit: number;
+        };
+        RemoveRecipientsDto: {
+            ids: string[];
+        };
+        PublishNoticeDto: {
+            /**
+             * @description Ask an admin to approve an SMS copy. Nothing is sent here.
+             * @default false
+             */
+            requestSms: boolean;
+        };
+        PublicLinkDto: {
+            /** @description Shown once. Only its hash is stored. */
+            token: string;
+        };
+        /** @enum {string} */
+        NoticeReportStatus: "SEEN" | "UNSEEN" | "ACKNOWLEDGED" | "UNREACHABLE";
+        NoticeReportTotalsDto: {
+            people: number;
+            seen: number;
+            linkOpened: number;
+            acknowledged: number;
+            unreachable: number;
+        };
+        NoticeReportDto: {
+            items: components["schemas"]["NoticeRecipientDto"][];
+            total: number;
+            page: number;
+            limit: number;
+            totals: components["schemas"]["NoticeReportTotalsDto"];
+        };
+        AudiencePersonDto: {
+            kind: components["schemas"]["NoticeRecipientKind"];
+            /** Format: uuid */
+            userId: string | null;
+            /** Format: uuid */
+            studentId: string | null;
+            /** Format: uuid */
+            guardianId: string | null;
+            name: string;
+            /** @description class · section, or the role(s) */
+            detail: string;
+            hasLogin: boolean;
+            /** @description Never the number itself. */
+            hasPhone: boolean;
+        };
+        AudiencePageDto: {
+            items: components["schemas"]["AudiencePersonDto"][];
+            total: number;
+            page: number;
+            limit: number;
+        };
+        PublicNoticeFileDto: {
+            id: string;
+            mimeType: string;
+            name: string;
+        };
+        PublicNoticeDto: {
+            schoolName: string;
+            title: string;
+            body: string;
+            /** Format: date-time */
+            publishedAt: string | null;
+            /** Format: date-time */
+            editedAt: string | null;
+            files: components["schemas"]["PublicNoticeFileDto"][];
+        };
+        SmsRecipientRowDto: {
+            id: string;
+            guardianName: string;
+            forStudent: string | null;
+            reachable: boolean;
+            smsWanted: boolean;
+            /** @description Masked, e.g. 01•••••234 */
+            phone: string | null;
+        };
+        SmsCountsDto: {
+            willSend: number;
+            optedOut: number;
+            noPhone: number;
+        };
+        SmsTextDto: {
+            /** @description Title plus link placeholder */
+            text: string;
+            length: number;
+            segments: number;
+            /** @enum {string} */
+            encoding: "GSM_7" | "UCS_2";
+            /** @description Whole credits: segments x people who will get it */
+            creditCost: number;
+        };
+        NoticeSmsViewDto: {
+            /** @enum {string} */
+            status: "NONE" | "PENDING" | "APPROVED" | "DECLINED";
+            requester: string | null;
+            requestedAt: string | null;
+            /** @description Notice is published, not withdrawn and not past its end date */
+            live: boolean;
+            items: components["schemas"]["SmsRecipientRowDto"][];
+            total: number;
+            page: number;
+            limit: number;
+            counts: components["schemas"]["SmsCountsDto"];
+            sms: components["schemas"]["SmsTextDto"];
+        };
+        SmsRecipientsDto: {
+            /** @description notice_recipients ids (guardian rows) */
+            ids: string[];
+            smsWanted: boolean;
+        };
+        SmsRecipientsResultDto: {
+            updated: number;
+        };
+        SmsDecisionDto: {
+            /** @enum {string} */
+            status: "NONE" | "PENDING" | "APPROVED" | "DECLINED";
+            /** @description SMS queued (0 on decline) */
+            queued: number;
         };
         PendingSurveyQuestionDto: {
             id: string;
@@ -32351,6 +33029,7 @@ export interface operations {
             query?: {
                 academic_year_id?: string;
                 class_id?: string;
+                status?: "DRAFT" | "PROCESSED" | "PUBLISHED";
                 page?: number;
                 limit?: number;
             };
@@ -41996,6 +42675,1016 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IncidentResponseDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeReaderController_list_v1: {
+        parameters: {
+            query?: {
+                tab?: "current" | "archive";
+                q?: string;
+                /** @description Publish year, e.g. 2026 */
+                year?: number;
+                page?: number;
+                limit?: number;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeMineListDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeReaderController_open_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeMineDetailDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeReaderController_acknowledge_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeFilesController_upload_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    files?: string[];
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeFileDto"][];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeFilesController_download_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+                fileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeFilesController_remove_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+                fileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_list_v1: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                status?: components["schemas"]["NoticeStatus"];
+                /** @description Title search. */
+                q?: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticePageDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_create_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateNoticeDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_get_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_remove_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_update_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateNoticeDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_copy_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_listRecipients_v1: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeRecipientPageDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_addRecipients_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddRecipientsDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddRecipientsResultDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_removeRecipients_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveRecipientsDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_addMatching_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudienceQueryDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddRecipientsResultDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_publish_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishNoticeDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_withdraw_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_requestSms_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_newPublicLink_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicLinkDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_turnOffPublicLink_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticesController_report_v1: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                status?: components["schemas"]["NoticeReportStatus"];
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeReportDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AudienceController_people_v1: {
+        parameters: {
+            query: {
+                target: components["schemas"]["AudienceTarget"];
+                tab: components["schemas"]["AudienceTab"];
+                roles?: components["schemas"]["UserRole"][];
+                classIds?: string[];
+                sectionIds?: string[];
+                /** @description EXAM_FAILED: a published exam. */
+                examId?: string;
+                /** @description LOW_ATTENDANCE: current-year % below this. */
+                belowPercent?: number;
+                /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+                shift?: string;
+                /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+                version?: string;
+                /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+                group?: string;
+                /** @description Name search. */
+                q?: string;
+                page?: number;
+                limit?: number;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudiencePageDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicNoticeController_get_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicNoticeDto"];
+                };
+            };
+        };
+    };
+    PublicNoticeController_file_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+                fileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicNoticeController_opened_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeSmsController_view_v1: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeSmsViewDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeSmsController_setRecipients_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsRecipientsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsRecipientsResultDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeSmsController_approve_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsDecisionDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeSmsController_decline_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsDecisionDto"];
                 };
             };
             /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */

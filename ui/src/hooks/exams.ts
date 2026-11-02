@@ -12,7 +12,7 @@
  * `content?: never` — hand-typed here against the service's actual return
  * shape, same gap `PaginatedClasses` documents for `/classes`.
  */
-import { ApprovalScope } from '@biddaloy/shared';
+import { ApprovalScope, type ExamStatus } from '@biddaloy/shared';
 import {
   type QueryClient,
   queryOptions,
@@ -50,6 +50,8 @@ export interface PaginatedExams {
 export interface ExamListFilters {
   academic_year_id?: string;
   class_id?: string;
+  /** Filtered on the server before paging. */
+  status?: ExamStatus;
   page?: number;
   limit?: number;
 }

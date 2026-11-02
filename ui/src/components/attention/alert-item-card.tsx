@@ -14,6 +14,7 @@ import { Button } from '../button';
 
 import { AlertSeverityBadge } from './alert-severity-badge';
 import { AlertSnoozeMenu } from './alert-snooze-menu';
+import { AttentionNoticeItem, isNoticeAlert } from './attention-notice-item';
 
 const MAX_STEPS = 3;
 
@@ -24,6 +25,8 @@ export interface AlertItemCardProps {
   onPrimary: (item: AlertItem) => void;
   onHide?: (item: AlertItem) => void;
   onSnooze?: (item: AlertItem, choice: SnoozeChoice, date?: string) => void;
+  /** [53.5.03] "পড়েছি" for an important notice; the only way such a card leaves (D17). */
+  onAcknowledge?: (noticeId: string, item: AlertItem) => void;
   busy?: boolean;
   error?: string;
 }
@@ -34,6 +37,7 @@ export function AlertItemCard({
   onPrimary,
   onHide,
   onSnooze,
+  onAcknowledge,
   busy = false,
   error,
 }: AlertItemCardProps) {
@@ -45,7 +49,8 @@ export function AlertItemCard({
     item.studentName && item.sectionLabel
       ? t('item.about', { student: item.studentName, section: item.sectionLabel })
       : (item.studentName ?? item.sectionLabel);
-  const canSnooze = onSnooze && item.severity === AlertSeverity.WARNING && item.closable;
+  const notice = isNoticeAlert(item);
+  const canSnooze = !notice && onSnooze && item.severity === AlertSeverity.WARNING && item.closable;
 
   return (
     <li
@@ -74,7 +79,15 @@ export function AlertItemCard({
         </ol>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        {item.actionUrl && item.actionLabel && (
+        {notice && (
+          <AttentionNoticeItem
+            item={item}
+            busy={busy}
+            onOpen={() => onPrimary(item)}
+            {...(onAcknowledge ? { onAcknowledge } : {})}
+          />
+        )}
+        {!notice && item.actionUrl && item.actionLabel && (
           <Button
             variant={emphasis === 'primary' ? 'default' : 'outline'}
             disabled={busy}
@@ -91,7 +104,7 @@ export function AlertItemCard({
             onSelect={(choice, date) => onSnooze(item, choice, date)}
           />
         )}
-        {onHide && item.closable && (
+        {!notice && onHide && item.closable && (
           <Button
             variant="ghost"
             disabled={busy}
@@ -103,7 +116,7 @@ export function AlertItemCard({
             {t('item.close')}
           </Button>
         )}
-        {!item.closable && (
+        {!notice && !item.closable && (
           <span className="inline-flex items-center gap-1 text-caption text-text-secondary">
             <LockIcon className="size-3.5" aria-hidden />
             {t('item.locked')}

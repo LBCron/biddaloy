@@ -281,6 +281,11 @@ export enum Permission {
   ALERT_SEND = 'ALERT_SEND',
   // [67.1.01] View the alerts report (D33). ADMIN/EXECUTIVE.
   ALERT_REPORT_READ = 'ALERT_REPORT_READ',
+  // [53.1.01] Notice board (D20)
+  NOTICE_POST = 'NOTICE_POST',
+  NOTICE_MANAGE = 'NOTICE_MANAGE',
+  NOTICE_READ = 'NOTICE_READ',
+  NOTICE_SMS_APPROVE = 'NOTICE_SMS_APPROVE',
 }
 
 import { UserRole } from './index';
@@ -289,6 +294,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   [UserRole.SUPER_ADMIN]: Object.values(Permission),
 
   [UserRole.ADMIN]: [
+    Permission.NOTICE_POST,
+    Permission.NOTICE_MANAGE,
+    Permission.NOTICE_READ,
+    Permission.NOTICE_SMS_APPROVE,
     Permission.STEP_UP_REQUEST,
     // [52.1.1] Applications (D22/D45)
     Permission.APPLICATION_SUBMIT,
@@ -429,6 +438,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
 
   [UserRole.ACCOUNTANT]: [
+    Permission.NOTICE_READ,
     Permission.STEP_UP_REQUEST,
     // [52.1.1] Applications (D22/D45)
     Permission.APPLICATION_SUBMIT,
@@ -493,6 +503,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   [UserRole.TEACHER]: [
     // [8.15.24] D9 — teachers run reports, narrowed to their own sections; they cannot export or design.
     Permission.REPORTS_VIEW,
+    Permission.NOTICE_POST,
+    Permission.NOTICE_READ,
     // [52.1.1] Applications (D22/D45)
     Permission.APPLICATION_SUBMIT,
     Permission.MY_CLASS_VIEW,
@@ -555,6 +567,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   // register a PARENT/STUDENT can see, via FamilyAccessService — same
   // reasoning as STUDENT_READ above.
   [UserRole.PARENT]: [
+    Permission.NOTICE_READ,
     // [52.1.1] Applications (D22/D45)
     Permission.APPLICATION_SUBMIT,
     Permission.STUDENT_READ,
@@ -575,6 +588,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
 
   [UserRole.STUDENT]: [
+    Permission.NOTICE_READ,
     // [52.1.1] Applications (D22/D45)
     Permission.APPLICATION_SUBMIT,
     Permission.STUDENT_READ,
@@ -595,6 +609,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
 
   [UserRole.EXECUTIVE]: [
+    Permission.NOTICE_POST,
+    Permission.NOTICE_MANAGE,
+    Permission.NOTICE_READ,
+    Permission.NOTICE_SMS_APPROVE,
     // [52.1.1] Applications (D22/D45)
     // [84.1.1] Arrival notices (D15). LOCK too (D16): the principal is an EXECUTIVE.
     Permission.ATTENDANCE_ARRIVAL_NOTICE_MANAGE,
@@ -666,6 +684,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   // #1358 office clerk / computer operator: intake, records, communication,
   // printing. No money-moving, no delete, no lifecycle, no settings.
   [UserRole.OFFICE_STAFF]: [
+    Permission.NOTICE_POST,
+    Permission.NOTICE_READ,
     // [52.1.1] Applications (D22/D45)
     Permission.APPLICATION_SUBMIT,
     Permission.APPLICATION_MANAGE,
@@ -701,6 +721,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   // #1358 exam controller: runs exams, seat plans and results; reads marks
   // but never enters them; prints documents but never edits templates.
   [UserRole.EXAM_CONTROLLER]: [
+    Permission.NOTICE_READ,
     Permission.STEP_UP_REQUEST,
     // [52.1.1] Applications (D22/D45)
     Permission.APPLICATION_SUBMIT,
@@ -727,6 +748,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   // a student_name per payment. The aggregate-only report has its own
   // permission, COMMITTEE_REPORT_READ [8.10.7 D44].
   [UserRole.COMMITTEE]: [
+    Permission.NOTICE_READ,
     Permission.DASHBOARD_VIEW,
     // [8.15.53] D14 — may open reports; the report engine shows it counts only and hides any
     // count under 5 (small-cell rule), never a person-level column.

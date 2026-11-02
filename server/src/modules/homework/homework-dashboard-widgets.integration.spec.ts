@@ -22,6 +22,9 @@ import { SchoolsService } from '../schools/schools.service';
 import { TeacherScopeService } from '../classes/teacher-scope.service';
 import { AuditService } from '../audit/audit.service';
 import { addDays, localToday } from '../attendance/attendance-policy.util';
+// Prod callers pass the school's timezone; the rollups default to UTC. Pass it here too, or
+// 18:00-24:00 UTC (already tomorrow in Dhaka) leaves today's homework "not yet due".
+import { SCHOOL_TZ } from '../../common/time';
 import { School } from '../schools/entities/school.entity';
 import { AcademicYear } from '../academics/entities/academic-year.entity';
 import { Class } from '../academics/entities/class.entity';
@@ -441,7 +444,7 @@ describe('homework dashboard widgets (integration)', () => {
       await submissions(a.id, sec7A, S.NOT_SUBMITTED, 2);
 
       const rate = (await analytics.getSubmissionRateByClass(TENANT)).classes[0];
-      const rollup = await analytics.getClassRollup(class7, TENANT);
+      const rollup = await analytics.getClassRollup(class7, TENANT, SCHOOL_TZ);
       expect([rate.assigned, rate.submitted]).toEqual([rollup.totalAssignments, rollup.completed]);
     });
 
@@ -473,13 +476,13 @@ describe('homework dashboard widgets (integration)', () => {
         .getRepository(HomeworkSubmission)
         .save({ assignment_id: a.id, student_id: done.id, status: S.DONE, tenant_id: TENANT });
 
-      const section = await analytics.getSectionRollup(sec7A, TENANT);
+      const section = await analytics.getSectionRollup(sec7A, TENANT, SCHOOL_TZ);
       expect([section.totalAssignments, section.completed, section.completionPercent]).toEqual([
         3, 1, 33,
       ]);
-      const cls = await analytics.getClassRollup(class7, TENANT);
+      const cls = await analytics.getClassRollup(class7, TENANT, SCHOOL_TZ);
       expect([cls.totalAssignments, cls.completed, cls.completionPercent]).toEqual([3, 1, 33]);
-      const student = await analytics.getStudentRollup(done.id, TENANT);
+      const student = await analytics.getStudentRollup(done.id, TENANT, SCHOOL_TZ);
       expect([student.totalAssignments, student.completionPercent]).toEqual([1, 100]);
       const card = (await analytics.getSubmissionRateByClass(TENANT)).classes[0];
       expect([card.assigned, card.submitted, card.percentage]).toEqual([3, 1, 33]);
@@ -494,16 +497,18 @@ describe('homework dashboard widgets (integration)', () => {
           .getRepository(HomeworkSubmission)
           .save({ assignment_id: a.id, student_id, status, tenant_id: TENANT });
       await save(s1.id, S.DONE);
-      const before = (await analytics.getSectionRollup(sec7A, TENANT)).completionPercent;
+      const before = (await analytics.getSectionRollup(sec7A, TENANT, SCHOOL_TZ)).completionPercent;
       // The teacher marks the second student "not submitted": a row appears, the rate stays.
       await save(s2.id, S.NOT_SUBMITTED);
-      expect((await analytics.getSectionRollup(sec7A, TENANT)).completionPercent).toBe(before);
+      expect((await analytics.getSectionRollup(sec7A, TENANT, SCHOOL_TZ)).completionPercent).toBe(
+        before,
+      );
     });
 
     it('a student with no row is a defaulter once the assignment is past due', async () => {
       const s = await mkStudent(sec7A);
       await mkAssignment(class7, math, { section_id: sec7A }, { due_date: '2020-01-01' });
-      const r = await analytics.getStudentRollup(s.id, TENANT);
+      const r = await analytics.getStudentRollup(s.id, TENANT, SCHOOL_TZ);
       expect([r.totalAssignments, r.completed, r.defaulters]).toEqual([1, 0, 1]);
     });
 
@@ -516,7 +521,7 @@ describe('homework dashboard widgets (integration)', () => {
         { due_date: '2020-01-01', status: A.DEACTIVATED },
       );
       await mkAssignment(class7, math, { student_id: s.id }, { due_date: '2020-01-01' });
-      const r = await analytics.getStudentRollup(s.id, TENANT);
+      const r = await analytics.getStudentRollup(s.id, TENANT, SCHOOL_TZ);
       expect(r.totalAssignments).toBe(1);
     });
 
@@ -527,9 +532,9 @@ describe('homework dashboard widgets (integration)', () => {
       await dataSource
         .getRepository(HomeworkSubmission)
         .save({ assignment_id: a.id, student_id: early.id, status: S.DONE, tenant_id: TENANT });
-      const section = await analytics.getSectionRollup(sec7A, TENANT);
+      const section = await analytics.getSectionRollup(sec7A, TENANT, SCHOOL_TZ);
       expect([section.totalAssignments, section.completed, section.defaulters]).toEqual([1, 1, 0]);
-      const cls = await analytics.getClassRollup(class7, TENANT);
+      const cls = await analytics.getClassRollup(class7, TENANT, SCHOOL_TZ);
       expect([cls.totalAssignments, cls.completionPercent]).toEqual([1, 100]);
     });
 
@@ -539,7 +544,7 @@ describe('homework dashboard widgets (integration)', () => {
       await mkStudent(sec7B);
       const gone = await mkStudent(sec7A);
       await dataSource.getRepository(Student).update({ id: gone.id }, { deleted_at: new Date() });
-      expect((await analytics.getSectionRollup(sec7A, TENANT)).totalAssignments).toBe(1);
+      expect((await analytics.getSectionRollup(sec7A, TENANT, SCHOOL_TZ)).totalAssignments).toBe(1);
     });
   });
 

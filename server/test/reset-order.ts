@@ -31,6 +31,11 @@ export const TRANSACTIONAL_TABLES_CHILD_FIRST = [
   // [67.1.02] attention engine; recipients FK alerts, so they clear first.
   'alert_recipients',
   'alerts',
+  // [53.1.02] notice board; recipients and attachments RESTRICT-FK notices and
+  // recipients FK students/guardians/users, so they clear before all of those.
+  'notice_recipients',
+  'notice_attachments',
+  'notices',
   // [28.1.2] ACR / incidents / surveys. Child-first within each group; all
   // FK (RESTRICT) to users/teachers/subjects/academic_years, so they clear
   // before those tables.

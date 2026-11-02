@@ -56,10 +56,19 @@ async function pickDate(page: Page, label: string, iso: string): Promise<void> {
 const isoDate = (x: Date) =>
   `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
 
-function nextMonday(): Date {
-  const d = new Date();
-  d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7));
-  return d;
+/**
+ * The first Monday at least two days after the school's today (Asia/Dhaka, as the server decides
+ * it, not the runner's clock), as `YYYY-MM-DD`. The dashboard seed (`seed.dashboard.ts`
+ * `seedStaff`) holds an APPROVED leave_record with no application on today and tomorrow for
+ * `staff_profiles[1]` by id, which can be this admin; `freeStaffLeaveDay` only sees applications.
+ * Counting from the runner's clock, Sunday 18:00-24:00 UTC gave Dhaka's Monday: LEAVE_OVERLAP.
+ */
+function nextMonday(): string {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dhaka' }).format(new Date());
+  const d = new Date(`${today}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 2);
+  d.setUTCDate(d.getUTCDate() + ((8 - d.getUTCDay()) % 7));
+  return d.toISOString().slice(0, 10);
 }
 
 /**
@@ -75,7 +84,7 @@ async function freeStaffLeaveDay(
   const { dates } = await get<{ dates: string[] }>(
     request,
     session,
-    `/school-calendar/working-days?from=${isoDate(nextMonday())}&to=${new Date().getFullYear()}-12-31`,
+    `/school-calendar/working-days?from=${nextMonday()}&to=${nextMonday().slice(0, 4)}-12-31`,
   );
   // ponytail: one page of 100 leaves; page through if a database ever holds more.
   const leaves = await get<{
@@ -99,7 +108,7 @@ const rowFor = (page: Page, serial: string) =>
 test.describe.serial('staff leave: file -> approve -> balance moves', () => {
   // The balance endpoint reads the current year only: no room once next week is next year.
   test.skip(
-    nextMonday().getFullYear() !== new Date().getFullYear(),
+    nextMonday().slice(0, 4) !== String(new Date().getFullYear()),
     'next week is already next year',
   );
   let applicationId: string | undefined;
@@ -200,9 +209,17 @@ test.describe.serial('staff leave: file -> approve -> balance moves', () => {
         .getByRole('button', { name: t('applicationsDetail.actions.approve') })
         .and(page.locator(':not([data-help-id])'))
         .click();
+      // Wait for the approve itself: the APPROVED text also shows elsewhere on the page, so it
+      // passed while the server answered 409 LEAVE_OVERLAP.
+      const approved = page.waitForResponse(
+        (r) =>
+          r.url().endsWith(`/applications/${applicationId}/approve`) &&
+          r.request().method() === 'POST',
+      );
       await page
         .getByRole('button', { name: t('applicationsDetail.dialogs.approve.submit') })
         .click();
+      expect((await approved).ok()).toBe(true);
       await expect(page.getByText(t('applications.statuses.APPROVED')).first()).toBeVisible();
     });
   });

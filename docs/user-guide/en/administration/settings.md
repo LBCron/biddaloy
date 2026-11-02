@@ -519,6 +519,8 @@ Press **Keep forever** and that backup is not deleted by itself.
 
 **Users:** existing users keep their passwords. But each user's role in this school becomes the one in the file, and people who are not in the file are removed from this school (the account that first set up the school is kept). **What does not change:** payments, invoices, student fees, exams, marks/results, exam parts and grading scales are only added; earlier rows are not changed or deleted. To correct those, use the app itself. A backup of another school cannot be restored here; only platform support can do that.
 
+**Notice links:** after a restore, the public links of the notices in the backup and the personal links sent by SMS for them stop working. A backup made before the notice board existed does not touch notices. A notice the restore has to add back (for example, into a new school) does not get its warning again if it is important, and a waiting SMS request on it has no approval task: open the notice and press **Look at the SMS** to decide it. If needed, make a new public link on the notice page ([Give and follow notices](../communications/notices.md#task-public)).
+
 **If it stops halfway:** it shows "The restore stopped at …". The kinds before that were already put in. To go back, press **Download the copy taken before the restore**, then restore that file the same way. There is no separate "go back" button.
 
 **First data in a new school:** **Download starter file** gives a small file with only academic years, classes, sections, subjects and fee structures. To bring a whole school from another system, use **Download blank template**. An empty template deletes nothing.

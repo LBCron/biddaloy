@@ -202,7 +202,7 @@ flowchart LR
 
 - **Rule.** When Redis is down, routes marked `@FailClosedWithoutRedis()` (sign-in, OTP, reset, step-up, contact change) answer 503. The throttler and lockout fail open everywhere else. Every route on an `/auth*` or `/account*` controller is listed as fail-closed or fail-open in `server/test/helpers/redis-outage-routes.ts`. A down Redis raises a platform alert: a SUPER_ADMIN banner plus SMS.
 - **Why.** "Open everywhere" means unlimited password guessing; "closed everywhere" takes the app down (D4, D4b, D15, 75.18, 75.34).
-- **Example.** `POST /auth/login` with Redis down → `503`; `POST /auth/refresh` → served.
+- **Example.** `POST /auth/login` with Redis down → `503`; `POST /auth/refresh` → served. The public notice link routes (`/public/notices/:token*`) are not `/auth*` or `/account*`: they stay open without Redis (the throttle fails open, #3374 D29).
 - **Test.** `app-throttler.guard.spec.ts`, `app-throttler.guard.e2e-spec.ts`, `route-guard-coverage.e2e-spec.ts`, `platform-alerts.service.spec.ts`.
 
 **The one route family that fails open on purpose: `Idempotency-Key`.** A double-click or a retry of a send or create must not send twice. `IdempotencyInterceptor` keeps the first answer in Redis for 24 hours and replays it. If Redis is down the request runs unprotected and an error is logged, because a closed route would stop a school from messaging anyone at all. Routes: `communications/send`, `reminder/bulk`, `reminder/single/:studentId`, `invoices/:id/send`, `promotions` (create), `students` (create). Test: `idempotency.interceptor.spec.ts`, `reminders.e2e-spec.ts`.
@@ -221,6 +221,22 @@ flowchart LR
 - **Why.** A forwarded link used to work forever (D9). Links that existed before the change got 30 days from the deploy (D22).
 - **Example.** `POST /api/v1/invoices/:id/share/regenerate` → new link 200, old link 404.
 - **Test.** `public-invoice.e2e-spec.ts`, `test/invoice-share-expiry-migration.integration.spec.ts`.
+- **Exception: notice links (Epic 53, D12).** A notice's public link and each recipient's personal link do **not** expire after 30 days. They live as long as the notice. Why this is safe:
+  - the content is published on purpose, for anyone with the link;
+  - the page carries no PII: no author, no recipient names or phones;
+  - withdraw and the notice's own `expires_on` kill every link at once; "turn off the public link" kills the public link only;
+  - only the sha256 of a token is stored, and `GET` never writes (a scanner cannot fake a read). The page's `POST /opened` sets `link_opened_at` and `seen_at` once, for a personal token only.
+- **Example (notices).** `POST /api/v1/notices/:id/withdraw` → `GET /api/v1/public/notices/<token>` is `404 "Notice link not found or no longer active"`, the same body as for a token that never existed.
+- **Test (notices).** `notice-links.service.integration.spec.ts`, `public-notice.controller.e2e-spec.ts`. The invoice tests above stay as they are.
+
+```mermaid
+flowchart LR
+  A["GET /public/notices/:token"] --> B{"sha256(token) matches a notice or a recipient?"}
+  B -- no --> X[404, one sentence]
+  B -- yes --> C{"PUBLISHED, not withdrawn, school ACTIVE, expires_on not past?"}
+  C -- no --> X
+  C -- yes --> D[200: title, body, files. No author, no recipients]
+```
 
 ### Rule 17: A shared person's new contact waits for their approval
 
@@ -264,6 +280,7 @@ flowchart LR
 - **Why.** A public form is the cheapest target for automated abuse (75.16, #2324).
 - **Example.** `POST /api/v1/public/admission/:slug/applicants` without `captcha_token` → `400`.
 - **Test.** `public-admission.controller.e2e-spec.ts`, `registration.controller.e2e-spec.ts`.
+- **Known exception (notices, D22).** `POST /api/v1/public/notices/:token/opened` has no Turnstile: it is a page beacon with no form. It needs a 256-bit token, creates no row, sets `link_opened_at` and `seen_at` once (`WHERE ... IS NULL`), writes nothing for a public token, and is throttled. Test: `notice-links.service.integration.spec.ts`.
 
 ### Rule 23: Errors never echo what was sent
 
@@ -1209,21 +1226,22 @@ usually in an error log written under debugging pressure. Request bodies
 (the login path carries a plaintext password) are never logged at all.
 nginx uses the `redacted` access-log format (`nginx/templates/default.conf.template`):
 it logs the path without the query string, masks the calendar-feed,
-public-verify and public-invoice path tokens and the SPA share pages
-(`/i/<token>`, `/v/<token>`), and omits the Referer, because
+public-verify, public-invoice and public-notice path tokens and the SPA share pages
+(`/i/<token>`, `/v/<token>`, `/n/<token>`), and omits the Referer, because
 reset/invite/verify links are bearer secrets and must not sit in log files.
-`redactPii` masks the same three API path tokens plus the two SPA pages, so
+`redactPii` masks the same four API path tokens plus the three SPA pages, so
 the pino request serializer, the exception filter and Sentry all hide them.
 All server blocks, including the two catch-all default servers, use the
 `redacted` format, so scanner traffic is logged in the same safe shape.
 
-| URL shape                      | nginx access log | pino / exception filter / Sentry |
-| ------------------------------ | ---------------- | -------------------------------- |
-| `/api/v1/public/invoices/:tok` | masked           | masked                           |
-| `/api/v1/public/verify/:tok`   | masked           | masked                           |
-| `/api/v1/calendar/feed/:tok`   | masked           | masked                           |
-| `/i/:tok`, `/v/:tok` (SPA)     | masked           | masked, also in full URLs        |
-| `?token=` (reset, activate…)   | query dropped    | `token=[REDACTED]`               |
+| URL shape                             | nginx access log | pino / exception filter / Sentry |
+| ------------------------------------- | ---------------- | -------------------------------- |
+| `/api/v1/public/invoices/:tok`        | masked           | masked                           |
+| `/api/v1/public/verify/:tok`          | masked           | masked                           |
+| `/api/v1/public/notices/:tok`         | masked           | masked                           |
+| `/api/v1/calendar/feed/:tok`          | masked           | masked                           |
+| `/i/:tok`, `/v/:tok`, `/n/:tok` (SPA) | masked           | masked, also in full URLs        |
+| `?token=` (reset, activate…)          | query dropped    | `token=[REDACTED]`               |
 
 The audit's national-ID item was checked: no NID number field exists in
 server code (NID is only an uploaded document file), so there is nothing to

@@ -55,6 +55,8 @@ export const AUDIT_ENTITY_TYPES = [
   'MarkGrid',
   'Membership',
   'MilestoneAchievement',
+  // [Epic 53] notice create/edit/publish/withdraw.
+  'Notice',
   'Payment',
   'PrintAsset',
   'PrintJobItem',

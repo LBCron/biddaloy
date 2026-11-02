@@ -1,0 +1,39 @@
+{
+  "title": "নোটিশ",
+  "forStudents": "{{names}}-র জন্য",
+  "tabs": {
+    "current": "চলতি",
+    "archive": "পুরনো"
+  },
+  "badge": {
+    "important": "জরুরি",
+    "edited": "সম্পাদিত"
+  },
+  "list": {
+    "colTitle": "নোটিশ",
+    "colBadges": "অবস্থা",
+    "colDate": "তারিখ",
+    "search": "শিরোনাম খুঁজুন",
+    "searchPlaceholder": "শিরোনাম দিয়ে খুঁজুন",
+    "year": "সাল",
+    "allYears": "সব সাল",
+    "emptyCurrent": "চলতি কোনো নোটিশ নেই",
+    "emptyArchive": "পুরনো কোনো নোটিশ নেই",
+    "emptyExplanation": "আপনার জন্য দেওয়া নোটিশ এখানে দেখা যাবে।"
+  },
+  "detail": {
+    "description": "নোটিশটি পড়ুন",
+    "loading": "নোটিশ আসছে",
+    "acknowledge": "পড়েছি",
+    "openFile": "{{name}} খুলুন"
+  },
+  "card": {
+    "title": "সাম্প্রতিক নোটিশ",
+    "link": "সব নোটিশ",
+    "empty": "নতুন কোনো নোটিশ নেই"
+  },
+  "error": {
+    "message": "নোটিশ আনা যায়নি।",
+    "retry": "আবার চেষ্টা করুন"
+  }
+}
