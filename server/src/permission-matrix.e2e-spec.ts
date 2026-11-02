@@ -795,6 +795,20 @@ export const ROLE_NARROWINGS: RoleNarrowing[] = [
       '[19.8.1] Same narrowing as GET /exams/:examId/results.' +
       ' #1364 OFFICE_STAFF and EXAM_CONTROLLER (both hold RESULT_READ) joined; COMMITTEE lacks RESULT_READ.',
   },
+  ...(
+    [
+      ['GET', '/final-results'],
+      ['GET', '/final-results/:id'],
+      ['GET', '/final-results/:id/rows'],
+      ['GET', '/final-results/:id/students/:studentId'],
+    ] as const
+  ).map(([method, path]) => ({
+    controller: 'FinalResultsController',
+    method,
+    path,
+    reason:
+      '[70.2.1] Same narrowing as GET /exams/:examId/results: the staff final-result console. PARENT/STUDENT also hold RESULT_READ, but read their own child through the portal routes, not a class-wide list.',
+  })),
   {
     controller: 'ChangeRequestsController',
     method: 'POST',

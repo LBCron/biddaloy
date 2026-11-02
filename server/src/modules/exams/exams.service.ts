@@ -21,6 +21,7 @@ import { AcademicTerm } from '../calendar/entities/academic-term.entity';
 import { CreateExamDto, UpdateExamDto, QueryExamDto } from './dto/exams.dto';
 import { AuditService } from '../audit/audit.service';
 import { RequestContext } from '../../common/request-context.util';
+import { assertNoLiveDependents } from '../../common/utils/live-dependents';
 
 /** Postgres unique-violation code — used to turn a race-condition insert
  * conflict into a 409 instead of letting it fall through to a raw 500. */
@@ -415,6 +416,20 @@ export class ExamsService {
           details: { code: 'EXAM_HAS_RESULTS' },
         });
       }
+      // [70.2.1] A final result's share row pins this exam (also a NO ACTION FK). The exam's own
+      // children (components, marks, grids, schedules) and results are counted above or have
+      // always gone with it, so they are excluded; anything else that points here blocks.
+      await assertNoLiveDependents(manager, Exam, id, {
+        code: 'EXAM_IN_USE',
+        message: 'This exam is still used by other records. Remove or reassign them first.',
+        exclude: [
+          'ExamComponent.exam',
+          'Mark.exam',
+          'MarkGrid.exam',
+          'Result.exam',
+          'ExamSchedule.exam',
+        ],
+      });
       const repo = manager.getRepository(Exam);
       await repo.softDelete({ id, tenant_id: tenantId });
 
