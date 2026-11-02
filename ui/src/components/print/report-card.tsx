@@ -57,6 +57,9 @@ export interface ReportCardProgramRow {
 }
 
 export interface ReportCardData {
+  /** Set only on a final card; see `FinalReportCardData`. */
+  final?: undefined;
+  exam_columns?: undefined;
   exam_name: string;
   student: { full_name: string; roll_number: number };
   result: {
@@ -73,9 +76,12 @@ export interface ReportCardData {
   attendance?: { working_days: number | null; present_days: number | null };
   remark?: string | null;
   conduct?: { label: string; grade: string | null }[];
-  /** Final card: one subject-table column per counted exam, then the final columns. */
-  final?: { label: string; section_position: number | null };
-  exam_columns?: { id: string; label: string; share_label: string }[];
+}
+
+/** Final card: one subject-table column per counted exam, then final columns. */
+export interface FinalReportCardData extends Omit<ReportCardData, 'final' | 'exam_columns'> {
+  final: { label: string; section_position: number | null };
+  exam_columns: { id: string; label: string; share_label: string }[];
 }
 
 /** Needed only when attendance / remark / conduct / final is passed. */
@@ -92,12 +98,10 @@ export interface ReportCardBlockLabels {
   headTeacher: string;
 }
 
-export interface ReportCardProps {
-  data: ReportCardData;
+interface ReportCardBaseProps {
   issuer: IssuerSnapshot;
   logoUrl?: string | null;
   activeLanguage?: string;
-  blockLabels?: ReportCardBlockLabels;
   labels: {
     examLabel: string;
     rollLabel: string;
@@ -120,6 +124,16 @@ export interface ReportCardProps {
     scoreGrade: string;
   };
 }
+
+/**
+ * A final card (`FinalReportCardData`) must carry `blockLabels` (final column
+ * header, section position, signatures), so it can never print degraded.
+ */
+export type ReportCardProps = ReportCardBaseProps &
+  (
+    | { data: ReportCardData; blockLabels?: ReportCardBlockLabels }
+    | { data: FinalReportCardData; blockLabels: ReportCardBlockLabels }
+  );
 
 function subjectFullMarks(components: ReportCardComponent[]): number {
   return components.reduce((sum, c) => sum + c.full_marks, 0);
