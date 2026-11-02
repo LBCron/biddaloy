@@ -445,6 +445,30 @@ describe('PromotionsService (integration)', () => {
       ).rejects.toThrow(ConflictException);
     });
 
+    it('refresh refuses (422) once the final is no longer PUBLISHED, and leaves entries alone', async () => {
+      const student = await buildStudent();
+      await enrollActive(student.id);
+      const final = await makeFinal(FinalResultStatus.PUBLISHED);
+      await addFinalRow(final.id, student.id, '4.00', '400.00');
+      const run = await create({ final_result_id: final.id });
+      const before = await entryRepo.find({ where: { run_id: run.id } });
+      // Reopened (PUBLISHED -> PROCESSED): refresh must not rank on unpublished numbers.
+      await dataSource
+        .getRepository(FinalResult)
+        .update({ id: final.id }, { status: FinalResultStatus.PROCESSED });
+      await expect(service.refresh(run.id, TENANT_ID, ADMIN_USER_ID)).rejects.toThrow(
+        UnprocessableEntityException,
+      );
+      const after = await entryRepo.find({ where: { run_id: run.id } });
+      expect(after.map((e) => [e.student_id, e.merit_rank])).toEqual(
+        before.map((e) => [e.student_id, e.merit_rank]),
+      );
+      // Commit gives the same answer.
+      await expect(
+        service.commit(run.id, TENANT_ID, ADMIN_USER_ID, 'ADMIN', { headers: {} }),
+      ).rejects.toThrow(UnprocessableEntityException);
+    });
+
     it('commit refuses with 409 when a row was dropped from the final after the last refresh', async () => {
       const a = await buildStudent({ registration_number: 'REG-DA', roll_number: 1 });
       const b = await buildStudent({ registration_number: 'REG-DB', roll_number: 2 });
