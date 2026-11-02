@@ -50,7 +50,8 @@ export function ResultsPanel({ summary }: ResultsPanelProps) {
   const examIds = [...new Set(summary.weights.map((w) => w.exam_id))];
 
   const needle = (filters.q ?? '').trim().toLowerCase();
-  // ponytail: search filters the loaded page only; the endpoint has no name filter.
+  // ponytail: search filters the loaded page only (the endpoint has no name filter); a note
+  // beside the search says so when there are more rows than the page. Page the rows if needed.
   const rows = [...(rowsQuery.data?.data ?? [])]
     .filter(
       (r) =>
@@ -185,6 +186,14 @@ export function ResultsPanel({ summary }: ResultsPanelProps) {
         }}
         resultCount={rows.length}
       />
+
+      {needle !== '' && (rowsQuery.data?.total ?? 0) > (rowsQuery.data?.data.length ?? 0) && (
+        <p className="text-caption text-text-secondary">
+          {t('finalResults.results.searchNote', {
+            shown: formatNumber(rowsQuery.data?.data.length ?? 0, config),
+          })}
+        </p>
+      )}
 
       {rowsQuery.isLoading ? (
         <Skeleton className="h-32 w-full" />
