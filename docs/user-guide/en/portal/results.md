@@ -8,10 +8,12 @@ sources:
   - server/src/modules/exams/results.controller.ts
   - server/src/modules/exams/results.service.ts
   - server/src/modules/exams/result-rules.ts
+  - client-admin/src/routes/portal/-final-result-card.tsx
   - server/src/modules/students/family-access.service.ts
 labels:
   [
     portal:results.*,
+    portal:finalResult.*,
     portal:empty.*,
     portal:children.*,
     portal:fees.pickerLabel,
@@ -31,7 +33,7 @@ keywords:
   [results, gpa, grade, position, merit position, marks, report card, print]
 appVersion: 0.1.0 (978d9b96a)
 owner: tareq89
-lastVerified: 2026-10-25
+lastVerified: 2026-11-02
 knownIssues: []
 -->
 
@@ -44,13 +46,14 @@ The result of every published exam, with marks by subject.
 
 This page is for looking only. If a mark looks wrong, tell the school.
 
-[See results](#task-main) · [Subject marks](#task-subjects) · [Print](#task-print) · [Troubleshooting](#trouble)
+[See results](#task-main) · [Subject marks](#task-subjects) · [See the final result](#task-final) · [Print](#task-print) · [Troubleshooting](#trouble)
 
 **On this page**
 
 - [See exam results](#task-main)
 - [How to know you are looking at the right thing](#confirm)
 - [Other situations](#other)
+  - [See the final result](#task-final)
   - [See marks by subject](#task-subjects)
   - [Print the report card](#task-print)
   - [See another child's results](#task-pick)
@@ -77,12 +80,12 @@ This page is for looking only. If a mark looks wrong, tell the school.
 
 ## How to know you are looking at the right thing <a href="#confirm" id="confirm"></a>
 
-| What you see    | What it means                                                                |
-| --------------- | ---------------------------------------------------------------------------- |
-| **GPA**         | The GPA of the whole exam, to two decimal places                             |
-| **Grade**       | The grade of the whole exam, by the school's grading rules                   |
-| **Total marks** | The sum of the marks obtained in all subjects                                |
-| **Position**    | The merit position in the whole class (all sections together)                |
+| What you see    | What it means                                                 |
+| --------------- | ------------------------------------------------------------- |
+| **GPA**         | The GPA of the whole exam, to two decimal places              |
+| **Grade**       | The grade of the whole exam, by the school's grading rules    |
+| **Total marks** | The sum of the marks obtained in all subjects                 |
+| **Position**    | The merit position in the whole class (all sections together) |
 
 - **Position** is decided by GPA first, then total marks. If two students have the same GPA and the same total marks, they share the same position.
 - If the result is **Fail**, **Position** shows only a dash (—). Students who fail are not ranked.
@@ -90,6 +93,20 @@ This page is for looking only. If a mark looks wrong, tell the school.
 ---
 
 ## Other situations <a href="#other" id="other"></a>
+
+### See the final result <a href="#task-final" id="task-final"></a>
+
+When the school publishes a class's [final result](../exams-results/final-results.md), a card with the title **Final result** and the year comes first on this page, above the exam cards. If it is not published yet, the card is not there.
+
+1. Look at the first card. It shows the year and the child's name, then **GPA** with the grade, **Position** and **Total marks**.
+
+   → Below the figures, a line shows how much each exam counted, for example **Half Yearly 30% · Annual 70%**, and a line like **Present 180 of 200 days (90%)**. If the class teacher wrote them, the **Class teacher's remark** and the **Conduct** grades are there too. A child who failed at least one subject has a note **Needs improvement: failed at least one subject**.
+
+2. Tap **Details and card**.
+
+   → A table opens with each exam's **Total marks** and **GPA**. A child who was absent in an exam has **Absent** there. Tap **Hide details** to close it.
+
+The school can print the final report card for you; ask the class teacher. If a figure looks wrong, tell the school; it cannot be changed from here.
 
 ### See marks by subject <a href="#task-subjects" id="task-subjects"></a>
 
@@ -116,25 +133,26 @@ With more than one child, tap a name in the **Choose a student** row at the top.
 
 ## Troubleshooting <a href="#trouble" id="trouble"></a>
 
-| What you see                                                   | What to do                                                                  | Who can help  |
-| -------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------- |
-| **No results yet**                                             | They appear once the school publishes them. Check again later.              | Class teacher |
-| The exam is over, but there is no card for it                  | The result has not been published yet. Wait for the school's announcement.  | Class teacher |
-| **Could not load your results.** …                             | Check your connection and tap **Try again**.                                | —             |
-| **Could not load this exam's breakdown.**                      | Close the list and open it again.                                           | —             |
-| **Could not load this report card to print. Try again.**       | Tap **Print** again.                                                        | —             |
-| A dash (—) under **Position**                                  | A position is not given when the result is Fail.                            | Class teacher |
-| A subject's marks look wrong                                   | Tell the class teacher or school office; it cannot be changed from here.    | Class teacher |
-| **No students linked to you yet**                              | Ask the school office to link your child, then tap **Check again**.         | School office |
+| What you see                                             | What to do                                                                 | Who can help  |
+| -------------------------------------------------------- | -------------------------------------------------------------------------- | ------------- |
+| **No results yet**                                       | They appear once the school publishes them. Check again later.             | Class teacher |
+| The **Final result** card is not there                   | The school has not published the final result yet. Check again later.      | Class teacher |
+| The exam is over, but there is no card for it            | The result has not been published yet. Wait for the school's announcement. | Class teacher |
+| **Could not load your results.** …                       | Check your connection and tap **Try again**.                               | —             |
+| **Could not load this exam's breakdown.**                | Close the list and open it again.                                          | —             |
+| **Could not load this report card to print. Try again.** | Tap **Print** again.                                                       | —             |
+| A dash (—) under **Position**                            | A position is not given when the result is Fail.                           | Class teacher |
+| A subject's marks look wrong                             | Tell the class teacher or school office; it cannot be changed from here.   | Class teacher |
+| **No students linked to you yet**                        | Ask the school office to link your child, then tap **Check again**.        | School office |
 
 ---
 
 ## Who can do what <a href="#roles" id="roles"></a>
 
-| Role    | See results                              | Print                |
-| ------- | ---------------------------------------- | -------------------- |
-| Parent  | Linked children, published results only  | Only linked children |
-| Student | Their own, published results only        | Only themselves      |
+| Role    | See results                             | Print                |
+| ------- | --------------------------------------- | -------------------- |
+| Parent  | Linked children, published results only | Only linked children |
+| Student | Their own, published results only       | Only themselves      |
 
 **Parent:** you see results only for the children the school office has linked to you, and only at this school. If you ask for another student's result, the server does not return it. The server never sends unpublished results at all.
 
@@ -176,8 +194,6 @@ The school works out and publishes results from the [**Processing and publishing
 
 - [**Programs (parent and student)**](programs.md) — programs and their progress.
 
-
-
 - [**Overview**](overview.md) — the latest result's GPA, at a glance.
 - [**Fees and invoices**](fees.md) — the month-by-month fee account.
 - [**Attendance**](attendance.md) — every day of the month.
@@ -185,3 +201,4 @@ The school works out and publishes results from the [**Processing and publishing
 - [**Calendar**](calendar.md) — holidays and school events.
 - [**Exam schedule**](exam-schedule.md) — exam dates and the admit card.
 - [**Processing and publishing results**](../exams-results/results.md) — where the school publishes results.
+- [**Final results**](../exams-results/final-results.md) — where the school builds and publishes the final result.
