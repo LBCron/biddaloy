@@ -46,11 +46,22 @@ export async function loadCardNotes(
 }
 
 /**
- * Present days as the final-result publish snapshot counts them (late counts when the policy says
- * so, never above the working days), so a per-exam card and a final card read the same way.
+ * The "present / days" pair a report card prints, for both the per-exam card and the final
+ * publish snapshot (D27). It is the same fraction `computeAttendancePercentage` divides, so
+ * present/days * 100 equals the summary's `attendance_percentage`:
+ *
+ * - days = marked days under the school's MARKED_DAYS policy, else working days; minus leave
+ *   days when leave does not count as a working day.
+ * - present = present days, plus late days when late counts as present.
+ *
+ * Example: 100 working, 90 marked, 80 present, MARKED_DAYS -> 80 / 90 (88.89%), not 80 / 100.
+ * Nothing to divide by (days <= 0) -> null, as the summary's percentage is null.
  */
 export function attendanceFrom(s: AttendanceSummary | undefined): CardAttendance | null {
   if (!s) return null;
+  let days = s.policy.denominator === 'MARKED_DAYS' ? s.marked_days : s.working_days;
+  if (!s.policy.leave_counts_as_working_day) days -= s.leave_days;
+  if (days <= 0) return null;
   const present = s.present_days + (s.policy.late_counts_as_present ? s.late_days : 0);
-  return { working_days: s.working_days, present_days: Math.min(s.working_days, present) };
+  return { working_days: days, present_days: Math.min(days, present) };
 }

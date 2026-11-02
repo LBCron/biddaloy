@@ -36,7 +36,10 @@ import { Enrollment } from '../students/entities/enrollment.entity';
 import { GradingScale } from '../grading/entities/grading-scale.entity';
 import { GradingBand } from '../grading/entities/grading-band.entity';
 import { AuditService } from '../audit/audit.service';
-import { AttendanceSummaryService } from '../attendance/attendance-summary.service';
+import {
+  AttendanceSummaryService,
+  type AttendanceSummary,
+} from '../attendance/attendance-summary.service';
 
 /**
  * [70.2.1] FinalResultsService on a real database: build a 30/70 final over two published exams,
@@ -63,20 +66,36 @@ describe('FinalResultsService (integration)', () => {
   let ds: DataSource;
   let scale: GradingScale;
   let seq = 0;
+  // 200 working days, 180 present, for whoever is asked about. A test may swap the policy.
+  let attendancePolicy: AttendanceSummary['policy'];
+  beforeEach(() => {
+    attendancePolicy = {
+      late_counts_as_present: false,
+      leave_counts_as_working_day: true,
+      denominator: 'WORKING_DAYS',
+    };
+  });
 
   beforeAll(async () => {
     const audit = { record: async () => undefined, recordApproved: async () => undefined };
-    // 200 working days, 180 present, for whoever is asked about.
     const attendance = {
       getSummariesForStudents: async ({ studentIds }: { studentIds: string[] }) =>
         new Map(
-          studentIds.map((id) => [
+          studentIds.map((id): [string, AttendanceSummary] => [
             id,
             {
+              student_id: id,
+              from: '2026-01-01',
+              to: '2026-12-31',
               working_days: 200,
+              marked_days: 190,
               present_days: 180,
               late_days: 0,
-              policy: { late_counts_as_present: false },
+              absent_days: 10,
+              leave_days: 0,
+              unmarked_days: 10,
+              attendance_percentage: 90,
+              policy: attendancePolicy,
             },
           ]),
         ),
@@ -595,6 +614,30 @@ describe('FinalResultsService (integration)', () => {
       .getRepository(FinalResultRow)
       .find({ where: { final_result_id: final.id, deleted_at: IsNull() } });
     expect(reopenedRows.every((r) => r.published_at === null)).toBe(true);
+  });
+
+  it('publish snapshots marked days under a MARKED_DAYS school, matching the summary percentage (D27)', async () => {
+    attendancePolicy = {
+      late_counts_as_present: false,
+      leave_counts_as_working_day: true,
+      denominator: 'MARKED_DAYS',
+    };
+    const { e1, e2 } = await fiveStudentsTwoExams();
+    const final = await finalWith([
+      [e1, '30.00'],
+      [e2, '70.00'],
+    ]);
+    await service.build(final.id, TENANT_ID, 'user-1');
+    await service.publish(final.id, TENANT_ID, 'user-1');
+
+    const rows = await ds
+      .getRepository(FinalResultRow)
+      .find({ where: { final_result_id: final.id, deleted_at: IsNull() } });
+    for (const r of rows) {
+      // 180 / 190 marked = 94.74%, what the attendance pages show; 180 / 200 would print 90%.
+      expect(r.working_days).toBe(190);
+      expect(r.present_days).toBe(180);
+    }
   });
 
   it('create pre-fills equal shares over the published TERM exams only', async () => {
