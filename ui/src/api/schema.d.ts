@@ -5985,6 +5985,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/my-class/sections/{sectionId}/report-card-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A section's remarks and conduct grades for one exam or final result. */
+        get: operations["ReportCardNotesController_myGet_v1"];
+        /** Save a section's remarks and conduct grades. 409 once published. */
+        put: operations["ReportCardNotesController_mySave_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/my-class/sections/{sectionId}/report-card-notes/missing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many students still lack a remark or full conduct grades. */
+        get: operations["ReportCardNotesController_myMissing_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/{examId}/report-card-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A section's remarks and conduct grades for one exam. */
+        get: operations["ReportCardNotesController_getForExam_v1"];
+        /** Save a section's remarks and conduct grades for an exam. */
+        put: operations["ReportCardNotesController_saveForExam_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/{examId}/report-card-notes/missing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Students lacking a remark or full conduct grades (no section = class). */
+        get: operations["ReportCardNotesController_missingForExam_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/final-results/{id}/report-card-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A section's remarks and conduct grades for a final result. */
+        get: operations["ReportCardNotesController_getForFinal_v1"];
+        /** Save a section's remarks and conduct grades for a final result. */
+        put: operations["ReportCardNotesController_saveForFinal_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/final-results/{id}/report-card-notes/missing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Students lacking a remark or full conduct grades (no section = class). */
+        get: operations["ReportCardNotesController_missingForFinal_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/students/{studentId}/homework": {
         parameters: {
             query?: never;
@@ -14680,6 +14785,17 @@ export interface components {
             fail_if_any_exam_fails?: boolean;
             weights?: components["schemas"]["FinalResultWeightBodyDto"][];
         };
+        ReportCardNoteBodyDto: {
+            /** Format: uuid */
+            student_id: string;
+            remark?: string | null;
+            conduct: {
+                [key: string]: string;
+            };
+        };
+        SaveReportCardNotesBodyDto: {
+            notes: components["schemas"]["ReportCardNoteBodyDto"][];
+        };
         FamilyHomeworkItemDto: {
             assignment_id: string;
             title: string;
@@ -16168,9 +16284,36 @@ export interface components {
             target_academic_year_id: string;
             /** Format: uuid */
             target_class_id?: string;
-            exam_ids: string[];
+            exam_ids?: string[];
+            /** Format: uuid */
+            final_result_id?: string;
             /** @enum {string} */
             algorithm: "BLOCK" | "SNAKE";
+        };
+        FinalResult: {
+            id: string;
+            tenant: components["schemas"]["School"];
+            tenant_id: string;
+            class: components["schemas"]["Class"];
+            class_id: string;
+            academic_year: components["schemas"]["AcademicYear"];
+            academic_year_id: string;
+            /** @enum {string} */
+            status: "DRAFT" | "PROCESSED" | "PUBLISHED";
+            /** @enum {string} */
+            mode: "WEIGHTED" | "BEST_OF";
+            best_of_count: number | null;
+            /** @enum {string} */
+            rounding: "WHOLE" | "TWO_DECIMALS";
+            fail_if_any_exam_fails: boolean;
+            /** Format: date-time */
+            published_at: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            deleted_at: string | null;
         };
         PromotionRun: {
             id: string;
@@ -16182,6 +16325,8 @@ export interface components {
             target_academic_year_id: string;
             target_class_id: string | null;
             exam_ids: string[];
+            final_result: components["schemas"]["FinalResult"] | null;
+            final_result_id: string | null;
             /** @enum {string} */
             algorithm: "BLOCK" | "SNAKE";
             /** @enum {string} */
@@ -32614,6 +32759,330 @@ export interface operations {
             path: {
                 id: string;
                 studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportCardNotesController_myGet_v1: {
+        parameters: {
+            query?: {
+                exam_id?: string;
+                final_result_id?: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                sectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportCardNotesController_mySave_v1: {
+        parameters: {
+            query?: {
+                exam_id?: string;
+                final_result_id?: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                sectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveReportCardNotesBodyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportCardNotesController_myMissing_v1: {
+        parameters: {
+            query?: {
+                exam_id?: string;
+                final_result_id?: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                sectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportCardNotesController_getForExam_v1: {
+        parameters: {
+            query: {
+                section_id: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                examId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportCardNotesController_saveForExam_v1: {
+        parameters: {
+            query: {
+                section_id: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                examId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveReportCardNotesBodyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportCardNotesController_missingForExam_v1: {
+        parameters: {
+            query?: {
+                section_id?: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                examId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportCardNotesController_getForFinal_v1: {
+        parameters: {
+            query: {
+                section_id: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportCardNotesController_saveForFinal_v1: {
+        parameters: {
+            query: {
+                section_id: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveReportCardNotesBodyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportCardNotesController_missingForFinal_v1: {
+        parameters: {
+            query?: {
+                section_id?: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
             };
             cookie?: never;
         };
