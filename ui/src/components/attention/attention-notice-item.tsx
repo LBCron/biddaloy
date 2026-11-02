@@ -31,14 +31,18 @@ export function noticeIdOf(item: Pick<AlertItem, 'actionUrl'>): string | undefin
 
 export interface AttentionNoticeItemProps {
   item: AlertItem;
-  /** Without it, the acknowledge button is not shown. */
-  onAcknowledge?: (noticeId: string) => void;
+  /** Without it, the acknowledge button is not shown. `item` lets the caller key its busy/error state by card. */
+  onAcknowledge?: (noticeId: string, item: AlertItem) => void;
+  /** Set inside the attention modal: the open action becomes a button that runs the modal's own
+   * open-and-close path. Without it, a plain link to `actionUrl` (the worklist). */
+  onOpen?: () => void;
   busy?: boolean;
 }
 
 export function AttentionNoticeItem({
   item,
   onAcknowledge,
+  onOpen,
   busy = false,
 }: AttentionNoticeItemProps) {
   const { t } = useTranslation('attention');
@@ -51,7 +55,7 @@ export function AttentionNoticeItem({
           display: 'text',
           icon: <ArrowRightIcon />,
           label: important ? t('notice.open') : t('notice.view'),
-          to: item.actionUrl,
+          ...(onOpen ? { onClick: onOpen } : { to: item.actionUrl }),
         },
       ]
     : [];
@@ -65,7 +69,7 @@ export function AttentionNoticeItem({
           className="min-h-11 md:min-h-0"
           disabled={busy}
           aria-label={t('notice.acknowledgeNamed', { title: item.title })}
-          onClick={() => onAcknowledge(noticeId)}
+          onClick={() => onAcknowledge(noticeId, item)}
         >
           <CheckIcon aria-hidden />
           {t('notice.acknowledge')}

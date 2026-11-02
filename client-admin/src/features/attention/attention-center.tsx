@@ -43,6 +43,8 @@ export function useAttentionCenter({ todoTo }: { todoTo: string }) {
   const { reset: resetHide } = hide;
   const { reset: resetSnooze } = snooze;
   const { reset: resetAck } = acknowledge;
+  // The card whose "পড়েছি" was clicked: an important notice and its SMS task share a notice id.
+  const [ackCard, setAckCard] = React.useState<string>();
 
   const openItems = React.useMemo(
     () =>
@@ -73,12 +75,9 @@ export function useAttentionCenter({ todoTo }: { todoTo: string }) {
     else if (id && m.isError) itemState[id] = { error: t('item.actionFailed') };
   }
 
-  // The acknowledge call is keyed by notice id; show it on the notice card with that id.
-  if (acknowledge.variables && (acknowledge.isPending || acknowledge.isError)) {
-    const card = openItems.find((i) => i.actionUrl?.includes(acknowledge.variables));
-    if (card && acknowledge.isPending) itemState[card.recipientId] = { busy: true };
-    else if (card) itemState[card.recipientId] = { error: t('item.actionFailed') };
-  }
+  // Show the acknowledge on the card that was clicked, keyed like hide/snooze.
+  if (ackCard && acknowledge.isPending) itemState[ackCard] = { busy: true };
+  else if (ackCard && acknowledge.isError) itemState[ackCard] = { error: t('item.actionFailed') };
 
   const todoHref = `${todoTo}?tab=active`;
   const data = summary.data;
@@ -117,11 +116,12 @@ export function useAttentionCenter({ todoTo }: { todoTo: string }) {
       onSnooze={(item, choice, date) =>
         snooze.mutate({ recipientId: item.recipientId, choice, ...(date ? { date } : {}) })
       }
-      onAcknowledge={(id) =>
+      onAcknowledge={(id, item) => {
+        setAckCard(item.recipientId);
         acknowledge.mutate(id, {
           onSuccess: () => void queryClient.invalidateQueries({ queryKey: attentionKeys.all }),
-        })
-      }
+        });
+      }}
       itemState={itemState}
       todoHref={todoHref}
       todoCount={items.data?.total ?? 0}

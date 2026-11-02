@@ -304,6 +304,27 @@ describe('NoticeSmsService (integration)', () => {
     expect(audit.mock.calls.length).toBe(audits);
   });
 
+  it('setWanted on an expired PENDING request is 409 notLive, changes no tick and closes the request', async () => {
+    const id = await notice([await guardian('01711000032')], { expires: '2000-01-01' });
+    const taskId = await withTask(id);
+    const [r] = await ds.query(`SELECT id FROM notice_recipients WHERE notice_id = $1`, [id]);
+    await expect(svc.setWanted(T, id, [r.id], false)).rejects.toThrow(
+      'নোটিশটি প্রকাশিত নেই, তুলে নেওয়া হয়েছে বা মেয়াদ শেষ',
+    );
+    const [after] = await ds.query(`SELECT sms_wanted FROM notice_recipients WHERE id = $1`, [
+      r.id,
+    ]);
+    expect(after.sms_wanted).toBe(true);
+    const n = await row(id);
+    expect(n.sms_status).toBe('DECLINED');
+    expect(n.sms_decided_by_user_id).toBeNull();
+    expect(await taskStatus(taskId)).toBe('RESOLVED');
+    // now plainly not pending
+    await expect(svc.setWanted(T, id, [r.id], false)).rejects.toThrow(
+      'এই নোটিশের এসএমএস অনুরোধ এখন অপেক্ষায় নেই',
+    );
+  });
+
   it('view on a live PENDING request touches nothing', async () => {
     const id = await notice([await guardian('01711000031')]);
     const taskId = await withTask(id);
