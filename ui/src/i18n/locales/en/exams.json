@@ -575,7 +575,8 @@
       "emptyBuilt": "Results appear here once you build them.",
       "loadError": "Couldn't load the results.",
       "noRows": "No students found",
-      "noRowsHint": "Change the section or the search."
+      "noRowsHint": "Change the section or the search.",
+      "searchNote": "Searching only the {{shown}} students on this page. Pick a section to narrow the list."
     },
     "detail": {
       "loadError": "Couldn't load this final result.",
@@ -594,7 +595,10 @@
       "notBuilt": "Build the results first, then you can print the cards.",
       "noStudents": "No students in this section.",
       "loadError": "Couldn't load the cards. Try again.",
-      "noStudentsHint": "Choose another section."
+      "noStudentsHint": "Choose another section.",
+      "cappedNote": "Showing the first {{shown}} of {{total}} students. Print the rest one section at a time.",
+      "someFailed": "{{n}} cards couldn't load. They are marked on the printout. Print again to retry.",
+      "cardFailed": "card couldn't load"
     }
   }
 }

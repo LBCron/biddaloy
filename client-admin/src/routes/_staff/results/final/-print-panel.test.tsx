@@ -96,4 +96,85 @@ describe('Print tab', () => {
     await userEvent.click(screen.getByRole('button', { name: /Print all cards/ }));
     await waitFor(() => expect(print).toHaveBeenCalledTimes(1));
   });
+
+  /** 101 students, so the section needs a second page of rows. */
+  function bigSection(failId?: string) {
+    const rowOf = (n: number) => ({
+      student: { id: `st${n}`, full_name: `Student ${n}`, roll_number: n },
+      total_marks: 50,
+      gpa: 3,
+      grade: 'B',
+      position: n,
+      section_position: n,
+      is_fail: false,
+      working_days: 200,
+      present_days: 190,
+      per_exam: [],
+    });
+    const offsets: number[] = [];
+    let live = 0;
+    let peak = 0;
+    let cards = 0;
+    server.use(
+      http.get('/api/v1/final-results/fr-1/rows', ({ request }) => {
+        const offset = Number(new URL(request.url).searchParams.get('offset') ?? 0);
+        offsets.push(offset);
+        const from = offset + 1;
+        const to = Math.min(offset + 100, 101);
+        return HttpResponse.json({
+          data: Array.from({ length: to - from + 1 }, (_, k) => rowOf(from + k)),
+          total: 101,
+          limit: 100,
+          offset,
+        });
+      }),
+      http.get('/api/v1/final-results/fr-1/students/:id', async ({ params }) => {
+        live++;
+        peak = Math.max(peak, live);
+        cards++;
+        await new Promise((r) => setTimeout(r, 1));
+        live--;
+        if (params.id === failId) return HttpResponse.json({ message: 'no' }, { status: 500 });
+        return HttpResponse.json({
+          ...card,
+          student: { full_name: String(params.id), roll_number: 1 },
+        });
+      }),
+    );
+    return { offsets, peak: () => peak, cards: () => cards };
+  }
+
+  it('reads every page of the section and fetches a few cards at a time', async () => {
+    const print = vi.spyOn(window, 'print').mockImplementation(() => undefined);
+    await open('PROCESSED');
+    const big = bigSection();
+    await screen.findByText('Hard working');
+    await userEvent.click(screen.getByRole('button', { name: /Print all cards/ }));
+    await waitFor(() => expect(print).toHaveBeenCalledTimes(1), { timeout: 10_000 });
+    expect(big.offsets).toContain(100);
+    expect(big.cards()).toBeGreaterThanOrEqual(101);
+    expect(big.peak()).toBeLessThanOrEqual(4);
+  });
+
+  it('marks a card that failed and still prints the rest', async () => {
+    let area = '';
+    let parent: Element | null = null;
+    let css = '';
+    const print = vi.spyOn(window, 'print').mockImplementation(() => {
+      const el = document.querySelector('.final-print-area');
+      area = el?.textContent ?? '';
+      parent = el?.parentElement ?? null;
+      css = el?.querySelector('style')?.textContent ?? '';
+    });
+    await open('PROCESSED');
+    bigSection('st3');
+    await screen.findByText('Hard working');
+    await userEvent.click(screen.getByRole('button', { name: /Print all cards/ }));
+    await waitFor(() => expect(print).toHaveBeenCalledTimes(1), { timeout: 10_000 });
+    expect(area).toContain('Student 3');
+    expect(area).toContain("card couldn't load");
+    // Only the sheets print: the area is a direct child of <body> and every sibling is dropped.
+    expect(parent).toBe(document.body);
+    expect(css).toContain('body > *:not(.final-print-area)');
+  });
 });
