@@ -737,76 +737,133 @@ export class FinalResultsService {
     context: RequestContext = { ip: null, userAgent: null },
   ): Promise<{ processed: number }> {
     await this.find(id, tenantId);
-    const processed = await this.manager.transaction(async (manager) => {
-      const final = await this.lock(manager, id, tenantId);
-      if (final.status === FinalResultStatus.PUBLISHED) throw finalPublished();
-
-      const weights = await manager
-        .getRepository(FinalResultWeight)
-        .find({ where: { final_result_id: id, tenant_id: tenantId } });
-      const examIds = [...new Set(weights.map((w) => w.exam_id))].sort();
-      if (examIds.length === 0) throw finalNoExams();
-      const exams = await this.lockPublishedSources(manager, examIds, final, tenantId);
-
-      const settings: FinalSettings = {
-        mode: final.mode,
-        best_of_count: final.best_of_count,
-        rounding: final.rounding,
-        fail_if_any_exam_fails: final.fail_if_any_exam_fails,
-        weights: weights.map((w) => ({
-          exam_id: w.exam_id,
-          subject_id: w.subject_id,
-          share_percent: w.share_percent,
-        })),
-      };
-      if (final.mode === FinalResultMode.WEIGHTED) this.assertSharesBalanced(settings);
-
-      const scales = await manager
-        .getRepository(GradingScale)
-        .find({ where: { tenant_id: tenantId, deleted_at: IsNull() } });
-      const scale = resolveScale(scales, final.academic_year_id, final.class_id);
-      if (!scale) {
-        throw new ConflictException({
-          message: "No grading scale found for this final result's academic year (or class).",
-          details: { code: 'NO_GRADING_SCALE' },
-        });
-      }
-      const bandRows = await manager
-        .getRepository(GradingBand)
-        .find({ where: { scale_id: scale.id, tenant_id: tenantId, deleted_at: IsNull() } });
-      const bands: Band[] = bandRows.map((b) => ({
-        percent_from: b.percent_from,
-        percent_to: b.percent_to,
-        grade: b.grade,
-        gpa: b.gpa === null ? null : Number(b.gpa),
-        is_fail: b.is_fail,
-      }));
-
-      let computed;
-      try {
-        computed = await this.computeAll(manager, final, exams, settings, bands, tenantId);
-      } catch (err) {
-        if (err instanceof SharesNotHundred) throw finalSharesNotHundred();
-        throw err;
-      }
-      await this.replaceRows(manager, final, computed, scale, tenantId);
-
-      await manager
-        .getRepository(FinalResult)
-        .update({ id, tenant_id: tenantId }, { status: FinalResultStatus.PROCESSED });
-      await this.audit(
-        manager,
-        AuditAction.UPDATE,
-        id,
-        tenantId,
-        userId,
-        context,
-        { status: final.status },
-        { status: FinalResultStatus.PROCESSED, student_count: computed.length },
-      );
-      return computed.length;
-    });
+    const processed = await this.manager.transaction((manager) =>
+      this.buildIn(manager, id, tenantId, userId, context),
+    );
     return { processed };
+  }
+
+  /**
+   * [70.3.x] Rebuild a PROCESSED final inside the caller's transaction (a grading-scale
+   * edit). Same computation as `build`, so the status stays PROCESSED and `published_at`
+   * stays null; refused while PUBLISHED.
+   */
+  recompute(
+    manager: EntityManager,
+    id: string,
+    tenantId: string,
+    userId: string | null,
+    context: RequestContext = { ip: null, userAgent: null },
+  ): Promise<number> {
+    return this.buildIn(manager, id, tenantId, userId, context);
+  }
+
+  /**
+   * [70.3.x] A source exam is being reopened: send a PROCESSED final back to DRAFT (rows and
+   * subjects soft-deleted, audit row names the exam). Refused 409 while PUBLISHED. Locks the
+   * final, so callers lock finals before the exam (build/publish take final then exam too).
+   */
+  async demoteToDraft(
+    manager: EntityManager,
+    id: string,
+    tenantId: string,
+    userId: string | null,
+    context: RequestContext,
+    reopenedExamId: string,
+  ): Promise<void> {
+    const final = await this.lock(manager, id, tenantId);
+    if (final.status === FinalResultStatus.PUBLISHED) throw finalPublished();
+    if (final.status !== FinalResultStatus.PROCESSED) return;
+    await this.dropRows(manager, id, tenantId);
+    await manager
+      .getRepository(FinalResult)
+      .update({ id, tenant_id: tenantId }, { status: FinalResultStatus.DRAFT });
+    await this.audit(
+      manager,
+      AuditAction.UPDATE,
+      id,
+      tenantId,
+      userId,
+      context,
+      { status: FinalResultStatus.PROCESSED },
+      { status: FinalResultStatus.DRAFT, reason: 'SOURCE_EXAM_REOPENED', exam_id: reopenedExamId },
+    );
+  }
+
+  private async buildIn(
+    manager: EntityManager,
+    id: string,
+    tenantId: string,
+    userId: string | null,
+    context: RequestContext,
+  ): Promise<number> {
+    const final = await this.lock(manager, id, tenantId);
+    if (final.status === FinalResultStatus.PUBLISHED) throw finalPublished();
+
+    const weights = await manager
+      .getRepository(FinalResultWeight)
+      .find({ where: { final_result_id: id, tenant_id: tenantId } });
+    const examIds = [...new Set(weights.map((w) => w.exam_id))].sort();
+    if (examIds.length === 0) throw finalNoExams();
+    const exams = await this.lockPublishedSources(manager, examIds, final, tenantId);
+
+    const settings: FinalSettings = {
+      mode: final.mode,
+      best_of_count: final.best_of_count,
+      rounding: final.rounding,
+      fail_if_any_exam_fails: final.fail_if_any_exam_fails,
+      weights: weights.map((w) => ({
+        exam_id: w.exam_id,
+        subject_id: w.subject_id,
+        share_percent: w.share_percent,
+      })),
+    };
+    if (final.mode === FinalResultMode.WEIGHTED) this.assertSharesBalanced(settings);
+
+    const scales = await manager
+      .getRepository(GradingScale)
+      .find({ where: { tenant_id: tenantId, deleted_at: IsNull() } });
+    const scale = resolveScale(scales, final.academic_year_id, final.class_id);
+    if (!scale) {
+      throw new ConflictException({
+        message: "No grading scale found for this final result's academic year (or class).",
+        details: { code: 'NO_GRADING_SCALE' },
+      });
+    }
+    const bandRows = await manager
+      .getRepository(GradingBand)
+      .find({ where: { scale_id: scale.id, tenant_id: tenantId, deleted_at: IsNull() } });
+    const bands: Band[] = bandRows.map((b) => ({
+      percent_from: b.percent_from,
+      percent_to: b.percent_to,
+      grade: b.grade,
+      gpa: b.gpa === null ? null : Number(b.gpa),
+      is_fail: b.is_fail,
+    }));
+
+    let computed;
+    try {
+      computed = await this.computeAll(manager, final, exams, settings, bands, tenantId);
+    } catch (err) {
+      if (err instanceof SharesNotHundred) throw finalSharesNotHundred();
+      throw err;
+    }
+    await this.replaceRows(manager, final, computed, scale, tenantId);
+
+    await manager
+      .getRepository(FinalResult)
+      .update({ id, tenant_id: tenantId }, { status: FinalResultStatus.PROCESSED });
+    await this.audit(
+      manager,
+      AuditAction.UPDATE,
+      id,
+      tenantId,
+      userId,
+      context,
+      { status: final.status },
+      { status: FinalResultStatus.PROCESSED, student_count: computed.length },
+    );
+    return computed.length;
   }
 
   /** Locks the source exams (read lock, id order) and refuses any that is not PUBLISHED. */
@@ -1281,7 +1338,7 @@ export class FinalResultsService {
     action: AuditAction,
     id: string,
     tenantId: string,
-    userId: string,
+    userId: string | null,
     context: RequestContext,
     oldValues: Record<string, unknown> | null,
     newValues: Record<string, unknown> | null,
