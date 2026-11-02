@@ -1284,6 +1284,8 @@ export class FinalResultsService {
         where: { final_result_id: id, tenant_id: tenantId, deleted_at: IsNull() },
       });
       // Reopened, corrected and republished since the build: the rows hold the old numbers.
+      // No rows (empty cohort): Math.min() is Infinity, so nothing can be stale and an empty
+      // final publishes like an exam with no results does.
       const builtAt = Math.min(...rows.map((r) => r.computed_at.getTime()));
       if (sources.some((e) => (e.published_at?.getTime() ?? 0) > builtAt)) throw finalStale();
       const year = await manager
