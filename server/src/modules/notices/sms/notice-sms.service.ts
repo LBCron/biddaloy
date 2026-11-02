@@ -358,15 +358,16 @@ export class NoticeSmsService {
         // below clears the hashes if they do.
         // ponytail: links commit on their own; give createPersonalLinks a tx param to drop the cleanup.
         if (will.length === 0) return;
-        const tokens = await this.links.createPersonalLinks(
-          id,
-          will.map((r) => r.recipient.id),
-        );
-        linkedIds = tokens.map((t) => t.recipientId);
+        // Every id asked for, not only the ones answered: a hash written without a returned
+        // token would otherwise survive the cleanup.
+        linkedIds = will.map((r) => r.recipient.id);
+        const tokens = await this.links.createPersonalLinks(id, linkedIds);
         const tokenOf = new Map(tokens.map((t) => [t.recipientId, t.token]));
         for (const r of will) {
           const token = tokenOf.get(r.recipient.id);
-          if (!token) continue;
+          // The reservation counts this phone: skipping it would strand its credit on an
+          // APPROVED notice that can never be retried. Throw so the catch releases it all.
+          if (!token) throw new Error('personal link missing');
           const log = await tx.save(
             CommunicationLog,
             tx.create(CommunicationLog, {
