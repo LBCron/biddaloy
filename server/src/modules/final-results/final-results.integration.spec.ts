@@ -31,6 +31,7 @@ import { ClassSection } from '../academics/entities/class-section.entity';
 import { ClassSubject } from '../academics/entities/class-subject.entity';
 import { Subject } from '../academics/entities/subject.entity';
 import { Student } from '../students/entities/student.entity';
+import { Enrollment } from '../students/entities/enrollment.entity';
 import { GradingScale } from '../grading/entities/grading-scale.entity';
 import { GradingBand } from '../grading/entities/grading-band.entity';
 import { AuditService } from '../audit/audit.service';
@@ -186,9 +187,13 @@ describe('FinalResultsService (integration)', () => {
     ]);
   });
 
-  async function student(roll: number): Promise<Student> {
+  /** A student with an ACTIVE enrollment in the class-year: the final's cohort (D25). */
+  async function student(
+    roll: number,
+    status: EnrollmentStatus = EnrollmentStatus.ACTIVE,
+  ): Promise<Student> {
     seq += 1;
-    return ds.getRepository(Student).save({
+    const s = await ds.getRepository(Student).save({
       full_name: `Student ${roll}`,
       registration_number: `REG-FR-${seq}`,
       roll_number: roll,
@@ -196,9 +201,18 @@ describe('FinalResultsService (integration)', () => {
       tenant_id: TENANT_ID,
       date_of_birth: new Date('2012-01-01'),
       gender: 'MALE',
-      enrollment_status: EnrollmentStatus.ACTIVE,
+      enrollment_status: status,
       preferred_communication: 'SMS',
     } as Partial<Student>);
+    await ds.getRepository(Enrollment).save({
+      tenant_id: TENANT_ID,
+      student_id: s.id,
+      class_id: CLASS_ID,
+      section_id: SECTION_ID,
+      academic_year_id: YEAR_ID,
+      enrollment_status: status,
+    } as Partial<Enrollment>);
+    return s;
   }
 
   /** A published exam with one 100-mark component and a stored result per entry. */
@@ -371,6 +385,103 @@ describe('FinalResultsService (integration)', () => {
       .getRepository(FinalResultRow)
       .count({ where: { final_result_id: final.id, deleted_at: IsNull() } });
     expect(live).toBe(5);
+  });
+
+  it('the cohort is the ACTIVE enrollments (D25): a leaver is out, a student with no result is in', async () => {
+    const s1 = await student(1);
+    // Left mid-year: has a result in the exam, but is not in the final.
+    const leaver = await student(2, EnrollmentStatus.TRANSFERRED);
+    // Enrolled but sat nothing: still in the final, every share counts 0 (D2).
+    const noShow = await student(3);
+    const e1 = await publishedExam('First Term', ExamKind.TERM, [
+      [s1, 90],
+      [leaver, 95],
+    ]);
+    const final = await finalWith([[e1, '100.00']]);
+    await service.build(final.id, TENANT_ID, 'user-1');
+    const rows = await ds
+      .getRepository(FinalResultRow)
+      .find({ where: { final_result_id: final.id, deleted_at: IsNull() } });
+    expect(rows.map((r) => r.student_id).sort()).toEqual([s1.id, noShow.id].sort());
+    const absent = rows.find((r) => r.student_id === noShow.id)!;
+    expect(Number(absent.total_marks)).toBe(0);
+    expect(absent.section_id).toBe(SECTION_ID);
+  });
+
+  it('publish is refused when a source exam was republished after the build', async () => {
+    const s1 = await student(1);
+    const e1 = await publishedExam('First Term', ExamKind.TERM, [[s1, 90]]);
+    const final = await finalWith([[e1, '100.00']]);
+    await service.build(final.id, TENANT_ID, 'user-1');
+    // Reopened, corrected and published again after the build: the rows are stale.
+    await ds
+      .getRepository(Exam)
+      .update({ id: e1.id }, { published_at: new Date(Date.now() + 60_000) });
+    await expect(service.publish(final.id, TENANT_ID, 'user-1')).rejects.toMatchObject({
+      response: { details: { code: 'FINAL_STALE' } },
+    });
+    // A rebuild picks the new numbers up, then publish goes through.
+    await ds.getRepository(Exam).update({ id: e1.id }, { published_at: new Date() });
+    await service.build(final.id, TENANT_ID, 'user-1');
+    await service.publish(final.id, TENANT_ID, 'user-1');
+  });
+
+  it('editing a built result drops its rows; deleting it soft-deletes rows and subjects', async () => {
+    const s1 = await student(1);
+    const e1 = await publishedExam('First Term', ExamKind.TERM, [[s1, 90]]);
+    const final = await finalWith([[e1, '100.00']]);
+    await service.build(final.id, TENANT_ID, 'user-1');
+    const liveRows = () =>
+      ds
+        .getRepository(FinalResultRow)
+        .count({ where: { final_result_id: final.id, deleted_at: IsNull() } });
+    expect(await liveRows()).toBe(1);
+
+    // Back to DRAFT: the old rows were computed under the old settings, so none stay readable.
+    const edited = await service.update(
+      final.id,
+      { rounding: 'TWO_DECIMALS' } as never,
+      TENANT_ID,
+      'user-1',
+    );
+    expect(edited.status).toBe(FinalResultStatus.DRAFT);
+    expect(edited.counts.students).toBe(0);
+    expect(await liveRows()).toBe(0);
+
+    // A built (unpublished) result can be deleted, and takes its rows with it.
+    await service.build(final.id, TENANT_ID, 'user-1');
+    const [row] = await ds
+      .getRepository(FinalResultRow)
+      .find({ where: { final_result_id: final.id, deleted_at: IsNull() } });
+    await service.remove(final.id, TENANT_ID, 'user-1');
+    expect(await liveRows()).toBe(0);
+    const liveSubjects = await ds
+      .getRepository(FinalResultSubject)
+      .count({ where: { final_result_row_id: row.id, deleted_at: IsNull() } });
+    expect(liveSubjects).toBe(0);
+  });
+
+  it('best-of cannot count more exams than the result has', async () => {
+    const s1 = await student(1);
+    const e1 = await publishedExam('First Term', ExamKind.TERM, [[s1, 90]]);
+    const final = await finalWith([[e1, '100.00']]);
+    await expect(
+      service.update(final.id, { mode: 'BEST_OF', best_of_count: 2 } as never, TENANT_ID, 'user-1'),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("a teacher's section scope narrows list and get (Rule 2)", async () => {
+    const s1 = await student(1);
+    const e1 = await publishedExam('First Term', ExamKind.TERM, [[s1, 90]]);
+    const final = await finalWith([[e1, '100.00']]);
+    // Assigned to this class's section: sees it.
+    expect(await service.list(YEAR_ID, TENANT_ID, [SECTION_ID])).toHaveLength(1);
+    await expect(service.get(final.id, TENANT_ID, [SECTION_ID])).resolves.toMatchObject({
+      id: final.id,
+    });
+    // No assignment: empty list, and the final itself is a 404 (never a 403).
+    expect(await service.list(YEAR_ID, TENANT_ID, [])).toEqual([]);
+    await expect(service.get(final.id, TENANT_ID, [])).rejects.toMatchObject({ status: 404 });
   });
 
   it('is refused while a source exam is not published', async () => {
