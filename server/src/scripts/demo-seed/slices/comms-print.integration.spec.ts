@@ -17,6 +17,10 @@ import { EnrollmentService } from '../../../modules/enrollments/enrollments.serv
 import { StudentLifecycleService } from '../../../modules/students/student-lifecycle.service';
 import { ApprovalService } from '../../../modules/auth/guards/approval.guard';
 import { FinalResultsService } from '../../../modules/final-results/final-results.service';
+import { ReportCardNotesService } from '../../../modules/report-card-notes/report-card-notes.service';
+import { TeacherScopeService } from '../../../modules/classes/teacher-scope.service';
+import { SchoolsService } from '../../../modules/schools/schools.service';
+import { resolveTenantSettings } from '../../../modules/schools/settings/tenant-settings-resolver';
 import { AttendanceSummaryService } from '../../../modules/attendance/attendance-summary.service';
 import { ResultsService } from '../../../modules/exams/results.service';
 import { MarkGridService } from '../../../modules/exams/mark-grid.service';
@@ -67,8 +71,18 @@ describe('comms-print slice (integration, 2 years, scale 0.05)', () => {
       StudentLifecycleService,
       ResultsService,
       FinalResultsService,
+      // The exams slice writes report-card notes through the real service (#3411).
+      ReportCardNotesService,
+      TeacherScopeService,
+      {
+        provide: SchoolsService,
+        useValue: { getResolvedSettings: async () => resolveTenantSettings(null) },
+      },
       // Publish snapshots attendance per student; the seed has none in this slice-only run.
-      { provide: AttendanceSummaryService, useValue: { getSummariesForStudents: async () => new Map() } },
+      {
+        provide: AttendanceSummaryService,
+        useValue: { getSummariesForStudents: async () => new Map() },
+      },
       MarkGridService,
       SeatPlansService,
       TeacherBusyService,

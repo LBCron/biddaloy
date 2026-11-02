@@ -17,6 +17,10 @@ import { EnrollmentService } from '../../../modules/enrollments/enrollments.serv
 import { StudentLifecycleService } from '../../../modules/students/student-lifecycle.service';
 import { ApprovalService } from '../../../modules/auth/guards/approval.guard';
 import { FinalResultsService } from '../../../modules/final-results/final-results.service';
+import { ReportCardNotesService } from '../../../modules/report-card-notes/report-card-notes.service';
+import { TeacherScopeService } from '../../../modules/classes/teacher-scope.service';
+import { SchoolsService } from '../../../modules/schools/schools.service';
+import { resolveTenantSettings } from '../../../modules/schools/settings/tenant-settings-resolver';
 import { AttendanceSummaryService } from '../../../modules/attendance/attendance-summary.service';
 import { ResultsService } from '../../../modules/exams/results.service';
 import { MarkGridService } from '../../../modules/exams/mark-grid.service';
@@ -54,8 +58,18 @@ describe('exams slice (integration, 2 years, scale 0.05)', () => {
       StudentLifecycleService,
       ResultsService,
       FinalResultsService,
+      // The exams slice writes report-card notes through the real service (#3411).
+      ReportCardNotesService,
+      TeacherScopeService,
+      {
+        provide: SchoolsService,
+        useValue: { getResolvedSettings: async () => resolveTenantSettings(null) },
+      },
       // Publish snapshots attendance per student; the seed has none in this slice-only run.
-      { provide: AttendanceSummaryService, useValue: { getSummariesForStudents: async () => new Map() } },
+      {
+        provide: AttendanceSummaryService,
+        useValue: { getSummariesForStudents: async () => new Map() },
+      },
       MarkGridService,
       SeatPlansService,
       TeacherBusyService,
@@ -90,6 +104,16 @@ describe('exams slice (integration, 2 years, scale 0.05)', () => {
         WHERE fr.deleted_at IS NULL`,
     );
     // Exams per class and year: names.
+    // [#3411] Notes per target: the final card (past year) and the current Half-Yearly.
+    facts.notes = await q(
+      `SELECT n.final_result_id IS NOT NULL AS on_final, n.remark,
+              (SELECT count(*)::int FROM jsonb_object_keys(n.conduct)) AS grades
+         FROM report_card_notes n`,
+    );
+    facts.finalRuns = await q(
+      `SELECT pr.final_result_id, fr.status, fr.class_id = pr.source_class_id AS same_class
+         FROM promotion_runs pr JOIN final_results fr ON fr.id = pr.final_result_id`,
+    );
     facts.examsPerClass = await q(
       `SELECT e.class_id, e.academic_year_id, c.numeric_grade, count(*)::int AS n,
               count(*) FILTER (WHERE e.name = 'Test Exam')::int AS tests
@@ -210,6 +234,25 @@ describe('exams slice (integration, 2 years, scale 0.05)', () => {
     const now = facts.finals.filter((f: any) => f.is_current);
     expect(now.length).toBeGreaterThan(0);
     for (const f of now) expect(f.status).toBe('DRAFT');
+  });
+
+  it('writes bn remarks and all four conduct grades on the past final card and the current Half-Yearly', () => {
+    const onFinal = facts.notes.filter((n: any) => n.on_final);
+    const onExam = facts.notes.filter((n: any) => !n.on_final);
+    expect(onFinal.length).toBeGreaterThan(0);
+    expect(onExam.length).toBeGreaterThan(0);
+    for (const n of facts.notes) {
+      expect(n.remark).toMatch(/[\u0980-\u09FF]/); // Bangla text
+      expect(n.grades).toBe(4); // DEFAULT_CONDUCT_ITEMS (D30)
+    }
+  });
+
+  it("points the past year's promotion runs at that class's published final result", () => {
+    expect(facts.finalRuns.length).toBeGreaterThan(0);
+    for (const r of facts.finalRuns) {
+      expect(r.status).toBe('PUBLISHED');
+      expect(r.same_class).toBe(true);
+    }
   });
 
   it('seats every active student exactly once in each sitting of the next exam', () => {
