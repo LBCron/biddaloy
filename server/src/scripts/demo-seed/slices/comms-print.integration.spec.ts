@@ -16,6 +16,8 @@ import { PromotionsService } from '../../../modules/promotions/promotions.servic
 import { EnrollmentService } from '../../../modules/enrollments/enrollments.service';
 import { StudentLifecycleService } from '../../../modules/students/student-lifecycle.service';
 import { ApprovalService } from '../../../modules/auth/guards/approval.guard';
+import { FinalResultsService } from '../../../modules/final-results/final-results.service';
+import { AttendanceSummaryService } from '../../../modules/attendance/attendance-summary.service';
 import { ResultsService } from '../../../modules/exams/results.service';
 import { MarkGridService } from '../../../modules/exams/mark-grid.service';
 import { AttendanceComponentService } from '../../../modules/exams/attendance-component.service';
@@ -64,6 +66,9 @@ describe('comms-print slice (integration, 2 years, scale 0.05)', () => {
       EnrollmentService,
       StudentLifecycleService,
       ResultsService,
+      FinalResultsService,
+      // Publish snapshots attendance per student; the seed has none in this slice-only run.
+      { provide: AttendanceSummaryService, useValue: { getSummariesForStudents: async () => new Map() } },
       MarkGridService,
       SeatPlansService,
       TeacherBusyService,
