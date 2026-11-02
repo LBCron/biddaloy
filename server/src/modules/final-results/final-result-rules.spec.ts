@@ -6,6 +6,7 @@ import {
   combineStudent,
   combineSubject,
   effectiveShares,
+  examSubjectObtained,
   type ExamSubjectMark,
   type FinalSettings,
 } from './final-result-rules';
@@ -317,5 +318,21 @@ describe('final-result-rules', () => {
     it('returns nothing for a student with no marks', () => {
       expect(combineStudent([], settings())).toEqual([]);
     });
+  });
+});
+
+describe('examSubjectObtained (one ABS rule for the build, the card and the final tabulation)', () => {
+  it('ABS with 0 is no mark (null): every component was absent', () => {
+    // Raw SQL hands numerics back as strings: "0.00" must count as 0 too.
+    expect(examSubjectObtained({ grade: 'ABS', obtained: '0.00' })).toBeNull();
+    expect(examSubjectObtained({ grade: 'ABS', obtained: 0 })).toBeNull();
+  });
+
+  it('ABS with marks (absent in one component only) keeps the marks', () => {
+    expect(examSubjectObtained({ grade: 'ABS', obtained: '12.50' })).toBe(12.5);
+  });
+
+  it('a real 0 with any other grade stays 0', () => {
+    expect(examSubjectObtained({ grade: 'F', obtained: '0.00' })).toBe(0);
   });
 });
