@@ -225,6 +225,17 @@ describe('/my-class/$sectionId', () => {
     expect(link.getAttribute('href')).toBe('/my-class/section-1/notes?for=final');
   });
 
+  it('with no final result the notes card speaks for the newest exam', async () => {
+    mockAll([http.get('/api/v1/final-results', () => HttpResponse.json([]))]);
+    render();
+    const card = (await screen.findByRole('heading', { name: 'Remarks and conduct' })).closest(
+      'section',
+    )!;
+    const link = await within(card).findByRole('link', { name: /Write remarks|View/ });
+    expect(link.getAttribute('href')).toMatch(/\/notes\?for=exam-/);
+    expect(within(card).queryByText(/Final result/)).toBeNull();
+  });
+
   it('badges the absent count on the Absent today card', async () => {
     mockAll();
     render();
