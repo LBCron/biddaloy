@@ -338,6 +338,17 @@ POST   /api/v1/fees/schedules/:id/exclusions                                    
 DELETE /api/v1/fees/schedules/:id/exclusions/:studentId                          401 PASS PASS PASS PASS 403 403 403 403 403 403 403
 GET    /api/v1/fees/schedules/:id/preview                                        401 PASS PASS PASS PASS 403 403 403 PASS 403 403 403
 POST   /api/v1/fees/schedules/run-now                                            401 PASS PASS PASS 403 403 403 403 403 403 403 403
+GET    /api/v1/final-results                                                     401 PASS PASS PASS 403 PASS 403 403 PASS PASS PASS 403
+POST   /api/v1/final-results                                                     401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
+DELETE /api/v1/final-results/:id                                                 401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
+GET    /api/v1/final-results/:id                                                 401 PASS PASS PASS 403 PASS 403 403 PASS PASS PASS 403
+PATCH  /api/v1/final-results/:id                                                 401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
+POST   /api/v1/final-results/:id/build                                           401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
+POST   /api/v1/final-results/:id/publish                                         401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
+POST   /api/v1/final-results/:id/reopen                                          401 403 403 403 403 403 403 403 403 403 403 403
+GET    /api/v1/final-results/:id/rows                                            401 PASS PASS PASS 403 PASS 403 403 PASS PASS PASS 403
+POST   /api/v1/final-results/:id/sms                                             401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
+GET    /api/v1/final-results/:id/students/:studentId                             401 PASS PASS PASS 403 PASS 403 403 PASS PASS PASS 403
 GET    /api/v1/grading/scales                                                    401 PASS PASS PASS 403 403 403 403 403 403 403 403
 POST   /api/v1/grading/scales                                                    401 PASS PASS PASS 403 403 403 403 403 403 403 403
 DELETE /api/v1/grading/scales/:id                                                401 PASS PASS PASS 403 403 403 403 403 403 403 403

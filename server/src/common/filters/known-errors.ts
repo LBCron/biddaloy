@@ -105,6 +105,57 @@ function mapImportFileError(exception: unknown): HttpException | null {
   });
 }
 
+// [70.2.1] Final-result refusals. One fixed sentence each, no id or name in it (Rules 23/24);
+// the code is what the screen branches on. The service throws these directly.
+export function finalSourceUnpublished(): ConflictException {
+  return new ConflictException({
+    message: 'Every exam in a final result must be published first.',
+    details: { code: 'FINAL_SOURCE_UNPUBLISHED' },
+  });
+}
+
+export function finalSharesNotHundred(): ConflictException {
+  return new ConflictException({
+    message: 'The shares for each subject must add up to 100.',
+    details: { code: 'FINAL_SHARES_NOT_HUNDRED' },
+  });
+}
+
+export function finalNoExams(): ConflictException {
+  return new ConflictException({
+    message: 'Add at least one exam to this final result first.',
+    details: { code: 'FINAL_NO_EXAMS' },
+  });
+}
+
+export function finalNotDraft(): ConflictException {
+  return new ConflictException({
+    message: 'A published final result cannot be changed. Reopen it first.',
+    details: { code: 'FINAL_NOT_DRAFT' },
+  });
+}
+
+export function finalNotProcessed(): ConflictException {
+  return new ConflictException({
+    message: 'Build this final result before publishing it.',
+    details: { code: 'FINAL_NOT_PROCESSED' },
+  });
+}
+
+export function finalPublished(): ConflictException {
+  return new ConflictException({
+    message: 'This final result is published. Reopen it first.',
+    details: { code: 'FINAL_PUBLISHED' },
+  });
+}
+
+export function finalNotPublished(): ConflictException {
+  return new ConflictException({
+    message: 'This final result is not published.',
+    details: { code: 'FINAL_NOT_PUBLISHED' },
+  });
+}
+
 function mapInvalidDate(exception: unknown): HttpException | null {
   if (!(exception instanceof QueryFailedError)) return null;
   const { code } = exception.driverError as { code?: string };
