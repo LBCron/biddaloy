@@ -81,13 +81,6 @@ export type FinalResultListItem = {
   published_at: string | null;
 };
 
-/**
- * ponytail: 'FinalResult' is not in `AUDIT_ENTITY_TYPES` (shared/src/audit/entity-types.ts, outside
- * this lane's territory), so final-result audit rows are written as 'Exam' with the final result's
- * id. Switch to 'FinalResult' once the shared catalog lists it.
- */
-export const FINAL_AUDIT_ENTITY = 'Exam' as const;
-
 const iso = (d: Date | string): string =>
   typeof d === 'string' ? d.slice(0, 10) : d.toISOString().slice(0, 10);
 
@@ -1166,7 +1159,7 @@ export class FinalResultsService {
         .update({ final_result_id: id, tenant_id: tenantId }, { published_at: null });
       const entry = {
         action: AuditAction.UPDATE,
-        entity_type: FINAL_AUDIT_ENTITY,
+        entity_type: 'FinalResult' as const,
         entity_id: id,
         tenant_id: tenantId,
         performed_by_user_id: userId,
@@ -1211,7 +1204,7 @@ export class FinalResultsService {
     return this.auditService.record(
       {
         action,
-        entity_type: FINAL_AUDIT_ENTITY,
+        entity_type: 'FinalResult' as const,
         entity_id: id,
         tenant_id: tenantId,
         performed_by_user_id: userId,
