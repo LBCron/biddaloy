@@ -617,6 +617,7 @@ See: [**Roles & access**](roles.md).
 | Size                                            | 1 means actual size; 0.90 to 1.10.                                                                                                                                                              | No          |
 | Cutting gap between cards (mm)                  | Office printers only; 0 to 20 mm.                                                                                                                                                               | No          |
 | Allow sign-in with a code sent to the phone     | When off, everyone in this school must sign in with a password. If someone is in several schools, sign-in with a code is off for them as soon as it is off in any one of them. On at the start. | No          |
+| Conduct                                         | Each line gets a grade from A to D on the report card, for example Discipline or Neatness. Renaming a line keeps the grades already given.                                                      | No          |
 
 <!-- /guide:generated -->
 
