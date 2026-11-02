@@ -25,6 +25,12 @@ describe('formatNumber', () => {
     expect(formatNumber(1.005, REGION_BD_EN, { decimals: 1 })).toBe('1.0');
   });
 
+  it('appends a percent marker in the tenant numeral system', () => {
+    expect(formatNumber(90, REGION_BD_EN, { percent: true })).toBe('90%');
+    expect(formatNumber(90, REGION_BD_BN, { percent: true })).toBe('৯০ শতাংশ');
+    expect(formatNumber(null, REGION_BD_BN, { percent: true })).toBe('—');
+  });
+
   it('formats zero', () => {
     expect(formatNumber(0, REGION_BD_EN)).toBe('0');
   });

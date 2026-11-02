@@ -12,17 +12,20 @@ import { groupDigits } from './grouping';
 export function formatNumber(
   value: number | null | undefined,
   config: RegionConfig,
-  options: { decimals?: number } = {},
+  options: { decimals?: number; percent?: boolean } = {},
 ): string {
   if (value == null || !Number.isFinite(value)) return '—';
-  const { decimals = 0 } = options;
+  const { decimals = 0, percent = false } = options;
   const negative = value < 0;
   const fixed = Math.abs(value).toFixed(decimals);
   const [integerPart = '0', fractionPart = ''] = fixed.split('.');
   const grouped = groupDigits(integerPart, 'thousand');
   const plain = fractionPart ? `${grouped}.${fractionPart}` : grouped;
   const numeral = renderDigits(plain, config.numerals);
-  return negative ? `-${numeral}` : numeral;
+  const signed = negative ? `-${numeral}` : numeral;
+  if (!percent) return signed;
+  // Bengali-numeral tenants read "৯০ শতাংশ"; a bare Latin "%" next to Bengali digits looks wrong.
+  return config.numerals === 'bengali' ? `${signed} শতাংশ` : `${signed}%`;
 }
 
 /** A mark or score stored as `numeric(…, 2)`: keeps the fraction it has
