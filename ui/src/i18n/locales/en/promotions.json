@@ -169,6 +169,7 @@
     "final": "Final result",
     "finalHelp": "Students are ranked by their position in the published final result.",
     "finalNone": "This class's final result is not published yet.",
-    "finalLink": "Go to final results"
+    "finalLink": "Go to final results",
+    "finalLoadError": "Couldn't load the final result. Please try again."
   }
 }

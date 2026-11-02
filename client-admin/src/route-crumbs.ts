@@ -156,10 +156,10 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
   ],
   '/_staff/marks/': [{ label: { key: 'marksEntry' } }],
   '/_staff/results/': [{ label: { key: 'results' } }],
-  // [70.5.5] D12: Results › Final results › <class> <year>.
-  '/_staff/results/final/': [{ label: { key: 'results' } }, { label: { key: 'finalResults' } }],
+  // [70.5.5] D12: Final results › <class> <year>. No "Results" crumb in front: it would link to
+  // /results, which is RESULT_PROCESS-only while this page is RESULT_READ.
+  '/_staff/results/final/': [{ label: { key: 'finalResults' } }],
   '/_staff/results/final/$finalResultId': [
-    { label: { key: 'results' } },
     { label: { key: 'finalResults' } },
     { label: { key: 'finalResultDetail' }, dynamic: 'entity' },
   ],

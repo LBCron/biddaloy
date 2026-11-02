@@ -405,6 +405,22 @@ describe('/promotions/new', () => {
         true,
       );
     });
+
+    it('a failed final-results load says so, never "not published yet"', async () => {
+      const user = userEvent.setup();
+      stubBase();
+      server.use(http.get('/api/v1/final-results', () => new HttpResponse(null, { status: 500 })));
+      renderForm();
+
+      await user.click(await screen.findByRole('radio', { name: /^Final result/ }));
+      expect(
+        await screen.findByText("Couldn't load the final result. Please try again."),
+      ).toBeTruthy();
+      expect(screen.queryByText("This class's final result is not published yet.")).toBeNull();
+      expect(screen.getByRole('button', { name: 'Create list' }).hasAttribute('disabled')).toBe(
+        true,
+      );
+    });
   });
 
   it('is a full-page form: h1, Close, labelled placeholders, Create disabled until valid', async () => {

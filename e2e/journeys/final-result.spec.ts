@@ -19,9 +19,8 @@ import { t } from '../i18n';
  *    tab, the usability test's task (ক). One final per class and year, so a fresh class keeps
  *    the spec rerunnable on the same database.
  * 2. The seeded guardian (`parent@biddaloy.test`, Class 6 / A roll 1, the only child a portal
- *    login can see) gets a final card on /portal/results. That class's final is shared seed
- *    state: the spec weights it to one exam it publishes itself, so another spec reopening its
- *    own Class 6 exam cannot make the build refuse.
+ *    login can see) gets a final card on /portal/results. That class's final is shared state,
+ *    so the spec reuses it when it exists and builds it only from an exam it publishes itself.
  *
  * Runs in the `bn` locale; every string comes from the app's catalog through `t()`.
  */
@@ -164,12 +163,22 @@ test.describe.serial('final result: build and publish, then the guardian sees it
         `/final-results?academic_year_id=${child.yearId}`,
       );
       const final = finals.find((r) => r.class.id === child.classId);
-      if (final?.status !== 'PUBLISHED') {
-        const subject = await newClassSubject(request, session, child.classId, child.yearId);
+      // A built final only needs publishing; a draft (or none) is weighted to one exam this spec
+      // publishes itself, so a Class 6 exam another spec reopened cannot make the build refuse.
+      if (final?.status === 'PROCESSED') {
+        await post(request, session, `/final-results/${final.final_result_id}/publish`, {});
+      } else if (final?.status !== 'PUBLISHED') {
+        // A subject Class 6 already has: a new one would count in every later Class 6 exam.
+        const [subject] = await get<{ subject_id: string }[]>(
+          request,
+          session,
+          `/classes/${child.classId}/subjects?academic_year_id=${child.yearId}`,
+        );
+        if (!subject) throw new Error('Seeded Class 6 has no subject');
         const exam = await publishedTermExam(
           request,
           session,
-          { ...child, academicYearId: child.yearId, subjectId: subject.id },
+          { ...child, academicYearId: child.yearId, subjectId: subject.subject_id },
           `E2E Final Portal ${Date.now()}`,
           { [child.id]: '75.00' },
         );
@@ -181,11 +190,9 @@ test.describe.serial('final result: build and publish, then the guardian sees it
               academic_year_id: child.yearId,
             })
           ).id;
-        if (final?.status !== 'PROCESSED') {
-          await patch(request, session, `/final-results/${id}`, {
-            weights: [{ exam_id: exam.id, share_percent: 100 }],
-          });
-        }
+        await patch(request, session, `/final-results/${id}`, {
+          weights: [{ exam_id: exam.id, share_percent: 100 }],
+        });
         await post(request, session, `/final-results/${id}/build`, {});
         await post(request, session, `/final-results/${id}/publish`, {});
       }

@@ -21,7 +21,7 @@ export function useNotesTargets(classId: string | undefined) {
   });
   const all = exams.data?.data ?? [];
   const newestFirst = [...all].sort((a, b) => b.created_at.localeCompare(a.created_at));
-  const yearId = (newestFirst.find((e) => e.academic_year.is_current) ?? newestFirst[0])
+  const yearId = (newestFirst.find((e) => e.academic_year?.is_current) ?? newestFirst[0])
     ?.academic_year_id;
   const finals = useFinalResults(yearId);
   const finalItem = finals.data?.find((f) => f.class.id === classId && f.final_result_id);
