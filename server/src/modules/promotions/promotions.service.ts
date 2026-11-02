@@ -1008,19 +1008,22 @@ export class PromotionsService {
           run.source_academic_year_id,
           tenantId,
         );
-        const staleRows = await this.finalRowRepo.find({
-          where: {
-            final_result_id: run.final_result_id,
-            student_id: In(cohortStudentIds),
-            tenant_id: tenantId,
-            deleted_at: IsNull(),
-          },
-        });
-        // A row dropped by a recompute is as stale as a newer one.
-        if (
-          staleRows.length !== cohortStudentIds.length ||
-          staleRows.some((r) => r.computed_at > run.refreshed_at)
-        ) {
+        // A rebuild soft-deletes the old rows and writes new ones, so a row written OR dropped
+        // after the refresh is stale. A student who never had a row (joined after the build)
+        // was ranked without one at refresh too, so that alone is not stale.
+        const changedRows = cohortStudentIds.length
+          ? await this.finalRowRepo
+              .createQueryBuilder('r')
+              .withDeleted()
+              .where('r.final_result_id = :finalId AND r.tenant_id = :tenantId', {
+                finalId: run.final_result_id,
+                tenantId,
+              })
+              .andWhere('r.student_id IN (:...ids)', { ids: cohortStudentIds })
+              .andWhere('(r.computed_at > :at OR r.deleted_at > :at)', { at: run.refreshed_at })
+              .getCount()
+          : 0;
+        if (changedRows > 0) {
           throw new ConflictException({ details: { code: 'STALE_RESULTS' } });
         }
       }
