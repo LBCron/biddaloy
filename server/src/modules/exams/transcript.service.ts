@@ -15,12 +15,10 @@ import { Enrollment } from '../students/entities/enrollment.entity';
 import { AcademicYear } from '../academics/entities/academic-year.entity';
 import { AuditService } from '../audit/audit.service';
 import { ResultsService } from './results.service';
-import { School } from '../schools/entities/school.entity';
 import { FinalResult } from '../final-results/entities/final-result.entity';
 import { FinalResultWeight } from '../final-results/entities/final-result-weight.entity';
 // Looked up lazily through ModuleRef: FinalResultsModule imports ExamsModule (as ResultsService).
 import { FinalResultsService } from '../final-results/final-results.service';
-import { loadCardNotes } from './report-card-extras';
 import { DocumentPrintDto } from './dto/transcript.dto';
 
 type ReportCard = NonNullable<Awaited<ReturnType<ResultsService['getStudentResultCard']>>>;
@@ -199,8 +197,7 @@ export class TranscriptService {
     const finals = this.moduleRef.get(FinalResultsService, { strict: false });
     const card = await finals.studentCard(final.id, studentId, tenantId);
     if (!card) return null;
-    const [school, weights, sittingOrder] = await Promise.all([
-      manager.findOne(School, { where: { id: tenantId } }),
+    const [weights, sittingOrder] = await Promise.all([
       manager.find(FinalResultWeight, {
         where: { final_result_id: final.id, tenant_id: tenantId },
       }),
@@ -220,20 +217,11 @@ export class TranscriptService {
     const bySitting = <T extends { exam_id: string }>(xs: T[]) =>
       [...xs].sort((a, b) => (rank.get(a.exam_id) ?? 1e9) - (rank.get(b.exam_id) ?? 1e9));
     const exams = bySitting(card.exams);
-    // `studentCard` leaves remark/conduct empty; the notes live in report_card_notes.
-    const notes = await loadCardNotes(
-      manager,
-      tenantId,
-      studentId,
-      { final_result_id: final.id },
-      school?.settings ?? null,
-    );
+    // remark/conduct come from `studentCard` itself, so both card routes print the same note.
     return {
       ...card,
       exams,
       subjects: card.subjects.map((sub) => ({ ...sub, per_exam: bySitting(sub.per_exam) })),
-      remark: notes.remark,
-      conduct: notes.conduct,
       exam_shares: exams.map((e) => {
         const whole = weights.find((w) => w.exam_id === e.exam_id && w.subject_id === null);
         return { exam_id: e.exam_id, share_percent: whole ? Number(whole.share_percent) : null };

@@ -5,8 +5,6 @@ import { TranscriptService } from './transcript.service';
 import { FinalResultsService } from '../final-results/final-results.service';
 import { FinalResult } from '../final-results/entities/final-result.entity';
 import { FinalResultWeight } from '../final-results/entities/final-result-weight.entity';
-import { ReportCardNote } from '../report-card-notes/entities/report-card-note.entity';
-import { School } from '../schools/entities/school.entity';
 
 /** [70.4.1] The transcript's final column and the final card: who sees which final status. */
 const TENANT = 't1';
@@ -14,9 +12,7 @@ const STUDENT = 's1';
 const CLASS = 'c1';
 const YEAR = 'y1';
 
-function build(
-  opts: { status?: FinalResultStatus; note?: object | null; deletedStudent?: boolean } = {},
-) {
+function build(opts: { status?: FinalResultStatus; deletedStudent?: boolean } = {}) {
   const finals: object[] = opts.status
     ? [
         {
@@ -38,8 +34,6 @@ function build(
           (finals as any[]).find((f) => o.where.tenant_id === f.tenant_id && ok(f.status)) ?? null
         );
       }
-      if (entity === ReportCardNote) return opts.note ?? null;
-      if (entity === School) return { id: TENANT, settings: null };
       return null;
     }),
     find: vi.fn(async (entity: unknown) =>
@@ -126,23 +120,20 @@ describe('TranscriptService.getFinalResultCard', () => {
     );
   });
 
-  it('adds the remark and the conduct grades from the report-card note', async () => {
-    const { service } = build({
-      status: FinalResultStatus.PUBLISHED,
-      note: { remark: 'Diligent', conduct: { discipline: 'A' } },
-    });
+  it('passes the remark and conduct from studentCard through unchanged (one source for both routes)', async () => {
+    const { service, studentCard } = build({ status: FinalResultStatus.PUBLISHED });
+    const conduct = [{ key: 'discipline', name_bn: 'শৃঙ্খলা', name_en: 'Discipline', grade: 'A' }];
+    studentCard.mockResolvedValueOnce({
+      final_result_id: 'f1',
+      exams: [],
+      subjects: [],
+      remark: 'Diligent',
+      conduct,
+    } as any);
     const card = await service.getFinalResultCard(TENANT, STUDENT, YEAR, true);
+    // The staff route GET /final-results/:id/students/:studentId returns the same studentCard.
     expect(card.remark).toBe('Diligent');
-    expect(card.conduct.find((c) => c.key === 'discipline')?.grade).toBe('A');
-    expect(card.conduct.find((c) => c.key === 'neatness')?.grade).toBeNull();
-  });
-
-  it('leaves remark null and conduct empty when no note exists', async () => {
-    const { service } = build({ status: FinalResultStatus.PUBLISHED });
-    expect(await service.getFinalResultCard(TENANT, STUDENT, YEAR, true)).toMatchObject({
-      remark: null,
-      conduct: [],
-    });
+    expect(card.conduct).toEqual(conduct);
   });
 });
 
