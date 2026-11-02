@@ -387,22 +387,25 @@ describe('FinalResultsService (integration)', () => {
     expect(live).toBe(5);
   });
 
-  it('the cohort is the ACTIVE enrollments (D25): a leaver is out, a student with no result is in', async () => {
+  it('the cohort is the enrollments (D25): a leaver is out; a graduate and a student with no result are in', async () => {
     const s1 = await student(1);
     // Left mid-year: has a result in the exam, but is not in the final.
     const leaver = await student(2, EnrollmentStatus.TRANSFERRED);
     // Enrolled but sat nothing: still in the final, every share counts 0 (D2).
     const noShow = await student(3);
+    // Graduated after the year: finished it, so still in a final built later.
+    const graduate = await student(4, EnrollmentStatus.GRADUATED);
     const e1 = await publishedExam('First Term', ExamKind.TERM, [
       [s1, 90],
       [leaver, 95],
+      [graduate, 80],
     ]);
     const final = await finalWith([[e1, '100.00']]);
     await service.build(final.id, TENANT_ID, 'user-1');
     const rows = await ds
       .getRepository(FinalResultRow)
       .find({ where: { final_result_id: final.id, deleted_at: IsNull() } });
-    expect(rows.map((r) => r.student_id).sort()).toEqual([s1.id, noShow.id].sort());
+    expect(rows.map((r) => r.student_id).sort()).toEqual([s1.id, noShow.id, graduate.id].sort());
     const absent = rows.find((r) => r.student_id === noShow.id)!;
     expect(Number(absent.total_marks)).toBe(0);
     expect(absent.section_id).toBe(SECTION_ID);
