@@ -17,8 +17,8 @@ import { HELP_GAPS, HELP_INDEX } from './help-index.gen';
 import { HELP_UNWIRED, PUBLIC } from './help-unwired';
 
 /** Guide pages whose feature id is not in their own helpIds yet; shrink, never grow. */
-// [70.5.5] Final results is in the sidebar from #3421; its guide page (and HELP_INDEX entry) is #3423.
-const NO_PAGE_ENTRY_YET = new Set<string>(['examsResults.finalResults']);
+// [70.5.5] Final results had no page until #3423; the set is empty again.
+const NO_PAGE_ENTRY_YET = new Set<string>([]);
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const features = JSON.parse(

@@ -41,6 +41,7 @@
   "finance.invoices": "done",
   "examsResults.marksEntry": "done",
   "examsResults.results": "done",
+  "examsResults.finalResults": "done",
   "academics.routineReview": "done",
   "academics.routineSubstitutions": "done",
   "reports.hub": "done",
