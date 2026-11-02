@@ -42,7 +42,9 @@ import { AttendanceComponentService } from './attendance-component.service';
 import { MarkGridService } from './mark-grid.service';
 import { attentionEvents } from '../attention/attention.constants';
 import { emitRecheck } from '../attention/engine/attention-events';
+import { ModuleRef } from '@nestjs/core';
 import { AuditService } from '../audit/audit.service';
+import { FinalResultsService } from '../final-results/final-results.service';
 import { RequestContext } from '../../common/request-context.util';
 import type { ApprovalContext } from '../auth/guards/approval.guard';
 
@@ -222,6 +224,9 @@ export class ResultsService {
     private readonly attendanceComponentService: AttendanceComponentService,
     private readonly gridService: MarkGridService,
     private readonly auditService: AuditService,
+    // Lazy lookup of FinalResultsService: FinalResultsModule imports ExamsModule,
+    // so a constructor inject would be a module cycle.
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   private async findExam(examId: string, tenantId: string): Promise<Exam> {
@@ -806,6 +811,24 @@ export class ResultsService {
     }
 
     await this.examRepo.manager.transaction(async (manager) => {
+      // Finals that count this exam. Locked (inside demoteToDraft) BEFORE the exam, the same
+      // order build/publish use, so a reopen cannot deadlock with them. A PUBLISHED final
+      // refuses the reopen (409, same sentence as the final's own guards); a PROCESSED one
+      // goes back to DRAFT because its rows would no longer match the exam (D24).
+      const finals: Array<{ id: string }> = await manager.query(
+        `SELECT DISTINCT f.id
+           FROM final_results f
+           JOIN final_result_weights w ON w.final_result_id = f.id AND w.tenant_id = $1
+          WHERE f.tenant_id = $1 AND f.deleted_at IS NULL AND w.exam_id = $2
+          ORDER BY f.id`,
+        [tenantId, examId],
+      );
+      if (finals.length > 0) {
+        const finalsService = this.moduleRef.get(FinalResultsService, { strict: false });
+        for (const f of finals) {
+          await finalsService.demoteToDraft(manager, f.id, tenantId, userId, context, examId);
+        }
+      }
       const locked = await lockExam(manager, examId, tenantId);
       if (locked.status !== ExamStatus.PUBLISHED) {
         throw new ConflictException(`This exam is not published (current: ${locked.status}).`);

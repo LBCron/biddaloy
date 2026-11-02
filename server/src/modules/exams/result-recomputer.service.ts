@@ -1,8 +1,10 @@
 import { ConflictException, Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
-import { ExamStatus } from '@biddaloy/shared';
+import { ExamStatus, FinalResultStatus } from '@biddaloy/shared';
 import { RecomputeActor, ResultRecomputer } from '../grading/recompute.service';
+import { FinalResultsService } from '../final-results/final-results.service';
 import { lockExam, ResultsService } from './results.service';
 
 interface ExamUsingScale {
@@ -23,7 +25,27 @@ export class ExamResultRecomputer implements ResultRecomputer {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly resultsService: ResultsService,
+    // Lazy: FinalResultsModule imports ExamsModule, so injecting its service
+    // here would be a module cycle (same reason `ResultsService.reopen` does this).
+    private readonly moduleRef: ModuleRef,
   ) {}
+
+  /** Live final results whose rows were graded against the scale (tenant-scoped). */
+  private finalsUsingScale(
+    manager: EntityManager,
+    tenantId: string,
+    scaleId: string,
+  ): Promise<Array<{ id: string; name: string; status: FinalResultStatus }>> {
+    return manager.query(
+      `SELECT DISTINCT f.id, c.name, f.status
+         FROM final_result_rows r
+         JOIN final_results f ON f.id = r.final_result_id AND f.tenant_id = $1 AND f.deleted_at IS NULL
+         JOIN classes c ON c.id = f.class_id
+        WHERE r.tenant_id = $1 AND r.grading_scale_id = $2 AND r.deleted_at IS NULL
+        ORDER BY f.id`,
+      [tenantId, scaleId],
+    );
+  }
 
   /** Exams with a live result graded against the scale (tenant-scoped). */
   private examsUsingScale(
@@ -53,7 +75,11 @@ export class ExamResultRecomputer implements ResultRecomputer {
           AND e.status = $3`,
       [tenantId, scaleId, ExamStatus.PROCESSED],
     );
-    return Number(rows[0]?.count ?? 0);
+    const finals = await this.finalsUsingScale(manager, tenantId, scaleId);
+    return (
+      Number(rows[0]?.count ?? 0) +
+      finals.filter((f) => f.status === FinalResultStatus.PROCESSED).length
+    );
   }
 
   async findPublishedExams(
@@ -62,9 +88,11 @@ export class ExamResultRecomputer implements ResultRecomputer {
     manager: EntityManager = this.dataSource.manager,
   ): Promise<Array<{ id: string; name: string }>> {
     const exams = await this.examsUsingScale(manager, tenantId, scaleId);
-    return exams
-      .filter((e) => e.status === ExamStatus.PUBLISHED)
-      .map(({ id, name }) => ({ id, name }));
+    const finals = await this.finalsUsingScale(manager, tenantId, scaleId);
+    return [
+      ...exams.filter((e) => e.status === ExamStatus.PUBLISHED),
+      ...finals.filter((f) => f.status === FinalResultStatus.PUBLISHED),
+    ].map(({ id, name }) => ({ id, name }));
   }
 
   async recompute(
@@ -76,6 +104,20 @@ export class ExamResultRecomputer implements ResultRecomputer {
     // Lock every exam first (id order, so two edits can't deadlock), then
     // read status under the lock: a publish committing after an unlocked
     // read would otherwise slip a band change under frozen results (D16).
+    // Finals first, in id order: build/publish lock final then exam, so a scale edit must too.
+    const finals = await this.finalsUsingScale(manager, tenantId, scaleId);
+    const lockedStatus: Array<{ id: string; status: FinalResultStatus }> = finals.length
+      ? await manager.query(
+          `SELECT id, status FROM final_results WHERE tenant_id = $1 AND id = ANY($2::uuid[]) ORDER BY id FOR UPDATE`,
+          [tenantId, finals.map((f) => f.id)],
+        )
+      : [];
+    // Status read under the lock, not from the earlier unlocked query.
+    // A final soft-deleted since the unlocked read has no lock row: skip it.
+    const lockedFinals = finals.flatMap((f) => {
+      const row = lockedStatus.find((l) => l.id === f.id);
+      return row ? [{ ...f, status: row.status }] : [];
+    });
     const found = await this.examsUsingScale(manager, tenantId, scaleId);
     const exams: ExamUsingScale[] = [];
     for (const { id } of [...found].sort((a, b) => a.id.localeCompare(b.id))) {
@@ -83,7 +125,8 @@ export class ExamResultRecomputer implements ResultRecomputer {
       exams.push({ id, name: locked.name, status: locked.status });
     }
     const published = exams.filter((e) => e.status === ExamStatus.PUBLISHED);
-    if (published.length > 0) {
+    const publishedFinals = lockedFinals.filter((f) => f.status === FinalResultStatus.PUBLISHED);
+    if (published.length > 0 || publishedFinals.length > 0) {
       // D16: a scale edit is refused while published results use it. The
       // throw rolls back the band change (RecomputeService.confirm, D6).
       throw new ConflictException({
@@ -91,6 +134,8 @@ export class ExamResultRecomputer implements ResultRecomputer {
         details: {
           code: 'SCALE_IN_PUBLISHED_RESULTS',
           exams: published.map(({ id, name }) => ({ id, name })),
+          // Finals are listed apart: their ids are not exam ids (name = the class).
+          finals: publishedFinals.map(({ id, name }) => ({ id, name })),
         },
       });
     }
@@ -103,6 +148,15 @@ export class ExamResultRecomputer implements ResultRecomputer {
         actor.userId,
         actor.context,
       );
+    }
+    // A PROCESSED final pinned to this scale is rebuilt from the recomputed exams, so its
+    // rows never disagree with the new bands. Stays PROCESSED, never published.
+    const finalsService = lockedFinals.length
+      ? this.moduleRef.get(FinalResultsService, { strict: false })
+      : null;
+    for (const f of lockedFinals.filter((x) => x.status === FinalResultStatus.PROCESSED)) {
+      await finalsService!.recompute(manager, f.id, tenantId, actor.userId, actor.context);
+      total += 1;
     }
     return total;
   }
