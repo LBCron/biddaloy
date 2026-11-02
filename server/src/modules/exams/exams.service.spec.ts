@@ -34,9 +34,41 @@ function createRepoStub() {
     findAndCount: vi.fn(async () => [[], 0]),
     softDelete: vi.fn(async () => undefined),
   };
+  // `assertNoLiveDependents` reads metadata + counts with a query builder. `repo.liveChildren`
+  // lists many-to-one child tables that point at the exam, each with its live row count.
+  repo.liveChildren = [] as { table: string; n: number }[];
   repo.manager = {
     transaction: vi.fn(async (cb: any) =>
-      cb({ getRepository: (e: any) => (e === Exam ? repo : repo.manager.getRepository(e)) }),
+      cb({
+        getRepository: (e: any) => (e === Exam ? repo : repo.manager.getRepository(e)),
+        connection: {
+          entityMetadatas: repo.liveChildren.map((c: { table: string }) => ({
+            name: c.table,
+            tableName: c.table,
+            target: c.table,
+            manyToOneRelations: [
+              {
+                propertyName: 'exam',
+                inverseEntityMetadata: { target: Exam },
+                joinColumns: [{ databaseName: 'exam_id' }],
+              },
+            ],
+          })),
+        },
+        createQueryBuilder: (target: string) => ({
+          where() {
+            return this;
+          },
+          leftJoin() {
+            return this;
+          },
+          andWhere() {
+            return this;
+          },
+          getCount: async () =>
+            repo.liveChildren.find((c: { table: string }) => c.table === target)?.n ?? 0,
+        }),
+      }),
     ),
     getRepository: vi.fn((e: any) =>
       e === Result ? repo.resultRepo : { findOne: vi.fn(async () => null) },
@@ -479,6 +511,20 @@ describe('ExamsService published guard (ACAD-05)', () => {
     examRepo.resultRepo.count = vi.fn(async () => 3);
     await expect(service.remove('e1', TENANT_ID)).rejects.toMatchObject({
       response: { details: { code: 'EXAM_HAS_RESULTS' } },
+    });
+    expect(examRepo.softDelete).not.toHaveBeenCalled();
+  });
+
+  it('remove with a final-result weight row is a 409 EXAM_IN_USE and deletes nothing [70.2.1]', async () => {
+    const { service, examRepo } = await buildService();
+    examRepo.findOne = vi.fn(async () => exam(ExamStatus.PUBLISHED));
+    // No live results of its own, but a final result pins it with one share row.
+    examRepo.liveChildren.push({ table: 'final_result_weights', n: 1 });
+    await expect(service.remove('e1', TENANT_ID)).rejects.toMatchObject({
+      response: {
+        message: 'This exam is still used by other records. Remove or reassign them first.',
+        details: { code: 'EXAM_IN_USE', dependents: { final_result_weights: 1 } },
+      },
     });
     expect(examRepo.softDelete).not.toHaveBeenCalled();
   });

@@ -24,6 +24,7 @@ DELETE /fees/generations/:id | FeeGenerationsController | perm: FEE_GENERATE
 DELETE /fees/generations/:id/students/:studentId | FeeGenerationsController | perm: FEE_GENERATE
 DELETE /fees/schedules/:id | RecurringSchedulesController | perm: SCHEDULE_MANAGE
 DELETE /fees/schedules/:id/exclusions/:studentId | RecurringSchedulesController | perm: SCHEDULE_MANAGE
+DELETE /final-results/:id | FinalResultsController | perm: RESULT_PROCESS
 DELETE /grading/scales/:id | GradingController | perm: GRADING_SCALE_MANAGE
 DELETE /guardians/:id | StudentController | perm: GUARDIAN_DELETE
 DELETE /invoices/:id/share/:tokenId | InvoicesController | perm: INVOICE_SEND
@@ -224,6 +225,10 @@ GET /fees/generations/:id/bills | FeeGenerationsController | perm: FEE_READ | ro
 GET /fees/schedules | RecurringSchedulesController | perm: FEE_READ | roles: ACCOUNTANT,ADMIN,EXECUTIVE
 GET /fees/schedules/:id | RecurringSchedulesController | perm: FEE_READ | roles: ACCOUNTANT,ADMIN,EXECUTIVE
 GET /fees/schedules/:id/preview | RecurringSchedulesController | perm: FEE_READ | roles: ACCOUNTANT,ADMIN,EXECUTIVE
+GET /final-results | FinalResultsController | perm: RESULT_READ | roles: ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
+GET /final-results/:id | FinalResultsController | perm: RESULT_READ | roles: ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
+GET /final-results/:id/rows | FinalResultsController | perm: RESULT_READ | roles: ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
+GET /final-results/:id/students/:studentId | FinalResultsController | perm: RESULT_READ | roles: ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
 GET /grading/scales | GradingController | perm: GRADING_SCALE_MANAGE
 GET /grading/scales/:id | GradingController | perm: GRADING_SCALE_MANAGE
 GET /guardians | StudentController | perm: GUARDIAN_READ
@@ -440,6 +445,7 @@ PATCH /fee-structures/:id | FeeController | perm: FEE_STRUCTURE_UPDATE
 PATCH /fees/fine-rules/:id | FineRulesController | perm: FEE_STRUCTURE_UPDATE
 PATCH /fees/generations/:id | FeeGenerationsController | perm: FEE_GENERATE
 PATCH /fees/schedules/:id | RecurringSchedulesController | perm: SCHEDULE_MANAGE
+PATCH /final-results/:id | FinalResultsController | perm: RESULT_PROCESS
 PATCH /grading/scales/:id | GradingController | perm: GRADING_SCALE_MANAGE
 PATCH /guardians/:id | StudentController | perm: GUARDIAN_UPDATE
 PATCH /guardians/mine | StudentController | identity | roles: PARENT
@@ -597,6 +603,11 @@ POST /fees/schedules | RecurringSchedulesController | perm: SCHEDULE_MANAGE
 POST /fees/schedules/:id/clone | RecurringSchedulesController | perm: SCHEDULE_MANAGE
 POST /fees/schedules/:id/exclusions | RecurringSchedulesController | perm: SCHEDULE_MANAGE
 POST /fees/schedules/run-now | FeeController | perm: SCHEDULE_MANAGE | roles: ADMIN,SUPER_ADMIN
+POST /final-results | FinalResultsController | perm: RESULT_PROCESS
+POST /final-results/:id/build | FinalResultsController | perm: RESULT_PROCESS
+POST /final-results/:id/publish | FinalResultsController | perm: RESULT_PUBLISH
+POST /final-results/:id/reopen | FinalResultsController | perm: RESULT_PUBLISH | approval: results.reopen
+POST /final-results/:id/sms | FinalResultsController | perm: RESULT_PUBLISH
 POST /grading/scales | GradingController | perm: GRADING_SCALE_MANAGE
 POST /grading/scales/:id/bands/confirm | GradingController | perm: GRADING_SCALE_MANAGE | approval: grading_scale.manage
 POST /grading/scales/:id/bands/preview | GradingController | perm: GRADING_SCALE_MANAGE

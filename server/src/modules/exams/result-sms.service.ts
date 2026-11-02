@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -10,9 +16,13 @@ import {
   CommunicationStatus,
   CommunicationTrigger,
   ExamStatus,
+  FinalResultStatus,
   countSmsSegments,
 } from '@biddaloy/shared';
 import { Exam } from './entities/exam.entity';
+import { FinalResult } from '../final-results/entities/final-result.entity';
+import { FinalResultRow } from '../final-results/entities/final-result-row.entity';
+import { AcademicYear } from '../academics/entities/academic-year.entity';
 import { Result } from './entities/result.entity';
 import { Student } from '../students/entities/student.entity';
 import { School } from '../schools/entities/school.entity';
@@ -88,6 +98,78 @@ export class ResultSmsService {
     const results = await this.resultRepo.find({
       where: { exam_id: examId, tenant_id: tenantId, deleted_at: IsNull() },
     });
+    return this.dispatch({
+      kind: 'exam-result',
+      sourceId: examId,
+      label: exam.name,
+      publishedAt: exam.published_at?.getTime() ?? 0,
+      results,
+      tenantId,
+      userId,
+      context,
+    });
+  }
+
+  /**
+   * [70.2.1] Same send for a published final result (D19): the exam name in the body is
+   * replaced by "চূড়ান্ত ফলাফল <year>" / "Final result <year>", same dedup key shape,
+   * same queue and credit path.
+   */
+  async sendForFinal(
+    finalResultId: string,
+    tenantId: string,
+    userId: string,
+    context: RequestContext = { ip: null, userAgent: null },
+  ): Promise<ResultSmsOutcome> {
+    const final = await this.examRepo.manager.findOne(FinalResult, {
+      where: { id: finalResultId, tenant_id: tenantId, deleted_at: IsNull() },
+    });
+    if (!final) {
+      throw new NotFoundException('Final result not found');
+    }
+    if (final.status !== FinalResultStatus.PUBLISHED) {
+      throw new ConflictException({
+        message: 'This final result is not published — nothing to send yet.',
+        details: { code: 'FINAL_NOT_PUBLISHED' },
+      });
+    }
+    const [year, school] = await Promise.all([
+      this.examRepo.manager.findOne(AcademicYear, {
+        where: { id: final.academic_year_id, tenant_id: tenantId },
+      }),
+      this.examRepo.manager.findOne(School, {
+        where: { id: tenantId },
+        select: { id: true, settings: true },
+      }),
+    ]);
+    const locale = resolveTemplateLocale(school?.settings?.region?.locale);
+    const yearName = year?.name ?? '';
+    const rows = await this.examRepo.manager.find(FinalResultRow, {
+      where: { final_result_id: finalResultId, tenant_id: tenantId, deleted_at: IsNull() },
+    });
+    return this.dispatch({
+      kind: 'final-result',
+      sourceId: finalResultId,
+      label: locale === 'bn' ? `চূড়ান্ত ফলাফল ${yearName}` : `Final result ${yearName}`,
+      publishedAt: final.published_at?.getTime() ?? 0,
+      results: rows,
+      tenantId,
+      userId,
+      context,
+    });
+  }
+
+  private async dispatch(args: {
+    kind: 'exam-result' | 'final-result';
+    sourceId: string;
+    label: string;
+    publishedAt: number;
+    results: Array<{ student_id: string; gpa: unknown; grade: unknown; is_fail: boolean }>;
+    tenantId: string;
+    userId: string;
+    context: RequestContext;
+  }): Promise<ResultSmsOutcome> {
+    const { kind, sourceId, label, publishedAt, results, tenantId, userId, context } = args;
     const students =
       results.length === 0
         ? []
@@ -105,8 +187,6 @@ export class ResultSmsService {
     });
     // No stored locale resolves to the bn-BD default (#3136).
     const locale = resolveTemplateLocale(school?.settings?.region?.locale);
-    // Nullable on older rows; 0 still gives them one stable publication key.
-    const publishedAt = exam.published_at?.getTime() ?? 0;
 
     for (const result of results) {
       const student = studentById.get(result.student_id);
@@ -127,7 +207,7 @@ export class ResultSmsService {
       const body = buildBody(
         locale,
         locale === 'bn' ? (student.full_name_bn ?? student.full_name) : student.full_name,
-        exam.name,
+        label,
         result,
       );
       const segments = countSmsSegments(body).segments;
@@ -146,7 +226,7 @@ export class ResultSmsService {
             sent_by_user_id: userId,
             status: CommunicationStatus.QUEUED,
             trigger: CommunicationTrigger.RESULT_SMS,
-            reference_key: `exam-result:${examId}:${publishedAt}:${student.id}:${guardian.id}`,
+            reference_key: `${kind}:${sourceId}:${publishedAt}:${student.id}:${guardian.id}`,
           }),
           segments,
         });
@@ -176,7 +256,7 @@ export class ResultSmsService {
     // Key convention (#1317): reserve `batch:<batchId>`, jobs carry the bare
     // batchId. Credit is per segment (one credit = one segment).
     const sendId = randomUUID();
-    const batchId = `exam-result-sms:${examId}:${sendId}`;
+    const batchId = `${kind}-sms:${sourceId}:${sendId}`;
     const totalSegments = jobs.reduce((sum, j) => sum + j.segments, 0);
     const metered = await this.smsCreditService.isMetered(tenantId);
     if (metered) {
@@ -188,7 +268,7 @@ export class ResultSmsService {
       );
       if (!reservation.ok) {
         throw new ConflictException({
-          message: "Insufficient SMS credit to send this exam's result SMS.",
+          message: 'Insufficient SMS credit to send this result SMS.',
           details: {
             code: INSUFFICIENT_SMS_CREDIT,
             required: totalSegments,
@@ -259,8 +339,9 @@ export class ResultSmsService {
 
     await this.auditService.record({
       action: AuditAction.REMINDER_SENT,
+      // 'FinalResult' is not in the shared audit catalog yet: see FINAL_AUDIT_ENTITY.
       entity_type: 'Exam',
-      entity_id: examId,
+      entity_id: sourceId,
       tenant_id: tenantId,
       performed_by_user_id: userId,
       ip_address: context.ip,
