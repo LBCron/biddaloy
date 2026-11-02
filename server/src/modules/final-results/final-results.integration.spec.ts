@@ -834,8 +834,11 @@ describe('FinalResultsService (integration)', () => {
 
   it("create never copies another version's final (Bangla vs English version of a class)", async () => {
     // Last year has only an English-version "Class Nine"; this year's Class Nine has no version.
+    // Classes survive the per-test truncation: a unique name keeps later tests unaffected.
+    seq += 1;
+    const nineName = `Class Nine ${seq}`;
     const prevEnglish = await ds.getRepository(Class).save({
-      name: 'Class Nine',
+      name: nineName,
       version: 'English',
       academic_year_id: PREV_YEAR_ID,
       tenant_id: TENANT_ID,
@@ -848,7 +851,7 @@ describe('FinalResultsService (integration)', () => {
       best_of_count: 2,
     } as Partial<FinalResult>);
     const nine = await ds.getRepository(Class).save({
-      name: 'Class Nine',
+      name: nineName,
       academic_year_id: YEAR_ID,
       tenant_id: TENANT_ID,
     } as Partial<Class>);
