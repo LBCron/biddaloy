@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { randomUUID } from 'crypto';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DataSource } from 'typeorm';
+import ExcelJS from 'exceljs';
 import type { TestingModule } from '@nestjs/testing';
 import { UserRole } from '@biddaloy/shared';
 import { School } from '../../../schools/entities/school.entity';
@@ -22,6 +24,55 @@ import { guardiansTab } from '../people/guardians.tab';
 import { studentsTab } from '../people/students.tab';
 import { usersTab } from '../people/users.tab';
 import { noticeAttachmentsTab, noticeRecipientsTab, noticesTab } from './index';
+import { AuditService } from '../../../audit/audit.service';
+import { AuditLog } from '../../../audit/entities/audit-log.entity';
+import { ImportStagingService } from '../../../bulk-import/import-staging.service';
+import { ValidationService } from '../../import/validation.service';
+import { ExportProcessor } from '../../export/export.processor';
+import { RestoreProcessor } from '../../restore/restore.processor';
+import {
+  WorkbookJob,
+  WorkbookJobKind,
+  WorkbookJobSource,
+  WorkbookJobStatus,
+} from '../../jobs/workbook-job.entity';
+
+vi.mock('@sentry/node', () => ({
+  withScope: (fn: (scope: any) => void) => fn({ setTags: vi.fn() }),
+  captureException: vi.fn(),
+}));
+
+class FakeStorage {
+  readonly objects = new Map<string, Buffer>();
+  async put(key: string, body: Buffer): Promise<void> {
+    this.objects.set(key, body);
+  }
+  async get(key: string): Promise<{ body: AsyncIterable<Buffer> }> {
+    const body = this.objects.get(key);
+    if (!body) throw new Error(`FakeStorage: no object at "${key}"`);
+    return {
+      body: (async function* () {
+        yield body;
+      })(),
+    };
+  }
+}
+
+class FakeRedis {
+  private readonly store = new Map<string, string>();
+  async set(key: string, value: string): Promise<'OK'> {
+    this.store.set(key, value);
+    return 'OK';
+  }
+  async get(key: string): Promise<string | null> {
+    return this.store.get(key) ?? null;
+  }
+  async getdel(key: string): Promise<string | null> {
+    const value = this.store.get(key) ?? null;
+    this.store.delete(key);
+    return value;
+  }
+}
 
 /** Export -> wipe notice rows -> restore on a real Postgres, with a second school alongside. */
 describe('notices workbook tabs (round trip)', () => {
@@ -323,4 +374,132 @@ describe('notices workbook tabs (round trip)', () => {
     );
     expect('errors' in other && other.errors[0].column).toBe('storage_key');
   });
+
+  /**
+   * #3388 blocker: a notice deleted from the workbook is removed by
+   * `deleteByAbsence` in the notices tab, which runs before its file and
+   * recipient tabs. Both child FKs are ON DELETE RESTRICT, so a bare delete
+   * of the notice failed the restore half-way. One recipient points at a
+   * soft-deleted guardian, so it is not in the export at all: only a delete
+   * by notice id can clear it.
+   */
+  it('real restore deletes a notice the file no longer has, with its files and hidden recipients', async () => {
+    const T = randomUUID();
+    const tag = `r${T.slice(0, 6)}`;
+    const f = await seedTenant(T, `notices-r-${tag}`, tag);
+    const operator = f.user; // an ADMIN member of T
+    const notice = await seedNotice(T, f, {
+      pub: 'e'.repeat(64),
+      link: 'f'.repeat(64),
+      key: `tenants/${T}/notice-files/33333333-3333-4333-8333-333333333333.pdf`,
+    });
+    const gone = await ds.getRepository(Guardian).save({
+      tenant_id: T,
+      full_name: 'Left parent',
+      relationship: 'Mother',
+      phone: '01900009999',
+    } as any);
+    await ds.getRepository(NoticeRecipient).save({
+      tenant_id: T,
+      notice_id: notice.id,
+      kind: 'GUARDIAN',
+      guardian_id: gone.id,
+      student_id: f.student.id,
+    } as any);
+    await ds.getRepository(Guardian).softDelete({ id: gone.id });
+
+    const audit = new AuditService(ds.getRepository(AuditLog));
+    const storage = new FakeStorage();
+    const staging = new ImportStagingService(new FakeRedis() as any);
+    const jobs = ds.getRepository(WorkbookJob);
+    const exporter = new ExportProcessor(
+      jobs,
+      ds,
+      storage as any,
+      audit,
+      { emitFinished: vi.fn() } as any,
+      { enforce: vi.fn().mockResolvedValue(undefined) } as any,
+      { isRestoring: vi.fn().mockResolvedValue(false) } as any,
+    );
+    const restorer = new RestoreProcessor(
+      jobs,
+      ds,
+      storage as any,
+      staging,
+      new ValidationService(),
+      { issueAndSend: vi.fn().mockResolvedValue({ status: 'SENT' }) } as any,
+      audit,
+      { emitFinished: vi.fn() } as any,
+      { release: vi.fn().mockResolvedValue(undefined) } as any,
+      { isActive: vi.fn().mockResolvedValue(true) } as any,
+    );
+
+    const exportJob = await jobs.save(
+      jobs.create({
+        tenant_id: T,
+        kind: WorkbookJobKind.EXPORT,
+        source: WorkbookJobSource.MANUAL,
+        status: WorkbookJobStatus.QUEUED,
+        requested_by_user_id: null,
+      }),
+    );
+    await exporter.process({
+      data: { jobId: exportJob.id, tenantId: T },
+      opts: { attempts: 2 },
+      attemptsMade: 0,
+    } as any);
+    const exported = await jobs.findOneOrFail({ where: { id: exportJob.id } });
+    expect(exported.status).toBe(WorkbookJobStatus.DONE);
+
+    // The admin deletes the notice (and so its file and recipient rows) from the workbook.
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(storage.objects.get(exported.storage_key as string) as any);
+    for (const name of ['notices', 'notice_attachments', 'notice_recipients']) {
+      const sheet = wb.getWorksheet(name)!;
+      for (let r = sheet.rowCount; r >= 2; r--) sheet.spliceRows(r, 1);
+    }
+    const stagingKey = `staging/${randomUUID()}.xlsx`;
+    await storage.put(stagingKey, Buffer.from(await wb.xlsx.writeBuffer()));
+    const { stagingId } = await staging.stage(T, operator.id, {
+      workbook_storage_key: stagingKey,
+      meta: {},
+      tabs: [],
+      totals: { creates: 0, updates: 0, unchanged: 0, deletes: 0 },
+      hardErrorCount: 0,
+      isEmptyTenant: false,
+      errors: [],
+      warnings: [],
+    } as any);
+    const snapshot = await jobs.save(
+      jobs.create({
+        tenant_id: T,
+        kind: WorkbookJobKind.SNAPSHOT,
+        source: WorkbookJobSource.SNAPSHOT,
+        status: WorkbookJobStatus.DONE,
+        requested_by_user_id: operator.id,
+      }),
+    );
+    const restoreJob = await jobs.save(
+      jobs.create({
+        tenant_id: T,
+        kind: WorkbookJobKind.RESTORE,
+        source: WorkbookJobSource.MANUAL,
+        status: WorkbookJobStatus.QUEUED,
+        requested_by_user_id: operator.id,
+        staging_id: stagingId,
+        snapshot_job_id: snapshot.id,
+      }),
+    );
+    await restorer.process({ data: { jobId: restoreJob.id, inviteUsers: false } } as any);
+
+    const done = await jobs.findOneOrFail({ where: { id: restoreJob.id } });
+    expect({ status: done.status, error: done.error }).toEqual({
+      status: WorkbookJobStatus.DONE,
+      error: null,
+    });
+    // Notice, its file row and both recipients (the hidden one too) are gone.
+    expect(await ds.getRepository(Notice).count({ where: { tenant_id: T } })).toBe(0);
+    expect(await ds.getRepository(NoticeAttachment).count({ where: { tenant_id: T } })).toBe(0);
+    expect(await ds.getRepository(NoticeRecipient).count({ where: { tenant_id: T } })).toBe(0);
+  }, 60_000);
 });
