@@ -1,3 +1,4 @@
+import { FinalResult } from '../../../final-results/entities/final-result.entity';
 import type { EntityManager } from 'typeorm';
 import { PromotionRunStatus, PlacementAlgorithm } from '@biddaloy/shared';
 import { PromotionRun } from '../../../promotions/entities/promotion-run.entity';
@@ -34,6 +35,7 @@ export interface PromotionRunRow {
   target_academic_year_id: string;
   target_class_id: string | null;
   exam_ids: string[];
+  final_result_id: string | null;
   algorithm: PlacementAlgorithm;
   status: PromotionRunStatus;
   refreshed_at: string;
@@ -85,8 +87,15 @@ const columns: readonly ColumnSpec[] = [
     key: 'exams',
     type: 'ref-list',
     ref: 'exams',
-    required: true,
+    // Empty for a run that takes a final result as its merit source (70.3.3).
     label: { en: 'Exams', bn: 'পরীক্ষা' },
+  },
+  {
+    // Plain id, not a ref: the `final_results` tab ships with #3422. Until then a restore
+    // needs the final to still exist in the school (checked in `upsert`).
+    key: 'final_result_id',
+    type: 'uuid',
+    label: { en: 'Final result ID', bn: 'চূড়ান্ত ফলাফলের আইডি' },
   },
   {
     key: 'algorithm',
@@ -181,6 +190,7 @@ export const promotionRunsTab: TabSpec<PromotionRun, PromotionRunRow> = {
       source_academic_year: ctx.keyOf('academic_years', entity.source_academic_year_id),
       target_academic_year: ctx.keyOf('academic_years', entity.target_academic_year_id),
       target_class: entity.target_class_id ? ctx.keyOf('classes', entity.target_class_id) : null,
+      final_result_id: entity.final_result_id,
       exams: entity.exam_ids.map((examId) => ctx.keyOf('exams', examId)),
       algorithm: entity.algorithm,
       status: entity.status,
@@ -284,12 +294,14 @@ export const promotionRunsTab: TabSpec<PromotionRun, PromotionRunRow> = {
     // empty list — catch that case explicitly, since a promotion run with
     // no exams to decide on is meaningless.
     const examKeys = (values.exams as string[]) ?? [];
-    if (examKeys.length === 0) {
+    const finalResultId = (values.final_result_id as string | null) ?? null;
+    // Exactly one merit source: the exam list or a final result (70.3.3).
+    if ((examKeys.length === 0) === (finalResultId === null)) {
       errors.push({
         tab: 'promotion_runs',
         row: rowNo,
         column: 'exams',
-        message: 'Column "exams": at least one exam is required.',
+        message: 'Column "exams" or "final_result_id": give exactly one of them.',
         severity: 'error',
         value: '',
       });
@@ -341,6 +353,7 @@ export const promotionRunsTab: TabSpec<PromotionRun, PromotionRunRow> = {
         target_academic_year_id: targetYearId as string,
         target_class_id: targetClassId,
         exam_ids: examIds,
+        final_result_id: finalResultId,
         algorithm: values.algorithm as PlacementAlgorithm,
         status: values.status as PromotionRunStatus,
         refreshed_at: values.refreshed_at as string,
@@ -376,6 +389,9 @@ export const promotionRunsTab: TabSpec<PromotionRun, PromotionRunRow> = {
     const rowExamIds = [...row.exam_ids].sort().join(',');
     const existingExamIds = [...(existing.exam_ids ?? [])].sort().join(',');
     if (rowExamIds !== existingExamIds) changed.push('exams');
+    if ((row.final_result_id ?? null) !== (existing.final_result_id ?? null)) {
+      changed.push('final_result_id');
+    }
     if (row.algorithm !== existing.algorithm) changed.push('algorithm');
     if (row.status !== existing.status) changed.push('status');
     if (new Date(existing.refreshed_at).toISOString() !== row.refreshed_at) {
@@ -442,6 +458,18 @@ export const promotionRunsTab: TabSpec<PromotionRun, PromotionRunRow> = {
     run.target_academic_year_id = row.target_academic_year_id;
     run.target_class_id = row.target_class_id;
     run.exam_ids = row.exam_ids;
+    if (row.final_result_id) {
+      // Tenant-scoped: a foreign tenant's final id must not be adopted (FK alone would accept it).
+      const final = await m.findOne(FinalResult, {
+        where: { id: row.final_result_id, tenant_id: tenantId },
+      });
+      if (!final) {
+        throw new Error(
+          `Promotion run "${row.id}": its final result does not exist in this school.`,
+        );
+      }
+    }
+    run.final_result_id = row.final_result_id;
     run.algorithm = row.algorithm;
     run.status = row.status;
     run.refreshed_at = new Date(row.refreshed_at);

@@ -46,6 +46,7 @@ function makeRun(overrides: Partial<PromotionRun> = {}): PromotionRun {
     target_academic_year_id: TARGET_YEAR_ID,
     target_class_id: TARGET_CLASS_ID,
     exam_ids: [EXAM_ID_1, EXAM_ID_2],
+    final_result_id: null,
     algorithm: PlacementAlgorithm.BLOCK,
     status: PromotionRunStatus.COMMITTED,
     refreshed_at: new Date('2026-03-01T00:00:00.000Z'),
@@ -121,6 +122,24 @@ describe('promotionRunsTab shape', () => {
 });
 
 describe('round-trip', () => {
+  it('a final-result run round-trips with an empty exams cell', () => {
+    const run = makeRun({ exam_ids: [], final_result_id: EXAM_ID_1 });
+    const cells = toCells(run);
+    expect(cells.exams).toBe('');
+    const row = fromRowOrThrow(cells);
+    expect(row.exam_ids).toEqual([]);
+    expect(row.final_result_id).toBe(EXAM_ID_1);
+  });
+
+  it('refuses a row with both sources, or with neither', () => {
+    const both = toCells(makeRun({ final_result_id: EXAM_ID_1 }));
+    const neither = toCells(makeRun({ exam_ids: [], final_result_id: null }));
+    for (const cells of [both, neither]) {
+      const result = promotionRunsTab.fromRow(cells, 2, importCtx());
+      expect('errors' in result).toBe(true);
+    }
+  });
+
   it('fromRow(toRow(entity)) round-trips exam_ids as a ref-list', () => {
     const run = makeRun();
     const cells = toCells(run);
@@ -221,6 +240,7 @@ describe('diffFields', () => {
       target_academic_year_id: run.target_academic_year_id,
       target_class_id: run.target_class_id,
       exam_ids: [...run.exam_ids],
+      final_result_id: run.final_result_id,
       algorithm: run.algorithm,
       status: run.status,
       refreshed_at: run.refreshed_at.toISOString(),
@@ -246,6 +266,7 @@ describe('diffFields', () => {
       target_academic_year_id: run.target_academic_year_id,
       target_class_id: run.target_class_id,
       exam_ids: [...run.exam_ids],
+      final_result_id: run.final_result_id,
       algorithm: run.algorithm,
       status: PromotionRunStatus.DRAFT,
       refreshed_at: run.refreshed_at.toISOString(),
@@ -271,6 +292,7 @@ function makeRow(run: PromotionRun): PromotionRunRow {
     target_academic_year_id: run.target_academic_year_id,
     target_class_id: run.target_class_id,
     exam_ids: [...run.exam_ids],
+    final_result_id: run.final_result_id,
     algorithm: run.algorithm,
     status: run.status,
     refreshed_at: run.refreshed_at.toISOString(),
