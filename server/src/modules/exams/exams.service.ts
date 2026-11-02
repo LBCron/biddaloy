@@ -262,9 +262,10 @@ export class ExamsService {
 
     const [data, total] = await this.repo.findAndCount({
       where,
-      // `Exam.class` is part of the response type; the analysis screen
-      // labels its print header with it.
-      relations: { class: true },
+      // `Exam.class` and `Exam.academic_year` are part of the response type; the
+      // analysis screen labels its print header with the class, and My class's
+      // remarks screen picks the current year by `academic_year.is_current` (#3421).
+      relations: { class: true, academic_year: true },
       order: { created_at: 'DESC' },
       skip,
       take: limit,
