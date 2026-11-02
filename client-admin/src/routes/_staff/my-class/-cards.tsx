@@ -462,8 +462,8 @@ export function ResultsCard({ sectionId, classId }: { sectionId: string; classId
 export function NotesCard({ sectionId, classId }: { sectionId: string; classId: string }) {
   const { t } = useTranslation('myClass');
   const targets = useNotesTargets(classId);
-  // The card speaks for the final result; no final result yet means no card body.
-  const final = targets.options.find((o) => o.key === 'final');
+  // The final result when there is one, else the newest exam (options come newest first).
+  const final = targets.options.find((o) => o.key === 'final') ?? targets.options[0];
   const missing = useReportCardNotesMissing(sectionId, final?.target);
   const noFinal = !targets.isPending && !targets.isError && final === undefined;
   const m = missing.data;
@@ -484,7 +484,7 @@ export function NotesCard({ sectionId, classId }: { sectionId: string; classId: 
       {m && (
         <p>
           {t('notes.cardSummary', {
-            target: t('notes.forFinal'),
+            target: final?.label ?? t('notes.forFinal'),
             done: m.total - m.missing_remark,
             left: m.missing_remark,
           })}
@@ -494,7 +494,7 @@ export function NotesCard({ sectionId, classId }: { sectionId: string; classId: 
       <Link
         to="/my-class/$sectionId/notes"
         params={{ sectionId }}
-        search={{ for: 'final' }}
+        search={{ for: final?.key }}
         className={SEE_ALL_CLASS}
       >
         {final?.published ? t('notes.cardView') : t('notes.cardOpen')}
