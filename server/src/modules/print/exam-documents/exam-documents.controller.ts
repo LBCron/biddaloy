@@ -13,6 +13,7 @@ import {
   MeritCandidateDto,
   MeritCandidatesQueryDto,
   TabulationDto,
+  FinalTabulationDto,
   TabulationQueryDto,
 } from './dto/exam-documents.dto';
 
@@ -57,5 +58,26 @@ export class ExamDocumentsController {
     @CurrentTenant() tenant: { id: string },
   ): Promise<TabulationDto> {
     return this.service.tabulation(tenant.id, examId, query.section_id);
+  }
+}
+
+/** [70.4.1, D20] Final-result tabulation feed for the final's "Print" tab. */
+@ApiTags('exam-documents')
+@ApiTenantAuth()
+@Controller('final-results/:finalResultId/documents')
+@UseGuards(AuthGuard('jwt'), ContextGuard, RolesGuard, PermissionsGuard)
+export class FinalDocumentsController {
+  constructor(private readonly service: ExamDocumentsService) {}
+
+  @Get('tabulation')
+  @RequirePermissions(Permission.DOCUMENT_PRINT)
+  @ApiOperation({ summary: 'Final result: per-subject exam and final marks of one section.' })
+  @ApiOkResponse({ type: FinalTabulationDto })
+  tabulation(
+    @Param('finalResultId', ParseUUIDPipe) finalResultId: string,
+    @Query() query: TabulationQueryDto,
+    @CurrentTenant() tenant: { id: string },
+  ): Promise<FinalTabulationDto> {
+    return this.service.finalTabulation(tenant.id, finalResultId, query.section_id);
   }
 }
