@@ -31,6 +31,8 @@ describe('Notice SMS API E2E', () => {
   const sfx = randomUUID().slice(0, 8);
   const PHONE = '01712345234';
   let redisDown = false;
+  // (class_section_id, roll_number) is unique: a counter, never a random pick that can repeat.
+  let roll = 8000;
 
   const call = (
     method: 'get' | 'post' | 'patch',
@@ -71,7 +73,7 @@ describe('Notice SMS API E2E', () => {
          VALUES ('Kid E2E',$1,$2,$3,$4,'ACTIVE','SMS',NOW(),NOW()) RETURNING id`,
         [
           `NS-${randomUUID().slice(0, 10)}`,
-          8000 + Math.floor(Math.random() * 900),
+          roll++,
           SEED_SECTION_1_ID,
           SEED_TENANT_ID,
         ],
@@ -156,6 +158,32 @@ describe('Notice SMS API E2E', () => {
     // the refused calls changed nothing
     const [{ sms_status }] = await ds.query(`SELECT sms_status FROM notices WHERE id = $1`, [id]);
     expect(sms_status).toBe('PENDING');
+  });
+
+  it('EXECUTIVE (holds NOTICE_SMS_APPROVE) can read the request too', async () => {
+    const id = await pending();
+    await call('get', `/notices/${id}/sms`, { role: UserRole.EXECUTIVE }).expect(200);
+  });
+
+  it('ADMIN and EXECUTIVE can untick and re-tick a person while the request is pending', async () => {
+    const id = await pending();
+    const [{ id: rid }] = await ds.query(`SELECT id FROM notice_recipients WHERE notice_id = $1`, [
+      id,
+    ]);
+    const wanted = async () =>
+      (await ds.query(`SELECT sms_wanted FROM notice_recipients WHERE id = $1`, [rid]))[0]
+        .sms_wanted;
+    const off = await call('patch', `/notices/${id}/sms/recipients`, {
+      body: { ids: [rid], smsWanted: false },
+    }).expect(200);
+    expect(off.body).toEqual({ updated: 1 });
+    expect(await wanted()).toBe(false);
+    const on = await call('patch', `/notices/${id}/sms/recipients`, {
+      role: UserRole.EXECUTIVE,
+      body: { ids: [rid], smsWanted: true },
+    }).expect(200);
+    expect(on.body).toEqual({ updated: 1 });
+    expect(await wanted()).toBe(true);
   });
 
   it('ADMIN approves; the answer is 200 with the queued count', async () => {
