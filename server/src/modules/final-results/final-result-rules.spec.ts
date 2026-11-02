@@ -76,9 +76,15 @@ describe('final-result-rules', () => {
       expect(s.has('c')).toBe(false);
     });
 
-    it('falls back to equal when the subject is in no weighted exam', () => {
-      const s = effectiveShares(settings({ weights: [w('a', 100)] }), MATH, ['x', 'y']);
-      expect([...s.values()]).toEqual([50, 50]);
+    it('throws SharesNotHundred when the subject is in no weighted exam', () => {
+      const run = () => effectiveShares(settings({ weights: [w('a', 100)] }), MATH, ['x', 'y']);
+      expect(run).toThrow(SharesNotHundred);
+    });
+
+    it('throws SharesNotHundred when the kept exams all carry a 0 share', () => {
+      const run = () =>
+        effectiveShares(settings({ weights: [w('a', 100), w('b', 0)] }), MATH, ['b']);
+      expect(run).toThrow(SharesNotHundred);
     });
 
     it('adds shares exactly in hundredths: 33.33 + 33.33 + 33.34 is 100, 3 x 33.33 is not', () => {
