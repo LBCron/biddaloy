@@ -113,8 +113,10 @@ export function canCheckStatus(log: CommunicationLog): boolean {
 
 /** A raw invoice share token in a stored body (`${PUBLIC_APP_URL}/i/<base64url>`, Rule 16). */
 const SHARE_LINK = /\/i\/[A-Za-z0-9_-]+/g;
-/** A raw personal notice link token (`${PUBLIC_APP_URL}/n/<base64url>`, notice-sms.service.ts). */
-const NOTICE_LINK = /\/n\/[A-Za-z0-9_-]+/g;
+/** A raw personal notice link (`${PUBLIC_APP_URL}/n/<token>`, notice-sms.service.ts). Only the
+ * real token shape (32 random bytes, 43 base64url chars) after a host, so a staff-typed
+ * `https://school.example/n/sports-day` is shown as sent. */
+const NOTICE_LINK = /(?<=\/\/[^\s/]{1,255})\/n\/[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])/g;
 
 /**
  * [#3351 r2] What a message-log row may show of the stored text, decided at READ time for the

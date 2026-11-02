@@ -1768,13 +1768,21 @@ describe('toBatchLogDto / canCheckStatus', () => {
   // A notice's personal SMS link opens with no login and marks that guardian as having read it,
   // so a log reader must not be able to copy it. The stored body (what the worker sends) stays whole.
   it('masks every personal notice link /n/<token>, the stored body is unchanged', () => {
-    const sms = `Exam routine https://app.example/n/${TOKEN}`;
+    const NOTICE_TOKEN = `${TOKEN}e`; // 43 chars: 32 random bytes in base64url
+    const sms = `Exam routine https://app.example/n/${NOTICE_TOKEN}`;
     const row = log({ trigger: CommunicationTrigger.AUTOMATED, message_body: sms, metadata: null });
     expect(toBatchLogDto(row, 'ADMIN').message_body).toBe(
       'Exam routine https://app.example/n/••••••',
     );
-    expect(toBatchLogDto(row, 'OFFICE_STAFF').message_body).not.toContain(TOKEN);
+    expect(toBatchLogDto(row, 'OFFICE_STAFF').message_body).not.toContain(NOTICE_TOKEN);
     expect(row.message_body).toBe(sms);
+  });
+
+  it('keeps a staff-typed /n/ path that is not a notice token', () => {
+    const body = 'Sports day: https://school.example/n/sports-day';
+    expect(
+      visibleLogBody({ trigger: CommunicationTrigger.MANUAL, message_body: body }, 'ADMIN'),
+    ).toBe(body);
   });
 
   it('an exam result body is withheld without RESULT_READ (Accountant), shown with it', () => {
