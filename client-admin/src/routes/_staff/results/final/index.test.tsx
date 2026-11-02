@@ -4,6 +4,7 @@
  */
 import { cleanupTestState, examFactory, renderWithRouter, server } from '@biddaloy/ui/test';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -138,6 +139,30 @@ describe('/results/final', () => {
       ).toBe(false),
     );
     expect(screen.queryByText(/No exam result of this class is published yet/)).toBeNull();
+  });
+
+  it('turns the other Start buttons off while one class is starting', async () => {
+    mock([row('c8', 'Class 8', 'NOT_SET_UP'), row('c9', 'Class 9', 'NOT_SET_UP')], ['c8', 'c9']);
+    server.use(
+      http.post('/api/v1/final-results', async () => {
+        await new Promise((r) => setTimeout(r, 400));
+        return HttpResponse.json({ message: 'no' }, { status: 500 });
+      }),
+    );
+    render();
+    await screen.findByText('Class 8');
+    await waitFor(() => {
+      const b = screen.getAllByRole('button', { name: 'Start' })[0] as HTMLButtonElement;
+      expect(b.disabled).toBe(false);
+    });
+    await userEvent.click(screen.getAllByRole('button', { name: 'Start' })[0] as HTMLElement);
+    await waitFor(() => {
+      const others = screen
+        .getAllByRole('button', { name: 'Start' })
+        .filter((b) => b.getAttribute('aria-busy') !== 'true');
+      expect(others.length).toBeGreaterThan(0);
+      expect(others.every((b) => (b as HTMLButtonElement).disabled)).toBe(true);
+    });
   });
 
   it('shows the empty state when the year has no classes', async () => {
