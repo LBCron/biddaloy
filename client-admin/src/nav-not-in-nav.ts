@@ -99,6 +99,7 @@ export const NOT_IN_NAV: Record<string, string> = {
     'detail route reached from /marks or the exam Progress tab',
   '/_staff/results/$examId/$studentId':
     'report card, reached from the exam Results tab or /results, not its own sidebar item',
+  '/_staff/results/final/$finalResultId': 'detail route reached from the final results list',
   '/_staff/grading-scales/$scaleId': 'detail route reached from the grading scales list',
   '/_staff/admissions/intakes/$intakeId': 'detail route reached from the admission intakes list',
   '/_staff/admissions/applicants/$applicantId':

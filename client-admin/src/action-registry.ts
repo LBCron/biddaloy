@@ -524,6 +524,17 @@ export const ACTIONS: readonly PaletteAction[] = [
     group: 'academics',
     run: (ctx) => ctx.navigate({ to: '/my-class?then=attendance' }),
   },
+  // [70.5.5] D13: `?then=notes` lands on the remarks and conduct grid (one section)
+  // or the section picker whose cards open it (two or more).
+  {
+    id: 'my-class.notes',
+    label: { en: 'Enter remarks and conduct', bn: 'মন্তব্য ও আচরণ লিখুন' },
+    synonyms: ['remark', 'conduct', 'মন্তব্য', 'আচরণ'],
+    permission: Permission.MY_CLASS_VIEW,
+    kind: 'navigate',
+    group: 'academics',
+    run: (ctx) => ctx.navigate({ to: '/my-class?then=notes' }),
+  },
   // [84.3.6] Lands on the My class card (`?then=arrival` focuses it). The permission is
   // stricter than the route's MY_CLASS_VIEW; both must hold (see `ROUTE_PERMISSION_EXCEPTIONS`).
   {
@@ -601,6 +612,37 @@ export const ACTIONS: readonly PaletteAction[] = [
     kind: 'modal',
     group: 'examsResults',
     run: (ctx) => ctx.navigate({ to: '/results' }),
+  },
+  // [70.5.5] D12. No class id in `ActionRunContext`, so build and publish land on the
+  // class list (same "no entity id" pattern as `results.process`); the row opens the
+  // detail, whose header holds the Build / Publish dialogs. Both are stricter than the
+  // route's `RESULT_READ` gate (`ROUTE_PERMISSION_EXCEPTIONS`).
+  {
+    id: 'final-result.open',
+    label: { en: 'Open final results', bn: 'চূড়ান্ত ফলাফল খুলুন' },
+    synonyms: ['annual result', 'বার্ষিক ফলাফল'],
+    permission: Permission.RESULT_READ,
+    kind: 'navigate',
+    group: 'examsResults',
+    run: (ctx) => ctx.navigate({ to: '/results/final' }),
+  },
+  {
+    id: 'final-result.process',
+    label: { en: 'Build final result', bn: 'চূড়ান্ত ফলাফল তৈরি করুন' },
+    permission: Permission.RESULT_PROCESS,
+    alsoRequires: [Permission.RESULT_READ],
+    kind: 'modal',
+    group: 'examsResults',
+    run: (ctx) => ctx.navigate({ to: '/results/final' }),
+  },
+  {
+    id: 'final-result.publish',
+    label: { en: 'Publish final result', bn: 'চূড়ান্ত ফলাফল প্রকাশ করুন' },
+    permission: Permission.RESULT_PUBLISH,
+    alsoRequires: [Permission.RESULT_READ],
+    kind: 'modal',
+    group: 'examsResults',
+    run: (ctx) => ctx.navigate({ to: '/results/final' }),
   },
   {
     id: 'admissions.reviewApplicant',
