@@ -41,11 +41,15 @@ export const EXEMPT: Record<string, string> = {
   UserIdentity: 'login state: sign-in credentials come from the seeded users',
   WorkbookJob: 'backups are off in the demo (D2)',
   AuditLog: 'written by services as a side effect, never seeded directly',
-  // [70.1.2] Temporary: tables exist before any service writes them. The Epic 70 seed
-  // ticket (Epic 70 wave 4) moves these five into the exams slice's `covers` and deletes these lines.
-  FinalResult: 'Epic 70 seed ticket owes this; no service writes it yet',
-  FinalResultWeight: 'Epic 70 seed ticket owes this; no service writes it yet',
-  FinalResultRow: 'Epic 70 seed ticket owes this; no service writes it yet',
-  FinalResultSubject: 'Epic 70 seed ticket owes this; no service writes it yet',
-  ReportCardNote: 'Epic 70 seed ticket owes this; no service writes it yet',
+  // [70.1.2] Temporary. The Epic 70 seed tickets (#3407 finals, #3411 notes) move these five
+  // into the exams slice's `covers` and delete these lines.
+  FinalResult:
+    'Epic 70 seed ticket #3407 owes this; FinalResultsService now writes this table; a restore loses it until the workbook tabs ship (#3422)',
+  FinalResultWeight:
+    'Epic 70 seed ticket #3407 owes this; FinalResultsService now writes this table; a restore loses it until the workbook tabs ship (#3422)',
+  FinalResultRow:
+    'Epic 70 seed ticket #3407 owes this; FinalResultsService now writes this table; a restore loses it until the workbook tabs ship (#3422)',
+  FinalResultSubject:
+    'Epic 70 seed ticket #3407 owes this; FinalResultsService now writes this table; a restore loses it until the workbook tabs ship (#3422)',
+  ReportCardNote: 'Epic 70 seed ticket #3411 owes this; no service writes it yet',
 };
