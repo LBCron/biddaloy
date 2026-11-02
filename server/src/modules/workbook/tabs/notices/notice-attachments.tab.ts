@@ -111,6 +111,10 @@ export const noticeAttachmentsTab: TabSpec<NoticeAttachment, Rec> = {
       bad('size_bytes', `Column "size_bytes": must be between 1 and ${MAX_BYTES}.`);
     if ((v.original_name as string).length > 255)
       bad('original_name', 'Column "original_name": is longer than 255 characters.');
+    // smallint column: out of range would fail the save and stop the whole restore.
+    const sort = v.sort as number;
+    if (sort < -32768 || sort > 32767)
+      bad('sort', 'Column "sort": must be between -32768 and 32767.');
     const owned = ownStorageKey(
       v.storage_key as string,
       ctx.tenantId,
