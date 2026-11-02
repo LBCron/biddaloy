@@ -4,11 +4,12 @@
  * server re-checks (`effectiveShares`). TERM exams start ticked and MONTHLY unticked (D3), because
  * the server created the weights that way; this panel only edits them.
  */
-import type {
-  FinalResultMode,
-  FinalResultRounding,
-  FinalResultSummary,
-  FinalResultWeightDto,
+import {
+  Permission,
+  type FinalResultMode,
+  type FinalResultRounding,
+  type FinalResultSummary,
+  type FinalResultWeightDto,
 } from '@biddaloy/shared';
 import {
   Button,
@@ -22,7 +23,12 @@ import {
   Switch,
   toast,
 } from '@biddaloy/ui/components';
-import { useClassSubjects, useExams, useUpdateFinalResult } from '@biddaloy/ui/hooks';
+import {
+  useClassSubjects,
+  useExams,
+  useHasPermission,
+  useUpdateFinalResult,
+} from '@biddaloy/ui/hooks';
 import { useRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { formatNumber } from '@biddaloy/ui/utils';
 import { CircleAlertIcon } from 'lucide-react';
@@ -81,7 +87,9 @@ export function SetupForm({ summary, exams }: { summary: FinalResultSummary; exa
   const config = useRegionConfig();
   const update = useUpdateFinalResult(summary.id);
   const subjects = useClassSubjects(summary.class.id, summary.academic_year.id);
-  const locked = summary.status === 'PUBLISHED';
+  // Read-only for a role that cannot process results: no Save, no editable field.
+  const canEdit = useHasPermission(Permission.RESULT_PROCESS);
+  const locked = summary.status === 'PUBLISHED' || !canEdit;
 
   const counted = new Set(summary.weights.map((w) => w.exam_id));
   const [ticked, setTicked] = React.useState<Set<string>>(
@@ -402,19 +410,25 @@ export function SetupForm({ summary, exams }: { summary: FinalResultSummary; exa
         </section>
       )}
 
-      {locked && <p className="text-text-secondary">{t('finalResults.setup.locked')}</p>}
+      {summary.status === 'PUBLISHED' && (
+        <p className="text-text-secondary">{t('finalResults.setup.locked')}</p>
+      )}
 
-      <div>
-        <Button
-          type="button"
-          className="w-full md:w-auto"
-          disabled={locked || invalid}
-          loading={update.isPending}
-          onClick={save}
-        >
-          {t('finalResults.setup.save')}
-        </Button>
-      </div>
+      {canEdit && (
+        <div>
+          {/* Outline: the page header already carries the one filled button (build or publish). */}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full md:w-auto"
+            disabled={locked || invalid}
+            loading={update.isPending}
+            onClick={save}
+          >
+            {t('finalResults.setup.save')}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
