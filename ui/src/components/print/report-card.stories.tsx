@@ -251,12 +251,15 @@ export const FinalCard: Story = {
       subjects: DATA.subjects.map((s, i) => ({
         ...s,
         components: [],
-        exam_cells: i === 0 ? [70, null] : [80, 75],
+        exam_cells: [
+          { exam_id: 'e1', value: i === 0 ? 70 : 80 },
+          { exam_id: 'e2', value: i === 0 ? null : 75 },
+        ],
       })),
       final: { label: 'Final result', section_position: 3 },
       exam_columns: [
-        { label: 'Half Yearly', share_label: '40%' },
-        { label: 'Annual', share_label: '60%' },
+        { id: 'e1', label: 'Half Yearly', share_label: '40%' },
+        { id: 'e2', label: 'Annual', share_label: '60%' },
       ],
     },
     issuer: ISSUER,
