@@ -511,7 +511,8 @@
     "printerOffset": "Shift left–right (mm)",
     "printerScale": "Size",
     "printerGap": "Cutting gap between cards (mm)",
-    "otpLoginEnabled": "Allow sign-in with a code sent to the phone"
+    "otpLoginEnabled": "Allow sign-in with a code sent to the phone",
+    "conductItems": "Conduct"
   },
   "help": {
     "schoolName": "The school's name. It shows on receipts, invoices and printouts. It cannot be left empty.",

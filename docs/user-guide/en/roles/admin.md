@@ -88,6 +88,7 @@ All your features, in the order of the left menu. The list is built automaticall
 - [Seat plans](../exams-results/seat-plans.md) — Pick the subjects of an exam and the rooms to make who sits in which room and seat, change seats if needed, give rooms an invigilator, then publish.
 - [Grading scales](../exams-results/grading-scales.md) — Set which percentage of marks gives which grade and GPA for each academic year; start from the NCTB grades, copy to another class or year, and see how many results will be recalculated before you save a change.
 - [Results](../exams-results/results.md) — Build an exam's results from the submitted marks, check them and publish, send guardians an SMS, reopen when needed, and print each student's report card.
+- Final results (coming soon)
 - [Result analysis](../exams-results/analysis.md) — See an exam's merit list, the students who failed or were absent and the pass/fail by subject, filter by section, print or download a CSV.
 - [Class promotion](../exams-results/promotion.md) — Using published results, move a class's students up to the next class in the new academic year, keep them in the same class or graduate them; first a draft list, then check it and finalise.
 

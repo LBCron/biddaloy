@@ -196,7 +196,7 @@
     "path": "academics/my-class",
     "route": "/my-class",
     "roles": ["TEACHER"],
-    "routes": ["/my-class", "/my-class/$sectionId"]
+    "routes": ["/my-class", "/my-class/$sectionId", "/my-class/$sectionId/notes"]
   },
   {
     "id": "academics.myCoordination",
@@ -306,6 +306,14 @@
     "route": "/results",
     "roles": ["ADMIN", "EXAM_CONTROLLER"],
     "routes": ["/results", "/results/$examId/$studentId"]
+  },
+  {
+    "id": "examsResults.finalResults",
+    "kind": "nav",
+    "path": "exams-results/final-results",
+    "route": "/results/final",
+    "roles": ["ADMIN", "TEACHER", "EXECUTIVE", "OFFICE_STAFF", "EXAM_CONTROLLER"],
+    "routes": ["/results/final", "/results/final/$finalResultId"]
   },
   {
     "id": "examsResults.analysis",
