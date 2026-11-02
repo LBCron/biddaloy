@@ -910,18 +910,26 @@ export class FinalResultsService {
       ).push(rs);
     }
 
-    // D25: the cohort is the class-year's ACTIVE enrollments at build time, in their enrolled
-    // section. A leaver is out even with exam results; a student with no result in any exam is in,
-    // with every share at 0 (D2). One ACTIVE enrollment per student and year (unique index).
+    // D25: the cohort is the class-year's enrollments at build time, in their enrolled section.
+    // ACTIVE is in, and so is a promoted student (promotion leaves the old year's enrollment
+    // ACTIVE) or a graduate (GRADUATED finished the year; a past-year final built after the
+    // graduation must still list them). A leaver (TRANSFERRED / INACTIVE) is out even with exam
+    // results. A student with no result in any exam is in, with every share at 0 (D2).
     const enrollments = await manager.getRepository(Enrollment).find({
       where: {
         tenant_id: tenantId,
         academic_year_id: final.academic_year_id,
         class_id: final.class_id,
-        enrollment_status: EnrollmentStatus.ACTIVE,
+        enrollment_status: In([EnrollmentStatus.ACTIVE, EnrollmentStatus.GRADUATED]),
       },
     });
-    const sectionOf = new Map(enrollments.map((e) => [e.student_id, e.section_id]));
+    const sectionOf = new Map<string, string | null>();
+    for (const e of enrollments) {
+      // A student with both rows sits in the ACTIVE one's section.
+      if (!sectionOf.has(e.student_id) || e.enrollment_status === EnrollmentStatus.ACTIVE) {
+        sectionOf.set(e.student_id, e.section_id);
+      }
+    }
     const studentIds = [...sectionOf.keys()];
     const students = studentIds.length
       ? await manager
