@@ -42,7 +42,7 @@ Write a school notice, send it to chosen people, and later see who has read it.
 **Where to go:** in the left menu, **Communications → Notices**. Do this on a computer.
 **Before you start:** be an Admin, Academic coordinator, Teacher or Office staff ([who can do what](#roles)). The people you send to must already be in the app.
 
-A notice is an announcement from the school: a title, some text, and up to three files if you like. A person with an account sees the notice in the app. A person without an account is counted too; an SMS is the way to reach them ([Sending an SMS](#task-sms)). Someone with no phone number cannot be reached, and you are told this before you publish.
+A notice is an announcement from the school: a title, some text, and up to three files if you like. A person with an account sees the notice in the app. A person without an account is counted too; an SMS is the way to reach them ([Sending an SMS](#task-sms)). An SMS goes only to guardians: a notice for students only sends no SMS, even if the students have a phone number. Someone with no phone number cannot be reached, and you are told this before you publish.
 
 [Give a notice](#task-main) · [Choosing who gets it](#task-who) · [See who has read it](#task-report) · [Public link](#task-public) · [SMS](#task-sms) · [Problems and fixes](#trouble)
 
@@ -74,7 +74,7 @@ A notice is an announcement from the school: a title, some text, and up to three
 **From an SMS approval task (Admin and Academic coordinator):**
 
 1. In the bar at the top you see **SMS approval pending: <notice title>**.
-2. Press **Open notice**. → The notice page opens. Carry on from step 2 of [Sending an SMS](#task-sms).
+2. Press **See**. → The **SMS for this notice** page opens. Carry on from step 3 of [Sending an SMS](#task-sms).
 
 ---
 
@@ -164,7 +164,7 @@ At the bottom a bar such as **Chosen (30)** shows. Press it to open the **Chosen
 | **Normal** | In the notices list and the home card. A notification also goes to the app.                                                                                                 |
 | **Urgent** | Everywhere a normal one does, and a warning bar on the dashboard of each person with an account, until they press **Mark as read** (or **I have read this** on the notice). |
 
-In both cases the app notification always goes. An SMS is a separate choice, in [Sending an SMS](#task-sms).
+In both cases an app notification also goes to people who allow notifications. A phone can mute it or it may not arrive, but the notice is always in their list. An SMS is a separate choice, in [Sending an SMS](#task-sms).
 
 ### See who has read it <a href="#task-report" id="task-report"></a>
 
@@ -225,10 +225,10 @@ An SMS never goes by itself. An admin must approve it first, and SMS costs credi
 
 4. Press **Approve and send**, or press **Decline** to send nothing.
 
-| You press            | What happens                                                                                                                      | Credits used |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| **Approve and send** | **SMS on their way: 30.** shows. Each person gets an SMS with their own link. The status becomes **Sent**.                        | Yes          |
-| **Decline**          | The box **Decline this SMS?** shows; if you confirm, **SMS declined. Nothing was sent.** shows. The status becomes **Cancelled**. | No           |
+| You press            | What happens                                                                                                                                                                                                          | Credits used |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| **Approve and send** | **SMS on their way: 30.** shows. One SMS per person, each with their own link, is queued to send. The status becomes **Queued**. Whether each SMS reached the phone shows later in the [Message log](message-log.md). | Yes          |
+| **Decline**          | The box **Decline this SMS?** shows; if you confirm, **SMS declined. Nothing was sent.** shows. The status becomes **Cancelled**.                                                                                     | No           |
 
 5. After a decision the request can only be read: **This request is already decided. You can only read it.**
 
@@ -238,11 +238,11 @@ Whoever asks, an admin's own request goes through this same step. Without the ap
 
 These buttons are in the notices list and on the notice page.
 
-| Button       | What it does                                                                                                                                                |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Edit**     | Change the text, files, urgent and end date. Who gets it cannot be changed.                                                                                 |
-| **Withdraw** | The box **Withdraw this notice?** shows. If you confirm, it leaves everyone and the link is off. **Notice withdrawn.** shows. It cannot be turned on again. |
-| **Copy**     | **A new draft was made from this notice.** shows. Open the draft, choose the new people and publish.                                                        |
+| Button       | What it does                                                                                                                                                                 |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Edit**     | Change the text, files, urgent and end date. Who gets it cannot be changed.                                                                                                  |
+| **Withdraw** | The box **Withdraw this notice?** shows. If you confirm, it leaves everyone and the link is off. **Notice withdrawn.** shows. It cannot be turned on again.                  |
+| **Copy**     | **A new draft was made from this notice.** shows. The draft keeps the same people. Open it, check the **Chosen list** and remove anyone who should not get it, then publish. |
 
 In the **Notices** list you can search by title and filter by **Status**. A teacher or office staff member sees only the notices they wrote.
 

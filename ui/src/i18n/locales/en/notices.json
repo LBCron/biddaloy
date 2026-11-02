@@ -90,7 +90,7 @@
       "status": {
         "NONE": "Not asked",
         "PENDING": "Waiting",
-        "APPROVED": "Sent",
+        "APPROVED": "Queued",
         "DECLINED": "Cancelled"
       },
       "request": "Ask for an SMS",

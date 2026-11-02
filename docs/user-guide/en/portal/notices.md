@@ -62,9 +62,9 @@ Read the notices your school gave, and open their files.
 
 2. Tap the name of the notice you want to read.
 
-   → The notice text shows, and its files if it has any.
+   → The notice text shows. A picture file shows right on the page; a PDF file shows as a button.
 
-3. To see a file, tap **Open <file name>**.
+3. To see a PDF file, tap **Open <file name>**.
 
    → The file opens.
 
@@ -108,12 +108,12 @@ If there is nothing, you see **No current notices** or **No old notices**.
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                               | What to do                                                            | Who can help  |
-| ------------------------------------------ | --------------------------------------------------------------------- | ------------- |
-| **No current notices**                     | No notice was given to you. When the school gives one, it shows here. | School office |
-| **Could not load notices.**                | Check your internet and press **Try again**.                          | —             |
-| A notice does not open                     | The school may have taken it back.                                    | School office |
-| You got a link by SMS and it does not open | The link has been turned off. Ask the school for a new link.          | School office |
+| What you see                               | What to do                                                                                                                                             | Who can help  |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- |
+| **No current notices**                     | No notice was given to you. When the school gives one, it shows here.                                                                                  | School office |
+| **Could not load notices.**                | Check your internet and press **Try again**.                                                                                                           | —             |
+| A notice does not open                     | The school may have taken it back.                                                                                                                     | School office |
+| You got a link by SMS and it does not open | The link no longer works and cannot be sent again. If you have an account, read the notice in the app; if not, ask the school to share it another way. | School office |
 
 ---
 

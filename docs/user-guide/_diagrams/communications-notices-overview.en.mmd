@@ -11,7 +11,7 @@ flowchart LR
   P --> S{"SMS asked?"}
   S -- "Yes" --> R["Admin looks,<br/>unticks people"]
   R --> D{"Approve?"}
-  D -- "Approve" --> G["SMS sent,<br/>credits used"]:::done
+  D -- "Approve" --> G["SMS queued to send,<br/>credits used"]:::done
   D -- "Decline" --> X["Nothing sent"]
   P --> Z["Withdraw any time:<br/>links stop"]
   classDef done fill:#ebfbee,stroke:#2b8a3e,color:#14411d
