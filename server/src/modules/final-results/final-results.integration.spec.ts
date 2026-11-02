@@ -31,6 +31,7 @@ import { ClassSection } from '../academics/entities/class-section.entity';
 import { ClassSubject } from '../academics/entities/class-subject.entity';
 import { Subject } from '../academics/entities/subject.entity';
 import { Student } from '../students/entities/student.entity';
+import { ReportCardNote } from '../report-card-notes/entities/report-card-note.entity';
 import { Enrollment } from '../students/entities/enrollment.entity';
 import { GradingScale } from '../grading/entities/grading-scale.entity';
 import { GradingBand } from '../grading/entities/grading-band.entity';
@@ -393,6 +394,41 @@ describe('FinalResultsService (integration)', () => {
     // null, never 0: a real 0 would read as "sat the paper and scored nothing".
     expect(perExam.find((p) => p.exam_id === e1.id)?.obtained).toBeNull();
     expect(perExam.find((p) => p.exam_id === e2.id)?.obtained).toBe(70);
+  });
+
+  it("the student card carries the final's remark and conduct note, like the family card", async () => {
+    const { s, e1, e2 } = await fiveStudentsTwoExams();
+    const final = await finalWith([
+      [e1, '30.00'],
+      [e2, '70.00'],
+    ]);
+    await service.build(final.id, TENANT_ID, 'user-1');
+    // A per-exam note for the same student must not leak onto the final card.
+    await ds.getRepository(ReportCardNote).save([
+      {
+        tenant_id: TENANT_ID,
+        student_id: s[0].id,
+        final_result_id: final.id,
+        exam_id: null,
+        remark: 'Diligent all year',
+        conduct: { discipline: 'A' },
+      },
+      {
+        tenant_id: TENANT_ID,
+        student_id: s[0].id,
+        final_result_id: null,
+        exam_id: e1.id,
+        remark: 'Half-yearly note',
+        conduct: {},
+      },
+    ]);
+
+    const card = await service.studentCard(final.id, s[0].id, TENANT_ID);
+    expect(card!.remark).toBe('Diligent all year');
+    expect(card!.conduct.find((c) => c.key === 'discipline')?.grade).toBe('A');
+    // A student with no note: no remark, no conduct block.
+    const bare = await service.studentCard(final.id, s[1].id, TENANT_ID);
+    expect(bare).toMatchObject({ remark: null, conduct: [] });
   });
 
   it('rebuilding replaces the rows instead of piling up duplicates', async () => {
