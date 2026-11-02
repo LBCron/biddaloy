@@ -72,6 +72,7 @@ import { FinalResultSubject } from './entities/final-result-subject.entity';
 import { FinalResultWeight } from './entities/final-result-weight.entity';
 import {
   combineStudent,
+  examSubjectObtained,
   FINAL_RULE_VERSION,
   SharesNotHundred,
   type ExamSubjectMark,
@@ -439,7 +440,8 @@ export class FinalResultsService {
           const rs = r
             ? resultSubjects.find((x) => x.result_id === r.id && x.subject_id === s.subject_id)
             : undefined;
-          return { exam_id: examId, obtained: rs ? Number(rs.obtained) : null };
+          // Same ABS rule as the build: an all-absent subject prints no mark, not 0.
+          return { exam_id: examId, obtained: rs ? examSubjectObtained(rs) : null };
         }),
       })),
       legend: bands.map((b) => ({
@@ -1055,12 +1057,10 @@ export class FinalResultsService {
         const res = resultByKey.get(`${exam.id}:${student.id}`);
         if (res) {
           for (const rs of subjectsByResult.get(res.id) ?? []) {
-            // ABS with 0 = every component absent: no mark (null), not a real 0.
-            const absent = rs.grade === 'ABS' && Number(rs.obtained) === 0;
             marks.push({
               exam_id: exam.id,
               subject_id: rs.subject_id,
-              obtained: absent ? null : Number(rs.obtained),
+              obtained: examSubjectObtained(rs),
               full_marks: fullFor(exam.id, rs.subject_id, student.id),
               is_fail: rs.is_fail,
             });
