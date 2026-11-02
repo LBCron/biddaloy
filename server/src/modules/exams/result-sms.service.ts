@@ -27,7 +27,11 @@ import { Result } from './entities/result.entity';
 import { Student } from '../students/entities/student.entity';
 import { School } from '../schools/entities/school.entity';
 import { resolveReminderAudience } from '../communications/reminder-recipients.util';
-import { resolveTemplateLocale } from '../account-access/account-access-templates';
+import {
+  resolveTemplateLocale,
+  type TemplateLocale,
+} from '../account-access/account-access-templates';
+import { finalNotPublished } from '../../common/filters/known-errors';
 import { CommunicationLog } from '../communications/entities/communication-log.entity';
 import { SmsCreditService } from '../communications/credits/sms-credit.service';
 import { INSUFFICIENT_SMS_CREDIT } from '../communications/credits/insufficient-sms-credit.constants';
@@ -101,7 +105,7 @@ export class ResultSmsService {
     return this.dispatch({
       kind: 'exam-result',
       sourceId: examId,
-      label: exam.name,
+      label: () => exam.name,
       publishedAt: exam.published_at?.getTime() ?? 0,
       results,
       tenantId,
@@ -127,22 +131,11 @@ export class ResultSmsService {
     if (!final) {
       throw new NotFoundException('Final result not found');
     }
-    if (final.status !== FinalResultStatus.PUBLISHED) {
-      throw new ConflictException({
-        message: 'This final result is not published — nothing to send yet.',
-        details: { code: 'FINAL_NOT_PUBLISHED' },
-      });
-    }
-    const [year, school] = await Promise.all([
-      this.examRepo.manager.findOne(AcademicYear, {
-        where: { id: final.academic_year_id, tenant_id: tenantId },
-      }),
-      this.examRepo.manager.findOne(School, {
-        where: { id: tenantId },
-        select: { id: true, settings: true },
-      }),
-    ]);
-    const locale = resolveTemplateLocale(school?.settings?.region?.locale);
+    // Same fixed sentence as reopen's refusal (Rule 24).
+    if (final.status !== FinalResultStatus.PUBLISHED) throw finalNotPublished();
+    const year = await this.examRepo.manager.findOne(AcademicYear, {
+      where: { id: final.academic_year_id, tenant_id: tenantId },
+    });
     const yearName = year?.name ?? '';
     const rows = await this.examRepo.manager.find(FinalResultRow, {
       where: { final_result_id: finalResultId, tenant_id: tenantId, deleted_at: IsNull() },
@@ -150,7 +143,8 @@ export class ResultSmsService {
     return this.dispatch({
       kind: 'final-result',
       sourceId: finalResultId,
-      label: locale === 'bn' ? `চূড়ান্ত ফলাফল ${yearName}` : `Final result ${yearName}`,
+      label: (locale) =>
+        locale === 'bn' ? `চূড়ান্ত ফলাফল ${yearName}` : `Final result ${yearName}`,
       publishedAt: final.published_at?.getTime() ?? 0,
       results: rows,
       tenantId,
@@ -162,7 +156,8 @@ export class ResultSmsService {
   private async dispatch(args: {
     kind: 'exam-result' | 'final-result';
     sourceId: string;
-    label: string;
+    /** The exam name, or the final's "চূড়ান্ত ফলাফল <year>", in the school's template locale. */
+    label: (locale: TemplateLocale) => string;
     publishedAt: number;
     results: Array<{ student_id: string; gpa: unknown; grade: unknown; is_fail: boolean }>;
     tenantId: string;
@@ -207,7 +202,7 @@ export class ResultSmsService {
       const body = buildBody(
         locale,
         locale === 'bn' ? (student.full_name_bn ?? student.full_name) : student.full_name,
-        label,
+        label(locale),
         result,
       );
       const segments = countSmsSegments(body).segments;

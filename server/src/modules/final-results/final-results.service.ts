@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, In, IsNull, Repository } from 'typeorm';
 import {
   AuditAction,
+  EnrollmentStatus,
   ExamKind,
   ExamStatus,
   FinalResultMode,
@@ -23,6 +24,7 @@ import { RequestContext } from '../../common/request-context.util';
 import { todayInSchoolTz } from '../../common/time';
 import {
   finalAlreadyExists,
+  finalStale,
   finalNoExams,
   finalNotDraft,
   finalNotProcessed,
@@ -59,6 +61,7 @@ import { gradeFor, gradeForGpa, resolveScale } from '../grading/scale-lookup';
 import { School } from '../schools/entities/school.entity';
 import { buildIssuerSnapshot } from '../schools/profile/issuer-snapshot';
 import { buildLogoUrl } from '../schools/profile/logo-key';
+import { Enrollment } from '../students/entities/enrollment.entity';
 import { Student } from '../students/entities/student.entity';
 import { StudentSubjectChoice } from '../students/entities/student-subject-choice.entity';
 import { FinalResult } from './entities/final-result.entity';
@@ -118,8 +121,15 @@ export class FinalResultsService {
 
   // ---- reads ------------------------------------------------------------------------------
 
-  /** One row per class of the year, "NOT_SET_UP" where no final result exists. */
-  async list(academicYearId: string, tenantId: string): Promise<FinalResultListItem[]> {
+  /**
+   * One row per class of the year, "NOT_SET_UP" where no final result exists. `sectionScope` (a
+   * teacher's sections, Rule 2) keeps only the classes those sections belong to; null = all.
+   */
+  async list(
+    academicYearId: string,
+    tenantId: string,
+    sectionScope: string[] | null = null,
+  ): Promise<FinalResultListItem[]> {
     const year = await this.manager.findOne(AcademicYear, {
       where: { id: academicYearId, tenant_id: tenantId },
     });
@@ -134,15 +144,32 @@ export class FinalResultsService {
       }),
     ]);
     const byClass = new Map(finals.map((f) => [f.class_id, f]));
-    return classes.map((c) => {
-      const f = byClass.get(c.id);
-      return {
-        class: { id: c.id, name: c.name },
-        final_result_id: f?.id ?? null,
-        status: f?.status ?? 'NOT_SET_UP',
-        published_at: f?.published_at?.toISOString() ?? null,
-      };
+    const visible = await this.scopedClassIds(sectionScope, tenantId);
+    return classes
+      .filter((c) => !visible || visible.has(c.id))
+      .map((c) => {
+        const f = byClass.get(c.id);
+        return {
+          class: { id: c.id, name: c.name },
+          final_result_id: f?.id ?? null,
+          status: f?.status ?? 'NOT_SET_UP',
+          published_at: f?.published_at?.toISOString() ?? null,
+        };
+      });
+  }
+
+  /** The classes a teacher's sections belong to; null = no filter (not a teacher). */
+  private async scopedClassIds(
+    sectionScope: string[] | null,
+    tenantId: string,
+  ): Promise<Set<string> | null> {
+    if (!sectionScope) return null;
+    if (sectionScope.length === 0) return new Set();
+    const sections = await this.manager.find(ClassSection, {
+      where: { id: In(sectionScope), tenant_id: tenantId },
+      select: { id: true, class_id: true },
     });
+    return new Set(sections.map((s) => s.class_id));
   }
 
   private async find(id: string, tenantId: string): Promise<FinalResult> {
@@ -153,8 +180,18 @@ export class FinalResultsService {
     return final;
   }
 
-  async get(id: string, tenantId: string): Promise<FinalResultSummary> {
-    return this.summary(await this.find(id, tenantId), tenantId);
+  /** `sectionScope` as in `list`: a final of a class outside the teacher's sections is a 404. */
+  async get(
+    id: string,
+    tenantId: string,
+    sectionScope: string[] | null = null,
+  ): Promise<FinalResultSummary> {
+    const final = await this.find(id, tenantId);
+    const visible = await this.scopedClassIds(sectionScope, tenantId);
+    if (visible && !visible.has(final.class_id)) {
+      throw new NotFoundException('Final result not found');
+    }
+    return this.summary(final, tenantId);
   }
 
   private async summary(final: FinalResult, tenantId: string): Promise<FinalResultSummary> {
@@ -165,12 +202,19 @@ export class FinalResultsService {
       }),
       this.manager.find(FinalResultWeight, {
         where: { final_result_id: final.id, tenant_id: tenantId },
-        order: { created_at: 'ASC' },
+        // One save writes the whole set with one timestamp: id keeps the order stable.
+        order: { created_at: 'ASC', id: 'ASC' },
       }),
-      this.manager.find(FinalResultRow, {
-        where: { final_result_id: final.id, tenant_id: tenantId, deleted_at: IsNull() },
-        select: { id: true, is_fail: true },
-      }),
+      this.manager
+        .getRepository(FinalResultRow)
+        .createQueryBuilder('r')
+        .select('COUNT(*)::int', 'students')
+        .addSelect('(COUNT(*) FILTER (WHERE r.is_fail))::int', 'failed')
+        .where('r.final_result_id = :id AND r.tenant_id = :tenantId AND r.deleted_at IS NULL', {
+          id: final.id,
+          tenantId,
+        })
+        .getRawOne<{ students: number; failed: number }>(),
     ]);
     return {
       id: final.id,
@@ -187,7 +231,7 @@ export class FinalResultsService {
         share_percent: Number(w.share_percent),
       })),
       published_at: final.published_at?.toISOString() ?? null,
-      counts: { students: rows.length, failed: rows.filter((r) => r.is_fail).length },
+      counts: { students: rows?.students ?? 0, failed: rows?.failed ?? 0 },
     };
   }
 
@@ -562,6 +606,21 @@ export class FinalResultsService {
         throw new BadRequestException('Choose how many exams count for best-of.');
       }
       if (dto.weights) await this.assertWeightsBelong(manager, final, dto.weights, tenantId);
+      if (mode === FinalResultMode.BEST_OF && bestOf !== null) {
+        const examCount = dto.weights
+          ? new Set(dto.weights.map((w) => w.exam_id)).size
+          : ((
+              await manager
+                .getRepository(FinalResultWeight)
+                .createQueryBuilder('w')
+                .select('COUNT(DISTINCT w.exam_id)::int', 'n')
+                .where('w.final_result_id = :id AND w.tenant_id = :tenantId', { id, tenantId })
+                .getRawOne<{ n: number }>()
+            )?.n ?? 0);
+        if (bestOf > examCount) {
+          throw new BadRequestException('Best-of cannot count more exams than this result has.');
+        }
+      }
 
       const before = { mode: final.mode, best_of_count: final.best_of_count };
       await manager.getRepository(FinalResult).update(
@@ -574,6 +633,8 @@ export class FinalResultsService {
           fail_if_any_exam_fails: dto.fail_if_any_exam_fails ?? final.fail_if_any_exam_fails,
         },
       );
+      // Built rows were computed under the old settings: a draft has none (rebuild makes new ones).
+      if (final.status === FinalResultStatus.PROCESSED) await this.dropRows(manager, id, tenantId);
       if (dto.weights) {
         const weightRepo = manager.getRepository(FinalResultWeight);
         await weightRepo.delete({ final_result_id: id, tenant_id: tenantId });
@@ -646,7 +707,9 @@ export class FinalResultsService {
     await this.find(id, tenantId);
     await this.manager.transaction(async (manager) => {
       const final = await this.lock(manager, id, tenantId);
-      if (final.status !== FinalResultStatus.DRAFT) throw finalNotDraft();
+      // Only a published result is protected; a built one is still unseen work in progress.
+      if (final.status === FinalResultStatus.PUBLISHED) throw finalNotDraft();
+      await this.dropRows(manager, id, tenantId);
       await manager
         .getRepository(FinalResultWeight)
         .delete({ final_result_id: id, tenant_id: tenantId });
@@ -847,11 +910,19 @@ export class FinalResultsService {
       ).push(rs);
     }
 
-    // The cohort is everyone with a result in any source exam. Newest exam's section wins.
-    const newestFirst = [...exams].sort(
-      (a, b) => (b.published_at?.getTime() ?? 0) - (a.published_at?.getTime() ?? 0),
-    );
-    const studentIds = [...new Set(results.map((r) => r.student_id))];
+    // D25: the cohort is the class-year's ACTIVE enrollments at build time, in their enrolled
+    // section. A leaver is out even with exam results; a student with no result in any exam is in,
+    // with every share at 0 (D2). One ACTIVE enrollment per student and year (unique index).
+    const enrollments = await manager.getRepository(Enrollment).find({
+      where: {
+        tenant_id: tenantId,
+        academic_year_id: final.academic_year_id,
+        class_id: final.class_id,
+        enrollment_status: EnrollmentStatus.ACTIVE,
+      },
+    });
+    const sectionOf = new Map(enrollments.map((e) => [e.student_id, e.section_id]));
+    const studentIds = [...sectionOf.keys()];
     const students = studentIds.length
       ? await manager
           .getRepository(Student)
@@ -878,16 +949,6 @@ export class FinalResultsService {
       : [];
     const choiceByKey = new Map(choices.map((c) => [`${c.student_id}:${c.class_subject_id}`, c]));
 
-    const sectionOf = new Map<string, string | null>();
-    for (const s of students) {
-      for (const e of newestFirst) {
-        const r = resultByKey.get(`${e.id}:${s.id}`);
-        if (r) {
-          sectionOf.set(s.id, r.section_id);
-          break;
-        }
-      }
-    }
     const sectionIds = [...new Set([...sectionOf.values()].filter((v): v is string => !!v))];
     const sections = sectionIds.length
       ? await manager
@@ -962,7 +1023,8 @@ export class FinalResultsService {
     const sectionPositions = new Map<string, number | null>();
     const bySection = new Map<string, typeof computed>();
     for (const c of computed) {
-      if (c.section_id) bySection.set(c.section_id, [...(bySection.get(c.section_id) ?? []), c]);
+      if (!c.section_id) continue;
+      (bySection.get(c.section_id) ?? bySection.set(c.section_id, []).get(c.section_id)!).push(c);
     }
     for (const list of bySection.values()) {
       const ranked = rankByMerit(
@@ -992,15 +1054,7 @@ export class FinalResultsService {
   ): Promise<void> {
     const rowRepo = manager.getRepository(FinalResultRow);
     const subjectRepo = manager.getRepository(FinalResultSubject);
-    const existing = await rowRepo.find({
-      where: { final_result_id: final.id, tenant_id: tenantId, deleted_at: IsNull() },
-      select: { id: true },
-    });
-    if (existing.length > 0) {
-      const ids = existing.map((r) => r.id);
-      await subjectRepo.softDelete({ final_result_row_id: In(ids), tenant_id: tenantId });
-      await rowRepo.softDelete({ id: In(ids), tenant_id: tenantId });
-    }
+    await this.dropRows(manager, final.id, tenantId);
     const now = new Date();
     const savedRows = await rowRepo.save(
       computed.map((c) =>
@@ -1041,6 +1095,21 @@ export class FinalResultsService {
     if (subjectRows.length > 0) await subjectRepo.save(subjectRows, { chunk: 500 });
   }
 
+  /** Soft-deletes the live rows (and their subjects) of one final result. */
+  private async dropRows(manager: EntityManager, finalId: string, tenantId: string): Promise<void> {
+    const rowRepo = manager.getRepository(FinalResultRow);
+    const existing = await rowRepo.find({
+      where: { final_result_id: finalId, tenant_id: tenantId, deleted_at: IsNull() },
+      select: { id: true },
+    });
+    if (existing.length === 0) return;
+    const ids = existing.map((r) => r.id);
+    await manager
+      .getRepository(FinalResultSubject)
+      .softDelete({ final_result_row_id: In(ids), tenant_id: tenantId });
+    await rowRepo.softDelete({ id: In(ids), tenant_id: tenantId });
+  }
+
   // ---- publish / reopen -------------------------------------------------------------------
 
   /** PROCESSED -> PUBLISHED. Snapshots each row's attendance (working / present days). */
@@ -1063,7 +1132,7 @@ export class FinalResultsService {
       const weights = await manager
         .getRepository(FinalResultWeight)
         .find({ where: { final_result_id: id, tenant_id: tenantId } });
-      await this.lockPublishedSources(
+      const sources = await this.lockPublishedSources(
         manager,
         [...new Set(weights.map((w) => w.exam_id))].sort(),
         locked,
@@ -1074,6 +1143,9 @@ export class FinalResultsService {
       const rows = await rowRepo.find({
         where: { final_result_id: id, tenant_id: tenantId, deleted_at: IsNull() },
       });
+      // Reopened, corrected and republished since the build: the rows hold the old numbers.
+      const builtAt = Math.min(...rows.map((r) => r.computed_at.getTime()));
+      if (sources.some((e) => (e.published_at?.getTime() ?? 0) > builtAt)) throw finalStale();
       const year = await manager
         .getRepository(AcademicYear)
         .findOneOrFail({ where: { id: locked.academic_year_id, tenant_id: tenantId } });
@@ -1092,7 +1164,7 @@ export class FinalResultsService {
           : new Map();
 
       const now = new Date();
-      for (const row of rows) {
+      const snapshot = rows.map((row) => {
         const s = summaries.get(row.student_id);
         const working = s ? s.working_days : null;
         const present =
@@ -1102,9 +1174,23 @@ export class FinalResultsService {
                 s.present_days + (s.policy.late_counts_as_present ? s.late_days : 0),
               )
             : null;
-        await rowRepo.update(
-          { id: row.id, tenant_id: tenantId },
-          { published_at: now, working_days: working, present_days: present },
+        return { id: row.id, working, present };
+      });
+      // One statement for the whole class instead of one round trip per row.
+      if (snapshot.length > 0) {
+        await manager.query(
+          `UPDATE final_result_rows AS r
+              SET published_at = $1, updated_at = $1, working_days = v.working,
+                  present_days = v.present
+             FROM unnest($2::uuid[], $3::int[], $4::int[]) AS v(id, working, present)
+            WHERE r.id = v.id AND r.tenant_id = $5`,
+          [
+            now,
+            snapshot.map((x) => x.id),
+            snapshot.map((x) => x.working),
+            snapshot.map((x) => x.present),
+            tenantId,
+          ],
         );
       }
       await manager
