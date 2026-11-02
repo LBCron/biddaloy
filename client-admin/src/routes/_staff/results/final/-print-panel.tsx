@@ -3,10 +3,17 @@
  * print every card of the section or the section's tabulation sheet (D20).
  *
  * There is no print route for a final result, so this prints in place: the sheets sit in a
- * `.final-print-area` that is hidden on screen, and a print-only stylesheet hides the rest of the
- * page, so the app chrome never lands on paper. Cards load only when "print all" is pressed.
+ * `.final-print-area` that is a direct child of `<body>` (a portal, so no scroll box or fixed
+ * header of the app can clip it) and is hidden on screen; the print-only stylesheet drops every
+ * other child of `<body>`, so the app chrome never lands on paper. Cards load only when "print
+ * all" is pressed, a few at a time, fresh from the server (never a cached copy); a card that
+ * fails shows as a marked row in the print instead of cancelling the rest.
  */
-import type { FinalResultStudentCard, FinalResultSummary } from '@biddaloy/shared';
+import type {
+  FinalResultRowView,
+  FinalResultStudentCard,
+  FinalResultSummary,
+} from '@biddaloy/shared';
 import { apiClient } from '@biddaloy/ui/api';
 import {
   Button,
@@ -25,20 +32,22 @@ import {
 } from '@biddaloy/ui/components';
 import type { IssuerSnapshot, ReportCardProps } from '@biddaloy/ui/components';
 import {
-  finalResultCardKey,
+  finalResultKeys,
   useClassSections,
-  useFinalResultRows,
   useFinalResultStudentCard,
   useFinalTabulation,
 } from '@biddaloy/ui/hooks';
 import { useRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { formatDateTime, formatNumber } from '@biddaloy/ui/utils';
-import { useQueries } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useSearch } from '@tanstack/react-router';
 import { PrinterIcon } from 'lucide-react';
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 
 import { subjectLabel } from '../../exams/-detail/subject-label';
+
+import { fetchAllPages, mapLimited, PAGE_SIZE } from './-fetch-all';
 
 export interface PrintPanelProps {
   summary: FinalResultSummary;
@@ -47,13 +56,19 @@ export interface PrintPanelProps {
 /** `FinalReportCardData` is not re-exported by the kit; this is the same type. */
 type FinalReportCardData = Extract<ReportCardProps['data'], { final: { label: string } }>;
 
-const PRINT_ONLY_CSS = `@media print {
-  body * { visibility: hidden !important; }
-  .final-print-area, .final-print-area * { visibility: visible !important; }
-  .final-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+export const PRINT_ONLY_CSS = `@media print {
+  body > *:not(.final-print-area) { display: none !important; }
+  .final-print-area { display: block !important; }
 }`;
 
+/** Cards fetched at once while printing all: enough to be quick, few enough not to flood. */
+const CARD_CONCURRENCY = 4;
+
 type Job = 'cards' | 'tabulation' | null;
+interface PrintedCard {
+  row: FinalResultRowView;
+  card: FinalResultStudentCard | null;
+}
 
 export function PrintPanel({ summary }: PrintPanelProps) {
   const { t, i18n } = useTranslation('exams');
@@ -65,13 +80,22 @@ export function PrintPanel({ summary }: PrintPanelProps) {
   const sections = useClassSections(summary.class.id);
   const [pickedSection, setPickedSection] = React.useState<string | undefined>(undefined);
   const sectionId = pickedSection ?? sections.data?.[0]?.id;
-  const rowsQuery = useFinalResultRows(built && sectionId ? summary.id : undefined, {
-    ...(sectionId ? { section_id: sectionId } : {}),
-    limit: 100,
+  // Every student of the section, paged 100 at a time: a section can be larger than one page.
+  const rowsQuery = useQuery({
+    queryKey: [...finalResultKeys.detail(summary.id), 'rows-all', sectionId],
+    queryFn: ({ signal }) =>
+      fetchAllPages(async (offset) => {
+        const { data } = await apiClient.get<{ data: FinalResultRowView[]; total: number }>(
+          `/final-results/${summary.id}/rows`,
+          { params: { section_id: sectionId, limit: PAGE_SIZE, offset }, signal },
+        );
+        return { items: data.data, total: data.total };
+      }),
+    enabled: built && Boolean(sectionId),
   });
   const rows = React.useMemo(
     () =>
-      [...(rowsQuery.data?.data ?? [])].sort(
+      [...(rowsQuery.data?.items ?? [])].sort(
         (a, b) => a.student.roll_number - b.student.roll_number,
       ),
     [rowsQuery.data],
@@ -82,28 +106,45 @@ export function PrintPanel({ summary }: PrintPanelProps) {
   const cardQuery = useFinalResultStudentCard(summary.id, studentId);
 
   const [job, setJob] = React.useState<Job>(null);
-  // `useQueries` so every student's card is fetched on demand, one request each, never retried.
-  const allCards = useQueries({
-    queries: rows.map((r) => ({
-      queryKey: finalResultCardKey(summary.id, r.student.id),
-      queryFn: async ({ signal }: { signal: AbortSignal }) =>
+  const [printed, setPrinted] = React.useState<PrintedCard[] | null>(null);
+  const abort = React.useRef<AbortController | null>(null);
+  React.useEffect(() => () => abort.current?.abort(), []);
+
+  const printAllCards = async () => {
+    setJob('cards');
+    abort.current?.abort();
+    const ctl = new AbortController();
+    abort.current = ctl;
+    const results = await mapLimited(
+      rows,
+      CARD_CONCURRENCY,
+      async (r) =>
         (
           await apiClient.get<FinalResultStudentCard>(
             `/final-results/${summary.id}/students/${r.student.id}`,
-            { signal },
+            { signal: ctl.signal },
           )
         ).data,
-      enabled: job === 'cards',
-      // A rebuild or reopen changes the cards: never print a cached copy.
-      staleTime: 0,
-      gcTime: 0,
-      retry: false,
-    })),
-  });
+    );
+    if (ctl.signal.aborted) return;
+    const out = rows.map((row, i) => {
+      const res = results[i];
+      return { row, card: res && 'value' in res ? res.value : null };
+    });
+    const failed = out.filter((o) => o.card === null).length;
+    if (failed === out.length) {
+      toast.error(t('finalResults.print.loadError'));
+      setJob(null);
+      return;
+    }
+    if (failed > 0) {
+      toast.error(t('finalResults.print.someFailed', { n: formatNumber(failed, config) }));
+    }
+    setPrinted(out);
+  };
   const tab = useFinalTabulation(summary.id, job === 'tabulation' ? sectionId : undefined);
 
-  const cardsReady = job === 'cards' && allCards.length > 0 && allCards.every((q) => q.isSuccess);
-  const cardsFailed = job === 'cards' && allCards.some((q) => q.isError);
+  const cardsReady = job === 'cards' && printed !== null;
   const tabReady = job === 'tabulation' && tab.isSuccess;
   const tabFailed = job === 'tabulation' && tab.isError;
   React.useEffect(() => {
@@ -112,14 +153,15 @@ export function PrintPanel({ summary }: PrintPanelProps) {
     const id = requestAnimationFrame(() => {
       window.print();
       setJob(null);
+      setPrinted(null);
     });
     return () => cancelAnimationFrame(id);
   }, [cardsReady, tabReady]);
   React.useEffect(() => {
-    if (!cardsFailed && !tabFailed) return;
+    if (!tabFailed) return;
     toast.error(t('finalResults.print.loadError'));
     setJob(null);
-  }, [cardsFailed, tabFailed, t]);
+  }, [tabFailed, t]);
 
   // The card carries no student id; rows do, matched by roll number within the section.
   const sectionPosition = (roll: number) =>
@@ -266,7 +308,7 @@ export function PrintPanel({ summary }: PrintPanelProps) {
             variant="outline"
             disabled={rows.length === 0 || job !== null}
             loading={job === 'cards'}
-            onClick={() => setJob('cards')}
+            onClick={() => void printAllCards()}
           >
             <PrinterIcon aria-hidden className="size-4" />
             {t('finalResults.print.printAll')}
@@ -282,6 +324,15 @@ export function PrintPanel({ summary }: PrintPanelProps) {
           </Button>
         </div>
       </div>
+
+      {rowsQuery.data?.truncated && (
+        <p className="text-caption text-text-secondary">
+          {t('finalResults.print.cappedNote', {
+            shown: formatNumber(rows.length, config),
+            total: formatNumber(rowsQuery.data.total, config),
+          })}
+        </p>
+      )}
 
       {rowsQuery.isLoading || cardQuery.isLoading ? (
         <Skeleton className="h-96 w-full" />
@@ -301,18 +352,23 @@ export function PrintPanel({ summary }: PrintPanelProps) {
         </div>
       )}
 
-      {(cardsReady || tabReady) && (
-        <>
-          <style>{PRINT_ONLY_CSS}</style>
+      {(cardsReady || tabReady) &&
+        createPortal(
           <div className="final-print-area hidden print:block">
+            <style>{PRINT_ONLY_CSS}</style>
             {cardsReady &&
-              allCards.map((q) =>
-                q.data ? (
-                  <div key={q.data.student.roll_number} className="break-after-page">
-                    {renderCard(q.data)}
-                  </div>
-                ) : null,
-              )}
+              printed.map(({ row, card: c }) => (
+                <div key={row.student.id} className="break-after-page">
+                  {c ? (
+                    renderCard(c)
+                  ) : (
+                    <p>
+                      {formatNumber(row.student.roll_number, config)} · {row.student.full_name}:{' '}
+                      {t('finalResults.print.cardFailed')}
+                    </p>
+                  )}
+                </div>
+              ))}
             {tabReady && tab.data && (
               <TabulationSheet
                 variant="final"
@@ -370,9 +426,9 @@ export function PrintPanel({ summary }: PrintPanelProps) {
                 }}
               />
             )}
-          </div>
-        </>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
