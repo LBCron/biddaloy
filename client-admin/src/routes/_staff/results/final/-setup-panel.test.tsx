@@ -28,8 +28,8 @@ vi.mock('../../../../route-permissions', async (importOriginal) => {
 
 import { mockFinal, summary, type Status } from './-test-fixtures';
 
-async function open(status: Status = 'DRAFT') {
-  mockFinal(status);
+async function open(status: Status = 'DRAFT', over: Record<string, unknown> = {}) {
+  mockFinal(status, over);
   renderWithRouter(routeTree, {
     initialEntries: ['/results/final/fr-1'],
     tenantId: 'tenant-1',
@@ -152,4 +152,19 @@ describe('Setup tab', () => {
       expect(save().className.split(/\s+/)).not.toContain('bg-primary');
     },
   );
+
+  it('counts the whole-exam share for an exam a subject row does not list', async () => {
+    // Maths has its own Half Yearly share (40) and none for Annual, so Annual falls back to 60.
+    await open('DRAFT', {
+      weights: [
+        { exam_id: 'e1', subject_id: null, share_percent: 40 },
+        { exam_id: 'e2', subject_id: null, share_percent: 60 },
+        { exam_id: 'e1', subject_id: 's1', share_percent: 40 },
+      ],
+    });
+    await userEvent.click(screen.getByText('More rules'));
+    await screen.findByLabelText('Maths · Half Yearly');
+    expect(screen.queryByText("Each subject's shares must total 100.")).toBeNull();
+    expect(save().disabled).toBe(false);
+  });
 });

@@ -130,15 +130,16 @@ export function SetupForm({ summary, exams }: { summary: FinalResultSummary; exa
   const [bestOfCount, setBestOfCount] = React.useState(text(summary.best_of_count ?? 2));
 
   const examIds = exams.filter((e) => ticked.has(e.id)).map((e) => e.id);
-  const parsed = (row: Record<string, string> | undefined) =>
-    Object.fromEntries(examIds.map((id) => [id, num(row?.[id])]));
+  // A subject row that lacks an exam falls back to the whole-exam share, like the input shows.
+  const parsed = (row: Record<string, string> | undefined, fallback?: Record<string, string>) =>
+    Object.fromEntries(examIds.map((id) => [id, num(row?.[id] ?? fallback?.[id])]));
   const wholeParsed = parsed(shares);
   const wholeSum = sumShares(examIds.map((id) => wholeParsed[id]));
   const wholeBad = !bestOf && examIds.length > 0 && wholeSum !== 100;
 
   const subjectList = subjects.data ?? [];
   const subjectRows = Object.fromEntries(
-    subjectList.map((s) => [s.subject_id, parsed(subjectShares[s.subject_id] ?? shares)]),
+    subjectList.map((s) => [s.subject_id, parsed(subjectShares[s.subject_id], shares)]),
   );
   const rowBad = (subjectId: string) =>
     perSubject && !bestOf && sumShares(examIds.map((id) => subjectRows[subjectId]?.[id])) !== 100;
