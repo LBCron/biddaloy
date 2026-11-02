@@ -298,14 +298,19 @@ export class PromotionsService {
   /**
    * [70.3.3] The final result must be PUBLISHED and be the source class's own final for its
    * year. One fixed sentence for every failure: no echo of the id sent (Rule 23).
+   * Given a transaction `manager`, the final row is share-locked so a concurrent reopen (and so a
+   * rebuild) waits until the refresh or commit is done.
    */
   private async assertUsableFinal(
     finalResultId: string,
     sourceClassId: string,
     sourceAcademicYearId: string,
     tenantId: string,
+    manager?: EntityManager,
   ): Promise<void> {
-    const final = await this.finalResultRepo.findOne({
+    const repo = manager ? manager.getRepository(FinalResult) : this.finalResultRepo;
+    const final = await repo.findOne({
+      ...(manager ? { lock: { mode: 'pessimistic_read' as const } } : {}),
       where: {
         id: finalResultId,
         tenant_id: tenantId,
@@ -766,6 +771,7 @@ export class PromotionsService {
             run.source_class_id,
             run.source_academic_year_id,
             tenantId,
+            manager,
           );
         }
 
@@ -1007,12 +1013,14 @@ export class PromotionsService {
           run.source_class_id,
           run.source_academic_year_id,
           tenantId,
+          manager,
         );
         // A rebuild soft-deletes the old rows and writes new ones, so a row written OR dropped
         // after the refresh is stale. A student who never had a row (joined after the build)
         // was ranked without one at refresh too, so that alone is not stale.
         const changedRows = cohortStudentIds.length
-          ? await this.finalRowRepo
+          ? await manager
+              .getRepository(FinalResultRow)
               .createQueryBuilder('r')
               .withDeleted()
               .where('r.final_result_id = :finalId AND r.tenant_id = :tenantId', {

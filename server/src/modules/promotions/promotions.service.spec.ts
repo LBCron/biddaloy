@@ -117,6 +117,16 @@ describe('PromotionsService (unit)', () => {
         tenant_id: TENANT_ID,
       });
     });
+
+    it('inside a transaction, reads the final through it with a share lock', async () => {
+      // Refresh and commit pass their manager: a concurrent reopen must wait, not slip in.
+      const txRepo = makeRepo();
+      txRepo.findOne.mockResolvedValue({ id: 'f1' });
+      const manager = { getRepository: vi.fn().mockReturnValue(txRepo) };
+      await (service as any).assertUsableFinal('f1', 'class-1', 'year-1', TENANT_ID, manager);
+      expect(finalResultRepo.findOne).not.toHaveBeenCalled();
+      expect(txRepo.findOne.mock.calls[0][0].lock).toEqual({ mode: 'pessimistic_read' });
+    });
   });
 
   describe('create', () => {
