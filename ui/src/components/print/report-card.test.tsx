@@ -299,6 +299,20 @@ describe('ReportCard', () => {
       );
     });
 
+    it('a final card without blockLabels is a compile error', () => {
+      const final = {
+        ...WITH_BLOCKS,
+        final: { label: 'Final result', section_position: 3 },
+        exam_columns: [{ id: 'e1', label: 'Half Yearly', share_label: '40%' }],
+      };
+      // Type-level guard (tsc runs it): omitting blockLabels must not compile.
+      const missing = () => (
+        // @ts-expect-error blockLabels is required when data.final is set
+        <ReportCard data={final} issuer={ISSUER} labels={LABELS} />
+      );
+      expect(typeof missing).toBe('function');
+    });
+
     it('final card: exam_cells are matched by exam id, not by position', () => {
       const { container } = render(
         <ReportCard
