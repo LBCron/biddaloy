@@ -30,6 +30,22 @@ const smsKey = (id: string, page: number) => ['notices', 'sms', id, page] as con
 
 const statusOf = (e: unknown) => (e instanceof ApiError ? e.statusCode : undefined);
 
+/** Which sentence a failed tick or decision shows. Every 409 here carries a
+ * `details.code`, except the idempotency interceptor's "still being processed". */
+function smsErrorKey(e: unknown): string {
+  if (!(e instanceof ApiError) || e.statusCode !== 409) return 'manage.actionError';
+  switch (e.details?.['code']) {
+    case 'NOTICE_SMS_NOT_PENDING':
+      return 'manage.sms.alreadyDecided';
+    case 'NOTICE_SMS_NOT_LIVE':
+      return 'manage.sms.notLive';
+    case 'INSUFFICIENT_SMS_CREDIT':
+      return 'manage.sms.noCredit';
+    default:
+      return 'manage.sms.inFlight';
+  }
+}
+
 export function NoticeSmsPage({ noticeId, onClose }: { noticeId: string; onClose: () => void }) {
   const { t } = useTranslation('notices');
   const config = useTenantRegionConfig();
@@ -65,6 +81,8 @@ export function NoticeSmsPage({ noticeId, onClose }: { noticeId: string; onClose
         })
       ).data,
     retry: false,
+    // The box snaps back on the refetch; say why, so no one thinks the person is out.
+    onError: (e) => toast.error(t(smsErrorKey(e))),
     onSettled: refresh,
   });
   const decide = useMutation({
@@ -89,9 +107,8 @@ export function NoticeSmsPage({ noticeId, onClose }: { noticeId: string; onClose
         );
         onClose();
       },
-      // A second click or a colleague who decided first: show what is true now.
-      onError: (e) =>
-        toast.error(statusOf(e) === 409 ? t('manage.sms.alreadyDecided') : t('manage.actionError')),
+      // A second click, a colleague who decided first, too little credit: say which.
+      onError: (e) => toast.error(t(smsErrorKey(e))),
       onSettled: () => setDeclining(false),
     });
   }
@@ -196,7 +213,9 @@ export function NoticeSmsPage({ noticeId, onClose }: { noticeId: string; onClose
             label: t('manage.sms.approve'),
             onClick: () => send('approve'),
             busy: decide.isPending,
-            disabled: !view.live || view.counts.willSend === 0 || decide.isPending,
+            // Wait for a tick to land: Approve sends to whoever is ticked on the server.
+            disabled:
+              !view.live || view.counts.willSend === 0 || decide.isPending || tick.isPending,
           },
           secondary: {
             label: t('manage.sms.decline'),

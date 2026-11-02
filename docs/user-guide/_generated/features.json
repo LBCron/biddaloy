@@ -429,7 +429,8 @@
       "/communications/notices",
       "/communications/notices/$noticeId",
       "/communications/notices/$noticeId/edit",
-      "/communications/notices/new"
+      "/communications/notices/new",
+      "/n/$token"
     ]
   },
   {

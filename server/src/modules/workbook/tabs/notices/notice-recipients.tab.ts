@@ -181,7 +181,8 @@ export const noticeRecipientsTab: TabSpec<NoticeRecipient, Rec> = {
             TAB,
             rowNo,
             column,
-            `Column "${column}": no ${refTab} row with the key "${key}" was found.`,
+            // Rule 23: column and tab are constants; the key goes in `value` only.
+            `Column "${column}": no such ${refTab} row was found.`,
             key,
           ),
         );

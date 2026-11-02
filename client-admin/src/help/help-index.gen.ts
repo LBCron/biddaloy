@@ -4946,6 +4946,7 @@ export const HELP_ROUTES = {
   '/communications/notices/$noticeId': 'communications.notices',
   '/communications/notices/$noticeId/edit': 'communications.notices',
   '/communications/notices/new': 'communications.notices',
+  '/n/$token': 'communications.notices',
   '/communications/send': 'communications.sendMessage',
   '/communications/send-alert': 'communications.sendAlert',
   '/communications/reminders': 'communications.feeReminders',

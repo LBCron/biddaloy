@@ -122,6 +122,8 @@
       "approved": "{{n}} SMS are on their way.",
       "declined": "SMS declined. Nothing was sent.",
       "alreadyDecided": "This request was already decided.",
+      "noCredit": "Not enough SMS credit. Nothing was sent, and the request is still waiting. Top up, then approve again.",
+      "inFlight": "Your earlier click is still being worked on. Wait a moment, then open the page again.",
       "notLive": "The notice is no longer live, so the SMS cannot be sent.",
       "readOnly": "This request is already decided. You can only read it."
     }
