@@ -81,6 +81,8 @@ export class NoticeSmsController {
     return this.sms.approve(t.id, id, u.sub);
   }
 
+  // Rule 15: no @FailClosedWithoutRedis. With Redis down the idempotency check fails open, which
+  // is safe here: decline spends nothing and its PENDING check under the row lock makes a repeat a 409.
   @Post('decline')
   @HttpCode(200)
   @UseInterceptors(IdempotencyInterceptor)

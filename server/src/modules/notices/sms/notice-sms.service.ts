@@ -245,16 +245,34 @@ export class NoticeSmsService {
     ids: string[],
     smsWanted: boolean,
   ): Promise<{ updated: number }> {
-    return this.ds.transaction(async (tx) => {
-      const n = await this.lockNotice(tx, tenantId, id);
-      if (n.sms_status !== NoticeSmsStatus.PENDING) throw new ConflictException(M.notPending);
-      const res = await tx.update(
-        NoticeRecipient,
-        { tenant_id: tenantId, notice_id: id, kind: NoticeRecipientKind.GUARDIAN, id: In(ids) },
-        { sms_wanted: smsWanted },
-      );
-      return { updated: res.affected ?? 0 };
-    });
+    let notLive = false;
+    try {
+      return await this.ds.transaction(async (tx) => {
+        const n = await this.lockNotice(tx, tenantId, id);
+        if (n.sms_status !== NoticeSmsStatus.PENDING) throw new ConflictException(M.notPending);
+        // Same answer as approve: a dead request takes no ticks.
+        if (!(await this.isLive(tenantId, n))) {
+          notLive = true;
+          throw new ConflictException(M.notLive);
+        }
+        const res = await tx.update(
+          NoticeRecipient,
+          { tenant_id: tenantId, notice_id: id, kind: NoticeRecipientKind.GUARDIAN, id: In(ids) },
+          { sms_wanted: smsWanted },
+        );
+        return { updated: res.affected ?? 0 };
+      });
+    } catch (e) {
+      // Outside the rolled-back transaction: closeIfNotLive takes the same row lock itself.
+      if (notLive) {
+        try {
+          await this.closeIfNotLive(tenantId, id);
+        } catch (ce) {
+          this.logger.error(`notice sms expiry close failed: ${(ce as Error).message}`);
+        }
+      }
+      throw e;
+    }
   }
 
   async decline(tenantId: string, id: string, userId: string): Promise<SmsDecisionDto> {

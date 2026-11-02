@@ -1,4 +1,5 @@
 import { NoticeRecipientKind, UserRole } from '@biddaloy/shared';
+import { ConflictException } from '@nestjs/common';
 import type { DemoSeedContext, DemoSlice } from '../context';
 import { Notice } from '../../../modules/notices/entities/notice.entity';
 import { NoticeAttachment } from '../../../modules/notices/entities/notice-attachment.entity';
@@ -255,7 +256,10 @@ export const slice: DemoSlice = {
       smsExpired,
       addDays(ctx.anchor, -5),
     ]);
-    await sms.approve(T, smsExpired, org.adminUserId).catch(() => undefined);
+    // Only the expected 409 is swallowed: any other failure breaks the seed.
+    await sms.approve(T, smsExpired, org.adminUserId).catch((e: unknown) => {
+      if (!(e instanceof ConflictException)) throw e;
+    });
 
     await notices.idle();
 

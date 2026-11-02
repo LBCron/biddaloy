@@ -26,7 +26,7 @@ export interface AlertItemCardProps {
   onHide?: (item: AlertItem) => void;
   onSnooze?: (item: AlertItem, choice: SnoozeChoice, date?: string) => void;
   /** [53.5.03] "পড়েছি" for an important notice; the only way such a card leaves (D17). */
-  onAcknowledge?: (noticeId: string) => void;
+  onAcknowledge?: (noticeId: string, item: AlertItem) => void;
   busy?: boolean;
   error?: string;
 }
@@ -83,6 +83,7 @@ export function AlertItemCard({
           <AttentionNoticeItem
             item={item}
             busy={busy}
+            onOpen={() => onPrimary(item)}
             {...(onAcknowledge ? { onAcknowledge } : {})}
           />
         )}
