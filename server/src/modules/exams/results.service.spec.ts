@@ -83,6 +83,8 @@ function makeRepos(overrides: Record<string, any> = {}) {
           // computeAll now reads through this manager ([68.2.06]), so the
           // read repos are served here too; `find` feeds loadExamCohort's mock.
           find: (...args: any[]) => enrollmentRepo.find(...args),
+          // reopen() asks which finals count the exam: none here.
+          query: async () => [],
           getRepository: (entity: any) => {
             if (entity === Exam) return examRepo;
             if (entity === Result) return resultRepo;
