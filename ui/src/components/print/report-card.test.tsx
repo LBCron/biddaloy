@@ -206,4 +206,120 @@ describe('ReportCard', () => {
     render(<ReportCard data={BASE} issuer={ISSUER} labels={LABELS} />);
     expect(screen.getByText('4.50')).toBeTruthy();
   });
+
+  describe('attendance, remark, conduct and final blocks', () => {
+    const BLOCK_LABELS = {
+      workingDays: 'Working days',
+      daysPresent: 'Days present',
+      attendance: 'Attendance',
+      remark: "Class teacher's remark",
+      conduct: 'Conduct',
+      final: 'Final',
+      sectionPosition: 'Section position',
+      classTeacher: 'Class teacher',
+      guardian: 'Guardian',
+      headTeacher: 'Head teacher',
+    };
+    const NEVER_SAY =
+      /composition|weight|process|override|best-of|snapshot|annual result|\bnull\b|missing|summary|\bnote\b|evaluation/i;
+    const WITH_BLOCKS: ReportCardData = {
+      ...BASE,
+      attendance: { working_days: 200, present_days: 180 },
+      remark: 'Keep it up',
+      conduct: [
+        { label: 'Discipline', grade: 'A' },
+        { label: 'Sports', grade: null },
+      ],
+    };
+
+    it('renders nothing extra without the new props (no signatures either)', () => {
+      const { container } = render(
+        <ReportCard data={BASE} issuer={ISSUER} labels={LABELS} blockLabels={BLOCK_LABELS} />,
+      );
+      expect(container.querySelector('[data-slot="report-card-attendance"]')).toBeNull();
+      expect(container.querySelector('[data-slot="report-card-remark"]')).toBeNull();
+      expect(container.querySelector('[data-slot="report-card-conduct"]')).toBeNull();
+      expect(screen.queryByText('Guardian')).toBeNull();
+    });
+
+    it('renders attendance with percent, remark, conduct and three signatures', () => {
+      const { container } = render(
+        <ReportCard
+          data={WITH_BLOCKS}
+          issuer={ISSUER}
+          labels={LABELS}
+          blockLabels={BLOCK_LABELS}
+        />,
+      );
+      expect(container.querySelector('[data-slot="report-card-attendance"]')!.textContent).toBe(
+        'Attendance: Working days 200 · Days present 180 (90%)',
+      );
+      expect(screen.getByText('Keep it up')).toBeTruthy();
+      expect(screen.getByText('Discipline')).toBeTruthy();
+      // An ungraded conduct item prints a dash, not "null".
+      expect(container.querySelector('[data-slot="report-card-conduct"]')!.textContent).toContain(
+        'Sports—',
+      );
+      for (const t of ['Class teacher', 'Guardian', 'Head teacher']) {
+        expect(screen.getAllByText(t)).toHaveLength(1);
+      }
+      expect(container.textContent).not.toMatch(NEVER_SAY);
+    });
+
+    it('prints a dash for missing attendance numbers and an empty remark', () => {
+      const { container } = render(
+        <ReportCard
+          data={{ ...BASE, attendance: { working_days: null, present_days: null }, remark: null }}
+          issuer={ISSUER}
+          labels={LABELS}
+          blockLabels={BLOCK_LABELS}
+        />,
+      );
+      expect(container.querySelector('[data-slot="report-card-attendance"]')!.textContent).toBe(
+        'Attendance: Working days — · Days present —',
+      );
+      expect(container.querySelector('[data-slot="report-card-remark"]')!.textContent).toContain(
+        '—',
+      );
+    });
+
+    it('final card: one column per counted exam, Absent cell, final column, section position', () => {
+      const { container } = render(
+        <ReportCard
+          data={{
+            ...WITH_BLOCKS,
+            exam_name: 'Final result 2026',
+            subjects: [{ ...MATH_SUBJECT, components: [], exam_cells: [70, null] }],
+            final: { label: 'Final result', section_position: 3 },
+            exam_columns: [
+              { label: 'Half Yearly', share_label: '40%' },
+              { label: 'Annual', share_label: '60%' },
+            ],
+          }}
+          issuer={ISSUER}
+          labels={LABELS}
+          blockLabels={BLOCK_LABELS}
+        />,
+      );
+      expect([...container.querySelectorAll('thead th')].map((t) => t.textContent)).toEqual([
+        'Subject',
+        'Half Yearly40%',
+        'Annual60%',
+        'Final',
+        'Grade',
+        'GPA',
+      ]);
+      const row = container.querySelector('tbody tr')!;
+      expect([...row.querySelectorAll('td')].map((t) => t.textContent)).toEqual([
+        'Mathematics',
+        '70',
+        'Absent',
+        '85',
+        'A+',
+        '5.00',
+      ]);
+      expect(screen.getByText('Section position')).toBeTruthy();
+      expect(container.textContent).not.toMatch(NEVER_SAY);
+    });
+  });
 });

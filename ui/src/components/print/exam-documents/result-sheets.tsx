@@ -33,6 +33,8 @@ export interface TabulationRow {
   grade: string;
   merit: number | null;
   isFail: boolean;
+  /** `variant="final"`: each counted exam's total by exam id; null = absent in that exam. */
+  examTotals?: Record<string, number | null>;
 }
 
 export interface TabulationSheetProps {
@@ -44,6 +46,9 @@ export interface TabulationSheetProps {
   section: string;
   subjects: TabulationSubject[];
   rows: TabulationRow[];
+  /** `final` adds one total column per `examColumns` entry before the final columns. */
+  variant?: 'exam' | 'final';
+  examColumns?: { id: string; label: string }[];
   /** Pre-formatted from the grading scale. */
   legend: string;
   printedOn: string;
@@ -63,6 +68,8 @@ export interface TabulationSheetProps {
     classTeacher: string;
     examController: string;
     headTeacher: string;
+    /** Shown in an exam-total cell when the student was absent (final variant). */
+    absent?: string;
   };
 }
 
@@ -75,6 +82,8 @@ export interface TranscriptExam {
   position: number | null;
   /** The exam's overall result failed: its grade is boxed like a failed subject. */
   isFail?: boolean;
+  /** Final transcript: this exam's share, pre-formatted, e.g. "30%". */
+  shareLabel?: string;
 }
 
 export interface YearlyTranscriptProps {
@@ -84,6 +93,8 @@ export interface YearlyTranscriptProps {
   student: { name: string; roll: number; className: string; section: string };
   yearName: string;
   exams: TranscriptExam[];
+  /** Final transcript: the last, চূড়ান্ত row of the summary table. */
+  final?: { total: number; gpa: number; grade: string; position: number | null; isFail?: boolean };
   printedOn: string;
   labels: {
     title: string;
@@ -97,6 +108,10 @@ export interface YearlyTranscriptProps {
     position: string;
     classTeacher: string;
     headTeacher: string;
+    /** Needed when `final` is passed. */
+    final?: string;
+    /** Needed when any exam has a `shareLabel`. */
+    share?: string;
   };
 }
 
@@ -118,10 +133,13 @@ export function TabulationSheet({
   section,
   subjects,
   rows,
+  variant = 'exam',
+  examColumns = [],
   legend,
   printedOn,
   labels,
 }: TabulationSheetProps) {
+  const exCols = variant === 'final' ? examColumns : [];
   const config = useRegionConfig();
   const num = (n: number | null) => formatNumber(n, config);
   const gpa = (n: number) => formatNumber(n, config, { decimals: 2 });
@@ -151,6 +169,11 @@ export function TabulationSheet({
                 {s.name}
                 <br />
                 {labels.fullMarks} {num(s.fullMarks)}
+              </th>
+            ))}
+            {exCols.map((e) => (
+              <th key={`ex-${e.id}`} scope="col" rowSpan={2} className={th}>
+                {e.label}
               </th>
             ))}
             {(['total', 'gpa', 'grade', 'merit'] as const).map((k) => (
@@ -191,6 +214,14 @@ export function TabulationSheet({
                   </td>,
                 ];
               })}
+              {exCols.map((e) => {
+                const t = r.examTotals?.[e.id];
+                return (
+                  <td key={`ex-${e.id}`} className={td}>
+                    {t === undefined ? DASH : t === null ? (labels.absent ?? DASH) : num(t)}
+                  </td>
+                );
+              })}
               <td className={td}>{num(r.total)}</td>
               <td className={td}>{gpa(r.gpa)}</td>
               <td className={td}>
@@ -219,9 +250,11 @@ export function YearlyTranscript({
   student,
   yearName,
   exams,
+  final,
   printedOn,
   labels,
 }: YearlyTranscriptProps) {
+  const showShare = exams.some((e) => e.shareLabel !== undefined);
   const config = useRegionConfig();
   const num = (n: number | null) => formatNumber(n, config);
   const gpa = (n: number) => formatNumber(n, config, { decimals: 2 });
@@ -277,7 +310,15 @@ export function YearlyTranscript({
         <caption className="sr-only">{labels.title}</caption>
         <thead>
           <tr>
-            {(['exam', 'total', 'gpa', 'grade', 'position'] as const).map((k) => (
+            <th scope="col" className={h}>
+              {labels.exam}
+            </th>
+            {showShare && (
+              <th scope="col" className={h}>
+                {labels.share}
+              </th>
+            )}
+            {(['total', 'gpa', 'grade', 'position'] as const).map((k) => (
               <th key={k} scope="col" className={h}>
                 {labels[k]}
               </th>
@@ -290,6 +331,7 @@ export function YearlyTranscript({
               <th scope="row" className={`${c} font-normal`}>
                 {e.name}
               </th>
+              {showShare && <td className={c}>{e.shareLabel ?? DASH}</td>}
               <td className={c}>{num(e.total)}</td>
               <td className={c}>{gpa(e.gpa)}</td>
               <td className={c}>
@@ -298,6 +340,20 @@ export function YearlyTranscript({
               <td className={c}>{e.position === null ? DASH : num(e.position)}</td>
             </tr>
           ))}
+          {final && (
+            <tr className="font-bold">
+              <th scope="row" className={`${c} text-start`}>
+                {labels.final}
+              </th>
+              {showShare && <td className={c} />}
+              <td className={c}>{num(final.total)}</td>
+              <td className={c}>{gpa(final.gpa)}</td>
+              <td className={c}>
+                <Grade grade={final.grade} fail={!!final.isFail} />
+              </td>
+              <td className={c}>{final.position === null ? DASH : num(final.position)}</td>
+            </tr>
+          )}
         </tbody>
       </table>
     </A4Document>
