@@ -6053,6 +6053,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/students/{studentId}/final-result-card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A student's final report card for a year. Staff see a PROCESSED final too; PARENT/STUDENT (linked only) see PUBLISHED only. */
+        get: operations["TranscriptController_getFinalResultCard_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/students/{studentId}/document-prints": {
         parameters: {
             query?: never;
@@ -8537,6 +8554,23 @@ export interface paths {
         };
         /** Per-subject marks of every student in one section. */
         get: operations["ExamDocumentsController_tabulation_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/final-results/{finalResultId}/documents/tabulation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Final result: per-subject exam and final marks of one section. */
+        get: operations["FinalDocumentsController_tabulation_v1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -15412,7 +15446,7 @@ export interface components {
         };
         DocumentPrintDto: {
             /** @enum {string} */
-            document: "REPORT_CARD" | "TRANSCRIPT";
+            document: "REPORT_CARD" | "TRANSCRIPT" | "FINAL_REPORT_CARD";
             /** Format: uuid */
             exam_id?: string;
             /** Format: uuid */
@@ -16939,6 +16973,57 @@ export interface components {
             };
             subjects: components["schemas"]["TabulationSubjectDto"][];
             rows: components["schemas"]["TabulationRowDto"][];
+        };
+        FinalTabulationExamDto: {
+            exam_id: string;
+            name: string;
+            share_percent: number | null;
+        };
+        FinalTabulationSubjectDto: {
+            subject_id: string;
+            name_en: string;
+            name_bn: string | null;
+        };
+        FinalTabulationCellDto: {
+            obtained: number;
+            grade: string;
+            is_fail: boolean;
+            per_exam: {
+                [key: string]: number | null;
+            };
+        };
+        FinalTabulationRowDto: {
+            student_id: string;
+            roll_number: number;
+            full_name: string;
+            cells: {
+                [key: string]: components["schemas"]["FinalTabulationCellDto"];
+            };
+            exam_totals: {
+                [key: string]: number | null;
+            };
+            total_marks: number;
+            gpa: number;
+            grade: string;
+            position: number | null;
+            section_position: number | null;
+            is_fail: boolean;
+        };
+        FinalTabulationDto: {
+            final: {
+                id: string;
+                academic_year_name: string;
+                status: string;
+                published_at: string | null;
+            };
+            section: {
+                id: string;
+                name: string;
+                class_name: string;
+            };
+            exams: components["schemas"]["FinalTabulationExamDto"][];
+            subjects: components["schemas"]["FinalTabulationSubjectDto"][];
+            rows: components["schemas"]["FinalTabulationRowDto"][];
         };
         ProgramMilestoneDto: {
             id: string;
@@ -33761,6 +33846,41 @@ export interface operations {
             };
         };
     };
+    TranscriptController_getFinalResultCard_v1: {
+        parameters: {
+            query: {
+                academic_year_id: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     TranscriptController_logDocumentPrint_v1: {
         parameters: {
             query?: never;
@@ -39678,6 +39798,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TabulationDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    FinalDocumentsController_tabulation_v1: {
+        parameters: {
+            query: {
+                section_id: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                finalResultId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalTabulationDto"];
                 };
             };
             /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
