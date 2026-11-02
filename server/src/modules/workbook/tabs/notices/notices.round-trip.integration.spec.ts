@@ -343,13 +343,32 @@ describe('notices workbook tabs (round trip)', () => {
   // restore over live rows clears every public and personal link.
   it('restoring over live rows keeps the rows and clears every link', async () => {
     const a = await seedTenant(A, 'notices-a-5360', 'a');
-    await seedNotice(A, a, { pub: TOKEN_A, link: LINK_A, key: KEY_A });
+    const notice = await seedNotice(A, a, { pub: TOKEN_A, link: LINK_A, key: KEY_A });
+    // A recipient whose guardian is soft-deleted: not in the export, still in the DB.
+    const gone = await ds.getRepository(Guardian).save({
+      tenant_id: A,
+      full_name: 'Left parent',
+      relationship: 'Mother',
+      phone: '01900008888',
+    } as any);
+    const hidden = await ds.getRepository(NoticeRecipient).save({
+      tenant_id: A,
+      notice_id: notice.id,
+      kind: 'GUARDIAN',
+      guardian_id: gone.id,
+      student_id: a.student.id,
+      link_token_hash: 'e'.repeat(64),
+    } as any);
+    await ds.getRepository(Guardian).softDelete({ id: gone.id });
     const before = await ds.getRepository(Notice).findOneByOrFail({ tenant_id: A });
 
     await restoreAll(A, await exportAll(A));
 
     expect(await ds.getRepository(Notice).count({ where: { tenant_id: A } })).toBe(1);
-    expect(await ds.getRepository(NoticeRecipient).count({ where: { tenant_id: A } })).toBe(2);
+    expect(await ds.getRepository(NoticeRecipient).count({ where: { tenant_id: A } })).toBe(3);
+    // The hidden recipient's link dies too (cleared by notice id, D40).
+    const hiddenAfter = await ds.getRepository(NoticeRecipient).findOneByOrFail({ id: hidden.id });
+    expect(hiddenAfter.link_token_hash).toBeNull();
     expect(await ds.getRepository(NoticeAttachment).count({ where: { tenant_id: A } })).toBe(1);
     const after = await ds.getRepository(Notice).findOneByOrFail({ tenant_id: A });
     expect(after.id).toBe(before.id);
@@ -360,7 +379,7 @@ describe('notices workbook tabs (round trip)', () => {
     });
     const link = await ds
       .getRepository(NoticeRecipient)
-      .findOneByOrFail({ tenant_id: A, kind: 'GUARDIAN' as any });
+      .findOneByOrFail({ tenant_id: A, guardian_id: a.guardian.id });
     expect(link.link_token_hash).toBeNull();
   });
 
