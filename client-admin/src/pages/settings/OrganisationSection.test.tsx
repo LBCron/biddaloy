@@ -279,7 +279,10 @@ describe('OrganisationSection', () => {
           tenantId: SCHOOL_ID,
         },
       );
-    const conductSave = () => screen.getAllByRole('button', { name: 'Save' })[1]!;
+    const conductSave = () =>
+      within(screen.getByRole('heading', { name: 'Conduct' }).closest('form')!).getByRole('button', {
+        name: 'Save',
+      });
 
     it('lists the saved lines with both names and the read-only key', async () => {
       renderCard();
