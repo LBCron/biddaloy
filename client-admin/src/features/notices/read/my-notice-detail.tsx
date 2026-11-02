@@ -7,7 +7,7 @@ import { Button } from '@biddaloy/ui/components';
 import { useRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { formatDate } from '@biddaloy/ui/utils';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   fetchNoticeFileBlob,
@@ -27,10 +27,14 @@ function NoticeFileItem({ noticeId, file }: { noticeId: string; file: MyNoticeFi
     enabled: isImage,
     staleTime: Infinity,
   });
-  const imageUrl = useMemo(
-    () => (blob.data ? URL.createObjectURL(blob.data) : undefined),
-    [blob.data],
-  );
+  // Made in an effect and revoked on change or unmount, so the blob is not kept alive.
+  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!blob.data) return;
+    const url = URL.createObjectURL(blob.data);
+    setImageUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [blob.data]);
 
   if (isImage) {
     return imageUrl ? (
