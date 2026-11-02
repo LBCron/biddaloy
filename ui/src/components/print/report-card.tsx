@@ -34,6 +34,8 @@ export interface ReportCardSubject {
   is_fail: boolean;
   is_fourth_subject: boolean;
   components: ReportCardComponent[];
+  /** Final card only: obtained per counted exam, same order as `exam_columns`; null = absent. */
+  exam_cells?: (number | null)[];
 }
 
 export interface ReportCardLegendRow {
@@ -67,6 +69,27 @@ export interface ReportCardData {
   subjects: ReportCardSubject[];
   legend: ReportCardLegendRow[];
   programs?: ReportCardProgramRow[];
+  /** [70.W4] All optional: absent = the card renders exactly as before. */
+  attendance?: { working_days: number | null; present_days: number | null };
+  remark?: string | null;
+  conduct?: { label: string; grade: string | null }[];
+  /** Final card: one subject-table column per counted exam, then the final columns. */
+  final?: { label: string; section_position: number | null };
+  exam_columns?: { label: string; share_label: string }[];
+}
+
+/** Needed only when attendance / remark / conduct / final is passed. */
+export interface ReportCardBlockLabels {
+  workingDays: string;
+  daysPresent: string;
+  attendance: string;
+  remark: string;
+  conduct: string;
+  final: string;
+  sectionPosition: string;
+  classTeacher: string;
+  guardian: string;
+  headTeacher: string;
 }
 
 export interface ReportCardProps {
@@ -74,6 +97,7 @@ export interface ReportCardProps {
   issuer: IssuerSnapshot;
   logoUrl?: string | null;
   activeLanguage?: string;
+  blockLabels?: ReportCardBlockLabels;
   labels: {
     examLabel: string;
     rollLabel: string;
@@ -101,13 +125,26 @@ function subjectFullMarks(components: ReportCardComponent[]): number {
   return components.reduce((sum, c) => sum + c.full_marks, 0);
 }
 
-export function ReportCard({ data, issuer, logoUrl, activeLanguage, labels }: ReportCardProps) {
+export function ReportCard({
+  data,
+  issuer,
+  logoUrl,
+  activeLanguage,
+  labels,
+  blockLabels,
+}: ReportCardProps) {
   const config = useRegionConfig();
   const num = (v: number | null) => formatNumber(v, config);
   const gpa = (v: number) => formatNumber(v, config, { decimals: 2 });
   // A milestone score keeps its own decimals (92.5 stays 92.5), in tenant numerals.
   const score = (v: number) =>
     formatNumber(v, config, { decimals: String(v).split('.')[1]?.length ?? 0 });
+  const columns = data.final ? (data.exam_columns ?? []) : [];
+  const att = data.attendance;
+  const pct =
+    att && att.working_days && att.present_days !== null
+      ? Math.min(100, Math.round((att.present_days / att.working_days) * 100))
+      : null;
   return (
     <div
       data-slot="report-card"
@@ -140,7 +177,15 @@ export function ReportCard({ data, issuer, logoUrl, activeLanguage, labels }: Re
         <thead>
           <tr className="border-b text-start text-text-secondary">
             <th className="py-1">{labels.subject}</th>
-            <th className="py-1 text-end">{labels.obtained}</th>
+            {columns.map((col, i) => (
+              <th key={`${col.label}-${i}`} className="py-1 text-end">
+                {col.label}
+                <span className="block text-xs font-normal">{col.share_label}</span>
+              </th>
+            ))}
+            <th className="py-1 text-end">
+              {data.final && blockLabels ? blockLabels.final : labels.obtained}
+            </th>
             <th className="py-1">{labels.grade}</th>
             <th className="py-1">{labels.gpa}</th>
           </tr>
@@ -157,8 +202,19 @@ export function ReportCard({ data, issuer, logoUrl, activeLanguage, labels }: Re
                     </span>
                   )}
                 </td>
+                {columns.map((col, i) => (
+                  <td key={`${col.label}-${i}`} className="py-1 text-end">
+                    {subject.exam_cells?.[i] === undefined
+                      ? '—'
+                      : subject.exam_cells[i] === null
+                        ? labels.absent
+                        : num(subject.exam_cells[i])}
+                  </td>
+                ))}
                 <td className="py-1 text-end">
-                  {num(subject.obtained)} / {num(subjectFullMarks(subject.components))}
+                  {data.final
+                    ? num(subject.obtained)
+                    : `${num(subject.obtained)} / ${num(subjectFullMarks(subject.components))}`}
                 </td>
                 <td className="py-1">{subject.grade}</td>
                 <td className="py-1">{gpa(subject.gpa)}</td>
@@ -170,6 +226,9 @@ export function ReportCard({ data, issuer, logoUrl, activeLanguage, labels }: Re
                     {component.obtained === null ? labels.absent : num(component.obtained)} /{' '}
                     {num(component.full_marks)}
                   </td>
+                  {columns.map((col, i) => (
+                    <td key={`${col.label}-${i}`} />
+                  ))}
                   <td />
                   <td />
                 </tr>
@@ -196,6 +255,12 @@ export function ReportCard({ data, issuer, logoUrl, activeLanguage, labels }: Re
           <div className="flex justify-between gap-2">
             <span>{labels.position}</span>
             <span>{num(data.result.position)}</span>
+          </div>
+        )}
+        {data.final?.section_position != null && blockLabels && (
+          <div className="flex justify-between gap-2">
+            <span>{blockLabels.sectionPosition}</span>
+            <span>{num(data.final.section_position)}</span>
           </div>
         )}
       </div>
@@ -239,6 +304,43 @@ export function ReportCard({ data, issuer, logoUrl, activeLanguage, labels }: Re
         </table>
       )}
 
+      {blockLabels && att && (
+        <div data-slot="report-card-attendance" className="text-sm">
+          {blockLabels.attendance}: {blockLabels.workingDays}{' '}
+          {att.working_days === null ? '—' : num(att.working_days)}
+          {' · '}
+          {blockLabels.daysPresent} {att.present_days === null ? '—' : num(att.present_days)}
+          {pct !== null && ` (${num(pct)}%)`}
+        </div>
+      )}
+
+      {blockLabels && data.remark !== undefined && (
+        <div
+          data-slot="report-card-remark"
+          className="flex min-h-12 flex-col gap-1 rounded-md border border-border-subtle p-2 print:break-inside-avoid"
+        >
+          <span className="text-xs font-medium text-text-secondary">{blockLabels.remark}</span>
+          <span className="break-words">{data.remark || '—'}</span>
+        </div>
+      )}
+
+      {blockLabels && data.conduct && data.conduct.length > 0 && (
+        <div
+          data-slot="report-card-conduct"
+          className="flex flex-col gap-1 print:break-inside-avoid"
+        >
+          <span className="text-xs font-medium text-text-secondary">{blockLabels.conduct}</span>
+          <div className="grid grid-cols-4 gap-x-4 gap-y-1">
+            {data.conduct.map((item, i) => (
+              <span key={`${item.label}-${i}`} className="flex justify-between gap-2">
+                <span>{item.label}</span>
+                <span className="font-semibold">{item.grade ?? '—'}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-1 border-t border-border-subtle pt-2 text-xs text-text-secondary">
         <div className="font-medium">{labels.legendTitle}</div>
         <div className="flex flex-wrap gap-x-4 gap-y-1">
@@ -251,6 +353,16 @@ export function ReportCard({ data, issuer, logoUrl, activeLanguage, labels }: Re
           ))}
         </div>
       </div>
+
+      {blockLabels && (att || data.remark !== undefined || data.conduct?.length || data.final) && (
+        <div className="mt-8 grid grid-cols-3 gap-8 text-center text-xs print:break-inside-avoid">
+          {[blockLabels.classTeacher, blockLabels.guardian, blockLabels.headTeacher].map((who) => (
+            <span key={who} className="border-t border-foreground pt-1">
+              {who}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
