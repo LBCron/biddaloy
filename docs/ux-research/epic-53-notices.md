@@ -17,7 +17,7 @@ line ("tasks ক, গ, ঙ pass unaided") stays **open** until a person runs it.
 | ঙ   | Guardian              | Open the latest notice                               | 1 min or less | Portal Overview, or Portal › নোটিশ                 |
 
 Tasks খ (important notice plus SMS request) and ঘ (turn off a public link) are not in #3382's
-scope. Neither is built as a screen a user can reach yet (the public link has no client page, D19).
+scope. Both screens are now built; see "Tasks খ and ঘ (#3390)" below.
 
 "Unaided" means the person gets there without anyone telling them where to click.
 
