@@ -20,7 +20,7 @@ import { ID_COLUMN, NOTICES, instant, keysById, noticesTab, rowError } from './n
  * seen / acknowledged / link-opened / SMS / push timestamps kept.
  *
  * Left out: `link_token_hash` (D28/D40: personal links do not survive a restore, even
- * into the same school, so `upsert` clears it; hashes never enter a workbook) and
+ * into the same school; the notices tab clears them; hashes never enter a workbook) and
  * `communication_log_id` (communication logs are not backed up, so the pointer would dangle).
  *
  * A recipient whose person is no longer exportable (staff who left, soft-deleted
@@ -239,9 +239,8 @@ export const noticeRecipientsTab: TabSpec<NoticeRecipient, Rec> = {
       const val = row[k] ?? null;
       e[k] = val === null ? null : new Date(val as string);
     }
-    // D40: every restored recipient loses its personal link, a live one too.
-    // communication_log_id is untouched (not in the backup).
-    r.link_token_hash = null;
+    // link_token_hash is already cleared by the notices tab (D40), which runs
+    // first; communication_log_id is untouched (not in the backup).
     return m.save(NoticeRecipient, r);
   },
 
