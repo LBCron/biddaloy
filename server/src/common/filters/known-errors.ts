@@ -21,6 +21,7 @@ export function mapKnownError(exception: unknown): HttpException | null {
     mapUniqueViolation(exception) ??
     mapStudentFeeCheckViolation(exception) ??
     mapInvalidDate(exception) ??
+    mapDeadlock(exception) ??
     mapMulterError(exception) ??
     mapImportFileError(exception)
   );
@@ -186,6 +187,31 @@ export function reportCardNotesLocked(): ConflictException {
     message: 'This result is published, so its remarks and conduct are locked. Reopen it first.',
     details: { code: 'REPORT_CARD_NOTES_LOCKED' },
   });
+}
+
+/** [70.3.4] Reopening an exam that a PUBLISHED final counts: say where to go first. */
+export function examInPublishedFinal(): ConflictException {
+  return new ConflictException({
+    message:
+      'A published final result counts this exam. Reopen that final result first, on the Final results page.',
+    details: { code: 'EXAM_IN_PUBLISHED_FINAL' },
+  });
+}
+
+// [70.3.4] 40P01 deadlock_detected: Postgres rolled the whole transaction back, so nothing was
+// written and the same request can simply be sent again. Two lock orders meet rarely (a late
+// final in `ResultsService.reopen` vs that final's own publish); a 409 the user retries beats a 500.
+export function concurrentUpdate(): ConflictException {
+  return new ConflictException({
+    message: 'Someone else changed this at the same moment. Nothing was saved. Try again.',
+    details: { code: 'CONCURRENT_UPDATE' },
+  });
+}
+
+function mapDeadlock(exception: unknown): HttpException | null {
+  if (!(exception instanceof QueryFailedError)) return null;
+  const { code } = exception.driverError as { code?: string };
+  return code === '40P01' ? concurrentUpdate() : null;
 }
 
 function mapInvalidDate(exception: unknown): HttpException | null {
