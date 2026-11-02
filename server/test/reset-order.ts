@@ -57,6 +57,12 @@ export const TRANSACTIONAL_TABLES_CHILD_FIRST = [
   'seat_plan_schedules',
   'seat_plans',
   'workbook_jobs',
+  // [8.15.9] report tables: snapshots/schedules -> runs -> versions -> definitions.
+  'report_snapshots',
+  'report_schedules',
+  'report_runs',
+  'report_definition_versions',
+  'report_definitions',
   // [32.1.2] print tables: items -> jobs -> versions -> templates (versions
   // RESTRICT their template; templates' current_version_id is SET NULL).
   'print_job_items',

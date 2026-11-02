@@ -104,6 +104,9 @@ export enum Permission {
   // Reports
   REPORTS_VIEW = 'REPORTS_VIEW',
   REPORTS_EXPORT = 'REPORTS_EXPORT',
+  // [8.15.8] D9 — authoring (designer, publish, clone, schedules). ADMIN only;
+  // REPORTS_VIEW runs a report, REPORTS_EXPORT downloads it.
+  REPORTS_DESIGN = 'REPORTS_DESIGN',
   // [16.2.1] The fees/payments collections report (16.x) — distinct from the
   // general REPORTS_VIEW so a role can see collections without the whole
   // reports surface, and vice versa.
@@ -111,6 +114,8 @@ export enum Permission {
 
   // Dashboard
   DASHBOARD_VIEW = 'DASHBOARD_VIEW',
+  // [8.15.8] D9 — still consumed by no route; labels only. Kept for #169
+  // (dashboard follow-ups) to either wire in or delete.
   DASHBOARD_ADMIN = 'DASHBOARD_ADMIN',
   // [8.10.7] D44 — aggregate-only committee widgets/report; see the COMMITTEE row.
   COMMITTEE_REPORT_READ = 'COMMITTEE_REPORT_READ',
@@ -334,6 +339,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.COMMUNICATION_CREDIT_READ,
     Permission.REPORTS_VIEW,
     Permission.REPORTS_EXPORT,
+    // [8.15.8] D9 — report authoring is ADMIN only.
+    Permission.REPORTS_DESIGN,
     // [16.2.1] Fees/payments collections report.
     Permission.REPORT_COLLECTIONS_READ,
     Permission.DASHBOARD_VIEW,
@@ -484,6 +491,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
 
   [UserRole.TEACHER]: [
+    // [8.15.24] D9 — teachers run reports, narrowed to their own sections; they cannot export or design.
+    Permission.REPORTS_VIEW,
     // [52.1.1] Applications (D22/D45)
     Permission.APPLICATION_SUBMIT,
     Permission.MY_CLASS_VIEW,
@@ -719,6 +728,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   // permission, COMMITTEE_REPORT_READ [8.10.7 D44].
   [UserRole.COMMITTEE]: [
     Permission.DASHBOARD_VIEW,
+    // [8.15.53] D14 — may open reports; the report engine shows it counts only and hides any
+    // count under 5 (small-cell rule), never a person-level column.
+    Permission.REPORTS_VIEW,
     Permission.COMMITTEE_REPORT_READ,
     Permission.ACR_READ,
     Permission.ACADEMIC_STRUCTURE_READ,

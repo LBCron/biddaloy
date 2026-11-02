@@ -38,6 +38,7 @@ import { localToday } from '../../common/time';
 import { assertSeatsAvailable } from '../schools/trial/seat-limit.service';
 import { OPEN_FEE_STATUSES } from '../fees/fees.constants';
 import { bdPhoneTail } from '../communications/providers/shared/phone-number.util';
+import { pagedRows } from '../reports/export/paged-rows';
 
 // [16.3.3] Caps the audience picker's "select all matching" id list — bounds
 // both the query cost and the response size for a single selection.
@@ -311,6 +312,7 @@ export class StudentService {
       | 'gender'
       | 'date_of_birth_from'
       | 'date_of_birth_to'
+      | 'religion'
       | 'search'
     >,
     tenantId: string,
@@ -356,6 +358,11 @@ export class StudentService {
     }
     if (query.gender) {
       qb.andWhere('student.gender = :gender', { gender: query.gender });
+    }
+    if (query.religion?.trim()) {
+      qb.andWhere('LOWER(student.religion) = LOWER(:religion)', {
+        religion: query.religion.trim(),
+      });
     }
     if (query.date_of_birth_from) {
       qb.andWhere('student.date_of_birth >= :dobFrom', { dobFrom: query.date_of_birth_from });
@@ -499,6 +506,31 @@ export class StudentService {
     const data = ids.map((id) => byId.get(id)).filter((row): row is Student => row != null);
 
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  /**
+   * [8.15.11] Every student matching the list's own filters, as export rows in
+   * the list's column order. Reuses `findAll`, so the teacher section scope
+   * and every filter behave exactly as on screen.
+   */
+  exportHeader(): string[] {
+    return ['Roll', 'Registration No.', 'Name', 'Class', 'Section', 'Guardian', 'Status'];
+  }
+
+  iterateForExport(query: QueryStudentDto, tenantId: string, sectionIds?: string[] | null) {
+    return pagedRows(
+      (page, limit) => this.findAll({ ...query, page, limit }, tenantId, sectionIds),
+      (student: Student) => [
+        student.roll_number,
+        student.registration_number,
+        student.full_name,
+        student.class_section?.class?.name ?? '',
+        student.class_section?.section_name ?? '',
+        (student.guardians.find((g) => g.is_primary_contact) ?? student.guardians[0])?.full_name ??
+          '',
+        student.enrollment_status,
+      ],
+    );
   }
 
   async findOne(id: string, tenantId: string): Promise<Student> {
@@ -1016,6 +1048,25 @@ export class GuardianService {
     const data = ids.map((id) => byId.get(id)).filter((row): row is Guardian => row != null);
 
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  /** [8.15.11] Every guardian matching the list's own filters, as export rows. */
+  exportHeader(): string[] {
+    return ['Name', 'Relationship', 'Phone', 'Email', 'Primary contact', 'Students'];
+  }
+
+  iterateForExport(query: QueryGuardianDto, tenantId: string, sectionIds?: string[] | null) {
+    return pagedRows(
+      (page, limit) => this.findAll({ ...query, page, limit }, tenantId, sectionIds),
+      (guardian: Guardian) => [
+        guardian.full_name,
+        guardian.relationship,
+        guardian.phone ?? '',
+        guardian.email ?? '',
+        guardian.is_primary_contact ? 'Yes' : 'No',
+        (guardian.students ?? []).map((s) => s.full_name).join('; '),
+      ],
+    );
   }
 
   async findOne(id: string, tenantId: string): Promise<Guardian> {

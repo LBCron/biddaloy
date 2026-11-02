@@ -31,6 +31,7 @@ import { staffAchievementTab } from '../tabs/people/staff-achievement.tab';
 import { staffLanguageTab } from '../tabs/people/staff-language.tab';
 import { staffDocumentTab } from '../tabs/people/staff-document.tab';
 import { printTabs } from '../tabs/print';
+import { reportsTabs } from '../tabs/reports';
 import { arrivalNoticeSubscriptionsTab, attendanceTabs } from '../tabs/attendance';
 import { hrTabs } from '../tabs/hr';
 import { applicationsTabs } from '../tabs/applications';
@@ -210,6 +211,11 @@ export const EXPECTED_TABS = [
   // [84.2.3] Epic 84.0 arrival-notice subscriptions. Depend on `students` and
   // `guardians`, both earlier in this list.
   'arrival_notice_subscriptions',
+  // [8.15.12] Epic 8.15 report definitions, their published versions and schedules.
+  // `report_runs` and `report_snapshots` are derived output and are not in the workbook.
+  'report_definitions',
+  'report_definition_versions',
+  'report_schedules',
 ] as const;
 
 export type ExpectedTabName = (typeof EXPECTED_TABS)[number];
@@ -286,6 +292,8 @@ export const ALL_TABS: readonly TabSpec<any, any>[] = [
   lessonDeliveriesTab,
   // [84.2.3]
   arrivalNoticeSubscriptionsTab,
+  // [8.15.12] Same order as EXPECTED_TABS.
+  ...reportsTabs,
 ];
 
 export class RegistryError extends Error {

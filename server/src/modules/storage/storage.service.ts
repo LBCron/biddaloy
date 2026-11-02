@@ -102,6 +102,27 @@ export class StorageService {
     );
   }
 
+  /**
+   * Uploads a stream whose size is already known (a temp file's `stat().size`), so a large
+   * export never has to sit in memory the way `put`'s Buffer does.
+   */
+  async putStream(
+    key: string,
+    body: Readable,
+    contentLength: number,
+    contentType: string,
+  ): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: body,
+        ContentLength: contentLength,
+        ContentType: contentType,
+      }),
+    );
+  }
+
   async get(key: string): Promise<StoredObject> {
     const result = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
     return {

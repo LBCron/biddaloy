@@ -12,6 +12,7 @@ import { slice as peopleOps } from './slices/people-ops';
 import { slice as commsPrint } from './slices/comms-print';
 import { slice as applications } from './slices/applications';
 import { slice as billing } from './slices/billing';
+import { slice as reports } from './slices/reports';
 import { slice as attention } from './slices/attention';
 
 /** Run order matters: later slices read ids earlier ones publish. `attention` is always last. */
@@ -29,6 +30,7 @@ export const SLICES: DemoSlice[] = [
   commsPrint,
   applications,
   billing,
+  reports,
   attention,
 ];
 
@@ -41,4 +43,6 @@ export const EXEMPT: Record<string, string> = {
   UserIdentity: 'login state: sign-in credentials come from the seeded users',
   WorkbookJob: 'backups are off in the demo (D2)',
   AuditLog: 'written by services as a side effect, never seeded directly',
+  ReportSnapshot: 'runtime output: a stored copy of one run (Epic 8.15)',
+  ReportSchedule: 'runtime output: schedules are set up by the school (Epic 8.15)',
 };

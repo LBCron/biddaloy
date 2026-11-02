@@ -9,6 +9,7 @@ import { QueryFeeDuesDto, QueryFlaggedDuesDto } from './dto/fees.dto';
 import { normalizeSearchTerm } from '../../common/utils/normalize-search-term.util';
 import { localToday } from '../../common/time';
 import { OPEN_FEE_STATUSES } from './fees.constants';
+import { pagedRows } from '../reports/export/paged-rows';
 
 export interface DueEntry {
   student_fee_id: string;
@@ -167,6 +168,25 @@ export class FeeDuesService {
     }));
 
     return { data, total, total_due_sum, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  /** [8.15.11] Every student with open dues matching the list's own filters, as export rows. */
+  exportHeader(): string[] {
+    return ['Student', 'Class', 'Section', 'Billed', 'Paid', 'Due'];
+  }
+
+  iterateForExport(query: QueryFeeDuesDto, tenantId: string, restrictToStudentIds?: string[]) {
+    return pagedRows(
+      (page, limit) => this.getDues({ ...query, page, limit }, tenantId, restrictToStudentIds),
+      (row: StudentDueSummary) => [
+        row.full_name,
+        row.class_name ?? '',
+        row.section_name ?? '',
+        row.dues.reduce((sum, d) => sum + toPaisa(d.total_amount), 0) / 100,
+        row.dues.reduce((sum, d) => sum + toPaisa(d.paid_amount), 0) / 100,
+        row.total_due,
+      ],
+    );
   }
 
   async getFlaggedDues(

@@ -198,6 +198,12 @@ const BY_TABLE: Record<string, Partial<Record<ScrubHandling, string[]>>> = {
   program_milestones: { 'kept-public': ['name', 'description'] },
   programs: { 'kept-public': ['name', 'description'] },
   promotion_runs: { 'kept-public': ['exam_ids'] },
+  // [8.15.9] Report definitions are school configuration (titles, role codes, field keys).
+  report_definition_versions: { 'kept-public': ['definition'] },
+  report_definitions: { 'kept-public': ['draft', 'name_bn', 'name_en', 'visible_roles'] },
+  // Run and schedule params can hold a typed search term; the feedback comment is free text.
+  report_runs: { null: ['feedback_comment', 'params'] },
+  report_schedules: { null: ['params'], 'kept-public': ['recipient_roles'] },
   public_holiday_entries: { 'kept-public': ['name', 'name_bn'] },
   recurring_schedules: { 'kept-public': ['name', 'audience', 'rule'] },
   routines: { 'kept-public': ['name'] },

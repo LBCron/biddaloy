@@ -26,6 +26,7 @@ import {
   resolveIssuer,
   IssuerSnapshot,
 } from '../schools/profile/issuer-snapshot';
+import { exportDate, pagedRows } from '../reports/export/paged-rows';
 
 /** Older invoices were snapshotted before `period_start` existed. Fill it in
  * on a copy for the response — the stored snapshot is immutable and never
@@ -385,6 +386,25 @@ export class InvoicesService {
    *   An empty array means "linked to nobody" → empty page; `undefined`
    *   means "no restriction" (staff).
    */
+  /** [8.15.11] Every invoice matching the list's own filters, as export rows. */
+  exportHeader(): string[] {
+    return ['Invoice No.', 'Student', 'Registration No.', 'Issued', 'Total', 'Status'];
+  }
+
+  iterateForExport(query: QueryInvoiceDto, tenantId: string) {
+    return pagedRows(
+      (page, limit) => this.findAll({ ...query, page, limit }, tenantId),
+      (invoice: Invoice) => [
+        invoice.invoice_number,
+        invoice.student?.full_name ?? '',
+        invoice.student?.registration_number ?? '',
+        exportDate(invoice.issued_date),
+        invoice.total_amount,
+        invoice.status,
+      ],
+    );
+  }
+
   async findAll(query: QueryInvoiceDto, tenantId: string, restrictToStudentIds?: string[]) {
     const page = query.page || 1;
     const limit = query.limit || 10;

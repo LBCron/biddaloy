@@ -25,6 +25,7 @@ export interface LinkOption {
 export const PORTAL_PAGES = [
   ['/portal', 'portalOverview'],
   ['/portal/fees', 'portalFees'],
+  ['/portal/statement', 'portalStatement'],
   ['/portal/attendance', 'portalAttendance'],
   ['/portal/routine', 'portalRoutine'],
   ['/portal/calendar', 'portalCalendar'],

@@ -219,6 +219,9 @@ export enum AuditAction {
    * count cap, snapshot age, or the per-tenant storage cap) — 14.12.2.
    * Never fired for a `pinned` row. */
   BACKUP_DELETED = 'BACKUP_DELETED',
+  /** [8.15.10] A report or list was exported to CSV/XLSX. The audit row carries
+   * the format and row count, never the rows. */
+  REPORT_EXPORT = 'REPORT_EXPORT',
 }
 
 export enum EnrollmentStatus {

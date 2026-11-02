@@ -1,0 +1,29 @@
+{
+  "total": "মোট",
+  "grandTotal": "সর্বমোট",
+  "subtotalFor": "{{group}} — মোট",
+  "hidden": "গোপনীয়তার জন্য ৫-এর কম সংখ্যা দেখানো হয় না",
+  "yes": "হ্যাঁ",
+  "no": "না",
+  "empty": {
+    "title": "এই বাছাইয়ে কাউকে পাওয়া যায়নি",
+    "explanation": "বাছাই বদলে দেখুন।"
+  },
+  "table": {
+    "caption": "রিপোর্টের ফল"
+  },
+  "crosstab": {
+    "caption": "সংখ্যার ছক",
+    "seeAsTable": "ছক হিসেবে দেখুন",
+    "seeAsList": "তালিকা হিসেবে দেখুন",
+    "listLine": "{{row}} — {{parts}}",
+    "listPart": "{{label}} {{value}}"
+  },
+  "chart": {
+    "caption": "চার্টের সংখ্যা",
+    "seeAsTable": "ছক হিসেবে দেখুন",
+    "seeAsChart": "চার্ট হিসেবে দেখুন",
+    "summary": "সবচেয়ে বেশি: {{maxLabel}} ({{max}})। সবচেয়ে কম: {{minLabel}} ({{min}})।",
+    "summaryOne": "{{label}}: {{value}}।"
+  }
+}

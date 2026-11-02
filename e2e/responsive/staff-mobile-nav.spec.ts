@@ -274,11 +274,11 @@ test.describe('platform console (super_admin)', () => {
   test.describe('at 1280px', () => {
     test.use({ viewport: { width: 1280, height: 900 } });
 
-    test('the sidebar holds exactly three links', async ({ page }) => {
+    test('the sidebar holds exactly four links', async ({ page }) => {
       await page.goto('/schools');
       const sidebar = page.getByRole('navigation', { name: t('nav.navLabel') });
-      // Schools, Holiday sets, Subscriptions (#1821).
-      await expect(sidebar.getByRole('link')).toHaveCount(3);
+      // Schools, Holiday sets, Subscriptions (#1821), Report usage (8.15).
+      await expect(sidebar.getByRole('link')).toHaveCount(4);
     });
   });
 });

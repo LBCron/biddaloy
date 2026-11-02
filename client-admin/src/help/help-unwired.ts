@@ -16,4 +16,7 @@ export const HELP_UNWIRED: Record<string, string> = {
   'admin.createSchool.action.verify': PUBLIC,
 
   // 44.3.12: declared in the guide after the wave-3 pass ran
+
+  // 8.15.49: the dashboard toggle opens no dialog, and a header More-menu item draws no (?).
+  'reports.hub.action.showOnDashboard': '#3078: header More-menu item has no (?) slot',
 };

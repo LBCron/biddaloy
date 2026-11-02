@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ReportCompiler > SQL shape (snapshots) > a crosstab dataset: class by gender with a bucketed date 1`] = `"SELECT c.name AS "class", s.gender AS "gender", date_trunc('year', s.date_of_birth)::date AS "birth_date", COUNT(*) AS "students" FROM "students" "s" LEFT JOIN "class_sections" "cs" ON s.class_section_id = cs.id AND cs.tenant_id = $1 AND cs.deleted_at IS NULL  LEFT JOIN "classes" "c" ON cs.class_id = c.id AND c.tenant_id = $1 AND c.deleted_at IS NULL WHERE s.tenant_id = $1 AND s.deleted_at IS NULL GROUP BY c.name, s.gender, date_trunc('year', s.date_of_birth)::date LIMIT 500"`;
+
+exports[`ReportCompiler > SQL shape (snapshots) > a grouped count with a filter 1`] = `"SELECT c.name AS "class", s.gender AS "gender", COUNT(*) AS "students" FROM "students" "s" LEFT JOIN "class_sections" "cs" ON s.class_section_id = cs.id AND cs.tenant_id = $1 AND cs.deleted_at IS NULL  LEFT JOIN "classes" "c" ON cs.class_id = c.id AND c.tenant_id = $1 AND c.deleted_at IS NULL WHERE s.tenant_id = $1 AND s.deleted_at IS NULL AND s.gender = $2 GROUP BY c.name, s.gender ORDER BY "students" DESC LIMIT 500"`;
+
+exports[`ReportCompiler > SQL shape (snapshots) > a plain list 1`] = `"SELECT s.full_name AS "name", c.name AS "class" FROM "students" "s" LEFT JOIN "class_sections" "cs" ON s.class_section_id = cs.id AND cs.tenant_id = $1 AND cs.deleted_at IS NULL  LEFT JOIN "classes" "c" ON cs.class_id = c.id AND c.tenant_id = $1 AND c.deleted_at IS NULL WHERE s.tenant_id = $1 AND s.deleted_at IS NULL ORDER BY "name" ASC LIMIT 500"`;
+
+exports[`ReportCompiler > SQL shape (snapshots) > a root without tenant_id is scoped through its joined student 1`] = `"SELECT sf.status AS "status", SUM(sf.total_amount) AS "billed" FROM "student_fees" "sf" INNER JOIN "students" "s" ON sf.student_id = s.id AND s.tenant_id = $1 AND s.deleted_at IS NULL WHERE sf.deleted_at IS NULL GROUP BY sf.status LIMIT 500"`;

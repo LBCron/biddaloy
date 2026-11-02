@@ -13,6 +13,7 @@ import {
   Inject,
   ConflictException,
   BadRequestException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.interceptor';
 import { randomUUID } from 'node:crypto';
@@ -57,7 +58,7 @@ import {
   CommunicationMedium,
   countSmsSegments,
 } from '@biddaloy/shared';
-import { JwtPayload } from '@biddaloy/shared';
+import { ExportFormat, JwtPayload, ReportRunKind } from '@biddaloy/shared';
 import { STRICT_RATE_LIMIT } from '../../rate-limit';
 import { User } from '../users/entities/user.entity';
 import { UserResponseDto } from '../users/dto/user-response.dto';
@@ -75,6 +76,9 @@ import { CommunicationsService } from '../communications/communications.service'
 import { SmsCreditService } from '../communications/credits/sms-credit.service';
 import { INSUFFICIENT_SMS_CREDIT } from '../communications/credits/insufficient-sms-credit.constants';
 import { SchoolsService } from '../schools/schools.service';
+import { ReportExportService } from '../reports/export/report-export.service';
+import { ReportRowSourceRegistry } from '../reports/export/report-row-sources';
+import { WithExportFormat, exportFilters } from '../reports/export/dto/with-export-format';
 
 // findOne (and create, which returns findOne's result) load the issued_by
 // User relation in full — strip its password_hash before it reaches a
@@ -93,6 +97,8 @@ function toSafeInvoice<T extends { issued_by: User | null }>(
   };
 }
 
+class ExportInvoicesQueryDto extends WithExportFormat(QueryInvoiceDto) {}
+
 @ApiTags('invoices')
 @ApiTenantAuth()
 // [5.1 review] `findAll` and `findOne` both return a role-dependent union,
@@ -103,7 +109,7 @@ function toSafeInvoice<T extends { issued_by: User | null }>(
 @ApiExtraModels(Invoice, StaffInvoiceDto, FamilyInvoiceDto)
 @Controller('invoices')
 @UseGuards(AuthGuard('jwt'), ContextGuard, RolesGuard, PermissionsGuard)
-export class InvoicesController {
+export class InvoicesController implements OnModuleInit {
   constructor(
     @Inject(InvoicesService) private readonly invoicesService: InvoicesService,
     @Inject(FamilyAccessService) private readonly familyAccess: FamilyAccessService,
@@ -114,7 +120,18 @@ export class InvoicesController {
     private readonly communicationsService: CommunicationsService,
     private readonly smsCreditService: SmsCreditService,
     private readonly schoolsService: SchoolsService,
+    private readonly reportExport: ReportExportService,
+    private readonly rowSources: ReportRowSourceRegistry,
   ) {}
+
+  /** [8.15.16] A queued export rebuilds this list by name. */
+  onModuleInit(): void {
+    this.rowSources.register('invoices-list', {
+      header: () => this.invoicesService.exportHeader(),
+      rows: (tenantId, _userId, query) =>
+        this.invoicesService.iterateForExport(query as QueryInvoiceDto, tenantId),
+    });
+  }
 
   @Post()
   @RequirePermissions(Permission.INVOICE_CREATE)
@@ -180,6 +197,27 @@ export class InvoicesController {
         },
       })),
     };
+  }
+
+  /** [8.15.11] Every invoice matching the list's filters as CSV/XLSX. Staff only: needs INVOICE_READ and REPORTS_EXPORT. */
+  @Get('export')
+  @RequirePermissions(Permission.REPORTS_EXPORT, Permission.INVOICE_READ)
+  exportInvoices(
+    @Query() query: ExportInvoicesQueryDto,
+    @CurrentTenant() tenant: { id: string; role: string },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reportExport.export({
+      tenantId: tenant.id,
+      userId: user.sub,
+      kind: ReportRunKind.EXPORT,
+      format: query.format ?? ExportFormat.CSV,
+      sourceKey: 'invoices-list',
+      params: exportFilters(query),
+      header: this.invoicesService.exportHeader(),
+      rows: this.invoicesService.iterateForExport(query, tenant.id),
+      filename: 'invoices',
+    });
   }
 
   @Get(':id')

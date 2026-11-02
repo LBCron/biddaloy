@@ -28,3 +28,5 @@ export * from './enums/attention';
 export * from './attention/rule-catalogue';
 export * from './types/attention';
 export * from './dashboard/index';
+export * from './enums/reports';
+export * from './types/report-definition';

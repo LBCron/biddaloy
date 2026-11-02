@@ -94,6 +94,21 @@ describe('StorageService', () => {
     });
   });
 
+  it('putStream() sends the stream with its content length, so nothing is buffered', async () => {
+    send.mockResolvedValueOnce({});
+    const body = Readable.from(['hello']);
+    await service.putStream('tenants/t1/reports/r.csv', body, 5, 'text/csv');
+
+    const command = send.mock.calls[0][0];
+    expect(command).toBeInstanceOf(PutObjectCommand);
+    expect(command.input).toMatchObject({
+      Key: 'tenants/t1/reports/r.csv',
+      Body: body,
+      ContentLength: 5,
+      ContentType: 'text/csv',
+    });
+  });
+
   it('put() propagates errors from the client', async () => {
     send.mockRejectedValueOnce(new Error('network down'));
     await expect(service.put('k', Buffer.from('x'), 'text/plain')).rejects.toThrow('network down');

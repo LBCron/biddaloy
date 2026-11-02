@@ -2,11 +2,13 @@ import { EnrollmentStatus, Permission, RoleScope, roleScope } from '@biddaloy/sh
 import {
   Button,
   CachedDataNotice,
+  ExportMenu,
   RoutePending,
   StatusBadge,
   type DataTableColumn,
 } from '@biddaloy/ui/components';
 import {
+  downloadListExport,
   studentQueryOptions,
   studentsQueryOptions,
   useClasses,
@@ -23,9 +25,9 @@ import { RegionConfigProvider, useTenantRegionConfig, useTranslation } from '@bi
 import { ListShell, useListShellState, type FilterFieldDescriptor } from '@biddaloy/ui/shells';
 import { downloadCsv, formatDate, formatNumber } from '@biddaloy/ui/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router';
 import {
-  DownloadIcon,
+  ArrowLeftIcon,
   IdCardIcon,
   ImageUpIcon,
   PlusIcon,
@@ -36,9 +38,13 @@ import {
 import * as React from 'react';
 import { z } from 'zod';
 
+import { readVisibleColumns } from '../-save-as-report/list-to-definition';
+import { SaveAsReportDialog } from '../-save-as-report/save-as-report-dialog';
 import { useLandingFlag } from '../-use-landing-flag';
+import { ListReportHint } from '../../../components/list-report-hint';
 import { previewIdsNav } from '../../../components/print/preview-ids';
 import { loadRouteNamespaces, swallowUnlessOffline } from '../../../route-loaders';
+import { isSameAppRedirect } from '../../../same-app-redirect';
 
 import { BulkPhotoDialog } from './-bulk-photo-dialog';
 import { DEFAULT_PAGE_SIZE } from './-constants';
@@ -68,9 +74,19 @@ interface StudentFilters {
   version?: string | undefined;
   enrollment_status?: string | undefined;
   gender?: string | undefined;
+  /** [8.15.33] Free text on the student record; the server matches it exactly, in any letter case. */
+  religion?: string | undefined;
   date_of_birth_from?: string | undefined;
   date_of_birth_to?: string | undefined;
 }
+
+/** What the table shows until a person changes it with the Columns menu. */
+const DEFAULT_COLUMN_VISIBILITY = {
+  dateOfBirth: false,
+  gender: false,
+  address: false,
+  preferredCommunication: false,
+};
 
 const studentsSearchSchema = z.object({
   page: z.number().int().positive().optional().catch(undefined),
@@ -85,6 +101,8 @@ const studentsSearchSchema = z.object({
   version: z.string().optional().catch(undefined),
   enrollment_status: z.string().optional().catch(undefined),
   gender: z.string().optional().catch(undefined),
+  // Coerced: a religion typed as digits would otherwise be parsed to a number and dropped.
+  religion: z.coerce.string().optional().catch(undefined),
   date_of_birth_from: z.string().optional().catch(undefined),
   date_of_birth_to: z.string().optional().catch(undefined),
   // Reserved key `use-list-shell-state.ts` stores the row selection
@@ -95,6 +113,8 @@ const studentsSearchSchema = z.object({
   // [28.4.5/D22] Palette "Open performance" flag: row "View" links open the
   // student's Performance tab. TanStack parses `?x=1` as a number, so coerce.
   openPerformance: z.coerce.string().optional().catch(undefined),
+  // [8.15.42] Opened from a report's count: the address of that report, for "ফিরে যান".
+  from: z.string().optional().catch(undefined),
 });
 
 function toStudentListFilters(filters: StudentFilters, sortColumnId: string | undefined) {
@@ -109,6 +129,7 @@ function toStudentListFilters(filters: StudentFilters, sortColumnId: string | un
       ? { enrollment_status: filters.enrollment_status }
       : {}),
     ...(filters.gender !== undefined ? { gender: filters.gender } : {}),
+    ...(filters.religion !== undefined ? { religion: filters.religion } : {}),
     ...(filters.date_of_birth_from !== undefined
       ? { date_of_birth_from: filters.date_of_birth_from }
       : {}),
@@ -137,6 +158,7 @@ export const Route = createFileRoute('/_staff/students/')({
     version: search.version,
     enrollmentStatus: search.enrollment_status,
     gender: search.gender,
+    religion: search.religion,
     dateOfBirthFrom: search.date_of_birth_from,
     dateOfBirthTo: search.date_of_birth_to,
   }),
@@ -158,6 +180,7 @@ export const Route = createFileRoute('/_staff/students/')({
                 version: deps.version,
                 enrollment_status: deps.enrollmentStatus,
                 gender: deps.gender,
+                religion: deps.religion,
                 date_of_birth_from: deps.dateOfBirthFrom,
                 date_of_birth_to: deps.dateOfBirthTo,
               },
@@ -170,7 +193,8 @@ export const Route = createFileRoute('/_staff/students/')({
       // 'backup' feeds the [14.13.2] migrate-a-whole-school link below the
       // (empty) list — same permission-gated one-liner as
       // `students/import.tsx`, pointed the other direction.
-      loadRouteNamespaces('students', 'backup'),
+      // 'staff' holds the role names the keep-as-report dialog lists.
+      loadRouteNamespaces('students', 'backup', 'staff', 'reportDesigner', 'reports'),
     ]),
   pendingComponent: StudentsListPending,
   component: StudentsListPage,
@@ -182,7 +206,11 @@ function StudentsListPage() {
   const queryClient = useQueryClient();
   const [state, actions] = useListShellState();
   const filters = state.filters as StudentFilters;
-  const { openPerformance } = Route.useSearch();
+  const { openPerformance, from } = Route.useSearch();
+  const router = useRouter();
+  const { t: tDesigner } = useTranslation('reportDesigner');
+  // [8.15.42] Only a path inside this app is followed.
+  const backTo = from !== undefined && isSameAppRedirect(from) ? from : null;
 
   const vocabularyQuery = useOrganisationVocabulary();
   // [D5] A shift/version filter field only exists once the tenant has 2+
@@ -230,6 +258,9 @@ function StudentsListPage() {
   const canUpdateStudent = useHasPermission(Permission.STUDENT_UPDATE);
   const canManageBackup = useHasPermission(Permission.BACKUP_MANAGE);
   const canPrint = useHasPermission(Permission.DOCUMENT_PRINT);
+  const canExportAll = useHasPermission(Permission.REPORTS_EXPORT);
+  // [8.15.52] Keeping the list as a report is a designer's job.
+  const canDesignReports = useHasPermission(Permission.REPORTS_DESIGN);
   // A section-scoped role (TEACHER) only lists the sections it teaches this year, so an
   // unfiltered empty list means "no section assigned", not "no students yet". Checked by role
   // scope, not a permission: SUPER_ADMIN holds every permission.
@@ -268,6 +299,8 @@ function StudentsListPage() {
   }
 
   const [reminderDialogOpen, setReminderDialogOpen] = React.useState(false);
+  // The columns showing when the dialog was opened (the table keeps them in localStorage).
+  const [keepAsReport, setKeepAsReport] = React.useState<{ columns: string[] } | null>(null);
   const [photosDialogOpen, setPhotosDialogOpen] = useLandingFlag('photos', canUpdateStudent);
 
   // FilterBar's `onChange` patches one key at a time — intercept `class_id`
@@ -325,6 +358,12 @@ function StudentsListPage() {
         value,
         label: t(`form.fields.genderOptions.${value}`),
       })),
+    },
+    {
+      kind: 'text',
+      key: 'religion',
+      label: t('list.religionFilterLabel'),
+      placeholder: t('list.religionFilterPlaceholder'),
     },
     ...(showShiftFilter
       ? [
@@ -460,6 +499,17 @@ function StudentsListPage() {
     },
   ];
 
+  // The Export menu and the [8.15.55] tip both open the "keep as report" dialog with the shown columns.
+  function openKeepAsReport() {
+    setKeepAsReport({
+      columns: readVisibleColumns(
+        'students-list',
+        columns.map((column) => column.id),
+        DEFAULT_COLUMN_VISIBILITY,
+      ),
+    });
+  }
+
   return (
     <RegionConfigProvider value={regionConfig}>
       <CachedDataNotice queryKey={studentsQueryOptions(studentListFilters).queryKey} />
@@ -501,6 +551,44 @@ function StudentsListPage() {
             onClick: () => setPhotosDialogOpen(true),
           },
         ]}
+        // [8.15.17] One button downloads every student matching the filters above; the ticked
+        // rows' CSV is the secondary item.
+        tabs={
+          <div className="flex flex-wrap items-center gap-3">
+            {backTo !== null && (
+              <Button asChild variant="link" className="h-auto px-0">
+                <a
+                  href={backTo}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    router.history.push(backTo);
+                  }}
+                >
+                  <ArrowLeftIcon aria-hidden="true" />
+                  {tDesigner('back')}
+                </a>
+              </Button>
+            )}
+            <ExportMenu
+              totalCount={studentsQuery.data?.total ?? 0}
+              selectedCount={state.selectedIds.size}
+              canExportAll={canExportAll}
+              unit="people"
+              narrowByClass
+              onExportAll={(format) =>
+                downloadListExport('/students/export', studentListFilters, format)
+              }
+              onExportSelected={exportSelectedToCsv}
+              {...(canDesignReports ? { onKeepAsReport: openKeepAsReport } : {})}
+            />
+            <ListReportHint
+              list="students"
+              filters={state.filters}
+              ignore={['search', 'from']}
+              onKeep={openKeepAsReport}
+            />
+          </div>
+        }
         filters={{ fields: filterFields, values: state.filters, onChange: handleFiltersChange }}
         tableId="students-list"
         caption={t('list.caption')}
@@ -547,12 +635,7 @@ function StudentsListPage() {
               ? t('list.sortOptionLabelDescending', { header })
               : header
         }
-        defaultColumnVisibility={{
-          dateOfBirth: false,
-          gender: false,
-          address: false,
-          preferredCommunication: false,
-        }}
+        defaultColumnVisibility={DEFAULT_COLUMN_VISIBILITY}
         loading={studentsQuery.isLoading}
         isFetching={studentsQuery.isFetching}
         {...(studentsQuery.isError ? { error: t('list.errorMessage') } : {})}
@@ -592,10 +675,6 @@ function StudentsListPage() {
                 {t('list.printIdCards', { count: state.selectedIds.size })}
               </Button>
             )}
-            <Button type="button" variant="outline" onClick={() => void exportSelectedToCsv()}>
-              <DownloadIcon className="size-4" aria-hidden />
-              {t('list.exportCsv')}
-            </Button>
             <Button type="button" variant="ghost" onClick={() => actions.setSelectedIds(new Set())}>
               <XIcon className="size-4" aria-hidden />
               {t('list.clearSelection')}
@@ -616,6 +695,21 @@ function StudentsListPage() {
         </p>
       )}
       <BulkPhotoDialog open={photosDialogOpen} onOpenChange={setPhotosDialogOpen} />
+      {canDesignReports && (
+        <SaveAsReportDialog
+          open={keepAsReport !== null}
+          onOpenChange={(open) => {
+            if (!open) setKeepAsReport(null);
+          }}
+          kind="students"
+          filters={{ ...effectiveFilters }}
+          names={{
+            className: classesQuery.data?.data.find((k) => k.id === filters.class_id)?.name,
+            sectionName: sectionsQuery.data?.find((x) => x.id === filters.section_id)?.section_name,
+          }}
+          columns={keepAsReport?.columns ?? []}
+        />
+      )}
       <SendReminderDialog
         open={reminderDialogOpen}
         onOpenChange={setReminderDialogOpen}

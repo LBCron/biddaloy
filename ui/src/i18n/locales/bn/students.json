@@ -53,6 +53,8 @@
     "printWholeClass": "পুরো {{name}}-এর আইডি কার্ড প্রিন্ট",
     "edit": "সম্পাদনা",
     "allGenders": "সকল লিঙ্গ",
+    "religionFilterLabel": "ধর্ম",
+    "religionFilterPlaceholder": "শিক্ষার্থীর রেকর্ডে যেভাবে লেখা আছে",
     "searchPlaceholder": "নাম, রোল বা রেজিস্ট্রেশন নম্বর",
     "cardSubtitle": "{{class}} · শাখা {{section}} · রোল {{roll}}",
     "emptyExplanation": "প্রথম শিক্ষার্থী যোগ করলে তালিকা এখানে দেখা যাবে।",

@@ -162,6 +162,10 @@ describe('EXPECTED_TABS', () => {
       'lesson_deliveries',
       // [84.2.3] Epic 84.0 arrival-notice subscriptions.
       'arrival_notice_subscriptions',
+      // [8.15.12] Epic 8.15 report definitions, versions and schedules.
+      'report_definitions',
+      'report_definition_versions',
+      'report_schedules',
     ]);
   });
 

@@ -46,6 +46,7 @@
     "BULK_UPLOAD": "Bulk import",
     "REMINDER_SENT": "Reminder sent",
     "REMINDER_PREVIEWED": "Reminder previewed",
+    "REPORT_EXPORT": "Report exported",
     "FEE_STRUCTURE_CHANGE": "Fee structure changed",
     "SETTINGS_CHANGE": "Settings changed",
     "SETTINGS_TEST": "Connection tested"
@@ -87,6 +88,7 @@
     "BULK_UPLOAD": "Records were imported from a file.",
     "REMINDER_SENT": "A fee reminder was sent to guardians.",
     "REMINDER_PREVIEWED": "A fee reminder was previewed. Nothing was sent.",
+    "REPORT_EXPORT": "A report or list was downloaded or queued as a file.",
     "FEE_STRUCTURE_CHANGE": "A fee structure was changed.",
     "SETTINGS_CHANGE": "School settings were changed.",
     "SETTINGS_TEST": "A messaging provider connection was tested."

@@ -39,6 +39,7 @@ import * as React from 'react';
 import { DEFAULT_PAGE_SIZE } from '../-constants';
 
 import { DiscountsSection } from './discounts-section';
+import { StatementSection } from './statement-section';
 import { TabQueryState } from './tab-query-state';
 import { WalletPayoutDialog } from './wallet-payout-dialog';
 import { WriteOffBillDialog } from './write-off-bill-dialog';
@@ -361,9 +362,14 @@ function HistorySection({ fees }: { fees: StudentFee[] }) {
  * fees" placeholder tab reserved for 16.7.5 (not implemented here). */
 export function FeesTab({ studentId }: FeesTabProps) {
   const { t } = useTranslation('students');
+  const { t: tFees } = useTranslation('fees');
   const regionConfig = useRegionConfig();
   const query = useStudentFeeSummary(studentId);
   const canWriteOff = useHasPermission(Permission.FEE_APPROVE);
+  // [8.15.38] The statement route needs both; a role with only one would get a 403 frame.
+  const canReadInvoices = useHasPermission(Permission.INVOICE_READ);
+  const canReadPayments = useHasPermission(Permission.PAYMENT_READ);
+  const canSeeStatement = canReadInvoices && canReadPayments;
   const [writingOff, setWritingOff] = React.useState<StudentFee | null>(null);
 
   function money(amount: number | string): string {
@@ -419,7 +425,12 @@ export function FeesTab({ studentId }: FeesTabProps) {
               </dl>
             </Card>
             <Tabs defaultValue="open-bills" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4 md:inline-grid md:w-auto">
+              <TabsList
+                className={[
+                  'grid w-full md:inline-grid md:w-auto',
+                  canSeeStatement ? 'grid-cols-5' : 'grid-cols-4',
+                ].join(' ')}
+              >
                 <TabsTrigger value="open-bills" className="h-11 md:h-8">
                   {t('detail.fees.openBillsTab')}
                 </TabsTrigger>
@@ -432,6 +443,11 @@ export function FeesTab({ studentId }: FeesTabProps) {
                 <TabsTrigger value="discounts" className="h-11 md:h-8">
                   {t('detail.fees.discountsTab')}
                 </TabsTrigger>
+                {canSeeStatement && (
+                  <TabsTrigger value="statement" className="h-11 md:h-8">
+                    {tFees('statement.tabLabel')}
+                  </TabsTrigger>
+                )}
               </TabsList>
               <TabsContent value="open-bills">
                 <FeeLinesTable
@@ -458,6 +474,11 @@ export function FeesTab({ studentId }: FeesTabProps) {
               <TabsContent value="discounts">
                 <DiscountsSection studentId={studentId} />
               </TabsContent>
+              {canSeeStatement && (
+                <TabsContent value="statement">
+                  <StatementSection studentId={studentId} />
+                </TabsContent>
+              )}
             </Tabs>
           </div>
         );

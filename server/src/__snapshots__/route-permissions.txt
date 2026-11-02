@@ -33,6 +33,7 @@ DELETE /milestone-achievements/:id | MilestoneAchievementsController | perm: PRO
 DELETE /programs/:id | ProgramsController | perm: PROGRAM_MANAGE
 DELETE /programs/:id/milestones/:milestoneId | ProgramsController | perm: PROGRAM_MANAGE
 DELETE /promotions/:id | PromotionsController | perm: PROMOTION_MANAGE
+DELETE /reports/definitions/:id/schedules/:scheduleId | ReportDeliveryController | perm: REPORTS_DESIGN
 DELETE /routines/rooms/:id | RoomsController | perm: ROUTINE_MANAGE
 DELETE /routines/shifts/:id | ShiftsController | perm: ROUTINE_MANAGE
 DELETE /routines/slots/:slotId | RoutineSlotsController | perm: ROUTINE_MANAGE
@@ -92,6 +93,7 @@ GET /attention/students/:studentId | AttentionController | perm: STUDENT_READ
 GET /attention/summary | AttentionController | identity
 GET /audit-logs | AuditController | perm: AUDIT_LOG_READ
 GET /audit-logs/entity/:entityType/:entityId | AuditController | perm: AUDIT_ENTITY_HISTORY_READ
+GET /audit-logs/export | AuditController | perm: AUDIT_LOG_READ,REPORTS_EXPORT
 GET /auth/sessions | AuthController | allowlist: AuthGuard('jwt')
 GET /auth/social/:provider/callback | SocialAuthController | allowlist: none
 GET /auth/social/:provider/start | SocialAuthController | allowlist: none
@@ -170,6 +172,7 @@ GET /dashboard/widgets/print-queue | PrintDashboardController | perm: DASHBOARD_
 GET /dashboard/widgets/recent-activity | AuditDashboardController | perm: AUDIT_LOG_READ,DASHBOARD_VIEW
 GET /dashboard/widgets/recent-payments | FeesDashboardController | perm: DASHBOARD_VIEW,PAYMENT_READ
 GET /dashboard/widgets/reminders-pending | FeesDashboardController | perm: DASHBOARD_VIEW,FEE_READ,REPORT_COLLECTIONS_READ
+GET /dashboard/widgets/report/:definitionId | ReportsDashboardController | perm: DASHBOARD_VIEW,REPORTS_VIEW
 GET /dashboard/widgets/results-state | ExamsDashboardController | perm: DASHBOARD_VIEW,RESULT_READ
 GET /dashboard/widgets/seat-plan-status | SeatPlansDashboardController | perm: DASHBOARD_VIEW,SEAT_PLAN_MANAGE
 GET /dashboard/widgets/sms-balance | CommunicationsDashboardController | perm: DASHBOARD_VIEW,SETTINGS_MANAGE
@@ -206,6 +209,7 @@ GET /exams/:id | ExamsController | perm: EXAM_MANAGE
 GET /fee-structures | FeeController | perm: FEE_READ
 GET /fee-structures/:id | FeeController | perm: FEE_READ
 GET /fees/dues | FeeController | perm: FEE_READ
+GET /fees/dues/export | FeeController | perm: FEE_READ,REPORTS_EXPORT
 GET /fees/dues/flagged | FeeController | perm: FEE_READ | roles: ACCOUNTANT,ADMIN,EXECUTIVE,OFFICE_STAFF,TEACHER
 GET /fees/fine-rules | FineRulesController | perm: FEE_STRUCTURE_READ
 GET /fees/fines | FinesController | perm: FEE_READ
@@ -219,6 +223,7 @@ GET /grading/scales | GradingController | perm: GRADING_SCALE_MANAGE
 GET /grading/scales/:id | GradingController | perm: GRADING_SCALE_MANAGE
 GET /guardians | StudentController | perm: GUARDIAN_READ
 GET /guardians/:id | StudentController | perm: GUARDIAN_READ
+GET /guardians/export | StudentController | perm: GUARDIAN_READ,REPORTS_EXPORT
 GET /guardians/mine | StudentController | identity | roles: PARENT
 GET /health | AppController | allowlist: none
 GET /health/ready | HealthController | allowlist: none
@@ -235,6 +240,7 @@ GET /invoices | InvoicesController | perm: INVOICE_READ
 GET /invoices/:id | InvoicesController | perm: INVOICE_READ
 GET /invoices/:id/print | InvoicesController | perm: INVOICE_READ
 GET /invoices/:id/share | InvoicesController | perm: INVOICE_SEND
+GET /invoices/export | InvoicesController | perm: INVOICE_READ,REPORTS_EXPORT
 GET /leave/balance | LeaveController | identity | roles: ACCOUNTANT,ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,SUPER_ADMIN,TEACHER
 GET /leave/policies | LeaveController | identity | roles: ACCOUNTANT,ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,SUPER_ADMIN,TEACHER
 GET /lesson-deliveries | LessonDeliveriesController | perm: SYLLABUS_READ
@@ -245,6 +251,7 @@ GET /onboarding/status | OnboardingController | identity | roles: ADMIN,SUPER_AD
 GET /payments | FeeController | perm: PAYMENT_READ
 GET /payments/:id | FeeController | perm: PAYMENT_READ
 GET /payments/cart | CheckoutController | perm: FEE_READ
+GET /payments/export | FeeController | perm: PAYMENT_READ,REPORTS_EXPORT
 GET /payments/guardian/:guardianId | FeeController | perm: FEE_READ | roles: ACCOUNTANT,ADMIN,EXECUTIVE,TEACHER
 GET /payments/invoices/student/:studentId | FeeController | perm: FEE_READ
 GET /payments/student/:studentId | FeeController | perm: FEE_READ
@@ -258,7 +265,9 @@ GET /platform/billing/schools | PlatformBillingController | identity | roles: SU
 GET /platform/billing/schools/:id | PlatformBillingController | identity | roles: SUPER_ADMIN
 GET /platform/holiday-sets | PublicHolidaysController | identity | roles: SUPER_ADMIN
 GET /platform/holiday-sets/:id | PublicHolidaysController | identity | roles: SUPER_ADMIN
+GET /platform/reports/usage | PlatformReportUsageController | identity | roles: SUPER_ADMIN
 GET /portal/arrival-subscriptions | PortalArrivalSubscriptionsController | identity | roles: PARENT
+GET /portal/students/:studentId/statement | StudentStatementController | perm: FEE_READ
 GET /presets | PresetsController | perm: CURRICULUM_PRESET_APPLY
 GET /presets/:id | PresetsController | perm: CURRICULUM_PRESET_APPLY
 GET /presets/status | PresetsController | perm: CURRICULUM_PRESET_APPLY
@@ -288,8 +297,18 @@ GET /promotions/suggest-target | PromotionsController | perm: PROMOTION_MANAGE
 GET /public/admission/:slug | PublicAdmissionController | allowlist: none
 GET /public/invoices/:token | PublicInvoiceController | allowlist: none
 GET /public/verify/:token | PublicVerifyController | allowlist: none
+GET /reports/catalogue | ReportDefinitionsController | perm: REPORTS_VIEW
+GET /reports/catalogue/:id/definition | ReportDefinitionsController | perm: REPORTS_VIEW
 GET /reports/collections | ReportsController | perm: REPORT_COLLECTIONS_READ
 GET /reports/collections.csv | ReportsController | perm: REPORT_COLLECTIONS_READ
+GET /reports/definitions | ReportDefinitionsController | perm: REPORTS_DESIGN
+GET /reports/definitions/:id | ReportDefinitionsController | perm: REPORTS_DESIGN
+GET /reports/definitions/:id/schedules | ReportDeliveryController | perm: REPORTS_DESIGN
+GET /reports/meta | ReportMetaController | perm: REPORTS_DESIGN
+GET /reports/runs/:id | ReportRunsController | perm: REPORTS_VIEW
+GET /reports/runs/:id/download | ReportRunsController | perm: REPORTS_EXPORT
+GET /reports/snapshots | ReportDeliveryController | perm: REPORTS_VIEW
+GET /reports/snapshots/:id/download | ReportDeliveryController | perm: REPORTS_EXPORT
 GET /routines | RoutineSlotsController | perm: ROUTINE_READ
 GET /routines/:id | RoutineSlotsController | perm: ROUTINE_READ
 GET /routines/:id/change-requests | ChangeRequestsController | perm: ROUTINE_MANAGE
@@ -350,9 +369,11 @@ GET /students/:studentId/programs | StudentProgramsController | perm: PROGRAM_RE
 GET /students/:studentId/promotion-overrides | PromotionsController | perm: STUDENT_READ
 GET /students/:studentId/results | StudentResultsController | perm: RESULT_READ
 GET /students/:studentId/results/:examId | StudentResultsController | perm: RESULT_READ
+GET /students/:studentId/statement | StudentStatementController | perm: INVOICE_READ,PAYMENT_READ
 GET /students/:studentId/study-plans | FamilyStudyPlansController | perm: SYLLABUS_READ
 GET /students/:studentId/subject-choices | SubjectChoicesController | perm: STUDENT_UPDATE
 GET /students/:studentId/transcript | TranscriptController | perm: RESULT_READ
+GET /students/export | StudentController | perm: REPORTS_EXPORT,STUDENT_READ
 GET /students/ids | StudentController | perm: STUDENT_READ | roles: ACCOUNTANT,ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
 GET /students/mine | StudentController | perm: STUDENT_READ | roles: PARENT,STUDENT
 GET /study-plan-templates | StudyPlanTemplatesController | perm: SYLLABUS_READ
@@ -418,6 +439,8 @@ PATCH /program-enrollments/:id | ProgramEnrollmentStatusController | perm: PROGR
 PATCH /programs/:id | ProgramsController | perm: PROGRAM_MANAGE
 PATCH /programs/:id/milestones/:milestoneId | ProgramsController | perm: PROGRAM_MANAGE
 PATCH /promotions/:id/entries | PromotionsController | perm: PROMOTION_MANAGE
+PATCH /reports/definitions/:id | ReportDefinitionsController | perm: REPORTS_DESIGN
+PATCH /reports/definitions/:id/schedules/:scheduleId | ReportDeliveryController | perm: REPORTS_DESIGN
 PATCH /routines/change-requests/:id | ChangeRequestsController | perm: ROUTINE_MANAGE
 PATCH /routines/rooms/:id | RoomsController | perm: ROUTINE_MANAGE
 PATCH /routines/shifts/:id | ShiftsController | perm: ROUTINE_MANAGE
@@ -607,6 +630,15 @@ POST /promotions/:id/commit | PromotionsController | perm: PROMOTION_MANAGE
 POST /promotions/:id/refresh | PromotionsController | perm: PROMOTION_MANAGE
 POST /public/admission/:slug/applicants | PublicAdmissionController | allowlist: none
 POST /public/admission/:slug/status | PublicAdmissionController | allowlist: none
+POST /reports/definitions | ReportDefinitionsController | perm: REPORTS_DESIGN
+POST /reports/definitions/:id/archive | ReportDefinitionsController | perm: REPORTS_DESIGN
+POST /reports/definitions/:id/clone | ReportDefinitionsController | perm: REPORTS_DESIGN
+POST /reports/definitions/:id/publish | ReportDefinitionsController | perm: REPORTS_DESIGN
+POST /reports/definitions/:id/schedules | ReportDeliveryController | perm: REPORTS_DESIGN
+POST /reports/run | ReportRunsController | perm: REPORTS_VIEW
+POST /reports/runs/:id/feedback | ReportRunsController | perm: REPORTS_VIEW
+POST /reports/runs/:id/snapshot | ReportDeliveryController | perm: REPORTS_EXPORT
+POST /reports/runs/export | ReportRunsController | perm: REPORTS_EXPORT
 POST /routines | RoutineSlotsController | perm: ROUTINE_MANAGE
 POST /routines/:id/copy-year | RoutineSlotsController | perm: ROUTINE_MANAGE
 POST /routines/:id/publish | RoutineSlotsController | perm: ROUTINE_MANAGE

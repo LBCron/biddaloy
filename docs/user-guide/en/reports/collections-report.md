@@ -176,7 +176,7 @@ For the other roles, **Fee collection report** is not in the left menu.
 <details>
 <summary><strong>What each field means</strong></summary>
 
-<!-- guide:generated:fields:reports -->
+<!-- guide:generated:fields:reports:preset,customRange,method,collector -->
 
 | Field        | What to enter                                                                                         | Required? |
 | ------------ | ----------------------------------------------------------------------------------------------------- | --------- |

@@ -61,7 +61,7 @@ describe('_platform route access [#533]', () => {
     );
   });
 
-  it('[31.3.3] shows the console in the shared shell: three sidebar links, Schools current', async () => {
+  it('[31.3.3] shows the console in the shared shell: four sidebar links, Schools current', async () => {
     renderWithRouter(routeTree, {
       initialEntries: ['/schools'],
       tenantId: 'tenant-1',
@@ -71,7 +71,12 @@ describe('_platform route access [#533]', () => {
 
     const nav = await screen.findByRole('navigation', { name: 'Main' });
     const links = within(nav).getAllByRole('link');
-    expect(links.map((l) => l.textContent)).toEqual(['Schools', 'Holiday lists', 'Subscriptions']);
+    expect(links.map((l) => l.textContent)).toEqual([
+      'Schools',
+      'Holiday lists',
+      'Subscriptions',
+      'Report usage',
+    ]);
     expect(links[0]!.getAttribute('aria-current')).toBe('page');
     // The old hand-made "Dashboard / Platform admin" trail is gone.
     expect(screen.queryByRole('navigation', { name: 'Breadcrumb' })).toBeNull();

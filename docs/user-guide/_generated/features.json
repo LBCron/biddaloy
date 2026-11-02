@@ -388,12 +388,34 @@
     "routes": ["/i/$token", "/invoices", "/invoices/$invoiceId"]
   },
   {
+    "id": "reports.hub",
+    "kind": "nav",
+    "path": "reports/hub",
+    "route": "/reports",
+    "roles": ["ADMIN", "ACCOUNTANT", "TEACHER", "EXECUTIVE", "COMMITTEE"],
+    "routes": [
+      "/reports",
+      "/reports/$reportId",
+      "/reports/$reportId/edit",
+      "/reports/new",
+      "/reports/runs/$runId"
+    ]
+  },
+  {
     "id": "reports.collectionsReport",
     "kind": "nav",
     "path": "reports/collections-report",
     "route": "/reports/collections",
     "roles": ["ADMIN", "ACCOUNTANT", "EXECUTIVE"],
     "routes": ["/reports/collections"]
+  },
+  {
+    "id": "reports.studentCount",
+    "kind": "nav",
+    "path": "reports/student-count",
+    "route": "/reports/student-count",
+    "roles": ["ADMIN", "ACCOUNTANT", "TEACHER", "EXECUTIVE", "COMMITTEE"],
+    "routes": ["/reports/student-count"]
   },
   {
     "id": "reports.printables",
@@ -520,6 +542,14 @@
     "route": "/portal/fees",
     "roles": ["PARENT", "STUDENT"],
     "routes": ["/portal/fees"]
+  },
+  {
+    "id": "portal.statement",
+    "kind": "portal",
+    "path": "portal/statement",
+    "route": "/portal/statement",
+    "roles": ["PARENT", "STUDENT"],
+    "routes": ["/portal/statement"]
   },
   {
     "id": "portal.attendance",

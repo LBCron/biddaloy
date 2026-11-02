@@ -6,6 +6,7 @@ import {
   BellRingIcon,
   BlocksIcon,
   BookOpenIcon,
+  BookTextIcon,
   BookUserIcon,
   BriefcaseIcon,
   Building2Icon,
@@ -15,6 +16,7 @@ import {
   CalendarRangeIcon,
   ChartColumnIcon,
   ChartLineIcon,
+  ChartNoAxesColumnIcon,
   ChartPieIcon,
   ClipboardCheckIcon,
   ClipboardListIcon,
@@ -28,6 +30,7 @@ import {
   FileSpreadsheetIcon,
   FileStackIcon,
   FileUpIcon,
+  FolderOpenIcon,
   GavelIcon,
   GraduationCapIcon,
   HandCoinsIcon,
@@ -55,6 +58,7 @@ import {
   SettingsIcon,
   ShieldAlertIcon,
   ShieldCheckIcon,
+  SigmaIcon,
   SirenIcon,
   SlidersHorizontalIcon,
   StarIcon,
@@ -118,7 +122,9 @@ export const STAFF_NAV_ICONS: Record<StaffNavItemId, LucideIcon> = {
   'finance.fines': GavelIcon,
   'finance.payments': ReceiptTextIcon,
   'finance.invoices': ReceiptIcon,
+  'reports.hub': FolderOpenIcon,
   'reports.collectionsReport': ChartColumnIcon,
+  'reports.studentCount': SigmaIcon,
   'reports.printables': PrinterIcon,
   'reports.applications': ClipboardListIcon,
   'communications.sendMessage': SendIcon,
@@ -140,6 +146,7 @@ export const PLATFORM_NAV_ICONS = {
   '/schools': Building2Icon,
   '/holiday-sets': TreePalmIcon,
   '/subscriptions': WalletCardsIcon,
+  '/reports-usage': ChartNoAxesColumnIcon,
 } as const;
 /** @alias */
 export const STAFF_PLATFORM_EXTRA_ICONS = PLATFORM_NAV_ICONS;
@@ -147,6 +154,7 @@ export const STAFF_PLATFORM_EXTRA_ICONS = PLATFORM_NAV_ICONS;
 export const PORTAL_NAV_ICONS: Record<string, LucideIcon> = {
   '/portal': HouseIcon,
   '/portal/fees': CreditCardIcon,
+  '/portal/statement': BookTextIcon,
   '/portal/attendance': CalendarCheck2Icon,
   '/portal/routine': CalendarClockIcon,
   '/portal/calendar': CalendarDaysIcon,

@@ -145,7 +145,7 @@ Exams & Results
   Seat plans [25.0] · Exam printables [48.0] — Exams › exam › Print tab
 
 Finance
-  Fees · Student dues · Fee structures · Generate fees · Payments (+ Student statement [8.15]) · Record payment · Invoices   [all have]
+  Fees · Student dues · Fee structures · Generate fees · Payments (+ Student statement [8.15 W6–W7]) · Record payment · Invoices   [all have]
   Fines · Fine rules [38.0]
   Online payments [3.0] · Unmatched receipts [16.0]                 A Ac
 
@@ -157,7 +157,7 @@ Communications
   Notices [have]                                                    A E T
   Automatic notices [partial: absent ✓ · fine ✓ (38.0) · result/marks 19.0 · homework 22.0 · receipt 3.0]
 
-Reports [8.15] — a hub that LINKS to screens that live with their data; no copies
+Reports [8.15] — hub = catalogue (coded + defined) · Student lists · Student count · Exports · Designer (ADMIN); LINKS to screens that live with their data; no copies
   Communications · Collections [have] · Student dues [have] · Attendance [have]
   Student lists [8.15] · Student count [8.15] · Printables & documents [have, 32.0] · Certificate register · To print [48.0] · Exports [8.15]
   Applications report [52.0]

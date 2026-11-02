@@ -5,8 +5,14 @@
  * has no equivalent filter dropdowns — search is the only filter.
  */
 import { CommunicationMedium, Permission } from '@biddaloy/shared';
-import { RoutePending, StatusBadge, type DataTableColumn } from '@biddaloy/ui/components';
 import {
+  ExportMenu,
+  RoutePending,
+  StatusBadge,
+  type DataTableColumn,
+} from '@biddaloy/ui/components';
+import {
+  downloadListExport,
   guardiansQueryOptions,
   useGuardians,
   useHasPermission,
@@ -106,10 +112,11 @@ function GuardiansListPage() {
   const [state, actions] = useListShellState();
   const filters = state.filters as GuardianFilters;
   const canInvite = useHasPermission(Permission.USER_CREATE);
+  const canExportAll = useHasPermission(Permission.REPORTS_EXPORT);
   const [inviteOpen, setInviteOpen] = useLandingFlag('invite', canInvite);
 
   const sortField = state.sorting ? SORT_FIELD_BY_COLUMN[state.sorting.id] : undefined;
-  const guardiansQuery = useGuardians({
+  const guardianListFilters = {
     page: state.page,
     limit: state.limit,
     ...(filters.search !== undefined ? { search: filters.search } : {}),
@@ -124,8 +131,9 @@ function GuardiansListPage() {
       : {}),
     ...(filters.incomplete === '1' ? { incomplete: true } : {}),
     ...(sortField !== undefined ? { sort: sortField } : {}),
-    ...(state.sorting ? { order: state.sorting.desc ? 'desc' : 'asc' } : {}),
-  });
+    ...(state.sorting ? { order: state.sorting.desc ? ('desc' as const) : ('asc' as const) } : {}),
+  };
+  const guardiansQuery = useGuardians(guardianListFilters);
 
   const filterFields: FilterFieldDescriptor[] = [
     {
@@ -245,6 +253,17 @@ function GuardiansListPage() {
             onClick: () => setInviteOpen(true),
           },
         ]}
+        // [8.15.17] Everything matching the filters below, as Excel (or CSV from the arrow).
+        tabs={
+          <ExportMenu
+            totalCount={guardiansQuery.data?.total ?? 0}
+            canExportAll={canExportAll}
+            unit="people"
+            onExportAll={(format) =>
+              downloadListExport('/guardians/export', guardianListFilters, format)
+            }
+          />
+        }
         filters={{ fields: filterFields, values: state.filters, onChange: actions.setFilters }}
         tableId="guardians-list"
         caption={t('list.caption')}

@@ -44,6 +44,7 @@
     "recordPayment": "Record payment",
     "portalOverview": "Overview",
     "portalFees": "Fees and invoices",
+    "portalStatement": "Statement",
     "portalAttendance": "Attendance",
     "portalCalendar": "Calendar",
     "portalResults": "Results",
@@ -68,6 +69,7 @@
     "reminderHistory": "Reminder history",
     "messageLog": "Message log",
     "collectionsReport": "Fee collection report",
+    "studentCount": "Student count (BANBEIS)",
     "marksEntry": "Enter marks",
     "marksEntryGrid": "Marks list",
     "results": "Results",
@@ -121,9 +123,13 @@
     "studyPlans": "Study plans",
     "studyPlanDetail": "Study plan",
     "sendAlert": "Send an alert",
+    "allReports": "All reports",
+    "reportDetail": "Report",
     "alertsReport": "Alerts report",
     "portalHomework": "Homework",
-    "committeeReport": "Monthly meeting report"
+    "committeeReport": "Monthly meeting report",
+    "reportsUsage": "Report usage",
+    "reportRun": "Your report"
   },
   "groups": {
     "people": "People",

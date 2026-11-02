@@ -104,7 +104,9 @@ All your features, in the order of the left menu. The list is built automaticall
 
 **Reports**
 
+- [All reports](../reports/hub.md) — Find every school report in one place, open it, download it to Excel, print it on A4 and say if it helped. An admin can also keep a list as a report.
 - [Fee collection report](../reports/collections-report.md) — See how much money was collected, how much was reversed and the net in hand for a day, week, month or your own dates, by method, collector, fee type and day; print it or download a CSV.
+- [Student count (BANBEIS)](../reports/student-count.md) — See students by class and gender and the number of teachers and staff. Download to Excel or print the numbers for the BANBEIS annual survey.
 - [Print & documents](../reports/printables.md) — See what was printed, which certificates were issued and what is still waiting to be printed, in three tabs; reprint or revoke a card, or download the certificate list for Excel.
 - [Application reports](../reports/applications.md) — See on one page how many applications were submitted, how many were approved or rejected, the average time to decide, which ones have waited more than 3 days, who is on leave today and how many days each staff member took.
 - [Alerts report](../reports/alerts-report.md) — See for one month how many alerts the school's rules raised, in which section, how many were fixed and how fast, and how many are still open; filter by rule or section and download a CSV.

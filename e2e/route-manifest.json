@@ -93,6 +93,11 @@
       "archetype": "list"
     },
     {
+      "path": "/reports-usage",
+      "role": "super_admin",
+      "archetype": "list"
+    },
+    {
       "path": "/holiday-sets/$setId",
       "params": {
         "setId": "seeded"
@@ -642,6 +647,11 @@
       "archetype": "list"
     },
     {
+      "path": "/portal/statement",
+      "role": "parent",
+      "archetype": "list"
+    },
+    {
       "path": "/portal/routine",
       "role": "parent",
       "archetype": "list"
@@ -798,6 +808,45 @@
       "path": "/reports/collections",
       "role": "accountant",
       "archetype": "list"
+    },
+    {
+      "path": "/reports/student-count",
+      "role": "admin",
+      "archetype": "list"
+    },
+    {
+      "path": "/reports",
+      "role": "admin",
+      "archetype": "list"
+    },
+    {
+      "path": "/reports/$reportId",
+      "params": {
+        "reportId": "seeded"
+      },
+      "role": "admin",
+      "archetype": "bespoke"
+    },
+    {
+      "path": "/reports/runs/$runId",
+      "params": {
+        "runId": "seeded"
+      },
+      "role": "admin",
+      "archetype": "bespoke"
+    },
+    {
+      "path": "/reports/new",
+      "role": "admin",
+      "archetype": "bespoke"
+    },
+    {
+      "path": "/reports/$reportId/edit",
+      "params": {
+        "reportId": "seeded"
+      },
+      "role": "admin",
+      "archetype": "bespoke"
     },
     {
       "path": "/communications/send-alert",

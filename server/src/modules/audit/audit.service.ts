@@ -15,6 +15,7 @@ import { Exam } from '../exams/entities/exam.entity';
 import { FeeStructure } from '../fees/entities/fee-structure.entity';
 import { Invoice } from '../invoices/entities/invoice.entity';
 import { User } from '../users/entities/user.entity';
+import { pagedRows } from '../reports/export/paged-rows';
 
 /** Keys of either snapshot whose value differs (deep equality); a key on one side only counts. Same rule as the client's `changedFieldCount`. */
 function countChangedFields(
@@ -135,6 +136,28 @@ export class AuditService {
     }
     // No manager: still don't swallow — see the fail-open note above.
     await this.repo.save(this.repo.create(sanitized));
+  }
+
+  /**
+   * [8.15.11] Every audit row matching the list's own filters, as export rows.
+   * Who, what and when only: the old/new value snapshots and IP address stay
+   * on screen behind the diff panel and never leave in a file.
+   */
+  exportHeader(): string[] {
+    return ['When', 'Who', 'Action', 'Entity type', 'Entity ID'];
+  }
+
+  iterateForExport(query: QueryAuditLogDto, tenantId: string, callerId?: string) {
+    return pagedRows(
+      (page, limit) => this.findAll({ ...query, page, limit }, tenantId, callerId),
+      (log: AuditLog) => [
+        log.created_at.toISOString(),
+        log.performed_by?.full_name ?? 'System',
+        log.action,
+        log.entity_type,
+        log.entity_id ?? '',
+      ],
+    );
   }
 
   async findAll(query: QueryAuditLogDto, tenantId: string, callerId?: string) {

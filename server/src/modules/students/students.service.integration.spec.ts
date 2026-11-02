@@ -937,6 +937,33 @@ describe('StudentService (integration)', () => {
       expect(result.data[0].full_name).toBe('Fatima Begum');
     });
 
+    it('filters by religion, ignoring letter case, and the export reads the same rows (8.15.33)', async () => {
+      const make = (n: number, religion: string | null) =>
+        studentRepo.save(
+          studentRepo.create({
+            full_name: `Religion ${n}`,
+            registration_number: `REG-2026-90${n}`,
+            roll_number: 90 + n,
+            class_section_id: SEED_SECTION_1_ID,
+            tenant_id: TENANT_ID,
+            religion,
+          }),
+        );
+      await make(1, 'Hindu');
+      await make(2, 'Islam');
+      await make(3, null);
+
+      const listed = await service.findAll({ religion: 'hindu', page: 1, limit: 10 }, TENANT_ID);
+      expect(listed.data.map((s) => s.full_name)).toEqual(['Religion 1']);
+
+      // The export walks the same query, so a filtered export is exactly the filtered list.
+      const exported: unknown[][] = [];
+      for await (const row of service.iterateForExport({ religion: 'hindu' }, TENANT_ID)) {
+        exported.push(row);
+      }
+      expect(exported.map((r) => r[2])).toEqual(['Religion 1']);
+    });
+
     it('filters by date_of_birth_from/date_of_birth_to', async () => {
       await studentRepo.save(
         studentRepo.create({

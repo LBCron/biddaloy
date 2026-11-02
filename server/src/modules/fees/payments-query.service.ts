@@ -7,6 +7,7 @@ import { Student } from '../students/entities/student.entity';
 import { QueryPaymentDto, PaymentDetailDto } from './dto/fees.dto';
 import { normalizeSearchTerm } from '../../common/utils/normalize-search-term.util';
 import { startOfLocalDay, endOfLocalDay } from '../../common/time';
+import { exportDate, pagedRows } from '../reports/export/paged-rows';
 
 export interface PaginatedPayments {
   data: Payment[];
@@ -168,6 +169,26 @@ export class PaymentsQueryService {
         .reduce((sum, i) => sum + i.amount, 0),
       items,
     };
+  }
+
+  /** [8.15.11] Every payment matching the list's own filters, as export rows. */
+  exportHeader(): string[] {
+    return ['Date', 'Student', 'Registration No.', 'Amount', 'Method', 'Status', 'Reference'];
+  }
+
+  iterateForExport(query: QueryPaymentDto, tenantId: string) {
+    return pagedRows(
+      (page, limit) => this.findAll({ ...query, page, limit }, tenantId),
+      (payment: Payment) => [
+        exportDate(payment.payment_date),
+        payment.student?.full_name ?? '',
+        payment.student?.registration_number ?? '',
+        payment.total_amount,
+        payment.payment_method,
+        payment.payment_status,
+        payment.transaction_reference ?? '',
+      ],
+    );
   }
 
   async findOne(id: string, tenantId: string): Promise<PaymentDetailDto> {

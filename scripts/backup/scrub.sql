@@ -225,6 +225,9 @@ UPDATE student_public_exams SET
 UPDATE homework_submissions SET attachments = '[]'::jsonb;
 UPDATE seat_orders SET receipt_snapshot = NULL;
 UPDATE platform_payments SET raw = NULL, gateway_ref = NULL;
+-- [8.15.9] Report params can hold a typed search term; the feedback comment is free text.
+UPDATE report_runs SET params = '{}'::jsonb, feedback_comment = NULL;
+UPDATE report_schedules SET params = '{}'::jsonb;
 
 -- Append-only tables: their write-block triggers are lifted inside this transaction only. -------
 

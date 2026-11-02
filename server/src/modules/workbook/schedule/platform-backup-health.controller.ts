@@ -50,13 +50,7 @@ import { AuthenticatedOnly } from '../../auth/decorators/authenticated-only.deco
  */
 @ApiTags('platform')
 @Controller('platform/backups')
-@UseGuards(
-  AuthGuard('jwt'),
-  ContextGuard,
-  RolesGuard,
-  PermissionsGuard,
-  PlatformSuperAdminGuard,
-)
+@UseGuards(AuthGuard('jwt'), ContextGuard, RolesGuard, PermissionsGuard, PlatformSuperAdminGuard)
 @Roles(UserRole.SUPER_ADMIN)
 export class PlatformBackupHealthController {
   constructor(

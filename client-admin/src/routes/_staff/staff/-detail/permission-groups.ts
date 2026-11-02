@@ -87,6 +87,7 @@ export const PERMISSION_GROUPS: readonly { id: string; permissions: readonly Per
     permissions: [
       Permission.REPORTS_VIEW,
       Permission.REPORTS_EXPORT,
+      Permission.REPORTS_DESIGN,
       Permission.REPORT_COLLECTIONS_READ,
       Permission.ALERT_REPORT_READ,
       Permission.DASHBOARD_VIEW,

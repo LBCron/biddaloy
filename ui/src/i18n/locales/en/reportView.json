@@ -1,0 +1,29 @@
+{
+  "total": "Total",
+  "grandTotal": "Grand total",
+  "subtotalFor": "{{group}} — Total",
+  "hidden": "Numbers under 5 are not shown, to protect privacy",
+  "yes": "Yes",
+  "no": "No",
+  "empty": {
+    "title": "Nobody matches these choices",
+    "explanation": "Try changing the choices."
+  },
+  "table": {
+    "caption": "Report results"
+  },
+  "crosstab": {
+    "caption": "Table of counts",
+    "seeAsTable": "See as table",
+    "seeAsList": "See as list",
+    "listLine": "{{row}} — {{parts}}",
+    "listPart": "{{label}} {{value}}"
+  },
+  "chart": {
+    "caption": "Chart figures",
+    "seeAsTable": "See as table",
+    "seeAsChart": "See as chart",
+    "summary": "Highest: {{maxLabel}} ({{max}}). Lowest: {{minLabel}} ({{min}}).",
+    "summaryOne": "{{label}}: {{value}}."
+  }
+}
