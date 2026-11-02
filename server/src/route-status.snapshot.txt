@@ -347,6 +347,7 @@ GET    /api/v1/fees/schedules/:id/preview                                       
 POST   /api/v1/fees/schedules/run-now                                            401 PASS PASS PASS 403 403 403 403 403 403 403 403
 GET    /api/v1/final-results                                                     401 PASS PASS PASS 403 PASS 403 403 PASS PASS PASS 403
 POST   /api/v1/final-results                                                     401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
+GET    /api/v1/final-results/:finalResultId/documents/tabulation                 401 PASS PASS PASS PASS 403 403 403 403 PASS PASS 403
 DELETE /api/v1/final-results/:id                                                 401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
 GET    /api/v1/final-results/:id                                                 401 PASS PASS PASS 403 PASS 403 403 PASS PASS PASS 403
 PATCH  /api/v1/final-results/:id                                                 401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
@@ -688,6 +689,7 @@ POST   /api/v1/students/:studentId/document-prints                              
 GET    /api/v1/students/:studentId/exam-schedule                                 401 PASS PASS PASS 403 PASS PASS PASS PASS PASS PASS 403
 POST   /api/v1/students/:studentId/exams/:examId/admit-card                      401 PASS PASS PASS 403 PASS PASS PASS PASS PASS PASS 403
 GET    /api/v1/students/:studentId/exams/:examId/admit-card/assets/:assetId/file 401 PASS PASS PASS 403 PASS PASS PASS PASS PASS PASS 403
+GET    /api/v1/students/:studentId/final-result-card                             401 PASS PASS PASS 403 PASS PASS PASS PASS PASS PASS 403
 GET    /api/v1/students/:studentId/homework                                      401 PASS PASS 403 403 403 PASS PASS 403 403 403 403
 GET    /api/v1/students/:studentId/lessons                                       401 PASS PASS PASS 403 PASS PASS PASS PASS 403 403 403
 GET    /api/v1/students/:studentId/programs                                      401 PASS PASS PASS 403 PASS PASS PASS PASS 403 403 403

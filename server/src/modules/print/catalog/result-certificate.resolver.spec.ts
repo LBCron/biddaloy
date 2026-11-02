@@ -134,6 +134,100 @@ describe('ResultCertificateResolver', () => {
     expect(v['student.name_bn']).toBe('Stu a');
   });
 
+  describe('final-sourced certificate [70.4.1, D21]', () => {
+    const finalRow = (id: string, o: Record<string, unknown> = {}) =>
+      row(id, {
+        total_marks: '640.00',
+        gpa: '4.50',
+        grade: 'A',
+        position: 3,
+        section_position: 2,
+        working_days: 220,
+        present_days: 205,
+        remark: 'Good progress',
+        ...o,
+      });
+    /** No exam has this id; a PUBLISHED final does (unless `finals` is empty). */
+    const finalMgr = (rows: unknown[], finals = [{ id: 'e1', year_name: '2027' }]) =>
+      ({
+        query: async (sql: string, p: any[]) => {
+          if (sql.includes('FROM exams')) return [];
+          if (sql.includes('FROM final_results')) return finals;
+          if (sql.includes('FROM final_result_rows')) return rows;
+          if (sql.includes('FROM students WHERE')) return (p[1] as string[]).map((id) => ({ id }));
+          return [];
+        },
+        findOne: async () => null,
+      }) as any;
+    const runFinal = (kind: any, rows: unknown[], finals?: any[]) =>
+      new ResultCertificateResolver(kind).resolve(
+        't',
+        ['a'],
+        finalMgr(rows, finals),
+        undefined,
+        ctx,
+      );
+
+    it('fills every FINAL_RESULT field from the snapshot, not from live attendance', async () => {
+      const v = (await runFinal(DocumentKind.RESULT_CERTIFICATE, [finalRow('a')])).get('a')!.values;
+      expect(v).toMatchObject({
+        'final_result.year': '2027',
+        'final_result.total': '640.00',
+        'final_result.gpa': '4.50',
+        'final_result.grade': 'A',
+        'final_result.position': '3',
+        'final_result.section_position': '2',
+        'attendance.working_days': '220',
+        'attendance.present_days': '205',
+        'report_card.remark': 'Good progress',
+      });
+    });
+
+    it('prints blanks (not "null") when attendance and remark were never entered', async () => {
+      const v = (
+        await runFinal(DocumentKind.RESULT_CERTIFICATE, [
+          finalRow('a', { working_days: null, present_days: null, remark: null }),
+        ])
+      ).get('a')!.values;
+      expect(v['attendance.working_days']).toBe('');
+      expect(v['report_card.remark']).toBe('');
+    });
+
+    it('emits only catalog keys', async () => {
+      for (const kind of [DocumentKind.RESULT_CERTIFICATE, DocumentKind.MERIT_CERTIFICATE]) {
+        const keys = new Set(FIELD_CATALOG[kind].map((f) => f.key));
+        const v = (await runFinal(kind, [finalRow('a')])).get('a')!.values;
+        for (const k of Object.keys(v)) expect(keys.has(k)).toBe(true);
+      }
+    });
+
+    it('refuses an unpublished final (not found: only PUBLISHED finals are looked up)', async () => {
+      await expect(runFinal(DocumentKind.RESULT_CERTIFICATE, [finalRow('a')], [])).rejects.toThrow(
+        'Exam not found',
+      );
+    });
+
+    it('keeps the failed / unranked rules', async () => {
+      const failed = await refusal(
+        runFinal(DocumentKind.RESULT_CERTIFICATE, [finalRow('a', { is_fail: true })]),
+      );
+      expect(failed.students).toEqual([{ id: 'a', reason: 'FAILED' }]);
+      const unranked = await refusal(
+        runFinal(DocumentKind.MERIT_CERTIFICATE, [
+          finalRow('a', { position: null, section_position: null }),
+        ]),
+      );
+      expect(unranked.students).toEqual([{ id: 'a', reason: 'NOT_RANKED' }]);
+    });
+
+    it('refuses a row with no published_at', async () => {
+      const d = await refusal(
+        runFinal(DocumentKind.RESULT_CERTIFICATE, [finalRow('a', { published_at: null })]),
+      );
+      expect(d.students).toEqual([{ id: 'a', reason: 'NOT_PUBLISHED' }]);
+    });
+  });
+
   it('rejects missing context with 400', async () => {
     await expect(
       new ResultCertificateResolver(DocumentKind.RESULT_CERTIFICATE).resolve('t', ['a'], {} as any),

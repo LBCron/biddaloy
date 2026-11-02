@@ -33,6 +33,8 @@ import { ProgramEnrollment } from '../programs/entities/program-enrollment.entit
 import { ProgramMilestone } from '../programs/entities/program-milestone.entity';
 import { MilestoneAchievement } from '../programs/entities/milestone-achievement.entity';
 import { AttendanceComponentService } from './attendance-component.service';
+import { AttendanceSummaryService } from '../attendance/attendance-summary.service';
+import { ReportCardNote } from '../report-card-notes/entities/report-card-note.entity';
 import { MarkGridService } from './mark-grid.service';
 import { AuditService } from '../audit/audit.service';
 import { ExamComponentKind, ExamComponentSource, ExamStatus, MarkStatus } from '@biddaloy/shared';
@@ -101,6 +103,11 @@ function makeRepos(overrides: Record<string, any> = {}) {
         }),
       ),
       getRepository: (entity: any) => (entity === Exam ? examRepo : resultRepo),
+      // [70.4.1] The card reads the report-card note and the exam's term / year range here.
+      findOne: vi.fn(async (entity: any) => {
+        if (entity === ReportCardNote) return overrides.note ?? null;
+        return { start_date: '2026-01-01', end_date: '2099-12-31' };
+      }),
     },
     update: vi.fn(async () => undefined),
   };
@@ -288,8 +295,12 @@ function makeRepos(overrides: Record<string, any> = {}) {
     progress: vi.fn(async () => ({ counts: {}, outstanding: overrides.outstanding ?? [] })),
   };
   const auditService = { record: vi.fn(async () => undefined) };
+  const attendanceSummary = {
+    getSummariesForStudents: vi.fn(async () => overrides.attendanceSummaries ?? new Map()),
+  };
 
   return {
+    attendanceSummary,
     exam,
     examRepo,
     resultRepo,
@@ -343,6 +354,7 @@ async function buildService(overrides: Record<string, any> = {}) {
         useValue: repos.milestoneAchievementRepo,
       },
       { provide: AttendanceComponentService, useValue: repos.attendanceComponentService },
+      { provide: AttendanceSummaryService, useValue: repos.attendanceSummary },
       { provide: MarkGridService, useValue: repos.gridService },
       { provide: AuditService, useValue: repos.auditService },
     ],
@@ -1140,5 +1152,70 @@ describe('ResultsService.process (stream subjects, 35.1.14)', () => {
     await service.process(EXAM_ID, TENANT_ID, 'u1');
     expect(resultSubjectRepo.save).not.toHaveBeenCalled();
     expect(resultRepo.save.mock.calls[0][0]).toMatchObject({ grade: '-', is_fail: false });
+  });
+});
+
+describe('ResultsService.getStudentResultCard — attendance, remark, conduct (70.4.1)', () => {
+  const RESULT = {
+    id: 'result-1',
+    student_id: 'stu-1',
+    total_marks: '85.00',
+    gpa: '5.00',
+    grade: 'A+',
+    position: 1,
+    is_fail: false,
+    grading_scale_id: SCALE_ID,
+  };
+  const summary = (o: Record<string, unknown> = {}) => ({
+    working_days: 100,
+    present_days: 80,
+    late_days: 5,
+    policy: { late_counts_as_present: true },
+    ...o,
+  });
+
+  it('carries attendance (late counts per policy), remark and conduct for a published exam', async () => {
+    const { service } = await buildService({
+      exam: { status: ExamStatus.PUBLISHED },
+      resultForStudent: RESULT,
+      attendanceSummaries: new Map([['stu-1', summary()]]),
+      note: { remark: 'Good progress', conduct: { discipline: 'A', sports: 'B' } },
+    });
+    const card = await service.getStudentResultCard(EXAM_ID, 'stu-1', TENANT_ID, true);
+    expect(card?.attendance).toEqual({ working_days: 100, present_days: 85 });
+    expect(card?.remark).toBe('Good progress');
+    // Every configured item is listed; an ungraded one is null, not dropped.
+    expect(card?.conduct.find((c) => c.key === 'discipline')?.grade).toBe('A');
+    expect(card?.conduct.find((c) => c.key === 'neatness')?.grade).toBeNull();
+  });
+
+  it('is null / empty when nothing was entered', async () => {
+    const { service } = await buildService({
+      exam: { status: ExamStatus.PUBLISHED },
+      resultForStudent: RESULT,
+    });
+    const card = await service.getStudentResultCard(EXAM_ID, 'stu-1', TENANT_ID, true);
+    expect(card).toMatchObject({ attendance: null, remark: null, conduct: [] });
+  });
+
+  it('does not read attendance for an exam that is not published', async () => {
+    const { service, attendanceSummary } = await buildService({
+      exam: { status: ExamStatus.PROCESSED },
+      resultForStudent: RESULT,
+      attendanceSummaries: new Map([['stu-1', summary()]]),
+    });
+    const card = await service.getStudentResultCard(EXAM_ID, 'stu-1', TENANT_ID, false);
+    expect(card?.attendance).toBeNull();
+    expect(attendanceSummary.getSummariesForStudents).not.toHaveBeenCalled();
+  });
+
+  it('caps present days at the working days', async () => {
+    const { service } = await buildService({
+      exam: { status: ExamStatus.PUBLISHED },
+      resultForStudent: RESULT,
+      attendanceSummaries: new Map([['stu-1', summary({ present_days: 98, late_days: 9 })]]),
+    });
+    const card = await service.getStudentResultCard(EXAM_ID, 'stu-1', TENANT_ID, true);
+    expect(card?.attendance).toEqual({ working_days: 100, present_days: 100 });
   });
 });

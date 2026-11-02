@@ -29,11 +29,19 @@ interface Row {
   section_position: number | null;
   is_fail: boolean;
   published_at: Date | null;
+  /** Final-sourced rows only: the attendance snapshot taken at publish (D9). */
+  working_days?: number | null;
+  present_days?: number | null;
+  remark?: string | null;
 }
 
 const num = (n: number | null) => (n == null ? '' : String(n));
 
-/** Result / merit certificate values from a published result of one exam (D29). */
+/**
+ * Result / merit certificate values from a published result of one exam (D29), or of a published
+ * final result (D21). The print context stays `EXAM` (a shared enum, one DB value); its id is
+ * looked up as an exam first, then as a final result, so no schema or enum change is needed.
+ */
 export class ResultCertificateResolver implements FieldResolver {
   subjectType = 'STUDENT' as const;
 
@@ -54,11 +62,20 @@ export class ResultCertificateResolver implements FieldResolver {
         WHERE e.tenant_id = $1 AND e.id = $2 AND e.deleted_at IS NULL`,
       [tenantId, context.id],
     );
-    if (!exam) throw new NotFoundException('Exam not found');
+    const [final] = exam
+      ? []
+      : await manager.query(
+          `SELECT f.id, ay.name AS year_name
+             FROM final_results f JOIN academic_years ay ON ay.id = f.academic_year_id AND ay.tenant_id = f.tenant_id
+            WHERE f.tenant_id = $1 AND f.id = $2 AND f.deleted_at IS NULL AND f.status = 'PUBLISHED'`,
+          [tenantId, context.id],
+        );
+    if (!exam && !final) throw new NotFoundException('Exam not found');
 
     // Class/section come from the result's own section, not the live enrollment.
-    const rows: Row[] = await manager.query(
-      `SELECT s.id, s.full_name, s.full_name_bn, s.registration_number, s.roll_number,
+    const rows: Row[] = exam
+      ? await manager.query(
+          `SELECT s.id, s.full_name, s.full_name_bn, s.registration_number, s.roll_number,
               s.father_name, s.mother_name, s.birth_reg_no,
               to_char(s.date_of_birth, 'YYYY-MM-DD') AS dob, s.photo_key,
               c.name AS class_name, cs.section_name,
@@ -70,8 +87,26 @@ export class ResultCertificateResolver implements FieldResolver {
          LEFT JOIN classes c ON c.id = cs.class_id AND c.tenant_id = r.tenant_id
         WHERE r.tenant_id = $1 AND r.exam_id = $2 AND r.student_id = ANY($3::uuid[])
           AND r.deleted_at IS NULL AND s.deleted_at IS NULL`,
-      [tenantId, exam.id, subjectIds],
-    );
+          [tenantId, exam.id, subjectIds],
+        )
+      : await manager.query(
+          // A PUBLISHED final only (above); the attendance numbers are the publish snapshot (D9).
+          `SELECT s.id, s.full_name, s.full_name_bn, s.registration_number, s.roll_number,
+              s.father_name, s.mother_name, s.birth_reg_no,
+              to_char(s.date_of_birth, 'YYYY-MM-DD') AS dob, s.photo_key,
+              c.name AS class_name, cs.section_name,
+              r.total_marks, r.gpa, r.grade, r.position, r.section_position, r.is_fail,
+              r.published_at, r.working_days, r.present_days, n.remark
+         FROM final_result_rows r
+         JOIN students s ON s.id = r.student_id AND s.tenant_id = r.tenant_id
+         LEFT JOIN class_sections cs ON cs.id = r.section_id AND cs.tenant_id = r.tenant_id
+         LEFT JOIN classes c ON c.id = cs.class_id AND c.tenant_id = r.tenant_id
+         LEFT JOIN report_card_notes n ON n.tenant_id = r.tenant_id
+          AND n.final_result_id = r.final_result_id AND n.student_id = r.student_id
+        WHERE r.tenant_id = $1 AND r.final_result_id = $2 AND r.student_id = ANY($3::uuid[])
+          AND r.deleted_at IS NULL AND s.deleted_at IS NULL`,
+          [tenantId, final.id, subjectIds],
+        );
 
     const refused: { id: string; reason: Reason }[] = [];
     // A student of this school with no result for the exam (absent) is refused like the rest;
@@ -115,12 +150,24 @@ export class ResultCertificateResolver implements FieldResolver {
           'student.registration_number': r.registration_number,
           'student.date_of_birth': r.dob ?? '',
           'student.birth_reg_no': r.birth_reg_no ?? '',
-          'exam.name': exam.name,
-          'exam.year': exam.year_name,
+          // A final has no single exam name; its year still prints.
+          'exam.name': exam?.name ?? '',
+          'exam.year': (exam ?? final).year_name,
           'result.total_marks': r.total_marks,
           'result.gpa': r.gpa,
           'result.grade': r.grade,
           'result.position': num(r.position),
+          ...(final && {
+            'final_result.year': final.year_name,
+            'final_result.total': r.total_marks,
+            'final_result.gpa': r.gpa,
+            'final_result.grade': r.grade,
+            'final_result.position': num(r.position),
+            'final_result.section_position': num(r.section_position),
+            'attendance.working_days': num(r.working_days ?? null),
+            'attendance.present_days': num(r.present_days ?? null),
+            'report_card.remark': r.remark ?? '',
+          }),
           // Only the merit catalog has this key.
           ...(this.kind === DocumentKind.MERIT_CERTIFICATE && {
             'result.section_position': num(r.section_position),
