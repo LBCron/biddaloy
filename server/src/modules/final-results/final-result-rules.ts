@@ -80,6 +80,7 @@ export class SharesNotHundred extends Error {
  * - Rows for this subject win over the exam-level default rows (D6d), all or none.
  * - No rows at all = equal shares.
  * - The configured rows must sum to 100 first, else `SharesNotHundred`.
+ * - Kept shares summing to 0 also throw `SharesNotHundred` (total 0), never an equal fallback.
  * - Then exams that do not contain the subject drop out and the rest are
  *   renormalised to 100 (D22).
  */
@@ -104,11 +105,9 @@ export function effectiveShares(
 
   const kept = rows.filter((r) => examIdsWithSubject.includes(r.exam_id));
   const keptSum = kept.reduce((sum, r) => sum + toPaisa(r.share_percent), 0);
-  if (keptSum === 0) {
-    // The subject sits in no weighted exam: fall back to equal rather than divide by zero.
-    for (const id of examIdsWithSubject) shares.set(id, 100 / examIdsWithSubject.length);
-    return shares;
-  }
+  // The subject sits in no weighted exam (or only in 0-share ones): nothing to
+  // renormalise, so the configuration cannot grade it. Same error as a bad total.
+  if (keptSum === 0) throw new SharesNotHundred(subjectId, 0);
   for (const r of kept) shares.set(r.exam_id, (toPaisa(r.share_percent) / keptSum) * 100);
   return shares;
 }
