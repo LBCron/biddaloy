@@ -308,6 +308,142 @@ describe('[48.2.10] Transcript + document prints (HTTP)', () => {
     });
   });
 
+  /** [70.4.1] One final of class 1 / the seed year with a row for `studentId`. */
+  async function seedFinal(status: 'PROCESSED' | 'PUBLISHED'): Promise<string> {
+    await ds.query(
+      `DELETE FROM final_results WHERE tenant_id = $1 AND class_id = $2 AND academic_year_id = $3`,
+      [TENANT_ID, SEED_CLASS_1_ID, SEED_ACADEMIC_YEAR_ID],
+    );
+    const [final] = await ds.query(
+      `INSERT INTO final_results (tenant_id, class_id, academic_year_id, status)
+       VALUES ($1, $2, $3, $4) RETURNING id`,
+      [TENANT_ID, SEED_CLASS_1_ID, SEED_ACADEMIC_YEAR_ID, status],
+    );
+    await ds.query(
+      `INSERT INTO final_result_weights (tenant_id, final_result_id, exam_id, share_percent)
+       VALUES ($1, $2, $3, 100)`,
+      [TENANT_ID, final.id, examId],
+    );
+    const [{ id: scaleId }] = await ds.query(`SELECT id FROM grading_scales WHERE tenant_id = $1`, [
+      TENANT_ID,
+    ]);
+    await ds.query(
+      `INSERT INTO final_result_rows
+         (tenant_id, final_result_id, student_id, total_marks, gpa, grade, position, section_id,
+          section_position, is_fail, grading_scale_id, grading_scale_revision, rule_version,
+          computed_at, working_days, present_days)
+       VALUES ($1, $2, $3, 90, 5, 'A+', 1, $4, 1, false, $5, 1, 'final-v1', NOW(), 200, 190)`,
+      [TENANT_ID, final.id, studentId, SEED_SECTION_1_ID, scaleId],
+    );
+    return final.id as string;
+  }
+  const finalCard = (role: string, id = studentId, tenant = TENANT_ID) =>
+    as(
+      role,
+      http().get(
+        `${API}/students/${id}/final-result-card?academic_year_id=${SEED_ACADEMIC_YEAR_ID}`,
+      ),
+      tenant,
+    );
+
+  describe('final result card [70.4.1]', () => {
+    it.each(STAFF_ALLOWED)(
+      '%s gets a PUBLISHED final card with the snapshot attendance',
+      async (role) => {
+        await seed();
+        const finalId = await seedFinal('PUBLISHED');
+        const res = await finalCard(role).expect(200);
+        expect(res.body).toMatchObject({
+          final_result_id: finalId,
+          attendance: { working_days: 200, present_days: 190 },
+          exam_shares: [{ exam_id: examId, share_percent: 100 }],
+        });
+      },
+    );
+
+    it.each(STAFF_DENIED)('%s is denied (403, no RESULT_READ)', async (role) => {
+      await seed();
+      await seedFinal('PUBLISHED');
+      await finalCard(role).expect(403);
+    });
+
+    it('a family never sees a PROCESSED final; staff do', async () => {
+      await seed();
+      await seedFinal('PROCESSED');
+      await finalCard('ADMIN').expect(200);
+      await finalCard('PARENT').expect(404);
+      await finalCard('STUDENT').expect(404);
+      // The transcript carries no final column for anyone until it is published.
+      expect((await get('ADMIN').expect(200)).body.final).toBeNull();
+    });
+
+    it('the transcript has the final column once PUBLISHED', async () => {
+      await seed();
+      const finalId = await seedFinal('PUBLISHED');
+      expect((await get('PARENT').expect(200)).body.final.final_result_id).toBe(finalId);
+    });
+
+    it('a PARENT of another child and a STUDENT asking for a classmate are refused (401)', async () => {
+      await seed();
+      await seedFinal('PUBLISHED');
+      await finalCard('OTHER_PARENT').expect(401);
+      await finalCard('STUDENT', classmateId).expect(401);
+    });
+
+    it('[AUTH-06] TEACHER gets 404 outside their sections', async () => {
+      await seed();
+      await seedFinal('PUBLISHED');
+      await ds.query(`UPDATE students SET class_section_id = $1 WHERE id = $2`, [
+        SEED_SECTION_2_ID,
+        studentId,
+      ]);
+      await finalCard(UserRole.TEACHER).expect(404);
+    });
+
+    it('tenant 2’s ADMIN gets 404; a missing X-Tenant-ID is 401; a non-UUID student is 400', async () => {
+      await seed();
+      await seedFinal('PUBLISHED');
+      await http()
+        .get(
+          `${API}/students/${studentId}/final-result-card?academic_year_id=${SEED_ACADEMIC_YEAR_ID}`,
+        )
+        .set('Authorization', `Bearer ${tenantBAdminToken}`)
+        .set('X-Tenant-ID', TENANT_B)
+        .set('X-Role', UserRole.ADMIN)
+        .expect(404);
+      await http()
+        .get(
+          `${API}/students/${studentId}/final-result-card?academic_year_id=${SEED_ACADEMIC_YEAR_ID}`,
+        )
+        .set('Authorization', `Bearer ${tokens.ADMIN}`)
+        .expect(401);
+      await finalCard('ADMIN', 'not-a-uuid').expect(400);
+    });
+
+    it('404 when the year has no final; 400 without academic_year_id', async () => {
+      await seed();
+      await ds.query(`DELETE FROM final_results WHERE tenant_id = $1`, [TENANT_ID]);
+      await finalCard('ADMIN').expect(404);
+      await as('ADMIN', http().get(`${API}/students/${studentId}/final-result-card`)).expect(400);
+    });
+
+    it('logs a FINAL_REPORT_CARD print only for a final the caller may see', async () => {
+      await seed();
+      const finalId = await seedFinal('PROCESSED');
+      const body = { document: 'FINAL_REPORT_CARD', academic_year_id: SEED_ACADEMIC_YEAR_ID };
+      await post('PARENT', body).expect(404);
+      expect(await printRows(studentId)).toHaveLength(0);
+      await post('ADMIN', body).expect(204);
+      const rows = await printRows(studentId);
+      expect(rows).toHaveLength(1);
+      expect(rows[0].new_values).toMatchObject({
+        document: 'FINAL_REPORT_CARD',
+        final_result_id: finalId,
+      });
+      await post('ADMIN', { document: 'FINAL_REPORT_CARD' }).expect(400);
+    });
+  });
+
   it('a POST shows up in GET /audit-logs/entity/StudentDocumentPrint/<student> for the ADMIN', async () => {
     await seed();
     await post('ADMIN', reportCard()).expect(204);

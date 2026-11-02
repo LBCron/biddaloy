@@ -90,3 +90,57 @@ export class TabulationDto {
   @ApiProperty({ type: [TabulationSubjectDto] }) subjects: TabulationSubjectDto[];
   @ApiProperty({ type: [TabulationRowDto] }) rows: TabulationRowDto[];
 }
+
+/** [70.4.1, D20] One section's tabulation of a final result: each counted exam, then the final. */
+export class FinalTabulationExamDto {
+  @ApiProperty() exam_id: string;
+  @ApiProperty() name: string;
+  /** Whole-exam share; null when the exam only has per-subject shares. */
+  @ApiProperty({ nullable: true, type: Number }) share_percent: number | null;
+}
+
+export class FinalTabulationSubjectDto {
+  @ApiProperty() subject_id: string;
+  @ApiProperty() name_en: string;
+  @ApiProperty({ nullable: true, type: String }) name_bn: string | null;
+}
+
+export class FinalTabulationCellDto extends TabulationCellDto {
+  /** Subject total in each counted exam (key = exam id); null = absent (counts 0, D2). */
+  @ApiProperty({ type: 'object', additionalProperties: { type: 'number', nullable: true } })
+  per_exam: Record<string, number | null>;
+}
+
+@ApiExtraModels(FinalTabulationCellDto)
+export class FinalTabulationRowDto {
+  @ApiProperty() student_id: string;
+  @ApiProperty() roll_number: number;
+  @ApiProperty() full_name: string;
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: { $ref: '#/components/schemas/FinalTabulationCellDto' },
+  })
+  cells: Record<string, FinalTabulationCellDto>;
+  /** Each counted exam's total (key = exam id); null = no result in that exam. */
+  @ApiProperty({ type: 'object', additionalProperties: { type: 'number', nullable: true } })
+  exam_totals: Record<string, number | null>;
+  @ApiProperty() total_marks: number;
+  @ApiProperty() gpa: number;
+  @ApiProperty() grade: string;
+  @ApiProperty({ nullable: true, type: Number }) position: number | null;
+  @ApiProperty({ nullable: true, type: Number }) section_position: number | null;
+  @ApiProperty() is_fail: boolean;
+}
+
+export class FinalTabulationDto {
+  @ApiProperty() final: {
+    id: string;
+    academic_year_name: string;
+    status: string;
+    published_at: string | null;
+  };
+  @ApiProperty() section: { id: string; name: string; class_name: string };
+  @ApiProperty({ type: [FinalTabulationExamDto] }) exams: FinalTabulationExamDto[];
+  @ApiProperty({ type: [FinalTabulationSubjectDto] }) subjects: FinalTabulationSubjectDto[];
+  @ApiProperty({ type: [FinalTabulationRowDto] }) rows: FinalTabulationRowDto[];
+}

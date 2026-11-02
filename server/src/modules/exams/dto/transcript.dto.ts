@@ -5,7 +5,7 @@ export class TranscriptQueryDto {
   academic_year_id: string;
 }
 
-export const DOCUMENT_PRINT_KINDS = ['REPORT_CARD', 'TRANSCRIPT'] as const;
+export const DOCUMENT_PRINT_KINDS = ['REPORT_CARD', 'TRANSCRIPT', 'FINAL_REPORT_CARD'] as const;
 export type DocumentPrintKind = (typeof DOCUMENT_PRINT_KINDS)[number];
 
 export class DocumentPrintDto {
@@ -16,7 +16,9 @@ export class DocumentPrintDto {
   @IsUUID()
   exam_id?: string;
 
-  @ValidateIf((o: DocumentPrintDto) => o.document === 'TRANSCRIPT')
+  @ValidateIf(
+    (o: DocumentPrintDto) => o.document === 'TRANSCRIPT' || o.document === 'FINAL_REPORT_CARD',
+  )
   @IsUUID()
   academic_year_id?: string;
 }

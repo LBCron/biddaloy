@@ -1,7 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
-import { AuditAction, ExamStatus } from '@biddaloy/shared';
+import {
+  AuditAction,
+  ExamStatus,
+  FinalResultStatus,
+  type FinalResultStudentCard,
+} from '@biddaloy/shared';
 import { Exam } from './entities/exam.entity';
 import { ExamSchedule } from './entities/exam-schedule.entity';
 import { Student } from '../students/entities/student.entity';
@@ -9,6 +15,12 @@ import { Enrollment } from '../students/entities/enrollment.entity';
 import { AcademicYear } from '../academics/entities/academic-year.entity';
 import { AuditService } from '../audit/audit.service';
 import { ResultsService } from './results.service';
+import { School } from '../schools/entities/school.entity';
+import { FinalResult } from '../final-results/entities/final-result.entity';
+import { FinalResultWeight } from '../final-results/entities/final-result-weight.entity';
+// Looked up lazily through ModuleRef: FinalResultsModule imports ExamsModule (as ResultsService).
+import { FinalResultsService } from '../final-results/final-results.service';
+import { loadCardNotes } from './report-card-extras';
 import { DocumentPrintDto } from './dto/transcript.dto';
 
 type ReportCard = NonNullable<Awaited<ReturnType<ResultsService['getStudentResultCard']>>>;
@@ -23,7 +35,14 @@ export interface Transcript {
   };
   academic_year: { id: string; name: string };
   exams: ReportCard[];
+  /** The year's PUBLISHED final result of this student; null when there is none. */
+  final: FinalCard | null;
 }
+
+/** Final card plus each counted exam's whole-exam share (null = only per-subject shares). */
+export type FinalCard = FinalResultStudentCard & {
+  exam_shares: Array<{ exam_id: string; share_percent: number | null }>;
+};
 
 /**
  * [48.2.10] Yearly transcript (one student, every exam of a year) and the
@@ -40,6 +59,7 @@ export class TranscriptService {
     @InjectRepository(ExamSchedule) private readonly scheduleRepo: Repository<ExamSchedule>,
     private readonly resultsService: ResultsService,
     private readonly auditService: AuditService,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   async getTranscript(
@@ -118,6 +138,79 @@ export class TranscriptService {
       },
       academic_year: { id: year.id, name: year.name },
       exams: cards,
+      // The transcript's final column is published-only for everyone (D9): staff preview a
+      // PROCESSED final through `getFinalResultCard`.
+      final: await this.finalCardOf(tenantId, studentId, enrollment.class_id, yearId, true),
+    };
+  }
+
+  /**
+   * The final card alone (D20): same shape as the transcript's `final`. `publishedOnly` (families)
+   * hides a PROCESSED final; staff see PROCESSED too. 404 when the year has no visible final or the
+   * student has no row in it.
+   */
+  async getFinalResultCard(
+    tenantId: string,
+    studentId: string,
+    yearId: string,
+    publishedOnly: boolean,
+  ): Promise<FinalCard> {
+    const enrollment = await this.enrollmentRepo.findOne({
+      where: { student_id: studentId, academic_year_id: yearId, tenant_id: tenantId },
+      order: { enrolled_at: 'DESC' },
+    });
+    const card = enrollment
+      ? await this.finalCardOf(tenantId, studentId, enrollment.class_id, yearId, publishedOnly)
+      : null;
+    if (!card) throw new NotFoundException('No final result for this student in that year');
+    return card;
+  }
+
+  private async finalCardOf(
+    tenantId: string,
+    studentId: string,
+    classId: string,
+    yearId: string,
+    publishedOnly: boolean,
+  ): Promise<FinalCard | null> {
+    const manager = this.examRepo.manager;
+    const final = await manager.findOne(FinalResult, {
+      where: {
+        tenant_id: tenantId,
+        class_id: classId,
+        academic_year_id: yearId,
+        deleted_at: IsNull(),
+        status: publishedOnly
+          ? FinalResultStatus.PUBLISHED
+          : In([FinalResultStatus.PUBLISHED, FinalResultStatus.PROCESSED]),
+      },
+    });
+    if (!final) return null;
+    const finals = this.moduleRef.get(FinalResultsService, { strict: false });
+    const card = await finals.studentCard(final.id, studentId, tenantId);
+    if (!card) return null;
+    const [school, weights] = await Promise.all([
+      manager.findOne(School, { where: { id: tenantId } }),
+      manager.find(FinalResultWeight, {
+        where: { final_result_id: final.id, tenant_id: tenantId },
+      }),
+    ]);
+    // `studentCard` leaves remark/conduct empty; the notes live in report_card_notes.
+    const notes = await loadCardNotes(
+      manager,
+      tenantId,
+      studentId,
+      { final_result_id: final.id },
+      school?.settings ?? null,
+    );
+    return {
+      ...card,
+      remark: notes.remark,
+      conduct: notes.conduct,
+      exam_shares: card.exams.map((e) => {
+        const whole = weights.find((w) => w.exam_id === e.exam_id && w.subject_id === null);
+        return { exam_id: e.exam_id, share_percent: whole ? Number(whole.share_percent) : null };
+      }),
     };
   }
 
@@ -144,6 +237,15 @@ export class TranscriptService {
       );
       if (!card) throw new NotFoundException('No result for this student on that exam');
       target = { exam_id: dto.exam_id! };
+    } else if (dto.document === 'FINAL_REPORT_CARD') {
+      // Same gate as the card route: a family cannot log (or see) a final that is not published.
+      const card = await this.getFinalResultCard(
+        tenantId,
+        studentId,
+        dto.academic_year_id!,
+        publishedOnly,
+      );
+      target = { academic_year_id: dto.academic_year_id!, final_result_id: card.final_result_id };
     } else {
       const enrolled = await this.enrollmentRepo.exists({
         where: {

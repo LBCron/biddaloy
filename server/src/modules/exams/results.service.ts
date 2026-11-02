@@ -40,6 +40,15 @@ import {
 import { loadExamCohort, sitsSubject } from './exam-cohort';
 import { lockExam } from './exam-lock';
 import { AttendanceComponentService } from './attendance-component.service';
+import { AttendanceSummaryService } from '../attendance/attendance-summary.service';
+import { AcademicTerm } from '../calendar/entities/academic-term.entity';
+import { todayInSchoolTz } from '../../common/time';
+import {
+  attendanceFrom,
+  loadCardNotes,
+  type CardAttendance,
+  type CardConduct,
+} from './report-card-extras';
 import { MarkGridService } from './mark-grid.service';
 import { attentionEvents } from '../attention/attention.constants';
 import { emitRecheck } from '../attention/engine/attention-events';
@@ -1066,6 +1075,10 @@ export class ResultsService {
     }>;
     legend: Array<{ grade: string; gpa: number | null; comment: string | null }>;
     programs: ReportCardProgramRow[];
+    /** Live over the exam's term (D9/D27); per-exam cards are not snapshotted. Null: not published or no data. */
+    attendance: CardAttendance | null;
+    remark: string | null;
+    conduct: CardConduct;
     issuer: IssuerSnapshot;
     logo_url: string | null;
   } | null> {
@@ -1090,6 +1103,16 @@ export class ResultsService {
     if (!school) return null;
 
     const programs = await this.getReportCardPrograms(exam, studentId, tenantId);
+    const [attendance, notes] = await Promise.all([
+      this.examAttendance(exam, studentId, tenantId),
+      loadCardNotes(
+        this.examRepo.manager,
+        tenantId,
+        studentId,
+        { exam_id: examId },
+        school.settings,
+      ),
+    ]);
 
     return {
       exam_name: exam.name,
@@ -1102,9 +1125,46 @@ export class ResultsService {
         comment: b.comment,
       })),
       programs,
+      attendance,
+      remark: notes.remark,
+      conduct: notes.conduct,
       issuer: buildIssuerSnapshot(school),
       logo_url: buildLogoUrl(school.id, school.logo_key),
     };
+  }
+
+  /**
+   * Attendance printed on a PUBLISHED exam's card: the exam's term range (the whole year when the
+   * exam has no term), up to today, from `AttendanceSummaryService` as is (D27).
+   */
+  private async examAttendance(
+    exam: Exam,
+    studentId: string,
+    tenantId: string,
+  ): Promise<CardAttendance | null> {
+    if (exam.status !== ExamStatus.PUBLISHED) return null;
+    const manager = this.examRepo.manager;
+    const range = exam.academic_term_id
+      ? await manager.findOne(AcademicTerm, {
+          where: { id: exam.academic_term_id, tenant_id: tenantId },
+        })
+      : await manager.findOne(AcademicYear, {
+          where: { id: exam.academic_year_id, tenant_id: tenantId },
+        });
+    if (!range) return null;
+    const from = String(range.start_date).slice(0, 10);
+    const to = [String(range.end_date).slice(0, 10), todayInSchoolTz()].sort()[0];
+    if (from > to) return null;
+    // Lazy like FinalResultsService: only a published card needs it.
+    const attendanceSummary = this.moduleRef.get(AttendanceSummaryService, { strict: false });
+    const summaries = await attendanceSummary.getSummariesForStudents({
+      tenantId,
+      studentIds: [studentId],
+      classId: exam.class_id,
+      from,
+      to,
+    });
+    return attendanceFrom(summaries.get(studentId));
   }
 
   /** [34.2.4] Opted-in (`show_on_report_card`, D22) programs to print
