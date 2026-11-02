@@ -54,7 +54,7 @@ import {
 } from '../exams/result-rules';
 import { GradingBand } from '../grading/entities/grading-band.entity';
 import { GradingScale } from '../grading/entities/grading-scale.entity';
-import { gradeFor, resolveScale } from '../grading/scale-lookup';
+import { gradeFor, gradeForGpa, resolveScale } from '../grading/scale-lookup';
 import { School } from '../schools/entities/school.entity';
 import { buildIssuerSnapshot } from '../schools/profile/issuer-snapshot';
 import { buildLogoUrl } from '../schools/profile/logo-key';
@@ -90,13 +90,6 @@ export function equalShares(count: number): number[] {
   const base = Math.floor(10_000 / count);
   const extra = 10_000 - base * count;
   return Array.from({ length: count }, (_, i) => (base + (i < extra ? 1 : 0)) / 100);
-}
-
-/** The overall grade comes from the GPA, as `ResultsService.gradeForGpa` does. */
-function gradeForGpa(bands: Band[], gpa: number): Band | null {
-  const eligible = bands.filter((b) => b.gpa !== null && b.gpa <= gpa);
-  if (eligible.length === 0) return null;
-  return eligible.reduce((best, b) => ((b.gpa as number) > (best.gpa as number) ? b : best));
 }
 
 /**

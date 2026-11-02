@@ -29,6 +29,18 @@ export function gradeFor<T extends BandRange>(bands: T[], percent: number): T | 
   return bands.find((band) => rounded >= band.percent_from && rounded <= band.percent_to) ?? null;
 }
 
+/**
+ * The overall grade for a computed GPA: the band with the highest `gpa` at or below it, on the
+ * same scale (the certificate's grade mirrors the GPA scale, not a re-averaged percent). One
+ * function for single-exam and final results, so the two can never drift. `null` when no band
+ * has a GPA that low.
+ */
+export function gradeForGpa<T extends { gpa: number | null }>(bands: T[], gpa: number): T | null {
+  const eligible = bands.filter((b) => b.gpa !== null && b.gpa <= gpa);
+  if (eligible.length === 0) return null;
+  return eligible.reduce((best, b) => ((b.gpa as number) > (best.gpa as number) ? b : best));
+}
+
 export interface ScaleRef {
   academic_year_id: string;
   class_id: string | null;
