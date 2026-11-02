@@ -34,6 +34,7 @@ import * as React from 'react';
 
 import { applicantQueryOptions } from './features/admission/hooks/useApplicants';
 import { intakeQueryOptions } from './features/admission/hooks/useIntakes';
+import { noticeKeys } from './features/notices/manage/use-notices';
 import { STAFF_NAV_ITEMS, type StaffNavLabel } from './nav-tree';
 import { ROUTE_CRUMBS, type RouteCrumbs } from './route-crumbs';
 import { studyPlanTitle } from './routes/_staff/academics/study-plans/-detail/plan-title';
@@ -100,6 +101,11 @@ export const ENTITY_RESOLVERS: Record<string, EntityResolver> = {
       const typeLabel = i18n.getFixedT(ctx.language, 'applications')(`types.${type}`);
       return `${typeLabel} — ${name}`;
     },
+  },
+  // [53.4.01] Notice title, from the detail cache or the compose form's own cache (edit page).
+  noticeDetail: {
+    queryKeys: (id) => [noticeKeys.detail(id), ['notice-compose', id]],
+    getName: byField('title'),
   },
   // [32.4.1] Keyed by the crumb's own label key: "template" has no `EntityLabel` noun.
   printTemplateEdit: {

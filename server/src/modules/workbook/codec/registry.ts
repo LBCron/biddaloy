@@ -35,6 +35,7 @@ import { reportsTabs } from '../tabs/reports';
 import { arrivalNoticeSubscriptionsTab, attendanceTabs } from '../tabs/attendance';
 import { hrTabs } from '../tabs/hr';
 import { applicationsTabs } from '../tabs/applications';
+import { noticesTabs } from '../tabs/notices';
 import { acrTabs } from '../tabs/people/acr.tab';
 import { incidentsTabs } from '../tabs/people/incidents.tab';
 import { surveysTabs } from '../tabs/people/surveys.tab';
@@ -216,6 +217,10 @@ export const EXPECTED_TABS = [
   'report_definitions',
   'report_definition_versions',
   'report_schedules',
+  // [53.6.02] Epic 53.0 notice board. Depend on `users`, `students`, `guardians`.
+  'notices',
+  'notice_attachments',
+  'notice_recipients',
 ] as const;
 
 export type ExpectedTabName = (typeof EXPECTED_TABS)[number];
@@ -294,6 +299,8 @@ export const ALL_TABS: readonly TabSpec<any, any>[] = [
   arrivalNoticeSubscriptionsTab,
   // [8.15.12] Same order as EXPECTED_TABS.
   ...reportsTabs,
+  // [53.6.02]
+  ...noticesTabs,
 ];
 
 export class RegistryError extends Error {

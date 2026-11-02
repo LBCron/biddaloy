@@ -9838,6 +9838,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notices/{id}/sms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The SMS request: people, counts, text and credit cost */
+        get: operations["NoticeSmsController_view_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/sms/recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Tick or untick people while the request is pending */
+        patch: operations["NoticeSmsController_setRecipients_v1"];
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/sms/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve: reserve credit, make personal links, queue one SMS each */
+        post: operations["NoticeSmsController_approve_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/sms/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline: nothing is sent */
+        post: operations["NoticeSmsController_decline_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/surveys/mine": {
         parameters: {
             query?: never;
@@ -18190,6 +18258,58 @@ export interface components {
             /** Format: date-time */
             editedAt: string | null;
             files: components["schemas"]["PublicNoticeFileDto"][];
+        };
+        SmsRecipientRowDto: {
+            id: string;
+            guardianName: string;
+            forStudent: string | null;
+            reachable: boolean;
+            smsWanted: boolean;
+            /** @description Masked, e.g. 01•••••234 */
+            phone: string | null;
+        };
+        SmsCountsDto: {
+            willSend: number;
+            optedOut: number;
+            noPhone: number;
+        };
+        SmsTextDto: {
+            /** @description Title plus link placeholder */
+            text: string;
+            length: number;
+            segments: number;
+            /** @enum {string} */
+            encoding: "GSM_7" | "UCS_2";
+            /** @description Whole credits: segments x people who will get it */
+            creditCost: number;
+        };
+        NoticeSmsViewDto: {
+            /** @enum {string} */
+            status: "NONE" | "PENDING" | "APPROVED" | "DECLINED";
+            requester: string | null;
+            requestedAt: string | null;
+            /** @description Notice is published, not withdrawn and not past its end date */
+            live: boolean;
+            items: components["schemas"]["SmsRecipientRowDto"][];
+            total: number;
+            page: number;
+            limit: number;
+            counts: components["schemas"]["SmsCountsDto"];
+            sms: components["schemas"]["SmsTextDto"];
+        };
+        SmsRecipientsDto: {
+            /** @description notice_recipients ids (guardian rows) */
+            ids: string[];
+            smsWanted: boolean;
+        };
+        SmsRecipientsResultDto: {
+            updated: number;
+        };
+        SmsDecisionDto: {
+            /** @enum {string} */
+            status: "NONE" | "PENDING" | "APPROVED" | "DECLINED";
+            /** @description SMS queued (0 on decline) */
+            queued: number;
         };
         PendingSurveyQuestionDto: {
             id: string;
@@ -32909,6 +33029,7 @@ export interface operations {
             query?: {
                 academic_year_id?: string;
                 class_id?: string;
+                status?: "DRAFT" | "PROCESSED" | "PUBLISHED";
                 page?: number;
                 limit?: number;
             };
@@ -43429,6 +43550,145 @@ export interface operations {
         requestBody?: never;
         responses: {
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeSmsController_view_v1: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeSmsViewDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeSmsController_setRecipients_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsRecipientsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsRecipientsResultDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeSmsController_approve_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsDecisionDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeSmsController_decline_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsDecisionDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

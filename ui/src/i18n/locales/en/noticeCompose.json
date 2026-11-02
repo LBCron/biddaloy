@@ -39,7 +39,8 @@
     "generic": "Could not save. Try again.",
     "publishFailed": "Could not publish. Try again.",
     "loadNotice": "Could not load the notice",
-    "noRecipients": "Choose at least one person"
+    "noRecipients": "Choose at least one person",
+    "percent": "Write a number from 1 to 100"
   },
   "files": {
     "label": "Attach files",
@@ -57,7 +58,11 @@
       "guardians": "Guardians",
       "staff": "All teachers and staff",
       "students": "Students",
-      "named": "By name"
+      "named": "By name",
+      "examFailed": "Failed an exam",
+      "feeDue": "Fee due",
+      "lowAttendance": "Low attendance",
+      "orgGroup": "Shift, version or group"
     },
     "filters": {
       "class": "Class",
@@ -66,7 +71,15 @@
       "kind": "Search for",
       "kindStaff": "Staff",
       "kindStudents": "Students",
-      "name": "Name"
+      "name": "Name",
+      "target": "Send to",
+      "targetStudents": "Students",
+      "targetGuardians": "Guardians",
+      "exam": "Exam",
+      "belowPercent": "Attendance below (%)",
+      "shift": "Shift",
+      "version": "Version",
+      "group": "Group"
     },
     "columns": { "name": "Name", "detail": "Class or role", "contact": "Reach" },
     "reach": { "app": "App", "sms": "SMS only", "none": "Cannot be reached" },
@@ -81,7 +94,13 @@
     },
     "loadError": "Could not load people",
     "pickClass": "Pick a class to see people.",
-    "pickRole": "Pick a role to see people."
+    "pickRole": "Pick a role to see people.",
+    "examsLoading": "Loading exams...",
+    "examsError": "Could not load exams. Try again.",
+    "examsPartial": "Only the latest 100 exams are listed.",
+    "pickExam": "Pick an exam to see people.",
+    "pickPercent": "Write a number from 1 to 100.",
+    "pickGroup": "Pick a shift, version or group to see people."
   },
   "review": {
     "heading": "Check before publishing",
@@ -96,6 +115,7 @@
     "sms": "The SMS request will go to an admin for approval."
   },
   "help": {
+    "feeDue": "Everyone with an unpaid fee that is past its due date.",
     "important": "Marks the notice as urgent so it stands out in the list.",
     "pinned": "Keeps the notice at the top of the board.",
     "isPublic": "Anyone who has the link can read it, without logging in.",

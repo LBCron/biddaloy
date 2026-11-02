@@ -11,10 +11,18 @@ import {
   type AudienceBuilderTab,
   type DataTableColumn,
 } from '@biddaloy/ui/components';
-import { useAllClasses, useClassSections } from '@biddaloy/ui/hooks';
+import { useAllClasses, useClassSections, useOrganisationVocabulary } from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
 import * as React from 'react';
 
+import {
+  advancedFilters,
+  DEFAULT_BELOW_PERCENT,
+  FilterField,
+  hasOrgChoices,
+  parsePercent,
+  validPercent,
+} from './advanced-filter-fields';
 import type {
   AudiencePersonDto,
   AudienceQueryDto,
@@ -22,7 +30,10 @@ import type {
   RecipientRefDto,
 } from './use-compose';
 
-export type TabKey = 'guardians' | 'staff' | 'students' | 'named';
+export type AdvancedTabKey = 'examFailed' | 'feeDue' | 'lowAttendance' | 'orgGroup';
+export type TabKey = 'guardians' | 'staff' | 'students' | 'named' | AdvancedTabKey;
+export const isAdvancedTab = (tab: TabKey): tab is AdvancedTabKey =>
+  tab === 'examFailed' || tab === 'feeDue' || tab === 'lowAttendance' || tab === 'orgGroup';
 
 export interface AudienceFilterState {
   classId: string | null;
@@ -30,6 +41,14 @@ export interface AudienceFilterState {
   roles: string[];
   kind: 'STAFF' | 'STUDENTS';
   q: string;
+  /** Advanced tabs: who gets it, the students or their guardians. */
+  target: 'STUDENTS' | 'GUARDIANS';
+  examId: string | null;
+  /** Kept as text while typing; `validPercent` gates the query. */
+  belowPercent: string;
+  shift: string | null;
+  version: string | null;
+  group: string | null;
 }
 export const INITIAL_FILTERS: AudienceFilterState = {
   classId: null,
@@ -37,6 +56,12 @@ export const INITIAL_FILTERS: AudienceFilterState = {
   roles: [],
   kind: 'STAFF',
   q: '',
+  target: 'STUDENTS',
+  examId: null,
+  belowPercent: DEFAULT_BELOW_PERCENT,
+  shift: null,
+  version: null,
+  group: null,
 };
 
 /** One row shape for both the matches and the Chosen list. */
@@ -61,23 +86,38 @@ const STAFF_ROLES = [
   UserRole.COMMITTEE,
 ];
 
-export function tabKeys(isTeacher: boolean): TabKey[] {
-  return isTeacher ? ['guardians', 'students'] : ['guardians', 'staff', 'students', 'named'];
+/** A teacher gets the class tabs only: the advanced ones look school-wide. */
+export function tabKeys(isTeacher: boolean, showOrg = false): TabKey[] {
+  if (isTeacher) return ['guardians', 'students'];
+  return [
+    'guardians',
+    'staff',
+    'students',
+    'named',
+    'examFailed',
+    'feeDue',
+    'lowAttendance',
+    ...(showOrg ? (['orgGroup'] as const) : []),
+  ];
 }
 
 const reachOf = (hasLogin: boolean, hasPhone: boolean): AudienceRow['reach'] =>
   hasLogin ? 'app' : hasPhone ? 'sms' : 'none';
 
 /**
- * The hint to show instead of asking for people, or undefined when the query can go out. The
- * server answers 400 for guardians/students without a class and for staff without a role.
+ * What is missing before the server can answer (it 400s otherwise), as an `audience.*` key:
+ * guardians/students need a class, staff a role, and each advanced tab its own filter.
  */
-export const waitingFor = (tab: TabKey, f: AudienceFilterState) =>
-  (tab === 'guardians' || tab === 'students') && !f.classId
-    ? ('pickClass' as const)
-    : tab === 'staff' && f.roles.length === 0
-      ? ('pickRole' as const)
-      : undefined;
+export function pendingHint(tab: TabKey, f: AudienceFilterState) {
+  if ((tab === 'guardians' || tab === 'students') && !f.classId) return 'pickClass';
+  if (tab === 'staff' && f.roles.length === 0) return 'pickRole';
+  if (tab === 'examFailed' && !f.examId) return 'pickExam';
+  if (tab === 'lowAttendance' && !validPercent(f.belowPercent)) return 'pickPercent';
+  if (tab === 'orgGroup' && !f.shift && !f.version && !f.group) return 'pickGroup';
+  return null;
+}
+export const isAudiencePending = (tab: TabKey, f: AudienceFilterState) =>
+  pendingHint(tab, f) !== null;
 
 export function personRow(p: AudiencePersonDto): AudienceRow {
   return {
@@ -138,16 +178,34 @@ export function audienceQuery(
         tab: f.kind === 'STAFF' ? AudienceTab.NAMED_STAFF : AudienceTab.NAMED_STUDENT,
         ...(f.q.trim() ? { q: f.q.trim() } : {}),
       };
+    case 'examFailed':
+      return {
+        ...base,
+        target: AudienceTarget[f.target],
+        tab: AudienceTab.EXAM_FAILED,
+        ...(f.examId ? { examId: f.examId } : {}),
+      };
+    case 'feeDue':
+      return { ...base, target: AudienceTarget[f.target], tab: AudienceTab.FEE_DUE };
+    case 'lowAttendance': {
+      const belowPercent = parsePercent(f.belowPercent);
+      return {
+        ...base,
+        target: AudienceTarget[f.target],
+        tab: AudienceTab.LOW_ATTENDANCE,
+        ...(belowPercent !== null ? { belowPercent } : {}),
+      };
+    }
+    case 'orgGroup':
+      return {
+        ...base,
+        target: AudienceTarget[f.target],
+        tab: AudienceTab.ORG_GROUP,
+        ...(f.shift ? { shift: f.shift } : {}),
+        ...(f.version ? { version: f.version } : {}),
+        ...(f.group ? { group: f.group } : {}),
+      };
   }
-}
-
-function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex min-w-48 flex-col gap-1.5">
-      <span className="text-caption text-text-secondary">{label}</span>
-      {children}
-    </div>
-  );
 }
 
 function ClassFilters({
@@ -190,7 +248,23 @@ export function useAudienceTabs(
   set: (next: Partial<AudienceFilterState>) => void,
 ): AudienceBuilderTab[] {
   const { t } = useTranslation('noticeCompose');
+  const raw = useOrganisationVocabulary().data;
+  // A lookup that failed or answered oddly means no org tab, not a crash.
+  const vocab = {
+    shifts: raw?.shifts ?? [],
+    versions: raw?.versions ?? [],
+    groups: raw?.groups ?? [],
+  };
+  // A shift/version/group that left the school's list must not ride along in the query.
+  const stale = (['shift', 'version', 'group'] as const).filter(
+    (k) => f[k] && !vocab[`${k}s`].includes(f[k]),
+  );
+  React.useEffect(() => {
+    if (stale.length) set(Object.fromEntries(stale.map((k) => [k, null])));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stale.join()]);
   const filters: Record<TabKey, React.ReactNode> = {
+    ...advancedFilters(f, set, vocab),
     guardians: <ClassFilters f={f} set={set} />,
     students: <ClassFilters f={f} set={set} />,
     staff: (
@@ -226,7 +300,7 @@ export function useAudienceTabs(
       </>
     ),
   };
-  return tabKeys(isTeacher).map((key) => ({
+  return tabKeys(isTeacher, hasOrgChoices(vocab)).map((key) => ({
     key,
     label: t(`audience.tabs.${key}`),
     filters: filters[key],

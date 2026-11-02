@@ -96,6 +96,11 @@ export const STAFF_ROUTE_PERMISSIONS: Record<string, Permission> = {
   // `PAYMENT_RECORD`, since viewing a past payment's allocations/reversal
   // state is a distinct capability from recording a new one.
   '/_staff/payments/$id': Permission.PAYMENT_READ,
+  // [53.4.01] Notices: list, detail, compose, edit. Staff readers (NOTICE_READ only) have no reader route yet: follow-up. Portal readers use /portal/notices (gated in portal.tsx).
+  '/_staff/communications/notices/': Permission.NOTICE_POST,
+  '/_staff/communications/notices/new': Permission.NOTICE_POST,
+  '/_staff/communications/notices/$noticeId/': Permission.NOTICE_POST,
+  '/_staff/communications/notices/$noticeId/edit': Permission.NOTICE_POST,
   '/_staff/communications/send': Permission.COMMUNICATION_SEND,
   // [67.5.09] Manual alerts and their report (D32, D33).
   '/_staff/communications/send-alert': Permission.ALERT_SEND,

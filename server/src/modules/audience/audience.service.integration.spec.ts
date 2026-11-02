@@ -426,6 +426,10 @@ describe('AudienceService (integration)', () => {
            ON g.rn = (s.rn + 1) / 2`,
       [`AUDGBULK-${stamp}-%`, SEED_TENANT_ID],
     );
+    // Fresh planner statistics, as autovacuum would give a real school. Without them the planner
+    // still thinks these tables hold a few rows and scans every guardian once per student (12.5M
+    // row visits: ~10 s alone, over 60 s on a loaded CI worker). With them the query takes ~70 ms.
+    await ds.query('ANALYZE students, guardians, student_guardians');
     try {
       const all = await service.matchAll(SEED_TENANT_ID, admin, {
         target: AudienceTarget.GUARDIANS,

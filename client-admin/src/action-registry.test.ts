@@ -34,6 +34,7 @@ const PERMISSION_VALUES = new Set(Object.values(Permission));
 const NAV_PATH_TO_ROUTE_ID: Record<string, string> = {
   '/payments/record': '/_staff/payments/record',
   '/communications/message-log': '/_staff/communications/message-log/',
+  '/communications/notices': '/_staff/communications/notices/',
   '/applications/new': '/_staff/applications/new',
   '/applications?view=inbox': '/_staff/applications/',
   '/applications/new?type=STAFF_LEAVE': '/_staff/applications/new',
@@ -61,6 +62,7 @@ const NAV_PATH_TO_ROUTE_ID: Record<string, string> = {
   '/reports/printables?tab=to-print': '/_staff/reports/printables',
   '/students': '/_staff/students/',
   '/settings#printers-section': '/_staff/settings',
+  '/communications/notices/new': '/_staff/communications/notices/new',
   '/communications/send': '/_staff/communications/send',
   '/communications/send-alert': '/_staff/communications/send-alert',
   '/reports/alerts': '/_staff/reports/alerts',

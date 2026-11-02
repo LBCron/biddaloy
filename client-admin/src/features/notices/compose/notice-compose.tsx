@@ -31,12 +31,13 @@ import * as React from 'react';
 import {
   INITIAL_FILTERS,
   audienceQuery,
+  isAudiencePending,
+  pendingHint,
   personRow,
   recipientRow,
   tabKeys,
   useAudienceColumns,
   useAudienceTabs,
-  waitingFor,
   type AudienceFilterState,
   type AudienceRow,
   type TabKey,
@@ -133,11 +134,12 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
   const saveNotice = useSaveNotice();
   const upload = useUploadNoticeFiles();
   const removeFile = useRemoveNoticeFile();
-  // Guardians and students wait for a class, staff for a role: without one the server answers 400.
-  const waiting = waitingFor(tab, filters);
+  // The audience waits for what the server needs (a class, a role, an exam...): without it the
+  // server answers 400.
+  const audiencePending = isAudiencePending(tab, filters);
   const people = useAudiencePeople(
     audienceQuery(tab, filters, matchPage, RECIPIENTS_PAGE),
-    step === 'audience' && id !== undefined && !waiting,
+    step === 'audience' && id !== undefined && !audiencePending,
   );
   const recipients = useRecipients(id, chosenPage);
   const allRecipients = useAllRecipients(id, step === 'review');
@@ -409,12 +411,23 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
           <div className="flex flex-col gap-3">
             {(
               [
-                ['important', important, setImportant],
-                ['pinned', pinned, setPinned],
-                ['isPublic', isPublic, setIsPublic],
-                ['sms', sms, setSms],
+                // helpId literals, so help-guard.test.ts can see them
+                [
+                  'important',
+                  important,
+                  setImportant,
+                  { helpId: 'communications.notices.field.important' },
+                ],
+                ['pinned', pinned, setPinned, { helpId: 'communications.notices.field.pinned' }],
+                [
+                  'isPublic',
+                  isPublic,
+                  setIsPublic,
+                  { helpId: 'communications.notices.field.isPublic' },
+                ],
+                ['sms', sms, setSms, { helpId: 'communications.notices.field.sms' }],
               ] as const
-            ).map(([key, value, set]) => (
+            ).map(([key, value, set, { helpId }]) => (
               <div key={key} className="flex items-center gap-2">
                 <Checkbox
                   id={`notice-${key}`}
@@ -425,13 +438,21 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
                     if (key !== 'sms') touch();
                   }}
                 />
-                <Label htmlFor={`notice-${key}`}>{t(`fields.${key}`)}</Label>
+                <Label htmlFor={`notice-${key}`} helpId={helpId} helpLabel={t(`fields.${key}`)}>
+                  {t(`fields.${key}`)}
+                </Label>
               </div>
             ))}
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="notice-expires">{t('fields.expires')}</Label>
+            <Label
+              htmlFor="notice-expires"
+              helpId="communications.notices.field.expires"
+              helpLabel={t('fields.expires')}
+            >
+              {t('fields.expires')}
+            </Label>
             <div className="flex items-center gap-3">
               <DatePicker
                 id="notice-expires"
@@ -455,11 +476,7 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
         ) : (
           <div className="flex flex-col gap-3">
             <p className="text-text-secondary">{t('audience.intro')}</p>
-            {waiting && (
-              <p role="status">
-                {waiting === 'pickRole' ? t('audience.pickRole') : t('audience.pickClass')}
-              </p>
-            )}
+            {audiencePending && <p role="status">{t(`audience.${pendingHint(tab, filters)}`)}</p>}
             <AudienceBuilder<AudienceRow>
               tabs={tabs}
               activeTab={tab}
@@ -472,8 +489,8 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
                 setMatchPage(1);
               }}
               matches={{
-                rows: waiting ? [] : (people.data?.items ?? []).map(personRow),
-                total: waiting ? 0 : (people.data?.total ?? 0),
+                rows: audiencePending ? [] : (people.data?.items ?? []).map(personRow),
+                total: audiencePending ? 0 : (people.data?.total ?? 0),
                 page: matchPage,
                 pageSize: RECIPIENTS_PAGE,
                 loading: people.isFetching,

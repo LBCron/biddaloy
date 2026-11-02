@@ -495,16 +495,34 @@
       "archetype": "detail",
       "overlays": ["milestoneRemove"]
     },
-    { "path": "/print-templates", "role": "admin", "archetype": "list" },
+    {
+      "path": "/print-templates",
+      "role": "admin",
+      "archetype": "list"
+    },
     {
       "path": "/print-templates/$templateId/edit",
-      "params": { "templateId": "seeded" },
+      "params": {
+        "templateId": "seeded"
+      },
       "role": "admin",
       "archetype": "bespoke"
     },
-    { "path": "/print/preview", "role": "admin", "archetype": "bespoke" },
-    { "path": "/print/committee-report", "role": "committee", "archetype": "bespoke" },
-    { "path": "/print/document", "role": "admin", "archetype": "bespoke" },
+    {
+      "path": "/print/preview",
+      "role": "admin",
+      "archetype": "bespoke"
+    },
+    {
+      "path": "/print/committee-report",
+      "role": "committee",
+      "archetype": "bespoke"
+    },
+    {
+      "path": "/print/document",
+      "role": "admin",
+      "archetype": "bespoke"
+    },
     {
       "path": "/reports/printables",
       "role": "admin",
@@ -521,6 +539,14 @@
     },
     {
       "path": "/v/$token",
+      "params": {
+        "token": "seeded"
+      },
+      "role": "guest",
+      "archetype": "bespoke"
+    },
+    {
+      "path": "/n/$token",
       "params": {
         "token": "seeded"
       },
@@ -852,6 +878,45 @@
       "path": "/communications/send-alert",
       "role": "admin",
       "archetype": "form"
+    },
+    {
+      "path": "/communications/notices",
+      "role": "admin",
+      "archetype": "list"
+    },
+    {
+      "path": "/communications/notices/new",
+      "role": "admin",
+      "archetype": "form"
+    },
+    {
+      "path": "/communications/notices/$noticeId",
+      "params": {
+        "noticeId": "seeded"
+      },
+      "role": "admin",
+      "archetype": "detail"
+    },
+    {
+      "path": "/communications/notices/$noticeId/edit",
+      "params": {
+        "noticeId": "seeded"
+      },
+      "role": "admin",
+      "archetype": "form"
+    },
+    {
+      "path": "/portal/notices",
+      "role": "parent",
+      "archetype": "list"
+    },
+    {
+      "path": "/portal/notices/$noticeId",
+      "params": {
+        "noticeId": "seeded"
+      },
+      "role": "parent",
+      "archetype": "detail"
     },
     {
       "path": "/reports/alerts",

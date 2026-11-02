@@ -715,3 +715,76 @@ Every table has `tenant_id`. Only SHA-256 hashes of public and link tokens are s
 ### Notice board: Wave 1 learning (2026-11-01)
 
 See the dated bullets in [27-qa-audit-lessons.md](27-qa-audit-lessons.md) (Docker hang, stale lock), [22-demo-seed.md](22-demo-seed.md) (coverage guard) and [36-domain-invariants.md](36-domain-invariants.md) (reset order, delete guard).
+
+### Notice board: Wave 4 close learning (2026-11-02)
+
+The close journey is `e2e/journeys/notices.spec.ts`. It drives the real screens: write with a PDF, add a section's guardians on one tab and one teacher by name on another, publish, then read as a guardian.
+
+```mermaid
+flowchart LR
+    A[Admin writes notice + PDF] --> B[Guardians tab: Add all matching]
+    B --> C[By name tab: tick one teacher]
+    C --> D[Publish]
+    D --> E[Guardian A: Overview card, All notices, opens it]
+    D --> F[Guardian B, other section: sees nothing]
+    E --> G[Admin report: 1 seen of 2]
+    H[Teacher posts to own section] --> E
+```
+
+- **Surprise:** the portal Overview card had no link, so a guardian could see a notice title there but not open it (the reader list route was added after the card). Fixed: the card now links to `/portal/notices`. Rows are still plain text, not links; a row that opens the notice is a follow-up.
+- **Surprise:** `/portal/notices/$noticeId` had no `h1` (the detail's title is an `h2`, because the same component also fills a dialog). Reflow, target-size and axe sweeps all failed on it. Fixed with a `PageHeader` on the route.
+- **Surprise:** the portal list used `Tabs` with no `TabsContent`, so `aria-controls` pointed at nothing (axe `aria-valid-attr-value`, critical). Fixed with the empty hidden panel `PrintablesTabs` already uses. Rule candidate: any `Tabs` that only filters a table carries that panel.
+- **Surprise:** the manifest's three `$noticeId` entries said "seeded" but `yarn seed` wrote no notice. Fixed: `seed.notices.ts` publishes one notice (title `E2E seeded notice`) for the demo parent, through the real services, and `e2e/responsive/routes.ts` finds it by title.
+- Guardian accounts in a journey come from the invite batch plus first sign-in with a code, as in `arrival-notice.spec.ts`. A passwordless account cannot be logged in by API.
+- Usability tasks ক, গ, ঙ were **not run with people** (see `docs/ux-research/epic-53-notices.md`).
+
+### Notice board: Wave 5 close learning (2026-11-02)
+
+A notice can ask the admin to approve an SMS. Approval is the only place a notice SMS is queued.
+
+```mermaid
+flowchart LR
+    P[Publish with SMS request] --> T[Admin task raised, notice sms_status PENDING]
+    T -->|decline| D[DECLINED, task closed]
+    T -->|approve, notice live| A[Credit reserved, links made, logs QUEUED, jobs queued]
+    T -->|approve, notice expired or withdrawn| X[409, then its own transaction closes the request as DECLINED by the system]
+```
+
+- **Surprise:** the expiry close must run in its **own** transaction, after the approve transaction rolled back. Inside the approve transaction it would roll back with the 409 and the dead request would stay PENDING forever. `closeIfNotLive` locks the row again, so a live or already-decided notice is a no-op.
+- **Surprise:** each approve attempt makes a fresh credit batch id (`randomUUID()`). A rolled-back attempt releases its reservation; a retry that reused the id would find the settled reservation and be refused.
+- **Surprise:** `NOTICE_SMS_APPROVE` was a UI-only permission until the routes landed. Once four routes carried it, `permission-matrix.e2e-spec.ts` failed `[10.4] lists every UI-only permission` until it left `UI_ONLY_PERMISSIONS`. A permission that gains a route leaves that list.
+- **Route snapshot:** `/notices/:id/sms*` (4 routes) answers `401 PASS PASS PASS 403 403 403 403 PASS 403 403 403`. Columns: ANON 401; PLATFORM_SA, TENANT_SA, ADMIN and EXECUTIVE pass; ACCOUNTANT, TEACHER, PARENT, STUDENT, OFFICE_STAFF, EXAM_CONTROLLER and COMMITTEE get 403.
+- **No outage-routes entry:** `redis-outage-routes.ts` lists only `/auth*` and `/account*` controllers (plus `UserController`). `/notices/:id/sms/approve` carries `@FailClosedWithoutRedis()` and is covered by its own e2e.
+- **Demo seed:** `slices/notices.ts` writes four SMS requests through the real services: PENDING, APPROVED (logs set to a SENT/FAILED mix), DECLINED, and expired-and-closed (approve answers 409, the service closes it). Phones are only `01700-NNNNNN`.
+
+### Notice board: Wave 6 close learning (2026-11-02)
+
+How a notice SMS goes from a request to the queue. Approval is the only step that spends credit.
+
+```mermaid
+sequenceDiagram
+    actor Office as OFFICE_STAFF or TEACHER
+    participant API as Notices API
+    actor Admin as Admin or Academic coordinator
+    participant Credit as SMS credit
+    participant Links as Personal links
+    participant Queue as Message queue
+
+    Office->>API: POST /notices/:id/publish {requestSms: true}
+    API-->>Admin: task "SMS approval pending", sms_status PENDING
+    Admin->>API: GET /notices/:id/sms (people, text, cost)
+    Admin->>API: PATCH /notices/:id/sms/recipients (untick one)
+    Admin->>API: POST /notices/:id/sms/approve
+    API->>Credit: reserve segments x people
+    API->>Links: one personal /n/token per person
+    API->>Queue: one QUEUED log + one job per person
+    API-->>Admin: {queued: n-1}
+```
+
+Example: 3 guardians, one unticked, so the message log gets 2 SMS rows, each body ending in its own `/n/<token>`. Opening that link marks only that person seen (`link_opened_at`).
+
+- **Journeys:** `e2e/journeys/notice-links-sms.spec.ts` covers the public link (anonymous open, then the one dead-link message after turn-off) and the SMS path above. Approve is also in `double-submit.registry.ts` (`notice sms approve`).
+- **Who may approve (D24):** `NOTICE_SMS_APPROVE` belongs to ADMIN and EXECUTIVE (shown to users as Academic coordinator). OFFICE_STAFF can ask but gets 403 on `/notices/:id/sms*`.
+- **Guide drift fixed:** the staff guide said the dashboard bar button is "I have read this". The bar button is **Mark as read** (`attention:notice.acknowledge`); "I have read this" is the button on the notice itself (`portalNotices:detail.acknowledge`).
+- **Route snapshot:** `/n/$token` is a client route, not a server route, so `route-status.snapshot.txt` has no line for it. The server side (`/public/notices/:token*`) is already listed, answering PASS for every column.
+- **Not done by an agent:** the screen-reader pass and the usability re-run with real people. See `docs/ux-research/epic-53-notices.md`.

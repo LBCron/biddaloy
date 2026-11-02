@@ -1,0 +1,17 @@
+%% title: How a notice travels
+%% desc: You write the notice and pick who gets it, then publish. People with the app see it in the app; an important one also stays in their warning bar until they press I've read it. If you ticked Public, a link is made and shown once. An SMS goes only after an admin approves it. You can withdraw the notice at any time, and its links stop working.
+flowchart LR
+  W["Write notice<br/>and pick people"] --> P["Publish"]
+  P --> A["In the app:<br/>list and home card"]
+  A --> I{"Important?"}
+  I -- "Yes" --> B["Warning bar until<br/>I've read it"]
+  I -- "No" --> N["Normal notice"]
+  P --> L{"Public?"}
+  L -- "Yes" --> K["Link shown once"]
+  P --> S{"SMS asked?"}
+  S -- "Yes" --> R["Admin looks,<br/>unticks people"]
+  R --> D{"Approve?"}
+  D -- "Approve" --> G["SMS queued to send,<br/>credits used"]:::done
+  D -- "Decline" --> X["Nothing sent"]
+  P --> Z["Withdraw any time:<br/>links stop"]
+  classDef done fill:#ebfbee,stroke:#2b8a3e,color:#14411d

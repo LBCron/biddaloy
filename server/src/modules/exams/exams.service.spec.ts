@@ -140,6 +140,20 @@ describe('ExamsService CRUD', () => {
     );
   });
 
+  it('lists only exams of the asked status, filtered in the query (before paging)', async () => {
+    const { service, examRepo } = await buildService();
+    examRepo.findAndCount = vi.fn(async () => [[], 0]);
+
+    await service.findAll({ status: 'PUBLISHED', limit: 100 } as any, TENANT_ID);
+
+    expect(examRepo.findAndCount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ tenant_id: TENANT_ID, status: 'PUBLISHED' }),
+        take: 100,
+      }),
+    );
+  });
+
   it('updates a non-class/year field without checking marks', async () => {
     const { service, examRepo, markRepo } = await buildService();
     examRepo.findOne = vi.fn(async () => ({
