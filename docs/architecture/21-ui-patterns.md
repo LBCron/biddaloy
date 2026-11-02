@@ -510,6 +510,12 @@ palette action navigates to.
 - **ListShell shows a no-match state on its own (#2591).** When a rendered filter has a value and there are no rows, `ListShell` swaps in "No matches" with a Clear button. A page keeps its own words by passing `kind: 'no-results'`; without it the page's text is replaced. -> no rule.
 - **Selection is in memory (#2602).** Row selection never goes into the URL; the URL holds filters only. -> no rule.
 
+### Final result learnings (Epic #2203, Wave 5, 2026-11-02)
+
+- **The breadcrumb trail owns `document.title` (#3421).** `/results/final` and its detail page set `document.title` in their own effect, but `_staff.tsx` writes the trail after them (a parent effect runs after its child's), so the tab reads "Class 8 2026 · চূড়ান্ত ফলাফল · ফলাফল · …", not the page's own string. A route with a trail should not set the title by hand. -> no rule.
+- **A list response must carry every relation its type declares (#3421).** `GET /exams` joined `class` but not `academic_year`, which the `Exam` schema lists; unit tests mocked the field, and the My class page crashed only on real data. Read a nested field with a real API response in at least one Playwright journey. -> no rule.
+- **One more heading on a shared page breaks loose locators (#3421).** The portal final card added a heading containing "ফলাফল", so `getByRole('heading', { name })` in `result-publish.spec.ts` matched two. Match page titles with `exact: true`. -> no rule.
+
 ### UX lint stragglers
 
 `ui/eslint-rules/ux-guards.mjs` holds four rules (`no-native-picker`,
