@@ -166,6 +166,10 @@ describe('ResultsPanel', () => {
       final.compareDocumentPosition(screen.getByText('First Term Exam')) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    // [70.5.5] The row opens the final result's own page.
+    expect(screen.getByRole('link', { name: 'Open the final result' }).getAttribute('href')).toBe(
+      '/results/final/final-1',
+    );
   });
 
   it('shows no final row when the server has no final for the year', async () => {
