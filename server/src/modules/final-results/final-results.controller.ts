@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -175,15 +176,23 @@ export class FinalResultsController {
   }
 
   @Post(':id/sms')
+  @UseInterceptors(IdempotencyInterceptor)
   @RequirePermissions(Permission.RESULT_PUBLISH)
-  @ApiOperation({ summary: "Send every guardian their child's published final result by SMS." })
+  @ApiOperation({
+    summary:
+      "Send every guardian their child's published final result by SMS. Needs an `Idempotency-Key` header.",
+  })
   sendSms(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentTenant() tenant: Tenant,
     @CurrentUser() user: JwtPayload,
     @Req() request: Request,
   ) {
-    // Exempt from IdempotencyInterceptor like the exam SMS: the unique `reference_key` dedups.
+    // Rule 25 (D8): a send needs a key. The interceptor checks its shape and replays a repeat, so
+    // a double click returns the first answer instead of a second credit reservation.
+    if (request.headers['idempotency-key'] === undefined) {
+      throw new BadRequestException('Idempotency-Key header is required to send result SMS.');
+    }
     return this.smsService.sendForFinal(id, tenant.id, user.sub, requestContext(request));
   }
 
