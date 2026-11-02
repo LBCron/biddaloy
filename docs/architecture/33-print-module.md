@@ -435,7 +435,7 @@ flowchart LR
   working days, minus leave when leave is not a working day
   (`attendanceFrom` in `server/src/modules/exams/report-card-extras.ts`, D27).
 - **Remark and conduct** are typed by the class teacher per exam or per final.
-  Deleting a draft final keeps its notes under the soft-deleted final; a new
+  Deleting an unpublished final keeps its notes under the soft-deleted final; a new
   final gets a new id, so old notes never reappear.
 - **ABS**: a subject where every component was absent prints no mark, not 0.
   The build, the card and the final tabulation share one rule,
@@ -454,3 +454,21 @@ UI hooks: `useStudentFinalCard`, `useFinalTabulation` (in
 `ui/src/hooks/final-results.ts`) and `useTranscript` (its `final` field).
 Storybook: `Print/ReportCard` → `FinalCard`, `FinalCardBangla`;
 `Print/ExamDocuments/ResultSheets` → `FinalTabulation`, `FinalTranscript`.
+
+### Lessons from building it (Epic 70, wave 4)
+
+- **Regenerate types from the repo root.** `yarn api:types` at the root starts
+  a test database, writes `server/openapi.json`, then runs the UI generator. The
+  UI workspace's own `api:types` fails on a fresh worktree because that file is
+  not there yet.
+- **A route without `@ApiOkResponse` types as `Record<string, never>`.** The
+  student final card route has none, so `useStudentFinalCard` is typed from the
+  shared `FinalResultStudentCard`. Declare the response DTO when you add a
+  route, and the hook can use `schema.d.ts` directly (the final tabulation does).
+- **One rule, one helper.** The ABS-with-0 rule had a second copy in the final
+  tabulation SQL mapper. Shared rules live in `final-result-rules.ts`; grep
+  for the literal (`=== 'ABS'`) before writing it again.
+- **A read that shows a final must refresh with it.** Building, publishing or
+  reopening a final now invalidates the transcript and the student final card
+  too (`invalidateFinal` in `ui/src/hooks/final-results.ts`), not only the
+  final's own queries.
