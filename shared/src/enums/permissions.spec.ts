@@ -1078,3 +1078,19 @@ describe('INVOICE_SEND [#3033]', () => {
     );
   });
 });
+
+describe('final results add no permission [70.1.1, D29]', () => {
+  // Epic 70 reuses the existing exam/result permissions. A new final-result or
+  // report-card-note permission would change the role matrix, so it must fail here.
+  it('has no FINAL_RESULT or REPORT_CARD permission in the enum', () => {
+    const names = Object.keys(Permission).filter((k) => /FINAL_RESULT|REPORT_CARD/.test(k));
+    expect(names).toEqual([]);
+  });
+
+  it('no role holds a final-result or report-card permission value', () => {
+    for (const [role, permissions] of Object.entries(ROLE_PERMISSIONS)) {
+      const bad = permissions.filter((p) => /final[_.-]?result|report[_.-]?card/i.test(p));
+      expect(bad, `${role} holds a final-result permission`).toEqual([]);
+    }
+  });
+});
