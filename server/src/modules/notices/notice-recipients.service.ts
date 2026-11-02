@@ -34,8 +34,8 @@ export interface NoticeActor {
 export const MSG = {
   notFound: 'Notice not found',
   notDraft: 'প্রাপক শুধু খসড়া নোটিশে বদলানো যায়',
-  // the cap counts rows: a guardian of 2 children is 2 rows (recipient_count still counts people)
-  cap: 'সর্বোচ্চ ৫,০০০ জন (অভিভাবককে প্রতিটি সন্তানের জন্য আলাদা গোনা হয়)',
+  // the cap counts distinct people: a guardian of 2 children is 2 rows but 1 person
+  cap: 'সর্বোচ্চ ৫,০০০ জন (অভিভাবককে একবারই গোনা হয়, সন্তান যতজনই হোক)',
   staffForbidden: 'You do not have access to this audience',
 } as const;
 

@@ -228,7 +228,7 @@ describe('NoticesService (integration)', () => {
       })
       .catch((e) => e);
     expect(err).toBeInstanceOf(BadRequestException);
-    expect(err.message).toBe('সর্বোচ্চ ৫,০০০ জন (অভিভাবককে প্রতিটি সন্তানের জন্য আলাদা গোনা হয়)');
+    expect(err.message).toBe('সর্বোচ্চ ৫,০০০ জন (অভিভাবককে একবারই গোনা হয়, সন্তান যতজনই হোক)');
     expect(await rows(n.id)).toHaveLength(0);
   });
 
