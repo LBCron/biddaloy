@@ -1,5 +1,10 @@
 import { TENANT_SETTINGS_SCHEMA_VERSION } from '../dto/tenant-settings.dto';
-import { ApprovalMode, DEFAULT_STUDY_PLANS_SETTINGS, TermLabel } from '@biddaloy/shared';
+import {
+  ApprovalMode,
+  DEFAULT_CONDUCT_ITEMS,
+  DEFAULT_STUDY_PLANS_SETTINGS,
+  TermLabel,
+} from '@biddaloy/shared';
 import type {
   AttendancePolicySettings,
   AttentionSettings,
@@ -149,6 +154,9 @@ export const DEFAULT_DASHBOARD_SETTINGS: DashboardSettings = {
   digestTime: '07:30',
 };
 
+/** [70.2.01] D30: the four conduct lines a new tenant starts with. */
+export const DEFAULT_EXAMS_SETTINGS = { conductItems: DEFAULT_CONDUCT_ITEMS };
+
 export const DEFAULT_TENANT_SETTINGS: TenantSettings = {
   version: TENANT_SETTINGS_SCHEMA_VERSION,
   region: DEFAULT_REGION_SETTINGS,
@@ -162,4 +170,5 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettings = {
   studyPlans: DEFAULT_STUDY_PLANS_SETTINGS,
   attention: DEFAULT_ATTENTION_SETTINGS,
   dashboard: DEFAULT_DASHBOARD_SETTINGS,
+  exams: DEFAULT_EXAMS_SETTINGS,
 };
