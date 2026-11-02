@@ -439,12 +439,14 @@ export class NoticeSmsService {
     }
 
     // After commit. A failed enqueue gives its credit back and fails only that log.
+    let queued = 0;
     for (const j of jobs) {
       try {
         await this.queue.add('send', {
           logId: j.logId,
           ...(reserved ? { batchId, segments: j.segments } : {}),
         });
+        queued++;
       } catch (e) {
         this.logger.warn(`notice sms enqueue failed for log ${j.logId}: ${(e as Error).message}`);
         try {
@@ -462,6 +464,7 @@ export class NoticeSmsService {
       }
     }
     await this.invalidate(tenantId, taskId);
-    return { status: NoticeSmsStatus.APPROVED, queued: jobs.length };
+    // Only the messages really handed to the queue: a failed enqueue is a FAILED log, not "queued".
+    return { status: NoticeSmsStatus.APPROVED, queued };
   }
 }

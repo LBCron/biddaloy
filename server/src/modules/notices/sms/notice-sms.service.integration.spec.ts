@@ -550,7 +550,9 @@ describe('NoticeSmsService (integration)', () => {
     const before = await ledgerIds();
     // the FIRST add rejects, the second goes through
     add.mockRejectedValueOnce(new Error('redis down'));
-    await svc.approve(T, id, approver);
+    const res = await svc.approve(T, id, approver);
+    // the answer counts only the SMS really queued, not the one whose enqueue failed
+    expect(res).toEqual({ status: 'APPROVED', queued: 1 });
     const failedId = add.mock.calls[0][1].logId;
     const okId = add.mock.calls[1][1].logId;
     const s = add.mock.calls[0][1].segments;
