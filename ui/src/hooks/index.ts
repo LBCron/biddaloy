@@ -481,6 +481,7 @@ export {
   useFinalResultRows,
   useFinalResults,
   useFinalResultStudentCard,
+  useStudentFinalCard,
   type FinalResultListItem,
   type FinalResultRowsPage,
 } from './final-results';
