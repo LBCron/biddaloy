@@ -429,6 +429,8 @@ export class ExamsService {
           'MarkGrid.exam',
           'Result.exam',
           'ExamSchedule.exam',
+          // Remarks on this exam's own report card never blocked its delete before Epic 70.
+          'ReportCardNote.exam',
         ],
       });
       const repo = manager.getRepository(Exam);
