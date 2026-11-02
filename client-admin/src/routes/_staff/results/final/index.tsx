@@ -4,6 +4,7 @@
  * (the server picks the published TERM exams, D3) and goes straight to its detail page.
  */
 import { Permission } from '@biddaloy/shared';
+import { apiClient } from '@biddaloy/ui/api';
 import {
   Button,
   Label,
@@ -23,7 +24,8 @@ import {
   useAcademicYears,
   useCreateFinalResult,
   useFinalResults,
-  examsQueryOptions,
+  examKeys,
+  type Exam,
   useHasPermission,
 } from '@biddaloy/ui/hooks';
 import { useRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
@@ -34,6 +36,8 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import * as React from 'react';
 
 import { loadRouteNamespaces } from '../../../../route-loaders';
+
+import { fetchAllPages, PAGE_SIZE } from './-fetch-all';
 
 export const Route = createFileRoute('/_staff/results/final/')({
   loader: () => loadRouteNamespaces('exams', 'common', 'nav'),
@@ -59,9 +63,28 @@ function FinalResultsListPage() {
   const yearId = pickedYear ?? (yearList.find((y) => y.is_current) ?? yearList[0])?.id;
 
   const list = useFinalResults(yearId);
-  // ponytail: one page of 100 exams per year; a school with more has other problems.
+  // Which classes have a published exam: every exam of the year, paged 100 at a time. The
+  // exams list has no status filter, so this is the cheapest read that cannot miss one. If the
+  // list is cut (past the page cap) the gate stays open and the server has the last word.
   const exams = useQuery({
-    ...examsQueryOptions({ academic_year_id: yearId ?? '', limit: 100 }),
+    queryKey: [...examKeys.lists(), 'start-gate', yearId],
+    queryFn: async ({ signal }) => {
+      const all = await fetchAllPages(async (offset) => {
+        const { data } = await apiClient.get<{ data: Exam[]; total: number }>('/exams', {
+          params: {
+            academic_year_id: yearId,
+            limit: PAGE_SIZE,
+            page: offset / PAGE_SIZE + 1,
+          },
+          signal,
+        });
+        return { items: data.data, total: data.total };
+      });
+      return {
+        truncated: all.truncated,
+        classIds: new Set(all.items.filter((e) => e.status === 'PUBLISHED').map((e) => e.class_id)),
+      };
+    },
     enabled: Boolean(yearId),
   });
   const create = useCreateFinalResult();
@@ -72,7 +95,7 @@ function FinalResultsListPage() {
   }, [t]);
 
   const hasPublishedExam = (classId: string) =>
-    (exams.data?.data ?? []).some((e) => e.class_id === classId && e.status === 'PUBLISHED');
+    exams.data?.truncated === true || exams.data?.classIds.has(classId) === true;
 
   const start = (classId: string) => {
     if (!yearId) return;
