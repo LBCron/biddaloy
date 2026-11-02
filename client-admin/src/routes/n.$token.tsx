@@ -57,6 +57,8 @@ function NoticeBody() {
     // A dead link never comes back; a dropped connection is for the Try again button.
     retry: false,
     staleTime: 5 * 60 * 1000,
+    // A revocable link: a new visit must ask the server again, never show a cached copy.
+    gcTime: 0,
   });
   const loaded = query.isSuccess;
 

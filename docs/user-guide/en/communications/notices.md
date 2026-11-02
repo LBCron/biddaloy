@@ -179,7 +179,7 @@ People with no account in the app are here too. When they open the SMS link, the
 
 ### Public link <a href="#task-public" id="task-public"></a>
 
-When you tick **Public**, the notice gets a link. Anyone who has the link can read the notice without logging in. If you do not tick it, only the people it was sent to read it.
+When you tick **Public**, the notice gets a link. Anyone who has the link can read the notice without logging in. If you do not tick it, only the people it was sent to read it. A personal link sent by SMS also opens without logging in, so if someone forwards that SMS, whoever gets it can read the notice too.
 
 Look at the **Public link** part of the notice page.
 
@@ -193,7 +193,7 @@ After you turn the link off, to get a link again, **Edit** the notice and tick *
 
 A link always lasts as long as the notice. At any time you can make a new link, turn the link off, or withdraw the notice.
 
-**When the school's data is restored from a backup:** the earlier links of the notices in that backup stop working, and so do the personal links sent by SMS for them. A backup made before the notice board existed has no notices, so restoring it leaves notices and their links as they are. If someone says a link does not open, check the notice and make a new link ([Restore from a backup](../administration/settings.md#task-restore)).
+**When the school's data is restored from a backup:** the earlier links of the notices in that backup stop working, and so do the personal links sent by SMS for them. A backup made before the notice board existed has no notices, so restoring it leaves notices and their links as they are. If someone says a public link does not open, check the notice and make a new public link. Personal links already sent by SMS cannot be made again; people with an account can still read the notice in the app ([Restore from a backup](../administration/settings.md#task-restore)).
 
 ### What a person sees who gets the link <a href="#task-public-page" id="task-public-page"></a>
 
@@ -227,7 +227,7 @@ An SMS never goes by itself. An admin must approve it first, and SMS costs credi
 
 | You press            | What happens                                                                                                                      | Credits used |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| **Approve and send** | **30 SMS are on their way.** shows. Each person gets an SMS with their own link. The status becomes **Sent**.                     | Yes          |
+| **Approve and send** | **SMS on their way: 30.** shows. Each person gets an SMS with their own link. The status becomes **Sent**.                        | Yes          |
 | **Decline**          | The box **Decline this SMS?** shows; if you confirm, **SMS declined. Nothing was sent.** shows. The status becomes **Cancelled**. | No           |
 
 5. After a decision the request can only be read: **This request is already decided. You can only read it.**
