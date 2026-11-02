@@ -16,7 +16,13 @@ import {
 import { useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { FullPageShell } from '@biddaloy/ui/shells';
 import { renderDigits } from '@biddaloy/ui/utils';
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import * as React from 'react';
 
 import { noticeKeys } from './use-notices';
@@ -27,6 +33,26 @@ type SmsDecision = components['schemas']['SmsDecisionDto'];
 
 const PAGE_SIZE = 25;
 const smsKey = (id: string, page: number) => ['notices', 'sms', id, page] as const;
+const tickKey = (id: string) => ['notices', 'sms', id, 'tick'] as const;
+
+/** One recipient's tick box; held while any tick on this notice is still on its way. */
+function SendBox(props: {
+  noticeId: string;
+  label: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: (smsWanted: boolean) => void;
+}) {
+  const ticking = useIsMutating({ mutationKey: tickKey(props.noticeId) }) > 0;
+  return (
+    <Checkbox
+      aria-label={props.label}
+      checked={props.checked}
+      disabled={props.disabled || ticking}
+      onCheckedChange={(c) => props.onChange(c === true)}
+    />
+  );
+}
 
 const statusOf = (e: unknown) => (e instanceof ApiError ? e.statusCode : undefined);
 
@@ -73,6 +99,7 @@ export function NoticeSmsPage({ noticeId, onClose }: { noticeId: string; onClose
 
   const refresh = () => qc.invalidateQueries({ queryKey: noticeKeys.all });
   const tick = useMutation({
+    mutationKey: tickKey(noticeId),
     mutationFn: async (v: { id: string; smsWanted: boolean }) =>
       (
         await apiClient.patch<unknown>(`/notices/${noticeId}/sms/recipients`, {
@@ -130,12 +157,15 @@ export function NoticeSmsPage({ noticeId, onClose }: { noticeId: string; onClose
     {
       id: 'send',
       header: t('manage.sms.colSend'),
+      // DataTable caches this element until `data` changes, so the box reads the
+      // pending tick itself (useIsMutating) instead of a stale `tick.isPending`.
       accessorFn: (p) => (
-        <Checkbox
-          aria-label={t('manage.sms.sendTo', { name: p.guardianName })}
+        <SendBox
+          noticeId={noticeId}
+          label={t('manage.sms.sendTo', { name: p.guardianName })}
           checked={p.smsWanted}
-          disabled={!pending || !p.reachable || tick.isPending}
-          onCheckedChange={(c) => tick.mutate({ id: p.id, smsWanted: c === true })}
+          disabled={!pending || !p.reachable}
+          onChange={(smsWanted) => tick.mutate({ id: p.id, smsWanted })}
         />
       ),
     },

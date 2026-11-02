@@ -217,11 +217,15 @@ describe('NoticeSmsPage', () => {
     await screen.findByText('Rahim Uddin');
     const approve = screen.getByRole('button', { name: 'Approve and send' });
     expect(approve.hasAttribute('disabled')).toBe(false);
-    await user.click(screen.getByRole('checkbox', { name: 'Send an SMS to Rahim Uddin' }));
+    const box = screen.getByRole('checkbox', { name: 'Send an SMS to Rahim Uddin' });
+    await user.click(box);
     // Approving now would still send to the person just unticked.
     await waitFor(() => expect(approve.hasAttribute('disabled')).toBe(true));
+    // A second tick would race the first one: the box waits too.
+    expect(box.hasAttribute('disabled')).toBe(true);
     release();
     await waitFor(() => expect(approve.hasAttribute('disabled')).toBe(false));
+    await waitFor(() => expect(box.hasAttribute('disabled')).toBe(false));
   });
 
   it('a decided request is read only: no approve, decline or ticking', async () => {
