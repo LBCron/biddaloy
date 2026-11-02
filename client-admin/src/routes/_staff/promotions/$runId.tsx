@@ -512,7 +512,7 @@ function PromotionRunPage() {
     },
     {
       label: t('grid.facts.exams'),
-      value: t('grid.facts.examCount', { n: fmt(run.exam_ids.length) }),
+      value: t('grid.facts.examCount', { n: fmt((run.exam_ids ?? []).length) }),
     },
     { label: t('grid.facts.algorithm'), value: algorithmLabel },
     {
