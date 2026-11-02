@@ -1133,8 +1133,9 @@ export class ResultsService {
   }
 
   /**
-   * Attendance printed on a PUBLISHED exam's card: the exam's term range (the whole year when the
-   * exam has no term), up to today, from `AttendanceSummaryService` as is (D27).
+   * Attendance printed on a PUBLISHED exam's card: the exam's term range, or with no term the
+   * year start to the exam's last sitting (year end when it has none) (D9), capped at today, from
+   * `AttendanceSummaryService` as is (D27).
    */
   private async examAttendance(
     exam: Exam,
@@ -1152,7 +1153,16 @@ export class ResultsService {
         });
     if (!range) return null;
     const from = String(range.start_date).slice(0, 10);
-    const to = [String(range.end_date).slice(0, 10), todayInSchoolTz()].sort()[0];
+    let end = String(range.end_date).slice(0, 10);
+    if (!exam.academic_term_id) {
+      const [last] = await manager.query(
+        `SELECT to_char(MAX(date), 'YYYY-MM-DD') AS d FROM exam_schedules
+          WHERE tenant_id = $1 AND exam_id = $2 AND deleted_at IS NULL`,
+        [tenantId, exam.id],
+      );
+      if (last?.d) end = last.d;
+    }
+    const to = [end, todayInSchoolTz()].sort()[0];
     if (from > to) return null;
     // Lazy like FinalResultsService: only a published card needs it.
     const attendanceSummary = this.moduleRef.get(AttendanceSummaryService, { strict: false });

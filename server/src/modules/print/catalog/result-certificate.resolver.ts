@@ -67,7 +67,7 @@ export class ResultCertificateResolver implements FieldResolver {
       : await manager.query(
           `SELECT f.id, ay.name AS year_name
              FROM final_results f JOIN academic_years ay ON ay.id = f.academic_year_id AND ay.tenant_id = f.tenant_id
-            WHERE f.tenant_id = $1 AND f.id = $2 AND f.deleted_at IS NULL AND f.status = 'PUBLISHED'`,
+            WHERE f.tenant_id = $1 AND f.id = $2 AND f.deleted_at IS NULL`,
           [tenantId, context.id],
         );
     if (!exam && !final) throw new NotFoundException('Exam not found');
@@ -90,7 +90,8 @@ export class ResultCertificateResolver implements FieldResolver {
           [tenantId, exam.id, subjectIds],
         )
       : await manager.query(
-          // A PUBLISHED final only (above); the attendance numbers are the publish snapshot (D9).
+          // Like an exam, an unpublished final refuses per student: its rows carry no published_at
+          // (reopen clears it). The attendance numbers are the publish snapshot (D9).
           `SELECT s.id, s.full_name, s.full_name_bn, s.registration_number, s.roll_number,
               s.father_name, s.mother_name, s.birth_reg_no,
               to_char(s.date_of_birth, 'YYYY-MM-DD') AS dob, s.photo_key,
