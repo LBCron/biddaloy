@@ -15,7 +15,7 @@ import { AuditService } from '../audit/audit.service';
 import { ClassSection } from '../academics/entities/class-section.entity';
 import { TeacherScopeService } from '../classes/teacher-scope.service';
 import { Exam } from '../exams/entities/exam.entity';
-import { lockExam } from '../exams/results.service';
+import { lockExam } from '../exams/exam-lock';
 import { FinalResult } from '../final-results/entities/final-result.entity';
 import { SchoolsService } from '../schools/schools.service';
 import { ReportCardNoteBodyDto } from './dto/report-card-notes.dto';
