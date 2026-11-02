@@ -4,6 +4,7 @@ import { expect } from '@playwright/test';
 import {
   createFineStructure,
   createGuardian,
+  createClassSection,
   createStaffUser,
   currentAcademicYear,
   post,
@@ -64,6 +65,43 @@ const addButton = (page: Page, key: string) =>
     .click();
 
 export const REGISTRY: DialogEntry[] = [
+  {
+    // [53.6.04] SMS approve is a page action (not a dialog); it queues one SMS per person, so a
+    // second send must never reach the server.
+    name: 'notice sms approve',
+    route: '/communications/notices',
+    prepare: async (request, session, suffix) => {
+      const chain = await createClassSection(request, session);
+      const guardian = await createGuardian(
+        request,
+        session,
+        `Dbl SMS guardian ${suffix}`,
+        `015${suffix.replace(/\D/g, '').slice(-8).padStart(8, '0')}`,
+      );
+      const student = await post<{ id: string }>(request, session, '/students', {
+        full_name: `Dbl SMS student ${suffix}`,
+        class_section_id: chain.sectionId,
+        guardian_ids: [guardian.id],
+      });
+      const notice = await post<{ id: string }>(request, session, '/notices', {
+        title: `Dbl SMS notice ${suffix}`,
+        body: 'Body',
+      });
+      await post(request, session, `/notices/${notice.id}/recipients`, {
+        items: [{ kind: 'GUARDIAN', guardianId: guardian.id, studentId: student.id }],
+      });
+      await post(request, session, `/notices/${notice.id}/publish`, { requestSms: true });
+      return { route: `/communications/notices/${notice.id}?sms=1` };
+    },
+    open: async () => undefined,
+    fill: async () => undefined,
+    submitKey: 'notices.manage.sms.approve',
+    postUrl: /\/api\/v1\/notices\/[0-9a-f-]{36}\/sms\/approve$/,
+    done: (page) =>
+      expect(page.getByText(t('notices.manage.sms.status.APPROVED'), { exact: true })).toBeVisible({
+        timeout: 15_000,
+      }),
+  },
   {
     name: 'program',
     route: '/programs',

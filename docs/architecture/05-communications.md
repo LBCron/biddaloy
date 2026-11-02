@@ -756,3 +756,35 @@ flowchart LR
 - **Route snapshot:** `/notices/:id/sms*` (4 routes) answers `401 PASS PASS PASS 403 403 403 403 PASS 403 403 403`. Columns: ANON 401; PLATFORM_SA, TENANT_SA, ADMIN and EXECUTIVE pass; ACCOUNTANT, TEACHER, PARENT, STUDENT, OFFICE_STAFF, EXAM_CONTROLLER and COMMITTEE get 403.
 - **No outage-routes entry:** `redis-outage-routes.ts` lists only `/auth*` and `/account*` controllers (plus `UserController`). `/notices/:id/sms/approve` carries `@FailClosedWithoutRedis()` and is covered by its own e2e.
 - **Demo seed:** `slices/notices.ts` writes four SMS requests through the real services: PENDING, APPROVED (logs set to a SENT/FAILED mix), DECLINED, and expired-and-closed (approve answers 409, the service closes it). Phones are only `01700-NNNNNN`.
+
+### Notice board: Wave 6 close learning (2026-11-02)
+
+How a notice SMS goes from a request to the queue. Approval is the only step that spends credit.
+
+```mermaid
+sequenceDiagram
+    actor Office as OFFICE_STAFF or TEACHER
+    participant API as Notices API
+    actor Admin as Admin or Academic coordinator
+    participant Credit as SMS credit
+    participant Links as Personal links
+    participant Queue as Message queue
+
+    Office->>API: POST /notices/:id/publish {requestSms: true}
+    API-->>Admin: task "SMS approval pending", sms_status PENDING
+    Admin->>API: GET /notices/:id/sms (people, text, cost)
+    Admin->>API: PATCH /notices/:id/sms/recipients (untick one)
+    Admin->>API: POST /notices/:id/sms/approve
+    API->>Credit: reserve segments x people
+    API->>Links: one personal /n/token per person
+    API->>Queue: one QUEUED log + one job per person
+    API-->>Admin: {queued: n-1}
+```
+
+Example: 3 guardians, one unticked, so the message log gets 2 SMS rows, each body ending in its own `/n/<token>`. Opening that link marks only that person seen (`link_opened_at`).
+
+- **Journeys:** `e2e/journeys/notice-links-sms.spec.ts` covers the public link (anonymous open, then the one dead-link message after turn-off) and the SMS path above. Approve is also in `double-submit.registry.ts` (`notice sms approve`).
+- **Who may approve (D24):** `NOTICE_SMS_APPROVE` belongs to ADMIN and EXECUTIVE (shown to users as Academic coordinator). OFFICE_STAFF can ask but gets 403 on `/notices/:id/sms*`.
+- **Guide drift fixed:** the staff guide said the dashboard bar button is "I have read this". The bar button is **Mark as read** (`attention:notice.acknowledge`); "I have read this" is the button on the notice itself (`portalNotices:detail.acknowledge`).
+- **Route snapshot:** `/n/$token` is a client route, not a server route, so `route-status.snapshot.txt` has no line for it. The server side (`/public/notices/:token*`) is already listed, answering PASS for every column.
+- **Not done by an agent:** the screen-reader pass and the usability re-run with real people. See `docs/ux-research/epic-53-notices.md`.

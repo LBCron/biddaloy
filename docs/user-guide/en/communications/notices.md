@@ -159,10 +159,10 @@ At the bottom a bar such as **Chosen (30)** shows. Press it to open the **Chosen
 
 ### Urgent and normal notices <a href="#task-important" id="task-important"></a>
 
-| Type       | Where it shows                                                                                                                          |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Normal** | In the notices list and the home card. A notification also goes to the app.                                                             |
-| **Urgent** | Everywhere a normal one does, and a warning bar on the dashboard of each person with an account, until they press **I have read this**. |
+| Type       | Where it shows                                                                                                                                                              |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Normal** | In the notices list and the home card. A notification also goes to the app.                                                                                                 |
+| **Urgent** | Everywhere a normal one does, and a warning bar on the dashboard of each person with an account, until they press **Mark as read** (or **I have read this** on the notice). |
 
 In both cases the app notification always goes. An SMS is a separate choice, in [Sending an SMS](#task-sms).
 
