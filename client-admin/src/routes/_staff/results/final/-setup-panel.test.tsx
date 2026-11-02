@@ -140,4 +140,16 @@ describe('Setup tab', () => {
     await screen.findByText("Each subject's shares must total 100.");
     expect(save().disabled).toBe(true);
   });
+
+  it.each(['DRAFT', 'PROCESSED'] as const)(
+    'leaves the one filled button to the header on a %s result',
+    async (status) => {
+      await open(status);
+      const filled = screen
+        .getAllByRole('button')
+        .filter((b) => b.className.split(/\s+/).includes('bg-primary'));
+      expect(filled).toHaveLength(1);
+      expect(save().className.split(/\s+/)).not.toContain('bg-primary');
+    },
+  );
 });
