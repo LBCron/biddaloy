@@ -472,6 +472,19 @@ export {
   type UpdateExamScheduleInput,
 } from './exams';
 export {
+  finalResultCardKey,
+  finalResultKeys,
+  finalResultQueryOptions,
+  finalResultRowsKey,
+  finalResultsQueryOptions,
+  useFinalResult,
+  useFinalResultRows,
+  useFinalResults,
+  useFinalResultStudentCard,
+  type FinalResultListItem,
+  type FinalResultRowsPage,
+} from './final-results';
+export {
   promotionKeys,
   promotionRunQueryOptions,
   promotionRunsQueryOptions,
