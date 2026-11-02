@@ -225,6 +225,16 @@ describe('final variants', () => {
     expect(cells.slice(5, 7)).toEqual(['160', 'Absent']);
   });
 
+  it('final variant and final transcript need their labels at compile time', () => {
+    const noop = () => (
+      <>
+        {/* @ts-expect-error the final variant needs labels.absent */}
+        <TabulationSheet {...tabProps} variant="final" examColumns={[]} />
+      </>
+    );
+    expect(typeof noop).toBe('function');
+  });
+
   it('TabulationSheet default variant is unchanged (no exam columns)', () => {
     const { container } = render(
       <TabulationSheet {...tabProps} examColumns={[{ id: 'e1', label: 'X' }]} />,
