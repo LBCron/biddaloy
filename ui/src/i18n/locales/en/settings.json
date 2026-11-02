@@ -572,7 +572,8 @@
         "pageId": "Find it under the page's About section.",
         "accessToken": "Copy it from Meta Business."
       }
-    }
+    },
+    "conductItems": "Each line gets a grade from A to D on the report card, for example Discipline or Neatness. Renaming a line keeps the grades already given."
   },
   "helpRequired": {
     "schoolName": "Yes",
@@ -607,5 +608,19 @@
     "noCredit": "Not enough SMS credit to send the test message. Ask the platform to add credit, then try again.",
     "invalidAddress": "That number or address isn't valid. Check it and try again.",
     "unconfirmed": "We couldn't confirm it was sent. Check the Message log before trying again."
+  },
+  "conductItems": {
+    "legend": "Conduct",
+    "description": "The conduct lines a class teacher grades on the report card.",
+    "nameBn": "Bangla name",
+    "nameEn": "English name",
+    "add": "Add",
+    "remove": "Remove",
+    "undoRemove": "Undo remove",
+    "emptyList": "Keep at least one line.",
+    "nameRequired": "Write both the Bangla and the English name.",
+    "save": "Save",
+    "saved": "Saved.",
+    "saveError": "Couldn't save. Try again."
   }
 }
