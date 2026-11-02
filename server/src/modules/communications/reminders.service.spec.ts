@@ -1778,6 +1778,13 @@ describe('toBatchLogDto / canCheckStatus', () => {
     expect(row.message_body).toBe(sms);
   });
 
+  it('masks a notice link under a PUBLIC_APP_URL with a path', () => {
+    const body = `Notice https://school.example/app//n/${TOKEN}e`;
+    expect(
+      visibleLogBody({ trigger: CommunicationTrigger.AUTOMATED, message_body: body }, 'ADMIN'),
+    ).toBe('Notice https://school.example/app//n/••••••');
+  });
+
   it('keeps a staff-typed /n/ path that is not a notice token', () => {
     const body = 'Sports day: https://school.example/n/sports-day';
     expect(
