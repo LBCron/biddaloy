@@ -583,6 +583,21 @@ describe('/promotions/$runId', () => {
     expect(screen.queryByText(/class-ghost/)).toBeNull();
   });
 
+  it('a run ranked on a final result shows the final result as its source, not "0" exams', async () => {
+    stubCommon();
+    server.use(
+      http.get(RUN_URL, () =>
+        HttpResponse.json(baseRun({ exam_ids: [], final_result_id: 'final-1' })),
+      ),
+    );
+    renderRun();
+
+    // findBy/getBy throw when the text is missing.
+    await screen.findByText('Rank students by');
+    screen.getByText('Final result');
+    expect(screen.queryByText('Exams averaged')).toBeNull();
+  });
+
   it('has no Group column when the school has no groups', async () => {
     stubCommon();
     server.use(
