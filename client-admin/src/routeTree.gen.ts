@@ -156,6 +156,8 @@ import { Route as StaffPrintTemplatesTemplateIdEditRouteImport } from './routes/
 import { Route as StaffReportsReportIdEditRouteImport } from './routes/_staff/reports/$reportId_.edit'
 import { Route as StaffReportsRunsRunIdRouteImport } from './routes/_staff/reports/runs.$runId'
 import { Route as StaffResultsExamIdStudentIdRouteImport } from './routes/_staff/results/$examId.$studentId'
+import { Route as StaffResultsFinalIndexRouteImport } from './routes/_staff/results/final/index'
+import { Route as StaffResultsFinalFinalResultIdRouteImport } from './routes/_staff/results/final/$finalResultId'
 import { Route as StaffStudentsStudentIdEditRouteImport } from './routes/_staff/students/$studentId_.edit'
 import { Route as StaffMarksExamIdSectionIdSubjectIdRouteImport } from './routes/_staff/marks/$examId.$sectionId.$subjectId'
 import { Route as StaffStaffUserIdAcrAssessmentIdRouteImport } from './routes/_staff/staff/$userId_.acr.$assessmentId'
@@ -936,6 +938,17 @@ const StaffResultsExamIdStudentIdRoute =
     path: '/results/$examId/$studentId',
     getParentRoute: () => StaffRoute,
   } as any)
+const StaffResultsFinalIndexRoute = StaffResultsFinalIndexRouteImport.update({
+  id: '/results/final/',
+  path: '/results/final/',
+  getParentRoute: () => StaffRoute,
+} as any)
+const StaffResultsFinalFinalResultIdRoute =
+  StaffResultsFinalFinalResultIdRouteImport.update({
+    id: '/results/final/$finalResultId',
+    path: '/results/final/$finalResultId',
+    getParentRoute: () => StaffRoute,
+  } as any)
 const StaffStudentsStudentIdEditRoute =
   StaffStudentsStudentIdEditRouteImport.update({
     id: '/students/$studentId_/edit',
@@ -1095,6 +1108,7 @@ export interface FileRoutesByFullPath {
   '/reports/$reportId/edit': typeof StaffReportsReportIdEditRoute
   '/reports/runs/$runId': typeof StaffReportsRunsRunIdRoute
   '/results/$examId/$studentId': typeof StaffResultsExamIdStudentIdRoute
+  '/results/final/$finalResultId': typeof StaffResultsFinalFinalResultIdRoute
   '/students/$studentId/edit': typeof StaffStudentsStudentIdEditRoute
   '/academics/homework/': typeof StaffAcademicsHomeworkIndexRoute
   '/academics/syllabus/': typeof StaffAcademicsSyllabusIndexRoute
@@ -1108,6 +1122,7 @@ export interface FileRoutesByFullPath {
   '/exams/templates/': typeof StaffExamsTemplatesIndexRoute
   '/fees/fines/': typeof StaffFeesFinesIndexRoute
   '/fees/schedules/': typeof StaffFeesSchedulesIndexRoute
+  '/results/final/': typeof StaffResultsFinalIndexRoute
   '/marks/$examId/$sectionId/$subjectId': typeof StaffMarksExamIdSectionIdSubjectIdRoute
   '/staff/$userId/acr/$assessmentId': typeof StaffStaffUserIdAcrAssessmentIdRoute
   '/staff/evaluations/surveys/$surveyId': typeof StaffStaffEvaluationsSurveysSurveyIdRoute
@@ -1244,6 +1259,7 @@ export interface FileRoutesByTo {
   '/reports/$reportId/edit': typeof StaffReportsReportIdEditRoute
   '/reports/runs/$runId': typeof StaffReportsRunsRunIdRoute
   '/results/$examId/$studentId': typeof StaffResultsExamIdStudentIdRoute
+  '/results/final/$finalResultId': typeof StaffResultsFinalFinalResultIdRoute
   '/students/$studentId/edit': typeof StaffStudentsStudentIdEditRoute
   '/academics/homework': typeof StaffAcademicsHomeworkIndexRoute
   '/academics/syllabus': typeof StaffAcademicsSyllabusIndexRoute
@@ -1257,6 +1273,7 @@ export interface FileRoutesByTo {
   '/exams/templates': typeof StaffExamsTemplatesIndexRoute
   '/fees/fines': typeof StaffFeesFinesIndexRoute
   '/fees/schedules': typeof StaffFeesSchedulesIndexRoute
+  '/results/final': typeof StaffResultsFinalIndexRoute
   '/marks/$examId/$sectionId/$subjectId': typeof StaffMarksExamIdSectionIdSubjectIdRoute
   '/staff/$userId/acr/$assessmentId': typeof StaffStaffUserIdAcrAssessmentIdRoute
   '/staff/evaluations/surveys/$surveyId': typeof StaffStaffEvaluationsSurveysSurveyIdRoute
@@ -1398,6 +1415,7 @@ export interface FileRoutesById {
   '/_staff/reports/$reportId_/edit': typeof StaffReportsReportIdEditRoute
   '/_staff/reports/runs/$runId': typeof StaffReportsRunsRunIdRoute
   '/_staff/results/$examId/$studentId': typeof StaffResultsExamIdStudentIdRoute
+  '/_staff/results/final/$finalResultId': typeof StaffResultsFinalFinalResultIdRoute
   '/_staff/students/$studentId_/edit': typeof StaffStudentsStudentIdEditRoute
   '/_staff/academics/homework/': typeof StaffAcademicsHomeworkIndexRoute
   '/_staff/academics/syllabus/': typeof StaffAcademicsSyllabusIndexRoute
@@ -1411,6 +1429,7 @@ export interface FileRoutesById {
   '/_staff/exams/templates/': typeof StaffExamsTemplatesIndexRoute
   '/_staff/fees/fines/': typeof StaffFeesFinesIndexRoute
   '/_staff/fees/schedules/': typeof StaffFeesSchedulesIndexRoute
+  '/_staff/results/final/': typeof StaffResultsFinalIndexRoute
   '/_staff/marks/$examId/$sectionId/$subjectId': typeof StaffMarksExamIdSectionIdSubjectIdRoute
   '/_staff/staff/$userId_/acr/$assessmentId': typeof StaffStaffUserIdAcrAssessmentIdRoute
   '/_staff/staff/evaluations_/surveys/$surveyId': typeof StaffStaffEvaluationsSurveysSurveyIdRoute
@@ -1551,6 +1570,7 @@ export interface FileRouteTypes {
     | '/reports/$reportId/edit'
     | '/reports/runs/$runId'
     | '/results/$examId/$studentId'
+    | '/results/final/$finalResultId'
     | '/students/$studentId/edit'
     | '/academics/homework/'
     | '/academics/syllabus/'
@@ -1564,6 +1584,7 @@ export interface FileRouteTypes {
     | '/exams/templates/'
     | '/fees/fines/'
     | '/fees/schedules/'
+    | '/results/final/'
     | '/marks/$examId/$sectionId/$subjectId'
     | '/staff/$userId/acr/$assessmentId'
     | '/staff/evaluations/surveys/$surveyId'
@@ -1700,6 +1721,7 @@ export interface FileRouteTypes {
     | '/reports/$reportId/edit'
     | '/reports/runs/$runId'
     | '/results/$examId/$studentId'
+    | '/results/final/$finalResultId'
     | '/students/$studentId/edit'
     | '/academics/homework'
     | '/academics/syllabus'
@@ -1713,6 +1735,7 @@ export interface FileRouteTypes {
     | '/exams/templates'
     | '/fees/fines'
     | '/fees/schedules'
+    | '/results/final'
     | '/marks/$examId/$sectionId/$subjectId'
     | '/staff/$userId/acr/$assessmentId'
     | '/staff/evaluations/surveys/$surveyId'
@@ -1853,6 +1876,7 @@ export interface FileRouteTypes {
     | '/_staff/reports/$reportId_/edit'
     | '/_staff/reports/runs/$runId'
     | '/_staff/results/$examId/$studentId'
+    | '/_staff/results/final/$finalResultId'
     | '/_staff/students/$studentId_/edit'
     | '/_staff/academics/homework/'
     | '/_staff/academics/syllabus/'
@@ -1866,6 +1890,7 @@ export interface FileRouteTypes {
     | '/_staff/exams/templates/'
     | '/_staff/fees/fines/'
     | '/_staff/fees/schedules/'
+    | '/_staff/results/final/'
     | '/_staff/marks/$examId/$sectionId/$subjectId'
     | '/_staff/staff/$userId_/acr/$assessmentId'
     | '/_staff/staff/evaluations_/surveys/$surveyId'
@@ -2921,6 +2946,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffResultsExamIdStudentIdRouteImport
       parentRoute: typeof StaffRoute
     }
+    '/_staff/results/final/': {
+      id: '/_staff/results/final/'
+      path: '/results/final'
+      fullPath: '/results/final/'
+      preLoaderRoute: typeof StaffResultsFinalIndexRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/_staff/results/final/$finalResultId': {
+      id: '/_staff/results/final/$finalResultId'
+      path: '/results/final/$finalResultId'
+      fullPath: '/results/final/$finalResultId'
+      preLoaderRoute: typeof StaffResultsFinalFinalResultIdRouteImport
+      parentRoute: typeof StaffRoute
+    }
     '/_staff/students/$studentId_/edit': {
       id: '/_staff/students/$studentId_/edit'
       path: '/students/$studentId/edit'
@@ -3091,6 +3130,7 @@ interface StaffRouteChildren {
   StaffReportsReportIdEditRoute: typeof StaffReportsReportIdEditRoute
   StaffReportsRunsRunIdRoute: typeof StaffReportsRunsRunIdRoute
   StaffResultsExamIdStudentIdRoute: typeof StaffResultsExamIdStudentIdRoute
+  StaffResultsFinalFinalResultIdRoute: typeof StaffResultsFinalFinalResultIdRoute
   StaffStudentsStudentIdEditRoute: typeof StaffStudentsStudentIdEditRoute
   StaffAcademicsHomeworkIndexRoute: typeof StaffAcademicsHomeworkIndexRoute
   StaffAcademicsSyllabusIndexRoute: typeof StaffAcademicsSyllabusIndexRoute
@@ -3102,6 +3142,7 @@ interface StaffRouteChildren {
   StaffCommunicationsMessageLogIndexRoute: typeof StaffCommunicationsMessageLogIndexRoute
   StaffExamsSeatPlansIndexRoute: typeof StaffExamsSeatPlansIndexRoute
   StaffExamsTemplatesIndexRoute: typeof StaffExamsTemplatesIndexRoute
+  StaffResultsFinalIndexRoute: typeof StaffResultsFinalIndexRoute
   StaffMarksExamIdSectionIdSubjectIdRoute: typeof StaffMarksExamIdSectionIdSubjectIdRoute
   StaffStaffUserIdAcrAssessmentIdRoute: typeof StaffStaffUserIdAcrAssessmentIdRoute
   StaffStaffEvaluationsSurveysSurveyIdRoute: typeof StaffStaffEvaluationsSurveysSurveyIdRoute
@@ -3201,6 +3242,7 @@ const StaffRouteChildren: StaffRouteChildren = {
   StaffReportsReportIdEditRoute: StaffReportsReportIdEditRoute,
   StaffReportsRunsRunIdRoute: StaffReportsRunsRunIdRoute,
   StaffResultsExamIdStudentIdRoute: StaffResultsExamIdStudentIdRoute,
+  StaffResultsFinalFinalResultIdRoute: StaffResultsFinalFinalResultIdRoute,
   StaffStudentsStudentIdEditRoute: StaffStudentsStudentIdEditRoute,
   StaffAcademicsHomeworkIndexRoute: StaffAcademicsHomeworkIndexRoute,
   StaffAcademicsSyllabusIndexRoute: StaffAcademicsSyllabusIndexRoute,
@@ -3213,6 +3255,7 @@ const StaffRouteChildren: StaffRouteChildren = {
     StaffCommunicationsMessageLogIndexRoute,
   StaffExamsSeatPlansIndexRoute: StaffExamsSeatPlansIndexRoute,
   StaffExamsTemplatesIndexRoute: StaffExamsTemplatesIndexRoute,
+  StaffResultsFinalIndexRoute: StaffResultsFinalIndexRoute,
   StaffMarksExamIdSectionIdSubjectIdRoute:
     StaffMarksExamIdSectionIdSubjectIdRoute,
   StaffStaffUserIdAcrAssessmentIdRoute: StaffStaffUserIdAcrAssessmentIdRoute,
