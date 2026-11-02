@@ -36,6 +36,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { ChevronRightIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 
+import { LatestNoticesCard } from '../../features/notices/read/latest-notices-card';
 import { ConnectHintCard } from '../../features/onboarding/connect-hint-card';
 import { loadRouteNamespaces, swallowUnlessOffline } from '../../route-loaders';
 
@@ -115,7 +116,14 @@ export const Route = createFileRoute('/portal/')({
       // [8.14.5]: swallowed — see `_staff/academic-years/index.tsx`'s
       // identical comment for why.
       queryClient.ensureQueryData(myStudentsQueryOptions()).catch(swallowUnlessOffline),
-      loadRouteNamespaces('portal', 'common', 'calendar', 'evaluations', 'setupChecklist'),
+      loadRouteNamespaces(
+        'portal',
+        'common',
+        'calendar',
+        'evaluations',
+        'setupChecklist',
+        'portalNotices',
+      ),
     ]),
   pendingComponent: PortalOverviewPending,
   component: PortalOverviewRoute,
@@ -378,6 +386,7 @@ function PortalPage({
     <PageContainer>
       <PageHeader title={tNav('items.portalOverview')} subtitle={subtitle} />
       <div className="space-y-6">
+        <LatestNoticesCard listHref="/portal/notices" />
         <ConnectHintCard />
         <PortalSurveysCard />
         {family && (

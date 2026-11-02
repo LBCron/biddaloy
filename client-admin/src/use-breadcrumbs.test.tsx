@@ -167,6 +167,26 @@ describe('useBreadcrumbs (wired into _staff.tsx)', () => {
       expect(screen.queryByText('run-77')).toBeNull();
     });
 
+    it('[53.4.01] notice detail: reads the title from the detail cache, then the compose cache', () => {
+      const detail = createTestQueryClient();
+      detail.setQueryData(['notices', 'detail', 'n-1'], { title: 'Eid holiday' });
+      expect(nameFor(detail, 'noticeDetail', { noticeId: 'n-1' })).toBe('Eid holiday');
+
+      const compose = createTestQueryClient();
+      compose.setQueryData(['notice-compose', 'n-1'], { title: 'Exam routine' });
+      expect(nameFor(compose, 'noticeDetail', { noticeId: 'n-1' })).toBe('Exam routine');
+
+      // Nothing cached: no name, so the crumb shows the loading skeleton and the noun.
+      expect(nameFor(createTestQueryClient(), 'noticeDetail', { noticeId: 'n-1' })).toBeUndefined();
+    });
+
+    it('[53.4.01] notice edit trail names the notice once; student edit trail does not repeat the name', () => {
+      const entityCount = (id: string) =>
+        (ROUTE_CRUMBS[id] as RouteCrumbs).filter((s) => s.dynamic === 'entity').length;
+      expect(entityCount('/_staff/communications/notices/$noticeId/edit')).toBe(1);
+      expect(entityCount('/_staff/students/$studentId_/edit')).toBe(1);
+    });
+
     it('attendance section: the register prefix read resolves from the id alone', () => {
       const queryClient = createTestQueryClient();
       queryClient.setQueryData([...attendanceKeys.all, 'register', 'sec-1', '2026-10-04', null], {

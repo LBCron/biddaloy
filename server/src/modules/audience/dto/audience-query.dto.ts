@@ -15,8 +15,16 @@ import {
 import { AudienceTab, AudienceTarget, NoticeRecipientKind, UserRole } from '@biddaloy/shared';
 
 /** `?x=a` arrives as a string, `?x=a&x=b` as an array. */
+/** Query arrays arrive as `classIds=a,b` (the client joins them, as `student_ids` does) or as
+ * repeated keys (`classIds=a&classIds=b`). A body sends a real array. */
 const toArray = ({ value }: { value: unknown }) =>
-  value === undefined || value === '' ? undefined : Array.isArray(value) ? value : [value];
+  value === undefined || value === ''
+    ? undefined
+    : Array.isArray(value)
+      ? value
+      : typeof value === 'string'
+        ? value.split(',').filter(Boolean)
+        : [value];
 
 export class AudienceQueryDto {
   @ApiProperty({ enum: AudienceTarget, enumName: 'AudienceTarget' })
@@ -38,7 +46,7 @@ export class AudienceQueryDto {
   @ApiPropertyOptional({ type: [String], format: 'uuid' })
   @IsOptional()
   @Transform(toArray)
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   @ArrayMaxSize(200)
   @ArrayUnique()
   classIds?: string[];
@@ -46,10 +54,47 @@ export class AudienceQueryDto {
   @ApiPropertyOptional({ type: [String], format: 'uuid' })
   @IsOptional()
   @Transform(toArray)
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   @ArrayMaxSize(200)
   @ArrayUnique()
   sectionIds?: string[];
+
+  @ApiPropertyOptional({ format: 'uuid', description: 'EXAM_FAILED: a published exam.' })
+  @IsOptional()
+  @IsUUID()
+  examId?: string;
+
+  @ApiPropertyOptional({ description: 'LOW_ATTENDANCE: current-year % below this.' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  belowPercent?: number;
+
+  @ApiPropertyOptional({
+    description: "ORG_GROUP: a value from the tenant's organisation vocabulary.",
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  shift?: string;
+
+  @ApiPropertyOptional({
+    description: "ORG_GROUP: a value from the tenant's organisation vocabulary.",
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  version?: string;
+
+  @ApiPropertyOptional({
+    description: "ORG_GROUP: a value from the tenant's organisation vocabulary.",
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  group?: string;
 
   @ApiPropertyOptional({ description: 'Name search.' })
   @IsOptional()

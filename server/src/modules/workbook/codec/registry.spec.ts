@@ -166,6 +166,9 @@ describe('EXPECTED_TABS', () => {
       'report_definitions',
       'report_definition_versions',
       'report_schedules',
+      'notices',
+      'notice_attachments',
+      'notice_recipients',
     ]);
   });
 

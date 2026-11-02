@@ -41,6 +41,8 @@ export interface AttentionModalProps {
   onPrimary: (item: AlertItem) => void;
   onHide: (item: AlertItem) => void;
   onSnooze: (item: AlertItem, choice: SnoozeChoice, date?: string) => void;
+  /** [53.5.03] "পড়েছি" on an important notice card. */
+  onAcknowledge?: (noticeId: string, item: AlertItem) => void;
   /** Per-card busy flag / error line, keyed by `recipientId`. */
   itemState?: Record<string, { busy?: boolean; error?: string }>;
   /** Where "See all to-do" goes, and how many that list holds. */
@@ -63,6 +65,7 @@ export function AttentionModal({
   onPrimary,
   onHide,
   onSnooze,
+  onAcknowledge,
   itemState,
   todoHref,
   todoCount,
@@ -205,6 +208,7 @@ export function AttentionModal({
                         }}
                         onHide={onHide}
                         onSnooze={onSnooze}
+                        {...(onAcknowledge ? { onAcknowledge } : {})}
                         {...itemState?.[item.recipientId]}
                       />
                     ))}

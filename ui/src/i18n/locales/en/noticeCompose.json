@@ -1,3 +1,125 @@
 {
-  "title": "New notice"
+  "title": "New notice",
+  "editTitle": "Edit notice",
+  "steps": { "write": "Write and attach", "audience": "Who gets it", "review": "Check" },
+  "actions": {
+    "saveDraft": "Keep as draft",
+    "next": "Next step",
+    "back": "Back",
+    "publish": "Publish",
+    "confirmPublish": "Yes, publish",
+    "retry": "Retry",
+    "cancel": "Cancel"
+  },
+  "publicLink": {
+    "title": "Public link",
+    "hint": "Copy it now. It is shown only once; a new one replaces it.",
+    "done": "Done",
+    "creating": "Making the public link…",
+    "failed": "The notice is published, but the public link could not be made.",
+    "retry": "Try again"
+  },
+  "saved": "Draft saved",
+  "fields": {
+    "title": "Title",
+    "body": "Notice text",
+    "important": "Urgent",
+    "pinned": "Pin to the top",
+    "isPublic": "Public (anyone with the link can read)",
+    "sms": "Also ask to send an SMS",
+    "expires": "Valid until",
+    "noExpiry": "No end date",
+    "counter": "{{count}} / {{max}}"
+  },
+  "errors": {
+    "titleRequired": "Write a title",
+    "titleTooLong": "The title can be at most {{max}} characters",
+    "bodyRequired": "Write the notice text",
+    "bodyTooLong": "The text can be at most {{max}} characters",
+    "generic": "Could not save. Try again.",
+    "publishFailed": "Could not publish. Try again.",
+    "loadNotice": "Could not load the notice",
+    "noRecipients": "Choose at least one person",
+    "percent": "Write a number from 1 to 100"
+  },
+  "files": {
+    "label": "Attach files",
+    "hint": "Up to {{count}} files, {{size}} MB each. PDF, JPG, PNG or WebP.",
+    "tooMany": "At most {{count}} files",
+    "tooLarge": "Files over {{size}} MB cannot be added: {{name}}",
+    "wrongType": "This file type is not allowed: {{name}}",
+    "remove": "Remove {{name}}",
+    "heic": "Make it JPG: save {{name}} as JPG and add it again"
+  },
+  "audience": {
+    "intro": "Choose who should get this notice.",
+    "readOnly": "The audience cannot be changed after publishing.",
+    "tabs": {
+      "guardians": "Guardians",
+      "staff": "All teachers and staff",
+      "students": "Students",
+      "named": "By name",
+      "examFailed": "Failed an exam",
+      "feeDue": "Fee due",
+      "lowAttendance": "Low attendance",
+      "orgGroup": "Shift, version or group"
+    },
+    "filters": {
+      "class": "Class",
+      "section": "Section",
+      "roles": "Roles",
+      "kind": "Search for",
+      "kindStaff": "Staff",
+      "kindStudents": "Students",
+      "name": "Name",
+      "target": "Send to",
+      "targetStudents": "Students",
+      "targetGuardians": "Guardians",
+      "exam": "Exam",
+      "belowPercent": "Attendance below (%)",
+      "shift": "Shift",
+      "version": "Version",
+      "group": "Group"
+    },
+    "columns": { "name": "Name", "detail": "Class or role", "contact": "Reach" },
+    "reach": { "app": "App", "sms": "SMS only", "none": "Cannot be reached" },
+    "roles": {
+      "ADMIN": "Admin",
+      "ACCOUNTANT": "Accountant",
+      "TEACHER": "Teacher",
+      "EXECUTIVE": "Executive",
+      "OFFICE_STAFF": "Office staff",
+      "EXAM_CONTROLLER": "Exam controller",
+      "COMMITTEE": "Committee"
+    },
+    "loadError": "Could not load people",
+    "pickClass": "Pick a class to see people.",
+    "pickRole": "Pick a role to see people.",
+    "examsLoading": "Loading exams...",
+    "examsError": "Could not load exams. Try again.",
+    "examsPartial": "Only the latest 100 exams are listed.",
+    "pickExam": "Pick an exam to see people.",
+    "pickPercent": "Write a number from 1 to 100.",
+    "pickGroup": "Pick a shift, version or group to see people."
+  },
+  "review": {
+    "heading": "Check before publishing",
+    "app": "Will get it in the app",
+    "smsOnly": "SMS only",
+    "unreachable": "Cannot be reached",
+    "total": "{{count}} people in all"
+  },
+  "confirm": {
+    "title": "Publish this notice?",
+    "counts": "{{app}} people will see it in the app. {{smsOnly}} can only be reached by SMS. {{unreachable}} cannot be reached.",
+    "sms": "The SMS request will go to an admin for approval."
+  },
+  "help": {
+    "feeDue": "Everyone with an unpaid fee that is past its due date.",
+    "important": "Marks the notice as urgent so it stands out in the list.",
+    "pinned": "Keeps the notice at the top of the board.",
+    "isPublic": "Anyone who has the link can read it, without logging in.",
+    "sms": "Ask for an SMS copy. An admin must approve it first, and SMS costs credits.",
+    "expires": "After this date the notice leaves the board. Leave it empty for no end date."
+  }
 }

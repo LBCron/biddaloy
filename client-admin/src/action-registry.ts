@@ -183,6 +183,22 @@ export const ACTIONS: readonly PaletteAction[] = [
     run: (ctx) => ctx.navigate({ to: '/exams/seat-plans' }),
   },
   {
+    id: 'communications.giveNotice',
+    label: { en: 'Give a notice', bn: 'নোটিশ দিন' },
+    permission: Permission.NOTICE_POST,
+    kind: 'navigate',
+    group: 'communications',
+    run: (ctx) => ctx.navigate({ to: '/communications/notices/new' }),
+  },
+  {
+    id: 'notices.open',
+    label: { en: 'Open notices', bn: 'নোটিশ খুলুন' },
+    permission: Permission.NOTICE_POST,
+    kind: 'navigate',
+    group: 'communications',
+    run: (ctx) => ctx.navigate({ to: '/communications/notices' }),
+  },
+  {
     id: 'communications.sendMessage',
     label: { en: 'Send message', bn: 'বার্তা পাঠান' },
     permission: Permission.COMMUNICATION_SEND,

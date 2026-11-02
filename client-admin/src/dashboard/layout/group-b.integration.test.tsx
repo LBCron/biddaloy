@@ -241,10 +241,13 @@ const FIXTURES: Record<string, unknown> = {
 
 const TEACHER = ROLE_DEFAULT_LAYOUTS.TEACHER;
 const ACCOUNTANT = ROLE_DEFAULT_LAYOUTS.ACCOUNTANT;
+/** `latest-notices` reads `/notices/mine`, not a dashboard widget route, so it is never in `requested`. */
+const widgetRoutes = (keys: DashboardWidgetKey[]) =>
+  new Set(keys.filter((k) => k !== 'latest-notices'));
 /** Every key wave 4 added a widget file for (collection-month is wave 3's and is not listed). */
 const WAVE_4_KEYS: DashboardWidgetKey[] = [
-  ...TEACHER,
-  ...ACCOUNTANT.filter((k) => k !== 'collection-month'),
+  ...TEACHER.filter((k) => k !== 'latest-notices'),
+  ...ACCOUNTANT.filter((k) => k !== 'collection-month' && k !== 'latest-notices'),
   'homework-submission-rate',
   'recent-activity',
 ];
@@ -284,6 +287,9 @@ function mockApi(opts: { fail?: string; prefs?: unknown; role: 'TEACHER' | 'ACCO
     http.get('/api/v1/calendar/events', () =>
       HttpResponse.json({ data: [], total: 0, page: 1, limit: 6, totalPages: 1 }),
     ),
+    http.get('/api/v1/notices/mine', () =>
+      HttpResponse.json({ data: [], total: 0, page: 1, limit: 3 }),
+    ),
     http.get('/api/v1/dashboard/widgets/:key', ({ params }) => {
       const key = String(params.key);
       requested.push(key);
@@ -312,21 +318,21 @@ const desktopTitles = () =>
 describe('wave-4 widgets in the dashboard page', () => {
   afterEach(cleanupTestState);
 
-  it('TEACHER: the default layout renders its seven cards in order', async () => {
+  it('TEACHER: the default layout renders its eight cards, the last being the notices card in order', async () => {
     const requested = mockApi({ role: 'TEACHER' });
     render('TEACHER');
-    await waitFor(() => expect(new Set(requested)).toEqual(new Set(TEACHER)));
+    await waitFor(() => expect(new Set(requested)).toEqual(widgetRoutes(TEACHER)));
     await waitFor(() => expect(document.querySelector('[data-slot="widget-skeleton"]')).toBeNull());
-    expect(TEACHER).toHaveLength(7);
+    expect(TEACHER).toHaveLength(8);
     expect(desktopTitles()).toEqual(TEACHER.map(titleOf));
   });
 
-  it('ACCOUNTANT: the default layout renders its eight cards in order, incl. collection-month', async () => {
+  it('ACCOUNTANT: the default layout renders its nine cards in order, incl. collection-month', async () => {
     const requested = mockApi({ role: 'ACCOUNTANT' });
     render('ACCOUNTANT');
-    await waitFor(() => expect(new Set(requested)).toEqual(new Set(ACCOUNTANT)));
+    await waitFor(() => expect(new Set(requested)).toEqual(widgetRoutes(ACCOUNTANT)));
     await waitFor(() => expect(document.querySelector('[data-slot="widget-skeleton"]')).toBeNull());
-    expect(ACCOUNTANT).toHaveLength(8);
+    expect(ACCOUNTANT).toHaveLength(9);
     expect(ACCOUNTANT).toContain('collection-month');
     expect(desktopTitles()).toEqual(ACCOUNTANT.map(titleOf));
   });
@@ -351,7 +357,9 @@ describe('wave-4 widgets in the dashboard page', () => {
       prefs: { widgets: [{ key: 'my-leave-balance', hidden: true }] },
     });
     render('TEACHER');
-    await waitFor(() => expect(requested.length).toBeGreaterThanOrEqual(TEACHER.length - 1));
+    await waitFor(() =>
+      expect(requested.length).toBeGreaterThanOrEqual(widgetRoutes(TEACHER).size - 1),
+    );
     await waitFor(() => expect(document.querySelector('[data-slot="widget-skeleton"]')).toBeNull());
     expect(requested).not.toContain('my-leave-balance');
     expect(desktopTitles()).not.toContain(titleOf('my-leave-balance'));
@@ -360,7 +368,7 @@ describe('wave-4 widgets in the dashboard page', () => {
   it('phone: key numbers hold only the phoneTile keys; every other key is a compact card (D16)', async () => {
     const requested = mockApi({ role: 'TEACHER' });
     render('TEACHER');
-    await waitFor(() => expect(new Set(requested)).toEqual(new Set(TEACHER)));
+    await waitFor(() => expect(new Set(requested)).toEqual(widgetRoutes(TEACHER)));
     await waitFor(() => expect(document.querySelector('[data-slot="widget-skeleton"]')).toBeNull());
 
     const tileKeys = TEACHER.filter((k) => WIDGET_CATALOGUE[k].phoneTile);

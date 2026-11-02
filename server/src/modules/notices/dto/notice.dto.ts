@@ -26,6 +26,7 @@ import {
   NoticeStatus,
 } from '@biddaloy/shared';
 import { SanitizeText } from '../../../common/decorators/sanitize-text.decorator';
+import { NoticeFileDto } from '../access/dto/notice-reader.dto';
 
 export class CreateNoticeDto {
   @ApiProperty({ maxLength: NOTICE_LIMITS.titleMax })
@@ -192,6 +193,12 @@ export class NoticeDto {
       'PATCH only: returned once when that edit turned the public link on. Publish never returns it (its answer is cached for idempotency); use POST :id/public-link.',
   })
   publicLinkToken?: string | null;
+
+  @ApiPropertyOptional({
+    type: [NoticeFileDto],
+    description: 'Single-notice answers only, not the list.',
+  })
+  files?: NoticeFileDto[];
 }
 
 export class NoticePageDto {

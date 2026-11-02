@@ -15,9 +15,9 @@ const entries = Object.entries(WIDGET_CATALOGUE) as [
 ][];
 
 describe('dashboard widget catalogue [8.10.7.1.01]', () => {
-  it('has 39 keys and the catalogue covers each exactly', () => {
+  it('has 40 keys and the catalogue covers each exactly', () => {
     const keys = Object.values(DashboardWidgetKey);
-    expect(keys).toHaveLength(39);
+    expect(keys).toHaveLength(40);
     expect(Object.keys(WIDGET_CATALOGUE).sort()).toEqual([...keys].sort());
   });
 

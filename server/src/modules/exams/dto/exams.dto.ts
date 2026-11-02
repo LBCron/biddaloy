@@ -21,7 +21,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SanitizeText } from '../../../common/decorators/sanitize-text.decorator';
-import { ExamKind, ExamComponentKind, ExamComponentSource } from '@biddaloy/shared';
+import { ExamKind, ExamComponentKind, ExamComponentSource, ExamStatus } from '@biddaloy/shared';
 import { Exam } from '../entities/exam.entity';
 
 /** `numeric(6,2)` column range — a value outside this overflows the
@@ -140,6 +140,11 @@ export class QueryExamDto {
   @IsOptional()
   @IsUUID()
   class_id?: string;
+
+  /** Filters before paging, so a picker of PUBLISHED exams is never cut short by drafts. */
+  @IsOptional()
+  @IsEnum(ExamStatus)
+  status?: ExamStatus;
 
   @IsOptional()
   @Type(() => Number)

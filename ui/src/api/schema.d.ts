@@ -9676,7 +9676,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Add everyone an audience filter matches (max 5,000 rows; a guardian counts once per child) */
+        /** Add everyone an audience filter matches (max 5,000 people; a guardian of several children counts once) */
         post: operations["NoticesController_addMatching_v1"];
         delete?: never;
         options?: never;
@@ -9777,7 +9777,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** A page of people a notice could reach (basic tabs). */
+        /** A page of people a notice could reach. */
         get: operations["AudienceController_people_v1"];
         put?: never;
         post?: never;
@@ -9832,6 +9832,74 @@ export interface paths {
         put?: never;
         /** A personal link marks its recipient seen, once. A public link writes nothing. */
         post: operations["PublicNoticeController_opened_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/sms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The SMS request: people, counts, text and credit cost */
+        get: operations["NoticeSmsController_view_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/sms/recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Tick or untick people while the request is pending */
+        patch: operations["NoticeSmsController_setRecipients_v1"];
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/sms/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve: reserve credit, make personal links, queue one SMS each */
+        post: operations["NoticeSmsController_approve_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices/{id}/sms/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline: nothing is sent */
+        post: operations["NoticeSmsController_decline_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -13337,7 +13405,7 @@ export interface components {
         };
         DashboardLayoutItemDto: {
             /** @enum {string} */
-            key: "attendance-today" | "staff-today" | "collection-month" | "mark-entry-progress" | "syllabus-progress" | "at-risk-students" | "sms-balance" | "failed-messages" | "upcoming" | "homework-submission-rate" | "recent-activity" | "my-routine-today" | "my-pending-sections" | "my-mark-deadlines" | "homework-to-check" | "class-teacher-streaks" | "my-leave-balance" | "my-syllabus-progress" | "collection-today" | "collection-by-month" | "dues-ageing" | "dues-by-class" | "fee-generation-status" | "reminders-pending" | "recent-payments" | "committee-enrollment" | "committee-attendance" | "committee-finance" | "committee-pass-rate" | "seat-plan-status" | "results-state" | "admissions-today" | "guardians-incomplete" | "students-added-today" | "approvals-pending" | "print-queue" | "setup-checklist" | "syllabus-vs-plan" | "my-lessons-to-mark";
+            key: "attendance-today" | "staff-today" | "collection-month" | "mark-entry-progress" | "syllabus-progress" | "at-risk-students" | "sms-balance" | "failed-messages" | "upcoming" | "homework-submission-rate" | "recent-activity" | "my-routine-today" | "my-pending-sections" | "my-mark-deadlines" | "homework-to-check" | "class-teacher-streaks" | "my-leave-balance" | "my-syllabus-progress" | "collection-today" | "collection-by-month" | "dues-ageing" | "dues-by-class" | "fee-generation-status" | "reminders-pending" | "recent-payments" | "committee-enrollment" | "committee-attendance" | "committee-finance" | "committee-pass-rate" | "seat-plan-status" | "results-state" | "admissions-today" | "guardians-incomplete" | "students-added-today" | "approvals-pending" | "print-queue" | "setup-checklist" | "syllabus-vs-plan" | "my-lessons-to-mark" | "latest-notices";
             hidden?: boolean;
             /** @enum {string} */
             size?: "S" | "M" | "L";
@@ -18038,6 +18106,8 @@ export interface components {
             createdAt: string;
             /** @description PATCH only: returned once when that edit turned the public link on. Publish never returns it (its answer is cached for idempotency); use POST :id/public-link. */
             publicLinkToken?: string | null;
+            /** @description Single-notice answers only, not the list. */
+            files?: components["schemas"]["NoticeFileDto"][];
         };
         NoticePageDto: {
             items: components["schemas"]["NoticeDto"][];
@@ -18103,6 +18173,19 @@ export interface components {
             roles?: components["schemas"]["UserRole"][];
             classIds?: string[];
             sectionIds?: string[];
+            /**
+             * Format: uuid
+             * @description EXAM_FAILED: a published exam.
+             */
+            examId?: string;
+            /** @description LOW_ATTENDANCE: current-year % below this. */
+            belowPercent?: number;
+            /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+            shift?: string;
+            /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+            version?: string;
+            /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+            group?: string;
             /** @description Name search. */
             q?: string;
             /** @default 1 */
@@ -18175,6 +18258,58 @@ export interface components {
             /** Format: date-time */
             editedAt: string | null;
             files: components["schemas"]["PublicNoticeFileDto"][];
+        };
+        SmsRecipientRowDto: {
+            id: string;
+            guardianName: string;
+            forStudent: string | null;
+            reachable: boolean;
+            smsWanted: boolean;
+            /** @description Masked, e.g. 01•••••234 */
+            phone: string | null;
+        };
+        SmsCountsDto: {
+            willSend: number;
+            optedOut: number;
+            noPhone: number;
+        };
+        SmsTextDto: {
+            /** @description Title plus link placeholder */
+            text: string;
+            length: number;
+            segments: number;
+            /** @enum {string} */
+            encoding: "GSM_7" | "UCS_2";
+            /** @description Whole credits: segments x people who will get it */
+            creditCost: number;
+        };
+        NoticeSmsViewDto: {
+            /** @enum {string} */
+            status: "NONE" | "PENDING" | "APPROVED" | "DECLINED";
+            requester: string | null;
+            requestedAt: string | null;
+            /** @description Notice is published, not withdrawn and not past its end date */
+            live: boolean;
+            items: components["schemas"]["SmsRecipientRowDto"][];
+            total: number;
+            page: number;
+            limit: number;
+            counts: components["schemas"]["SmsCountsDto"];
+            sms: components["schemas"]["SmsTextDto"];
+        };
+        SmsRecipientsDto: {
+            /** @description notice_recipients ids (guardian rows) */
+            ids: string[];
+            smsWanted: boolean;
+        };
+        SmsRecipientsResultDto: {
+            updated: number;
+        };
+        SmsDecisionDto: {
+            /** @enum {string} */
+            status: "NONE" | "PENDING" | "APPROVED" | "DECLINED";
+            /** @description SMS queued (0 on decline) */
+            queued: number;
         };
         PendingSurveyQuestionDto: {
             id: string;
@@ -32894,6 +33029,7 @@ export interface operations {
             query?: {
                 academic_year_id?: string;
                 class_id?: string;
+                status?: "DRAFT" | "PROCESSED" | "PUBLISHED";
                 page?: number;
                 limit?: number;
             };
@@ -43318,6 +43454,16 @@ export interface operations {
                 roles?: components["schemas"]["UserRole"][];
                 classIds?: string[];
                 sectionIds?: string[];
+                /** @description EXAM_FAILED: a published exam. */
+                examId?: string;
+                /** @description LOW_ATTENDANCE: current-year % below this. */
+                belowPercent?: number;
+                /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+                shift?: string;
+                /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+                version?: string;
+                /** @description ORG_GROUP: a value from the tenant's organisation vocabulary. */
+                group?: string;
                 /** @description Name search. */
                 q?: string;
                 page?: number;
@@ -43404,6 +43550,145 @@ export interface operations {
         requestBody?: never;
         responses: {
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeSmsController_view_v1: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeSmsViewDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeSmsController_setRecipients_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsRecipientsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsRecipientsResultDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeSmsController_approve_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsDecisionDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NoticeSmsController_decline_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsDecisionDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

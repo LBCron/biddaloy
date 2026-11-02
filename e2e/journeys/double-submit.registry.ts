@@ -4,6 +4,8 @@ import { expect } from '@playwright/test';
 import {
   createFineStructure,
   createGuardian,
+  createClassSection,
+  createStaffUser,
   currentAcademicYear,
   post,
   type ApiSession,
@@ -63,6 +65,43 @@ const addButton = (page: Page, key: string) =>
     .click();
 
 export const REGISTRY: DialogEntry[] = [
+  {
+    // [53.6.04] SMS approve is a page action (not a dialog); it queues one SMS per person, so a
+    // second send must never reach the server.
+    name: 'notice sms approve',
+    route: '/communications/notices',
+    prepare: async (request, session, suffix) => {
+      const chain = await createClassSection(request, session);
+      const guardian = await createGuardian(
+        request,
+        session,
+        `Dbl SMS guardian ${suffix}`,
+        `015${suffix.replace(/\D/g, '').slice(-8).padStart(8, '0')}`,
+      );
+      const student = await post<{ id: string }>(request, session, '/students', {
+        full_name: `Dbl SMS student ${suffix}`,
+        class_section_id: chain.sectionId,
+        guardian_ids: [guardian.id],
+      });
+      const notice = await post<{ id: string }>(request, session, '/notices', {
+        title: `Dbl SMS notice ${suffix}`,
+        body: 'Body',
+      });
+      await post(request, session, `/notices/${notice.id}/recipients`, {
+        items: [{ kind: 'GUARDIAN', guardianId: guardian.id, studentId: student.id }],
+      });
+      await post(request, session, `/notices/${notice.id}/publish`, { requestSms: true });
+      return { route: `/communications/notices/${notice.id}?sms=1` };
+    },
+    open: async () => undefined,
+    fill: async () => undefined,
+    submitKey: 'notices.manage.sms.approve',
+    postUrl: /\/api\/v1\/notices\/[0-9a-f-]{36}\/sms\/approve$/,
+    done: (page) =>
+      expect(page.getByText(t('notices.manage.sms.status.APPROVED'), { exact: true })).toBeVisible({
+        timeout: 15_000,
+      }),
+  },
   {
     name: 'program',
     route: '/programs',
@@ -325,5 +364,39 @@ export const REGISTRY: DialogEntry[] = [
     submitKey: 'students.new.submitAction',
     postUrl: /\/api\/v1\/students$/,
     done: (page) => expect(page).toHaveURL(/\/students\/[0-9a-f-]{36}/, { timeout: 15_000 }),
+  },
+  {
+    // [53.4] Publishing a notice: the confirm dialog's "Yes, publish". The draft and its one
+    // recipient come from the API, so the page only walks Next, Next and confirms.
+    name: 'notice publish',
+    route: '/communications/notices',
+    prepare: async (request, session, suffix) => {
+      const staff = await createStaffUser(request, session, `Dbl notice staff ${suffix}`);
+      const notice = await post<{ id: string }>(request, session, '/notices', {
+        title: `Dbl notice ${suffix}`,
+        body: 'Double-submit check',
+      });
+      await post(request, session, `/notices/${notice.id}/recipients`, {
+        items: [{ kind: 'STAFF', userId: staff.id }],
+      });
+      return { route: `/communications/notices/${notice.id}/edit` };
+    },
+    open: async (page) => {
+      const next = page.getByRole('button', { name: t('noticeCompose.actions.next') });
+      await next.click();
+      await expect(
+        page.getByRole('listitem').filter({ hasText: t('noticeCompose.steps.audience') }),
+      ).toHaveAttribute('aria-current', 'step');
+      await next.click();
+      await expect(
+        page.getByRole('heading', { name: t('noticeCompose.review.heading') }),
+      ).toBeVisible();
+      await page.getByRole('button', { name: t('noticeCompose.actions.publish') }).click();
+    },
+    fill: async () => undefined,
+    submitKey: 'noticeCompose.actions.confirmPublish',
+    postUrl: /\/api\/v1\/notices\/[0-9a-f-]{36}\/publish$/,
+    done: (page) =>
+      expect(page).toHaveURL(/\/communications\/notices\/[0-9a-f-]{36}$/, { timeout: 15_000 }),
   },
 ];

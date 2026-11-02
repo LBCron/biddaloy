@@ -419,6 +419,10 @@ GET    /api/v1/notices/:id/recipients                                           
 POST   /api/v1/notices/:id/recipients                                            401 PASS PASS PASS 403 PASS 403 403 PASS PASS 403 403
 POST   /api/v1/notices/:id/recipients/matching                                   401 PASS PASS PASS 403 PASS 403 403 PASS PASS 403 403
 GET    /api/v1/notices/:id/report                                                401 PASS PASS PASS 403 PASS 403 403 PASS PASS 403 403
+GET    /api/v1/notices/:id/sms                                                   401 PASS PASS PASS 403 403 403 403 PASS 403 403 403
+POST   /api/v1/notices/:id/sms/approve                                           401 PASS PASS PASS 403 403 403 403 PASS 403 403 403
+POST   /api/v1/notices/:id/sms/decline                                           401 PASS PASS PASS 403 403 403 403 PASS 403 403 403
+PATCH  /api/v1/notices/:id/sms/recipients                                        401 PASS PASS PASS 403 403 403 403 PASS 403 403 403
 POST   /api/v1/notices/:id/sms/request                                           401 PASS PASS PASS 403 PASS 403 403 PASS PASS 403 403
 POST   /api/v1/notices/:id/withdraw                                              401 PASS PASS PASS 403 PASS 403 403 PASS PASS 403 403
 GET    /api/v1/notices/mine                                                      401 PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS

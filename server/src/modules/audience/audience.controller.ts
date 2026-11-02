@@ -20,7 +20,7 @@ export class AudienceController {
   constructor(private readonly audience: AudienceService) {}
 
   @Get('people')
-  @ApiOperation({ summary: 'A page of people a notice could reach (basic tabs).' })
+  @ApiOperation({ summary: 'A page of people a notice could reach.' })
   @ApiOkResponse({ type: AudiencePageDto })
   people(
     @CurrentTenant() tenant: { id: string; role: string },

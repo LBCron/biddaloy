@@ -1,7 +1,13 @@
 import { expect, loggedIn, test } from '../fixtures/test';
 import { t } from '../i18n';
 
-import { expectReachableInMain, openFromSidebar, tabUntilFocused } from './keyboard-utils';
+import {
+  expectPrimaryTaskOpensAndCloses,
+  expectReachableInMain,
+  modalTitled,
+  openFromSidebar,
+  tabUntilFocused,
+} from './keyboard-utils';
 
 // [31.5.2] D36 — one keyboard journey per nav group; a new screen in this group adds one test here.
 // Nothing here sends a message.
@@ -18,6 +24,18 @@ test.describe('Communications (admin)', () => {
   test('message log', async ({ page }) => {
     await openFromSidebar(page, t('nav.items.messageLog'));
     await expectReachableInMain(page);
+  });
+
+  // [53.4] The notice list opens from the sidebar; "Give a notice" is a link that opens the full-page
+  // composer, Escape closes it. Opening it saves nothing (the draft is created on the first Next).
+  test('notices', async ({ page }) => {
+    await openFromSidebar(page, t('nav.items.notices'));
+    await expectPrimaryTaskOpensAndCloses(
+      page,
+      t('notices.manage.give'),
+      modalTitled(page, t('noticeCompose.title')),
+      'A',
+    );
   });
 
   // [67.6.02] Send an alert opens as a full-page dialog, so focus lands inside it (on its close

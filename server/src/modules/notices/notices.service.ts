@@ -19,6 +19,7 @@ import { StorageService } from '../storage/storage.service';
 import { NoticeLinksService } from './links/notice-links.service';
 import { Notice } from './entities/notice.entity';
 import { NoticeAttachment } from './entities/notice-attachment.entity';
+import { toDto as toFileDto } from './access/notice-files.service';
 import {
   MSG,
   NoticeActor,
@@ -153,7 +154,12 @@ export class NoticesService {
     await loadOwnedNotice(this.ds.manager, tenantId, actor, id);
     const { items } = await this.rows(tenantId, { id }, 1, 0);
     if (!items[0]) throw new NotFoundException(MSG.notFound);
-    return items[0];
+    // Detail only: the edit form shows the saved files and counts them against the limit.
+    const files = await this.ds.manager.find(NoticeAttachment, {
+      where: { tenant_id: tenantId, notice_id: id },
+      order: { sort: 'ASC', created_at: 'ASC' },
+    });
+    return { ...items[0], files: files.map(toFileDto) };
   }
 
   async listRecipients(

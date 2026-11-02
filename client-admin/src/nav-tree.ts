@@ -401,6 +401,14 @@ export const STAFF_NAV_ITEMS = {
     label: { key: 'studentCount' },
     synonyms: ['BANBEIS', 'head count', 'enrolment', 'ছাত্রসংখ্যা', 'শিক্ষার্থী সংখ্যা'],
   },
+  // [53.4.01] Notices: first in Communications.
+  'communications.notices': {
+    id: 'communications.notices',
+    to: '/communications/notices',
+    permission: Permission.NOTICE_POST,
+    label: { key: 'notices' },
+    synonyms: ['notice', 'নোটিশ', 'বিজ্ঞপ্তি'],
+  },
   'communications.sendMessage': {
     id: 'communications.sendMessage',
     to: '/communications/send',
@@ -627,6 +635,7 @@ export const STAFF_NAV_GROUPS: readonly StaffNavGroupDef[] = [
     id: 'communications',
     label: { key: 'communications' },
     items: [
+      STAFF_NAV_ITEMS['communications.notices'],
       STAFF_NAV_ITEMS['communications.sendMessage'],
       STAFF_NAV_ITEMS['communications.sendAlert'],
       STAFF_NAV_ITEMS['communications.feeReminders'],

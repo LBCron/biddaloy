@@ -131,10 +131,62 @@ describe('Audience API E2E', () => {
     await supertest(app.getHttpServer()).get(`/api/v1/audience/people?${qs}`).expect(401);
   });
 
-  it('limit 101 is 400; a non-UUID section is 400; an advanced tab is 400', async () => {
+  it('limit 101 is 400; a non-UUID section is 400', async () => {
     await people('target=STAFF&tab=NAMED_STAFF&limit=101').expect(400);
     await people('target=STUDENTS&tab=SECTION&sectionIds=not-a-uuid').expect(400);
-    await people('target=STUDENTS&tab=FEE_DUE').expect(400);
+  });
+
+  it('FEE_DUE answers 200 for ADMIN', async () => {
+    await people('target=STUDENTS&tab=FEE_DUE', UserRole.ADMIN).expect(200);
+  });
+
+  it('advanced-tab validation is 400', async () => {
+    await people('target=STUDENTS&tab=LOW_ATTENDANCE&belowPercent=0').expect(400);
+    await people('target=STUDENTS&tab=LOW_ATTENDANCE&belowPercent=101').expect(400);
+    await people('target=STUDENTS&tab=EXAM_FAILED&examId=not-a-uuid').expect(400);
+    await people('target=STUDENTS&tab=EXAM_FAILED').expect(400);
+    await people('target=STUDENTS&tab=ORG_GROUP').expect(400);
+    await people(`target=STUDENTS&tab=ORG_GROUP&shift=${'x'.repeat(51)}`).expect(400);
+  });
+
+  it('an unknown exam is 404', async () => {
+    await people(
+      'target=STUDENTS&tab=EXAM_FAILED&examId=3f1c2a54-9b7e-4c1d-8a6f-0d2e5b7c9a11',
+    ).expect(404);
+  });
+
+  it('an advanced tab with a missing or foreign X-Tenant-ID is rejected', async () => {
+    const qs = 'target=STUDENTS&tab=FEE_DUE';
+    await people(qs, UserRole.ADMIN, null).expect(401);
+    await people(qs, UserRole.ADMIN, '00000000-0000-4000-8000-00000000dead').expect(401);
+  });
+
+  it('a non-v4 UUID in sectionIds is accepted (IsUUID all)', async () => {
+    await people(
+      'target=STUDENTS&tab=SECTION&sectionIds=00000000-0000-7000-8000-000000000001',
+    ).expect(200);
+  });
+
+  // #3430 finding 0: axios writes arrays as `classIds[]=a`, which the whitelist pipe rejects.
+  // The compose page sends `classIds=a,b`; repeated keys still work.
+  it('class and section ids work as one comma list or repeated keys; the bracket form is 400', async () => {
+    await people(`target=STUDENTS&tab=SECTION&sectionIds=${ownSection},${otherSection}`).expect(
+      200,
+    );
+    await people(
+      `target=STUDENTS&tab=SECTION&sectionIds=${ownSection}&sectionIds=${otherSection}`,
+    ).expect(200);
+    await people(`target=GUARDIANS&tab=CLASS&classIds=${classId}`).expect(200);
+    await people(`target=STAFF&tab=ROLE&roles=ADMIN,TEACHER`).expect(200);
+    await people(`target=STUDENTS&tab=CLASS&classIds%5B%5D=${classId}`).expect(400);
+    // a bad id inside the list is still a 400
+    await people(`target=STUDENTS&tab=SECTION&sectionIds=${ownSection},not-a-uuid`).expect(400);
+  });
+
+  it('a comma list with a missing or foreign X-Tenant-ID is rejected', async () => {
+    const qs = `target=STUDENTS&tab=SECTION&sectionIds=${ownSection},${otherSection}`;
+    await people(qs, UserRole.ADMIN, null).expect(401);
+    await people(qs, UserRole.ADMIN, '00000000-0000-4000-8000-00000000dead').expect(401);
   });
 
   it('a teacher gets their own section (200), 404 for another, 403 for staff', async () => {

@@ -20,6 +20,7 @@ import { RefreshTokenService } from '../../../modules/auth/refresh-token.service
 import { ACCESS_TOKEN_TTL_MS } from '../../../modules/auth/auth-tokens';
 import { AuthModule } from '../../../modules/auth/auth.module';
 import { NoticesModule } from '../../../modules/notices/notices.module';
+import { NoticeSmsModule } from '../../../modules/notices/sms/notice-sms.module';
 import { NoticeAccessModule } from '../../../modules/notices/access/notice-access.module';
 import { NoticeReaderService } from '../../../modules/notices/access/notice-reader.service';
 import { PromotionsService } from '../../../modules/promotions/promotions.service';
@@ -68,7 +69,7 @@ describe('notices slice (integration, 2 years, scale 0.05)', () => {
         { provide: TenantSettingsCache, useValue: { invalidate: vi.fn() } },
         { provide: StorageService, useValue: { put: async () => undefined } },
       ],
-      [ConfigModule.forRoot({ isGlobal: true }), NoticesModule, NoticeAccessModule, AuthModule],
+      [ConfigModule.forRoot({ isGlobal: true }), NoticesModule, NoticeAccessModule, NoticeSmsModule, AuthModule],
     );
     ds = app.get<DataSource>(getDataSourceToken());
     await ds.query(`DELETE FROM schools WHERE slug LIKE 'bmsc-%'`);
@@ -110,6 +111,12 @@ describe('notices slice (integration, 2 years, scale 0.05)', () => {
         [ANCHOR],
       )
     )[0];
+    facts.sms = await q(
+      `SELECT sms_status, count(*)::int AS n FROM notices WHERE sms_status <> 'NONE' GROUP BY sms_status ORDER BY sms_status`,
+    );
+    facts.smsLogs = await q(
+      `SELECT status, recipient_address FROM communication_logs WHERE reference_key LIKE 'notice-sms:%'`,
+    );
     facts.files = await q(`SELECT mime_type FROM notice_attachments ORDER BY mime_type`);
     facts.noLogin = (
       await q(
@@ -141,17 +148,33 @@ describe('notices slice (integration, 2 years, scale 0.05)', () => {
     )[0].n;
   }, 60_000);
 
-  it('writes 8 notices: 6 published, 1 withdrawn, 1 draft', () => {
-    expect(rows).toBe(8);
+  it('writes 12 notices: 10 published, 1 withdrawn, 1 draft', () => {
+    expect(rows).toBe(12);
     expect(facts.byStatus).toEqual([
       { status: 'DRAFT', n: 1 },
-      { status: 'PUBLISHED', n: 6 },
+      { status: 'PUBLISHED', n: 10 },
       { status: 'WITHDRAWN', n: 1 },
     ]);
   });
 
-  it('has 2 pinned, 1 important, 1 public with a live link, 1 expired; nothing dated after the anchor', () => {
-    expect(facts.flags).toMatchObject({ pinned: 2, important: 1, pub: 1, expired: 1, future: 0 });
+  it('has 2 pinned, 1 important, 1 public with a live link, 2 expired; nothing dated after the anchor', () => {
+    expect(facts.flags).toMatchObject({ pinned: 2, important: 1, pub: 1, expired: 2, future: 0 });
+  });
+
+  it('has an SMS request in every state: pending, approved, declined (one of the two by the system on expiry)', () => {
+    expect(facts.sms).toEqual([
+      { sms_status: 'APPROVED', n: 1 },
+      { sms_status: 'DECLINED', n: 2 },
+      { sms_status: 'PENDING', n: 1 },
+    ]);
+  });
+
+  it('the approved request has SENT and FAILED logs, only to demo numbers (01700-NNNNNN)', () => {
+    const statuses = facts.smsLogs.map((l: any) => l.status);
+    expect(statuses).toContain('SENT');
+    expect(statuses).toContain('FAILED');
+    // 01700-000001 is the only phone source in the demo (context.nextPhone): never a real number.
+    for (const l of facts.smsLogs) expect(l.recipient_address).toMatch(/^01700-?\d{6}$/);
   });
 
   it('attaches one PDF and one PNG', () => {

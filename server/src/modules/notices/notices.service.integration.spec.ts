@@ -153,6 +153,27 @@ describe('NoticesService (integration)', () => {
     ).toBe('2099-12-31');
   });
 
+  // #3430 finding 5: the edit form needs the saved files to show them and count them.
+  it('get returns the saved files of this tenant only; the list carries none', async () => {
+    const n = await draft();
+    const file = (tenant: string, name: string, sort: number) =>
+      ds.query(
+        `INSERT INTO notice_attachments (tenant_id, notice_id, storage_key, original_name, mime_type, size_bytes, sort)
+         VALUES ($1,$2,$3,$4,'application/pdf',10,$5)`,
+        [tenant, n.id, `k-${randomUUID()}`, name, sort],
+      );
+    await file(T, 'b.pdf', 1);
+    await file(T, 'a.pdf', 0);
+    await file(TENANT_B, 'foreign.pdf', 0); // a row tagged with another tenant never shows
+    const got = await svc.get(T, admin, n.id);
+    expect(got.files?.map((f) => f.original_name)).toEqual(['a.pdf', 'b.pdf']);
+    const listed = (await svc.list(T, admin, { page: 1, limit: 100, q: sfx })).items.find(
+      (x) => x.id === n.id,
+    );
+    expect(listed?.files).toBeUndefined();
+    await ds.query(`DELETE FROM notice_attachments WHERE notice_id = $1`, [n.id]);
+  });
+
   it('PATCH with null on a NOT NULL field is a 400, never a DB error (m2)', async () => {
     const n = await draft();
     for (const k of ['title', 'body', 'important', 'pinned', 'isPublic'])
@@ -191,9 +212,14 @@ describe('NoticesService (integration)', () => {
 
   it('select-all above 5,000 is refused with the fixed sentence and stores nothing', async () => {
     const n = await draft();
-    const person = { kind: 'STUDENT', userId: null, studentId: kid1, guardianId: null };
+    // 5,001 DISTINCT people: the cap counts people, not rows
     vi.spyOn(audience, 'matchAll').mockResolvedValueOnce(
-      Array.from({ length: 5001 }, () => person) as never,
+      Array.from({ length: 5001 }, () => ({
+        kind: 'STUDENT',
+        userId: null,
+        studentId: randomUUID(),
+        guardianId: null,
+      })) as never,
     );
     const err = await recipients
       .addMatching(T, admin, n.id, {
@@ -202,8 +228,24 @@ describe('NoticesService (integration)', () => {
       })
       .catch((e) => e);
     expect(err).toBeInstanceOf(BadRequestException);
-    expect(err.message).toBe('সর্বোচ্চ ৫,০০০ জন (অভিভাবককে প্রতিটি সন্তানের জন্য আলাদা গোনা হয়)');
+    expect(err.message).toBe('সর্বোচ্চ ৫,০০০ জন (অভিভাবককে একবারই গোনা হয়, সন্তান যতজনই হোক)');
     expect(await rows(n.id)).toHaveLength(0);
+  });
+
+  it('guardians with two children count once toward the cap', async () => {
+    const n = await draft();
+    // 5,002 guardian rows over 2,501 distinct guardians (each with two children): under the cap
+    const refs = Array.from({ length: 2501 }, () => randomUUID()).flatMap((guardianId) => [
+      { kind: 'GUARDIAN', userId: null, studentId: randomUUID(), guardianId },
+      { kind: 'GUARDIAN', userId: null, studentId: randomUUID(), guardianId },
+    ]);
+    vi.spyOn(audience, 'matchAll').mockResolvedValueOnce(refs as never);
+    const res = await recipients.addMatching(T, admin, n.id, {
+      target: AudienceTarget.GUARDIANS,
+      tab: AudienceTab.CLASS,
+    });
+    // the fake ids join nothing, so nothing is stored; the point is no cap error
+    expect(res.added).toBe(0);
   });
 
   it('select-all checks ownership and DRAFT before it runs the audience query', async () => {
