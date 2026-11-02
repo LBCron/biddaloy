@@ -228,6 +228,27 @@ describe('NoticeSmsPage', () => {
     await waitFor(() => expect(box.hasAttribute('disabled')).toBe(false));
   });
 
+  it('the tick boxes wait while Approve is still on its way', async () => {
+    const user = userEvent.setup();
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    server.use(
+      http.get(`*/notices/${ID}/sms`, () => HttpResponse.json(view())),
+      http.post(`*/notices/${ID}/sms/approve`, async () => {
+        await held;
+        return HttpResponse.json({ status: 'APPROVED', queued: 1 });
+      }),
+    );
+    renderPage();
+
+    await screen.findByText('Rahim Uddin');
+    const box = screen.getByRole('checkbox', { name: 'Send an SMS to Rahim Uddin' });
+    await user.click(screen.getByRole('button', { name: 'Approve and send' }));
+    // An untick now would race the approve and change who gets the SMS.
+    await waitFor(() => expect(box.hasAttribute('disabled')).toBe(true));
+    release();
+  });
+
   it('a decided request is read only: no approve, decline or ticking', async () => {
     server.use(
       http.get(`*/notices/${ID}/sms`, () => HttpResponse.json(view({ status: 'APPROVED' }))),

@@ -33,9 +33,11 @@ type SmsDecision = components['schemas']['SmsDecisionDto'];
 
 const PAGE_SIZE = 25;
 const smsKey = (id: string, page: number) => ['notices', 'sms', id, page] as const;
-const tickKey = (id: string) => ['notices', 'sms', id, 'tick'] as const;
+/** Every SMS write on one notice (tick, approve, decline) sits under this key. */
+const writeKey = (id: string) => ['notices', 'sms', id, 'write'] as const;
+const tickKey = (id: string) => [...writeKey(id), 'tick'] as const;
 
-/** One recipient's tick box; held while any tick on this notice is still on its way. */
+/** One recipient's tick box; held while a tick, approve or decline on this notice is on its way. */
 function SendBox(props: {
   noticeId: string;
   label: string;
@@ -43,12 +45,12 @@ function SendBox(props: {
   disabled: boolean;
   onChange: (smsWanted: boolean) => void;
 }) {
-  const ticking = useIsMutating({ mutationKey: tickKey(props.noticeId) }) > 0;
+  const busy = useIsMutating({ mutationKey: writeKey(props.noticeId) }) > 0;
   return (
     <Checkbox
       aria-label={props.label}
       checked={props.checked}
-      disabled={props.disabled || ticking}
+      disabled={props.disabled || busy}
       onCheckedChange={(c) => props.onChange(c === true)}
     />
   );
@@ -113,6 +115,7 @@ export function NoticeSmsPage({ noticeId, onClose }: { noticeId: string; onClose
     onSettled: refresh,
   });
   const decide = useMutation({
+    mutationKey: [...writeKey(noticeId), 'decide'],
     mutationFn: async (action: 'approve' | 'decline') =>
       (
         await apiClient.post<SmsDecision>(`/notices/${noticeId}/sms/${action}`, undefined, {
@@ -158,7 +161,7 @@ export function NoticeSmsPage({ noticeId, onClose }: { noticeId: string; onClose
       id: 'send',
       header: t('manage.sms.colSend'),
       // DataTable caches this element until `data` changes, so the box reads the
-      // pending tick itself (useIsMutating) instead of a stale `tick.isPending`.
+      // pending write itself (useIsMutating) instead of a stale `tick.isPending`.
       accessorFn: (p) => (
         <SendBox
           noticeId={noticeId}
