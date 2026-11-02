@@ -324,7 +324,7 @@ describe('[70.2.1] Final results routes', () => {
     await http().post(`${FR}/${id}/build`).set(ec).expect(201);
 
     // SMS before publishing is refused.
-    await http().post(`${FR}/${id}/sms`).set(ec).expect(409);
+    await http().post(`${FR}/${id}/sms`).set(ec).set('Idempotency-Key', randomUUID()).expect(409);
 
     await http().post(`${FR}/${id}/publish`).set(ec).expect(201);
     // Published means no more edits and no delete until reopened.
@@ -339,7 +339,11 @@ describe('[70.2.1] Final results routes', () => {
     expect(card.body.final).toMatchObject({ total_marks: 90, grade: 'A+' });
     expect(card.body.subjects).toHaveLength(1);
     // The student has no guardian with a phone: nothing queued, the skip is reported.
-    const sms = await http().post(`${FR}/${id}/sms`).set(ec).expect(201);
+    const sms = await http()
+      .post(`${FR}/${id}/sms`)
+      .set(ec)
+      .set('Idempotency-Key', randomUUID())
+      .expect(201);
     expect(sms.body.queued).toBe(0);
     expect(sms.body.skipped).toEqual([{ student_id: studentId, reason: 'no_reachable_guardian' }]);
 
@@ -402,6 +406,46 @@ describe('[70.2.1] Final results routes', () => {
     // Without the key a repeat is the one-per-class-and-year 409.
     const dup = await http().post(FR).set(ec).send(body).expect(409);
     expect(codeOf(dup.body)).toBe('FINAL_ALREADY_EXISTS');
+  });
+
+  it('POST sms needs an Idempotency-Key, and the same key twice sends once (Rule 25, D8)', async () => {
+    const ec = as(UserRole.EXAM_CONTROLLER);
+    // A guardian with a phone, so the first send really queues one message.
+    const [{ id: guardianId }] = await ds.query(
+      `INSERT INTO guardians (full_name, relationship, phone, tenant_id)
+       VALUES ('Final Guardian', 'FATHER', '01712345678', $1) RETURNING id`,
+      [SEED_TENANT_ID],
+    );
+    await ds.query(`INSERT INTO student_guardians (student_id, guardian_id) VALUES ($1, $2)`, [
+      studentId,
+      guardianId,
+    ]);
+    const id = await createFinal();
+    await http().post(`${FR}/${id}/build`).set(ec).expect(201);
+    await http().post(`${FR}/${id}/publish`).set(ec).expect(201);
+
+    // No key: refused before anything is sent.
+    await http().post(`${FR}/${id}/sms`).set(ec).expect(400);
+
+    const key = randomUUID();
+    const first = await http()
+      .post(`${FR}/${id}/sms`)
+      .set(ec)
+      .set('Idempotency-Key', key)
+      .expect(201);
+    expect(first.body.queued).toBe(1);
+    // The repeat is the stored first answer: no second run (a second run would say already_sent).
+    const second = await http()
+      .post(`${FR}/${id}/sms`)
+      .set(ec)
+      .set('Idempotency-Key', key)
+      .expect(201);
+    expect(second.body).toEqual(first.body);
+    const [{ n }] = await ds.query(
+      `SELECT COUNT(*)::int AS n FROM communication_logs WHERE tenant_id = $1 AND reference_key LIKE $2`,
+      [SEED_TENANT_ID, `final-result:${id}:%`],
+    );
+    expect(n).toBe(1);
   });
 
   it('the year list shows the class as not set up, then with its status', async () => {
