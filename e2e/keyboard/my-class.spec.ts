@@ -1,6 +1,6 @@
 import { ExamKind } from '@biddaloy/shared';
 
-import { adminApiSession, apiSession, get, post } from '../api';
+import { adminApiSession, apiSession, del, get, post } from '../api';
 import { expect, loggedIn, test } from '../fixtures/test';
 import { makeT } from '../i18n';
 
@@ -122,4 +122,6 @@ test('[70.5.5] the palette action "Enter remarks and conduct" opens the notes gr
   await tabToLocator(page, page.getByRole('button', { name: t('myClass.notes.save') }));
   await page.keyboard.press('Enter');
   expect((await saved).ok()).toBe(true);
+  // The draft exam would otherwise sort first in the teacher's class for every later spec.
+  await del(request, admin, `/exams/${exam.id}`);
 });

@@ -217,6 +217,7 @@ function NewPromotionRunPage() {
     !sourceClassId ||
     !targetYearId ||
     suggestion.isLoading ||
+    finalsQuery.isLoading ||
     (sourceKind === 'final' ? !publishedFinalId : selectedExamIds.length === 0) ||
     isBlocked ||
     mutation.isPending;
@@ -428,14 +429,19 @@ function NewPromotionRunPage() {
             {sourceKind === 'final' &&
               sourceClass &&
               !publishedFinalId &&
-              !finalsQuery.isLoading && (
+              !finalsQuery.isLoading &&
+              (finalsQuery.isError ? (
+                <p role="alert" className="mt-3 text-status-overdue-fg">
+                  {t('source.finalLoadError')}
+                </p>
+              ) : (
                 <p role="alert" className="mt-3 text-status-overdue-fg">
                   {t('source.finalNone')}{' '}
                   <Link to="/results/final" className="font-medium underline underline-offset-2">
                     {t('source.finalLink')}
                   </Link>
                 </p>
-              )}
+              ))}
           </fieldset>
         </section>
 
