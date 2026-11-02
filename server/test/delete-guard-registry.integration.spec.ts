@@ -12,6 +12,9 @@ import { SubjectService } from '../src/modules/academics/subjects.service';
 import { RoomsService } from '../src/modules/routines/rooms.service';
 import { FeeStructureService } from '../src/modules/fees/fees.service';
 import { GradingService } from '../src/modules/grading/grading.service';
+import { ExamsService } from '../src/modules/exams/exams.service';
+import { ExamTemplatesService } from '../src/modules/exams/exam-templates.service';
+import { ResultsService } from '../src/modules/exams/results.service';
 import { SchoolSettingsReader } from '../src/modules/schools/settings/school-settings-reader.service';
 import { SchoolsService } from '../src/modules/schools/schools.service';
 import {
@@ -33,6 +36,7 @@ const PARENT_NAMES = [
   'Room',
   'GradingScale',
   'FeeStructure',
+  'Exam',
 ];
 
 /**
@@ -54,9 +58,13 @@ describe('delete-guard registry (integration)', () => {
       RoomsService,
       GradingService,
       FeeStructureService,
+      ExamsService,
       AuditService,
       SchoolSettingsReader,
       { provide: SchoolsService, useValue: {} },
+      // ExamsService.remove uses neither; stubbed so the module stays small.
+      { provide: ExamTemplatesService, useValue: {} },
+      { provide: ResultsService, useValue: {} },
     ]);
     ds = module.get(DataSource);
     const tenantId = randomUUID();
@@ -77,6 +85,7 @@ describe('delete-guard registry (integration)', () => {
         rooms: module.get(RoomsService),
         grading: module.get(GradingService),
         feeStructures: module.get(FeeStructureService),
+        exams: module.get(ExamsService),
       },
     };
   }, 60000);
@@ -211,7 +220,17 @@ describe('delete-guard registry (integration)', () => {
       const parentId = await parent.make(ctx);
       const child = await g.makeChild(ctx, parentId);
 
-      await expect(parent.remove(ctx, parentId)).rejects.toBeInstanceOf(ConflictException);
+      const refusal = await parent.remove(ctx, parentId).then(
+        () => null,
+        (e: unknown) => e,
+      );
+      expect(refusal).toBeInstanceOf(ConflictException);
+      if ('code' in g && g.code) {
+        const body = (refusal as ConflictException).getResponse() as {
+          details?: { code?: string };
+        };
+        expect(body.details?.code).toBe(g.code);
+      }
       expect(await parent.isGone(ctx, parentId), 'parent must stay').toBe(false);
 
       // With the child gone (soft-deleted, or deleted where the table has no soft delete) the remove works.
