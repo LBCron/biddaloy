@@ -32,18 +32,14 @@ export class CreatePromotionRunDto {
   target_class_id?: string;
 
   // Exactly one merit source: the exam list or a PUBLISHED final result (70.3.3).
-  // A field that is sent is always validated; the service enforces the XOR (422, fixed sentence).
-  @ValidateIf(
-    (o: CreatePromotionRunDto) => o.exam_ids !== undefined || o.final_result_id === undefined,
-  )
+  // A field that is sent (not null) is always validated; null counts as absent; the service enforces the XOR (422, fixed sentence).
+  @ValidateIf((o: CreatePromotionRunDto) => o.exam_ids != null || o.final_result_id == null)
   @IsArray()
   @ArrayMinSize(1)
   @IsUUID('4', { each: true })
   exam_ids?: string[];
 
-  @ValidateIf(
-    (o: CreatePromotionRunDto) => o.final_result_id !== undefined || o.exam_ids === undefined,
-  )
+  @ValidateIf((o: CreatePromotionRunDto) => o.final_result_id != null || o.exam_ids == null)
   @IsUUID()
   final_result_id?: string;
 
