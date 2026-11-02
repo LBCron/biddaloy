@@ -10,7 +10,13 @@ import {
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import Redis from 'ioredis';
-import { AlertSeverity, AlertSource, UserRole, hasTenantDataScope } from '@biddaloy/shared';
+import {
+  AlertSeverity,
+  AlertSource,
+  UserRole,
+  hasTenantDataScope,
+  isGuardianRole,
+} from '@biddaloy/shared';
 import { TENANT_STATUS_REDIS } from '../../schools/tenant-status.service';
 import { SchoolsService } from '../../schools/schools.service';
 import { SchoolCalendarService } from '../../calendar/school-calendar.service';
@@ -32,21 +38,32 @@ const BY_SEVERITY = `${SEVERITY_RANK} DESC, a.raised_at ASC`;
 const ITEM_FROM = `FROM alert_recipients r
   JOIN alerts a ON a.id = r.alert_id AND a.tenant_id = r.tenant_id
   LEFT JOIN users u ON u.id = a.resolved_by_user_id`;
-// [53 D16] One important-notice alert, one URL per reader: staff (any STAFF row of theirs) open
-// the staff page, students and guardians the portal page. Same rule as the push (pushAll).
-// ponytail: /portal/notices/:id arrives with #3381; until then the portal link 404s in the client.
 const ITEM_COLS = `r.id AS recipient_id, r.alert_id, r.state, r.snoozed_until,
   COALESCE(r.resolved_at, a.resolved_at) AS resolved_at, u.full_name AS resolved_by_name,
-  a.rule_key, a.source, a.severity, a.category, a.params,
-  CASE WHEN a.source = 'NOTICE' AND a.rule_key = 'notice.important' THEN
-    CASE WHEN EXISTS (SELECT 1 FROM notice_recipients nr
-                       WHERE nr.tenant_id = a.tenant_id AND nr.notice_id = a.subject_id
-                         AND nr.user_id = r.user_id AND nr.kind = 'STAFF')
-      THEN '/communications/notices/' || a.subject_id
-      ELSE '/portal/notices/' || a.subject_id END
-  ELSE a.action_url END AS action_url, a.raised_at,
+  a.rule_key, a.source, a.severity, a.category, a.params, a.action_url, a.subject_id, a.raised_at,
   a.expires_at, a.manual_title, a.manual_body, a.status AS alert_status`;
 const iso = (d: Date | string) => new Date(d).toISOString();
+
+/**
+ * [53 D16] An important-notice alert is personal (role NULL), so one row shows in every role
+ * the user holds. Its link follows the shell they are in now: a guardian role (PARENT,
+ * STUDENT) opens the portal page, any other role the staff page. Without a role, or on an
+ * old cached row with no subject_id, the stored action_url is the fallback.
+ * Example: a teacher who is also a parent gets /communications/notices/<id> as TEACHER
+ * and /portal/notices/<id> as PARENT, from the same alert.
+ * ponytail: both notice pages (/communications/notices/:id, /portal/notices/:id) arrive with
+ * #3381; until then either link 404s in the client.
+ */
+function actionUrlFor(row: Row, role?: string): string | undefined {
+  if (
+    row.source === AlertSource.NOTICE &&
+    row.rule_key === 'notice.important' &&
+    role &&
+    row.subject_id
+  )
+    return `${isGuardianRole(role) ? '/portal' : '/communications'}/notices/${row.subject_id}`;
+  return row.action_url ?? undefined;
+}
 
 interface CachedSummary {
   critical: number;
@@ -92,7 +109,9 @@ export class AttentionQueryService {
     return { title: row.rule_key, why: '', steps: [] };
   }
 
-  toItem(row: Row, locale: AttentionLocale): AlertItemDto {
+  /** `role` = the caller's active role; it picks the notice link (actionUrlFor). */
+  toItem(row: Row, locale: AttentionLocale, role?: string): AlertItemDto {
+    const actionUrl = actionUrlFor(row, role);
     const params = row.params ?? {};
     const text = this.renderAlert(row, locale);
     return {
@@ -107,7 +126,7 @@ export class AttentionQueryService {
       why: text.why,
       steps: text.steps,
       ...(text.actionLabel !== undefined ? { actionLabel: text.actionLabel } : {}),
-      ...(row.action_url ? { actionUrl: row.action_url } : {}),
+      ...(actionUrl ? { actionUrl } : {}),
       closable: row.severity !== AlertSeverity.CRITICAL, // D4
       raisedAt: iso(row.raised_at),
       ...(row.expires_at ? { expiresAt: iso(row.expires_at) } : {}),
@@ -165,7 +184,7 @@ export class AttentionQueryService {
       activeTotal: cached.activeTotal,
       // locale only when there is text to render: a cache hit with no top costs no settings read
       top: cached.top
-        ? this.toItem(cached.top, await this.localeFor(tenantId, query.locale))
+        ? this.toItem(cached.top, await this.localeFor(tenantId, query.locale), role)
         : null,
       updatedAt,
       staleMinutes,
@@ -254,7 +273,7 @@ export class AttentionQueryService {
         params,
       ) as Promise<Row[]>,
     ]);
-    return { items: rows.map((r) => this.toItem(r, locale)), total };
+    return { items: rows.map((r) => this.toItem(r, locale, role)), total };
   }
 
   /** 404 (never 403) for someone else's row: no existence leak. */
@@ -278,6 +297,7 @@ export class AttentionQueryService {
     now: Date,
     snoozedUntil: Date | null,
     locale: AttentionLocale,
+    role?: string,
   ): Promise<AlertItemDto> {
     const rows = await run(
       this.dataSource.manager,
@@ -289,7 +309,7 @@ export class AttentionQueryService {
     // 0 rows = resolver/expirer won the race
     if (!rows.length) throw new ConflictException('Alert is already closed');
     await this.writer.invalidateSummary(tenantId, [userId]);
-    return this.toItem({ ...row, state: 'HIDDEN', snoozed_until: snoozedUntil }, locale);
+    return this.toItem({ ...row, state: 'HIDDEN', snoozed_until: snoozedUntil }, locale, role);
   }
 
   async hide(
@@ -297,11 +317,12 @@ export class AttentionQueryService {
     userId: string,
     recipientId: string,
     locale?: AttentionLocale,
+    role?: string,
   ): Promise<AlertItemDto> {
     const row = await this.loadOwn(tenantId, userId, recipientId);
     const loc = await this.localeFor(tenantId, locale);
-    if (row.state === 'HIDDEN' && !row.snoozed_until) return this.toItem(row, loc); // idempotent
-    return this.setHidden(tenantId, userId, row, new Date(), null, loc);
+    if (row.state === 'HIDDEN' && !row.snoozed_until) return this.toItem(row, loc, role); // idempotent
+    return this.setHidden(tenantId, userId, row, new Date(), null, loc, role);
   }
 
   async snooze(
@@ -311,6 +332,7 @@ export class AttentionQueryService {
     dto: SnoozeDto,
     now = new Date(),
     locale?: AttentionLocale,
+    role?: string,
   ): Promise<AlertItemDto> {
     const row = await this.loadOwn(tenantId, userId, recipientId);
     const loc = await this.localeFor(tenantId, locale);
@@ -346,7 +368,7 @@ export class AttentionQueryService {
         until = at(date);
       }
     }
-    return this.setHidden(tenantId, userId, row, now, until, loc);
+    return this.setHidden(tenantId, userId, row, now, until, loc, role);
   }
 
   async markSeen(tenantId: string, userId: string, ids: string[]): Promise<{ updated: number }> {

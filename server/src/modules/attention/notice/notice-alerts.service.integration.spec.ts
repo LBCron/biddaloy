@@ -147,10 +147,12 @@ describe('NoticeAlertsService (integration)', () => {
         { userId: u.other, portal: true },
       ]),
     );
+    // hide() clears the summary cache; a no-op writer is enough here
+    const writer = { invalidateSummary: async () => undefined };
     const q = new AttentionQueryService(
       ds,
       { get: () => undefined } as any,
-      ...([{}, {}, {}, {}, {}, {}] as [any, any, any, any, any, any]),
+      ...([{}, writer, {}, {}, {}, {}] as [any, any, any, any, any, any]),
     );
     // read through the real list query: the URL is chosen per reader, not stored once
     const urlFor = async (userId: string, role: UserRole) => {
@@ -163,6 +165,21 @@ describe('NoticeAlertsService (integration)', () => {
     };
     expect(await urlFor(u.teacher, UserRole.TEACHER)).toBe(`/communications/notices/${id}`);
     expect(await urlFor(u.other, UserRole.PARENT)).toBe(`/portal/notices/${id}`);
+
+    // Multi-role: the alert row is personal (role NULL), so it shows in every role the user
+    // holds. The link follows the active role, not which notice_recipients row they have.
+    // A staff recipient reading in a guardian role opens the portal page...
+    expect(await urlFor(u.teacher, UserRole.PARENT)).toBe(`/portal/notices/${id}`);
+    // ...and a guardian recipient reading in a staff role opens the staff page.
+    expect(await urlFor(u.other, UserRole.TEACHER)).toBe(`/communications/notices/${id}`);
+
+    // hide (and snooze, same path) answer with the active role's link too.
+    const [{ id: recipientId }] = await ds.query(
+      `SELECT id FROM alert_recipients WHERE alert_id = $1 AND user_id = $2`,
+      [alertId, u.teacher],
+    );
+    const hidden = await q.hide(SEED_TENANT_ID, u.teacher, recipientId, 'en', UserRole.PARENT);
+    expect(hidden.actionUrl).toBe(`/portal/notices/${id}`);
   });
 
   it('expires_at is the end of the expiry day in the school timezone', async () => {

@@ -40,7 +40,7 @@ export class NoticeAlertsService {
     const withLogin = recipients.filter((r): r is NoticeAlertRecipient & { userId: string } =>
       Boolean(r.userId),
     );
-    // Stored URL is only a fallback: AttentionQueryService picks staff or portal per reader (D16).
+    // Stored URL is only a fallback: AttentionQueryService picks staff or portal by active role (D16).
     const portalOnly = withLogin.length > 0 && withLogin.every((r) => r.portal);
     const url = `${portalOnly ? '/portal' : '/communications'}/notices/${notice.id}`;
     let expiresAt: Date | null = null;
