@@ -199,6 +199,7 @@
     "loadError": "Couldn't load results.",
     "empty": "No results yet for this student.",
     "finalTitle": "Final result {{year}}",
+    "openFinal": "Open the final result",
     "caption": "Every exam this student has a result for",
     "columnExam": "Exam",
     "columnGrade": "Grade",

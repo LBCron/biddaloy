@@ -47,8 +47,9 @@ describe('/promotions/new', () => {
     academic_year_id: year2027.id,
   });
 
-  function stubBase(overrides: { suggestion?: object } = {}) {
+  function stubBase(overrides: { suggestion?: object; finals?: object[] } = {}) {
     server.use(
+      http.get('/api/v1/final-results', () => HttpResponse.json(overrides.finals ?? [])),
       http.get('/api/v1/academic-years', () =>
         HttpResponse.json({
           data: [year2026, year2027],
@@ -309,6 +310,101 @@ describe('/promotions/new', () => {
         target_class_id: 'class-7',
       }),
     );
+  });
+
+  describe('[70.5.5] merit source (D11)', () => {
+    const publishedFinal = {
+      class: { id: class6.id, name: 'Class 6' },
+      final_result_id: 'final-6',
+      status: 'PUBLISHED',
+      published_at: '2026-12-20T00:00:00.000Z',
+    };
+
+    function renderForm() {
+      renderWithRouter(routeTree, {
+        initialEntries: ['/promotions/new?classId=00000000-0000-4000-8000-000000000006'],
+        tenantId: 'tenant-1',
+        role: 'ADMIN',
+        locale: 'en',
+      });
+    }
+
+    function capturePost() {
+      const box: { body?: unknown } = {};
+      server.use(
+        http.post('/api/v1/promotions', async ({ request }) => {
+          box.body = await request.json();
+          return HttpResponse.json({ id: 'run-new' }, { status: 201 });
+        }),
+      );
+      return box;
+    }
+
+    async function enabledSubmit() {
+      return waitFor(() => {
+        const button = screen.getByRole('button', { name: 'Create list' });
+        expect(button.hasAttribute('disabled')).toBe(false);
+        return button;
+      });
+    }
+
+    it('defaults to the published final and sends final_result_id, no exam_ids', async () => {
+      const user = userEvent.setup();
+      stubBase({ finals: [publishedFinal] });
+      const posted = capturePost();
+      renderForm();
+
+      const finalRadio = await screen.findByRole('radio', { name: /^Final result/ });
+      await waitFor(() => expect(finalRadio.getAttribute('aria-checked')).toBe('true'));
+      expect(screen.queryByText('Published exam')).toBeNull();
+      await user.click(await enabledSubmit());
+
+      await waitFor(() =>
+        expect(posted.body).toEqual({
+          source_class_id: '00000000-0000-4000-8000-000000000006',
+          target_academic_year_id: 'year-2027',
+          final_result_id: 'final-6',
+          algorithm: 'BLOCK',
+          target_class_id: 'class-7',
+        }),
+      );
+    });
+
+    it('switching to the exam average sends exam_ids, no final_result_id', async () => {
+      const user = userEvent.setup();
+      stubBase({ finals: [publishedFinal] });
+      const posted = capturePost();
+      renderForm();
+
+      await user.click(await screen.findByRole('radio', { name: 'Average of chosen exams' }));
+      expect(await screen.findByText('Published exam')).toBeTruthy();
+      await user.click(await enabledSubmit());
+
+      await waitFor(() => expect(posted.body).toMatchObject({ exam_ids: ['exam-published'] }));
+      expect(posted.body).not.toHaveProperty('final_result_id');
+    });
+
+    it('a class with no published final defaults to exams; picking the final blocks Create', async () => {
+      const user = userEvent.setup();
+      stubBase({ finals: [{ ...publishedFinal, status: 'DRAFT' }] });
+      renderForm();
+
+      const examsRadio = await screen.findByRole('radio', { name: 'Average of chosen exams' });
+      await waitFor(() => expect(examsRadio.getAttribute('aria-checked')).toBe('true'));
+      await user.click(screen.getByRole('radio', { name: /^Final result/ }));
+
+      expect(
+        await screen.findByText("This class's final result is not published yet.", {
+          exact: false,
+        }),
+      ).toBeTruthy();
+      expect(screen.getByRole('link', { name: 'Go to final results' }).getAttribute('href')).toBe(
+        '/results/final',
+      );
+      expect(screen.getByRole('button', { name: 'Create list' }).hasAttribute('disabled')).toBe(
+        true,
+      );
+    });
   });
 
   it('is a full-page form: h1, Close, labelled placeholders, Create disabled until valid', async () => {

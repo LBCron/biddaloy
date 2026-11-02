@@ -35,6 +35,7 @@ import {
   useAllClasses,
   useClasses,
   useCreatePromotionRun,
+  useFinalResults,
   useSuggestPromotionTarget,
   type BlockingReason,
 } from '@biddaloy/ui/hooks';
@@ -80,6 +81,9 @@ function NewPromotionRunPage() {
   const [targetClassOverride, setTargetClassOverride] = React.useState<string>();
   const [deselectedExamIds, setDeselectedExamIds] = React.useState<ReadonlySet<string>>(new Set());
   const [algorithm, setAlgorithm] = React.useState<PlacementAlgorithm>(PlacementAlgorithm.BLOCK);
+  // [70.5.5] D11: rank by the published final result or by an exam average. `undefined` =
+  // not picked yet: the final when the class has a published one, else the exams.
+  const [sourceKindPick, setSourceKindPick] = React.useState<'final' | 'exams'>();
 
   const [discardOpen, setDiscardOpen] = React.useState(false);
   const formRef = React.useRef<HTMLFormElement>(null);
@@ -98,6 +102,7 @@ function NewPromotionRunPage() {
     setTargetYearOverride(undefined);
     setTargetClassOverride(undefined);
     setDeselectedExamIds(new Set());
+    setSourceKindPick(undefined);
   }
 
   function changeTargetYear(id: string) {
@@ -149,6 +154,11 @@ function NewPromotionRunPage() {
     enabled: sourceClass !== undefined,
   });
   const published = (examsQuery.data?.data ?? []).filter((exam) => exam.status === 'PUBLISHED');
+  const finalsQuery = useFinalResults(sourceClass?.academic_year_id);
+  const publishedFinalId = finalsQuery.data?.find(
+    (row) => row.class.id === sourceClass?.id && row.status === 'PUBLISHED',
+  )?.final_result_id;
+  const sourceKind = sourceKindPick ?? (publishedFinalId ? 'final' : 'exams');
   const selectedExamIds = published
     .filter((exam) => !deselectedExamIds.has(exam.id))
     .map((exam) => exam.id);
@@ -200,13 +210,14 @@ function NewPromotionRunPage() {
     targetYearOverride !== undefined ||
     targetClassOverride !== undefined ||
     deselectedExamIds.size > 0 ||
+    sourceKindPick !== undefined ||
     algorithm !== PlacementAlgorithm.BLOCK;
 
   const submitDisabled =
     !sourceClassId ||
     !targetYearId ||
     suggestion.isLoading ||
-    selectedExamIds.length === 0 ||
+    (sourceKind === 'final' ? !publishedFinalId : selectedExamIds.length === 0) ||
     isBlocked ||
     mutation.isPending;
 
@@ -217,7 +228,9 @@ function NewPromotionRunPage() {
       {
         source_class_id: sourceClassId,
         target_academic_year_id: targetYearId,
-        exam_ids: selectedExamIds,
+        ...(sourceKind === 'final' && publishedFinalId
+          ? { final_result_id: publishedFinalId }
+          : { exam_ids: selectedExamIds }),
         algorithm,
         ...(targetClassId !== undefined ? { target_class_id: targetClassId } : {}),
       },
@@ -389,36 +402,77 @@ function NewPromotionRunPage() {
 
         <section className={cardClass}>
           <fieldset>
-            <legend className="text-h2">{t('newRunForm.examsLabel')}</legend>
-            <p className="mt-0.5 text-text-secondary">
-              {t('newRunForm.examsHelp')}{' '}
-              <HelpHint
-                helpId="examsResults.promotion.field.exams"
-                label={t('newRunForm.examsLabel')}
-              />
-            </p>
-            {published.length === 0 ? (
-              <p className="mt-3 text-text-secondary">{t('newRunForm.noPublishedExams')}</p>
-            ) : (
-              <div className="mt-3 divide-y divide-border-subtle">
-                {published.map((exam) => (
-                  <label key={exam.id} className="flex min-h-11 items-center gap-3">
-                    <Checkbox
-                      checked={!deselectedExamIds.has(exam.id)}
-                      onCheckedChange={(checked) => toggleExam(exam.id, checked === true)}
-                    />
-                    {exam.name}
-                  </label>
-                ))}
-              </div>
-            )}
-            {published.length > 0 && selectedExamIds.length === 0 && (
-              <p role="alert" className="mt-2 text-status-overdue-fg">
-                {t('newRunForm.examsRequired')}
-              </p>
-            )}
+            <legend className="text-h2">{t('source.legend')}</legend>
+            <RadioGroup
+              aria-label={t('source.legend')}
+              value={sourceKind}
+              onValueChange={(value) => {
+                mutation.reset();
+                setSourceKindPick(value as 'final' | 'exams');
+              }}
+              className="mt-4 grid gap-3 md:grid-cols-2"
+            >
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the Radix radio is a button inside the label */}
+              <label className={optionClass}>
+                <RadioGroupItem value="final" className="mt-1" />
+                <span>
+                  <span className="block font-medium">{t('source.final')}</span>
+                  <span className="block text-text-secondary">{t('source.finalHelp')}</span>
+                </span>
+              </label>
+              <label className={optionClass}>
+                <RadioGroupItem value="exams" className="mt-1" />
+                <span className="block font-medium">{t('source.exams')}</span>
+              </label>
+            </RadioGroup>
+            {sourceKind === 'final' &&
+              sourceClass &&
+              !publishedFinalId &&
+              !finalsQuery.isLoading && (
+                <p role="alert" className="mt-3 text-status-overdue-fg">
+                  {t('source.finalNone')}{' '}
+                  <Link to="/results/final" className="font-medium underline underline-offset-2">
+                    {t('source.finalLink')}
+                  </Link>
+                </p>
+              )}
           </fieldset>
         </section>
+
+        {sourceKind === 'exams' && (
+          <section className={cardClass}>
+            <fieldset>
+              <legend className="text-h2">{t('newRunForm.examsLabel')}</legend>
+              <p className="mt-0.5 text-text-secondary">
+                {t('newRunForm.examsHelp')}{' '}
+                <HelpHint
+                  helpId="examsResults.promotion.field.exams"
+                  label={t('newRunForm.examsLabel')}
+                />
+              </p>
+              {published.length === 0 ? (
+                <p className="mt-3 text-text-secondary">{t('newRunForm.noPublishedExams')}</p>
+              ) : (
+                <div className="mt-3 divide-y divide-border-subtle">
+                  {published.map((exam) => (
+                    <label key={exam.id} className="flex min-h-11 items-center gap-3">
+                      <Checkbox
+                        checked={!deselectedExamIds.has(exam.id)}
+                        onCheckedChange={(checked) => toggleExam(exam.id, checked === true)}
+                      />
+                      {exam.name}
+                    </label>
+                  ))}
+                </div>
+              )}
+              {published.length > 0 && selectedExamIds.length === 0 && (
+                <p role="alert" className="mt-2 text-status-overdue-fg">
+                  {t('newRunForm.examsRequired')}
+                </p>
+              )}
+            </fieldset>
+          </section>
+        )}
 
         <section className={cardClass}>
           <fieldset>
