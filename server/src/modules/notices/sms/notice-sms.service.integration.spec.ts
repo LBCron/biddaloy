@@ -388,6 +388,37 @@ describe('NoticeSmsService (integration)', () => {
     expect(await logsOf(id)).toHaveLength(0);
   });
 
+  it('a missing personal link rolls the whole approve back: no credit stranded, request stays PENDING', async () => {
+    await meter(10);
+    const id = await notice([await guardian('01711000022'), await guardian('01711000023')]);
+    const before = await ledgerIds();
+    const service = (svc as unknown as { links: NoticeLinksService }).links;
+    const real = service.createPersonalLinks.bind(service);
+    // one real link is written, the other recipient's token is missing from the answer
+    const links = vi
+      .spyOn(service, 'createPersonalLinks')
+      .mockImplementation(async (...a) => (await real(...a)).slice(0, 1));
+    try {
+      await expect(svc.approve(T, id, approver)).rejects.toThrow('personal link missing');
+    } finally {
+      links.mockRestore();
+    }
+    // money: the reservation was sized for both phones, so it must come back in full
+    expect(await balance()).toEqual([10, 0]);
+    const ledger = await newLedger(before);
+    expect(ledger.map((l: any) => l.kind).sort()).toEqual(['RELEASE', 'RESERVE']);
+    expect(ledger[0].units).toBe(ledger[1].units);
+    // still PENDING, so the approver can try again
+    expect((await row(id)).sms_status).toBe('PENDING');
+    const linked = await ds.query(
+      `SELECT count(*)::int c FROM notice_recipients WHERE notice_id = $1 AND link_token_hash IS NOT NULL`,
+      [id],
+    );
+    expect(linked[0].c).toBe(0);
+    expect(await logsOf(id)).toHaveLength(0);
+    expect(add).not.toHaveBeenCalled();
+  });
+
   it('metered with too little credit: 409 INSUFFICIENT_SMS_CREDIT, notice stays PENDING, no logs, no reserve', async () => {
     await meter(1);
     const id = await notice([await guardian('01711000005'), await guardian('01711000006')]);
