@@ -410,12 +410,23 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
           <div className="flex flex-col gap-3">
             {(
               [
-                ['important', important, setImportant],
-                ['pinned', pinned, setPinned],
-                ['isPublic', isPublic, setIsPublic],
-                ['sms', sms, setSms],
+                // helpId literals, so help-guard.test.ts can see them
+                [
+                  'important',
+                  important,
+                  setImportant,
+                  { helpId: 'communications.notices.field.important' },
+                ],
+                ['pinned', pinned, setPinned, { helpId: 'communications.notices.field.pinned' }],
+                [
+                  'isPublic',
+                  isPublic,
+                  setIsPublic,
+                  { helpId: 'communications.notices.field.isPublic' },
+                ],
+                ['sms', sms, setSms, { helpId: 'communications.notices.field.sms' }],
               ] as const
-            ).map(([key, value, set]) => (
+            ).map(([key, value, set, { helpId }]) => (
               <div key={key} className="flex items-center gap-2">
                 <Checkbox
                   id={`notice-${key}`}
@@ -426,13 +437,21 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
                     if (key !== 'sms') touch();
                   }}
                 />
-                <Label htmlFor={`notice-${key}`}>{t(`fields.${key}`)}</Label>
+                <Label htmlFor={`notice-${key}`} helpId={helpId} helpLabel={t(`fields.${key}`)}>
+                  {t(`fields.${key}`)}
+                </Label>
               </div>
             ))}
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="notice-expires">{t('fields.expires')}</Label>
+            <Label
+              htmlFor="notice-expires"
+              helpId="communications.notices.field.expires"
+              helpLabel={t('fields.expires')}
+            >
+              {t('fields.expires')}
+            </Label>
             <div className="flex items-center gap-3">
               <DatePicker
                 id="notice-expires"
