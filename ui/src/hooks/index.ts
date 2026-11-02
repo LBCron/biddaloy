@@ -1654,3 +1654,25 @@ export {
   type CreateSeatOrderInput,
   type SeatOrderDto,
 } from './billing';
+export {
+  finalResultCardKey,
+  finalResultKeys,
+  finalResultQueryOptions,
+  useBuildFinalResult,
+  useCreateFinalResult,
+  useFinalResult,
+  useFinalResultRows,
+  useFinalResultStudentCard,
+  useFinalResults,
+  useFinalTabulation,
+  usePublishFinalResult,
+  useReopenFinalResult,
+  useSendFinalResultSms,
+  useUpdateFinalResult,
+  type FinalResultListItem,
+  type FinalResultRowsPage,
+  type FinalResultSmsOutcome,
+  type FinalResultWeightInput,
+  type FinalTabulation,
+} from './final-results';
+export { useReportCardNotesMissing } from './report-card-notes';
