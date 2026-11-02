@@ -98,8 +98,10 @@ const CLOCK_COLS: Record<string, string[]> = {
   invoices: ['issued_date', 'due_date'],
   invoice_share_tokens: ['expires_at'],
   applications: ['decided_at'], // today's decisions go through ApplicationDecisionsService
-  alerts: ['raised_at', 'last_evaluated_at', 'expires_at'], // manual alerts only, see CLOCK_ONLY_WHEN
+  // manual and notice alerts only, see CLOCK_ONLY_WHEN
+  alerts: ['raised_at', 'last_evaluated_at', 'expires_at', 'resolved_at'],
   alert_recipients: ['pushed_at'], // delivery stamps it with the real clock, after the seed returns
+  notices: ['sms_requested_at'], // [53.5.05] the real SMS request stamps it
 };
 
 /** First day of the month before the anchor's: the live (real-service) money starts here. */
@@ -115,12 +117,13 @@ const LIVE_PAYMENT = `SELECT pa.payment_id FROM payment_allocations pa
  * Row filter for a table's CLOCK_COLS: only the rows a real service wrote lose their clock columns.
  * Every bulk row derives from the anchor and must match in full. No filter reads a column it strips,
  * so a stray `new Date()` in a bulk path's clock column still changes the fingerprint.
- * - alerts: manual alerts only (rule and history alerts derive from the anchor).
+ * - alerts: manual alerts, and notice alerts (the real SMS approve / decline / expiry closes the
+ *   admin's task and stamps `resolved_at`); rule and history alerts derive from the anchor.
  * - payments, invoices: the live payments (bills from last month on); 10 years of bulk history stay exact.
  * - applications: today's requests, created by the service (bulk history is created before the anchor).
  */
 const CLOCK_ONLY_WHEN: Record<string, string> = {
-  alerts: `source = 'MANUAL'`,
+  alerts: `source IN ('MANUAL', 'NOTICE')`,
   payments: `id IN (${LIVE_PAYMENT})`,
   invoices: `payment_id IN (${LIVE_PAYMENT})`,
   applications: `created_at >= '${SMALL.anchor}'`,
@@ -145,8 +148,9 @@ async function fingerprint(ds: DataSource, tables: Table[]): Promise<Record<stri
       `regexp_replace(${e}, '[0-9]{4}-[0-9]{2}-[0-9]{2}([ T][0-9]{2}:[0-9]{2}:[0-9]{2}[0-9.]*(Z|[+-][0-9:]+)?)?', 'T', 'g')`;
     // Settings secrets are AES-GCM envelopes `gcmv1:<iv>:<tag>:<ct>` with a random IV (EncryptionService),
     // so their text differs every run even for the same secret: each envelope becomes `E`.
+    // A notice SMS body carries a random 43-char personal link token (`/n/<token>`): it becomes `K`.
     const sealed = (c: string) =>
-      `regexp_replace(${uuid(c)}, 'gcmv1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+', 'E', 'g')`;
+      `regexp_replace(regexp_replace(${uuid(c)}, 'gcmv1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+', 'E', 'g'), '/n/[A-Za-z0-9_-]{43}', '/n/K', 'g')`;
     const row =
       cols
         .map((c) => {
