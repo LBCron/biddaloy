@@ -488,6 +488,25 @@ describe('ExamDocumentsService (integration)', () => {
       expect(row).toMatchObject({ total_marks: 18, gpa: 2.5, position: 1, section_position: 1 });
     });
 
+    it('an ABS subject (every component absent) is null in that exam, never 0', async () => {
+      const { final, s1, subj } = await seedFinal();
+      const res = await q(
+        `INSERT INTO results (exam_id, student_id, total_marks, gpa, grade, position, section_id,
+           section_position, is_fail, grading_scale_id, grading_scale_revision, rule_version,
+           computed_at, tenant_id)
+         VALUES ($1, $2, 0, 0, 'F', NULL, $3, NULL, true, $4, 1, 'nctb-v1', NOW(), $5) RETURNING id`,
+        [examB, s1, sectionA, scale, tenantId],
+      );
+      await ds.query(
+        `INSERT INTO result_subjects (tenant_id, result_id, subject_id, obtained, grade, gpa, is_fail)
+         VALUES ($1, $2, $3, 0, 'ABS', 0, true)`,
+        [tenantId, res, subj],
+      );
+      const out = await service.finalTabulation(tenantId, final, sectionA);
+      const row = out.rows.find((r) => r.student_id === s1)!;
+      expect(row.cells[subj].per_exam).toEqual({ [examA]: 60, [examB]: null });
+    });
+
     it('409 when the section has no final rows, 404 for another tenant', async () => {
       const { final } = await seedFinal();
       await expect(service.finalTabulation(tenantId, final, sectionB)).rejects.toMatchObject({
