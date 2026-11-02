@@ -94,14 +94,31 @@ function NotesPage() {
   const [lockedByServer, setLockedByServer] = React.useState(false);
   const [pendingKey, setPendingKey] = React.useState<string | null>(null);
   const view = notes.data;
-  // A new view (target switch, or the refetch after a save) replaces the drafts.
+  // Latest drafts/baseline for the effect below (it must not re-run on every keystroke).
+  const draftsRef = React.useRef(drafts);
+  const baselineRef = React.useRef(baseline);
+  draftsRef.current = drafts;
+  baselineRef.current = baseline;
+  const loadedKeyRef = React.useRef<string | null>(null);
+  const resetRef = React.useRef(false); // set by a successful save / a 409: take the server's data
+  // A new view replaces the drafts only for a new target, a clean page, or after a save. A
+  // background refetch of the same target keeps what the teacher typed.
   React.useEffect(() => {
     if (!view) return;
+    const key = option?.key ?? null;
+    const keep =
+      loadedKeyRef.current === key &&
+      !resetRef.current &&
+      sig(draftsRef.current) !== baselineRef.current;
+    setLoadedView(view);
+    if (keep) return;
+    resetRef.current = false;
+    loadedKeyRef.current = key;
     const next = toDrafts(view.rows);
     setDrafts(next);
     setBaseline(sig(next));
-    setLoadedView(view);
     setLockedByServer(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the data only
   }, [view]);
 
   const sectionTitle = section ? `${section.class_name} – ${section.section_name}` : '';
@@ -151,9 +168,13 @@ function NotesPage() {
         }),
       },
       {
-        onSuccess: () => notifyOutcome({ tenantId, variant: 'success', message: t('notes.saved') }),
+        onSuccess: () => {
+          resetRef.current = true;
+          notifyOutcome({ tenantId, variant: 'success', message: t('notes.saved') });
+        },
         onError: (err) => {
           if ((err as { statusCode?: number }).statusCode === 409) {
+            resetRef.current = true;
             setLockedByServer(true);
             void notes.refetch();
           } else notifyOutcome({ tenantId, variant: 'error', message: t('notes.saveError') });
