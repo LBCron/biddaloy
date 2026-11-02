@@ -219,6 +219,7 @@ GET /fees/schedules | RecurringSchedulesController | perm: FEE_READ | roles: ACC
 GET /fees/schedules/:id | RecurringSchedulesController | perm: FEE_READ | roles: ACCOUNTANT,ADMIN,EXECUTIVE
 GET /fees/schedules/:id/preview | RecurringSchedulesController | perm: FEE_READ | roles: ACCOUNTANT,ADMIN,EXECUTIVE
 GET /final-results | FinalResultsController | perm: RESULT_READ | roles: ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
+GET /final-results/:finalResultId/documents/tabulation | FinalDocumentsController | perm: DOCUMENT_PRINT
 GET /final-results/:id | FinalResultsController | perm: RESULT_READ | roles: ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
 GET /final-results/:id/report-card-notes | ReportCardNotesController | perm: RESULT_PROCESS
 GET /final-results/:id/report-card-notes/missing | ReportCardNotesController | perm: RESULT_PROCESS
@@ -355,6 +356,7 @@ GET /students/:id/schedules | RecurringSchedulesController | perm: FEE_READ | ro
 GET /students/:id/wallet | WalletController | perm: FEE_READ
 GET /students/:studentId/exam-schedule | StudentExamScheduleController | perm: RESULT_READ
 GET /students/:studentId/exams/:examId/admit-card/assets/:assetId/file | FamilyAdmitCardController | perm: RESULT_READ
+GET /students/:studentId/final-result-card | TranscriptController | perm: RESULT_READ
 GET /students/:studentId/homework | HomeworkController | perm: HOMEWORK_READ | roles: PARENT,STUDENT
 GET /students/:studentId/lessons | FamilyStudyPlansController | perm: SYLLABUS_READ
 GET /students/:studentId/programs | StudentProgramsController | perm: PROGRAM_READ

@@ -68,6 +68,27 @@ export class TranscriptController {
     );
   }
 
+  @Get('final-result-card')
+  @RequirePermissions(Permission.RESULT_READ)
+  @ApiOperation({
+    summary:
+      "A student's final report card for a year. Staff see a PROCESSED final too; PARENT/STUDENT (linked only) see PUBLISHED only.",
+  })
+  async getFinalResultCard(
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+    @Query() query: TranscriptQueryDto,
+    @CurrentTenant() tenant: { id: string; role: string },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    await this.assertCanRead(studentId, tenant, user);
+    return this.transcriptService.getFinalResultCard(
+      tenant.id,
+      studentId,
+      query.academic_year_id,
+      isGuardianRole(tenant.role),
+    );
+  }
+
   @Post('document-prints')
   @HttpCode(204)
   @RequirePermissions(Permission.RESULT_READ)
