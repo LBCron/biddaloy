@@ -129,6 +129,18 @@ describe('mapKnownError — unique violations', () => {
       });
     }
   });
+
+  it('[70.2.1] maps a final_results duplicate (two creates at once) to FINAL_ALREADY_EXISTS', () => {
+    const mapped = mapKnownError(
+      pgError('23505', 'final_results', 'IDX_0a399d88dfd8d0ab2453810789'),
+    );
+    expect(mapped?.getStatus()).toBe(409);
+    // Same coded 409 as the service's own check, never the generic duplicate text.
+    expect(mapped?.getResponse()).toMatchObject({
+      message: 'This class already has a final result for this year.',
+      details: { code: 'FINAL_ALREADY_EXISTS' },
+    });
+  });
 });
 
 /** A 23514 CHECK violation as pg reports it: the constraint name, and a detail row holding values. */

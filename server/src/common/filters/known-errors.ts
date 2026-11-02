@@ -17,6 +17,7 @@ export function mapKnownError(exception: unknown): HttpException | null {
   return (
     mapBodyParserError(exception) ??
     mapHomeworkActiveUnique(exception) ??
+    mapFinalResultUnique(exception) ??
     mapUniqueViolation(exception) ??
     mapStudentFeeCheckViolation(exception) ??
     mapInvalidDate(exception) ??
@@ -147,6 +148,22 @@ export function finalPublished(): ConflictException {
     message: 'This final result is published. Reopen it first.',
     details: { code: 'FINAL_PUBLISHED' },
   });
+}
+
+export function finalAlreadyExists(): ConflictException {
+  return new ConflictException({
+    message: 'This class already has a final result for this year.',
+    details: { code: 'FINAL_ALREADY_EXISTS' },
+  });
+}
+
+// One live final result per (tenant, class, year): `create` checks first, and the partial unique
+// index on `final_results` (its only unique index) is the race backstop for two creates at once.
+function mapFinalResultUnique(exception: unknown): HttpException | null {
+  if (!(exception instanceof QueryFailedError)) return null;
+  const { code, table } = exception.driverError as { code?: string; table?: string };
+  if (code !== '23505' || table !== 'final_results') return null;
+  return finalAlreadyExists();
 }
 
 export function finalNotPublished(): ConflictException {
