@@ -166,8 +166,9 @@ describe('ExamsService CRUD', () => {
           academic_year_id: 'y1',
           class_id: 'c1',
         }),
-        // The analysis screen reads `exam.class.name` straight off the list.
-        relations: { class: true },
+        // The analysis screen reads `exam.class.name` straight off the list, and My class's
+        // remarks screen reads `exam.academic_year.is_current` (#3421).
+        relations: { class: true, academic_year: true },
       }),
     );
   });
