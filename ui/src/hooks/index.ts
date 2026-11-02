@@ -775,7 +775,7 @@ export {
   type Tabulation,
   type Transcript,
 } from './exam-documents';
-export { useStudentFinalCard, type FinalCard } from './final-results';
+export { type FinalCard } from './final-results';
 export {
   seatPlanKeys,
   seatPlanDetailQueryOptions,
@@ -1755,4 +1755,3 @@ export {
   type ReportCardNotesTarget,
   type ReportCardNotesView,
 } from './report-card-notes';
-export { useFinalResults, type FinalResultListItem } from './final-results';
