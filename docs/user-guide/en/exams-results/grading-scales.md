@@ -46,7 +46,7 @@ keywords:
   [গ্রেড, গ্রেডিং, জিপিএ, গ্রেডিং পদ্ধতি, NCTB, ফেল গ্রেড, শতাংশ, grading scale, grade, GPA, bands, NCTB]
 appVersion: 0.1.0 (dd9119702)
 owner: tareq89
-lastVerified: 2026-10-25
+lastVerified: 2026-11-02
 knownIssues: []
 -->
 
@@ -279,6 +279,7 @@ If an exam's results have been **Published** with this scale, the grades cannot 
 
 **Related pages**
 
+- [**Final results**](final-results.md) — the grades are used when the exams are put together into the year's result.
 - [**Processing and publishing results**](results.md) — the grades and GPA of the results are set with this scale.
 - [**Entering and submitting exam marks**](marks-entry.md) — the marks the percentage is worked out from.
 - [**Academic years**](../academics/academic-years.md) — each scale belongs to one academic year.
