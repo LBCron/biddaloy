@@ -3,6 +3,7 @@ import {
   ExamComponentSource,
   ExamKind,
   ExamStatus,
+  FinalResultMode,
   MarkGridState,
   MarkStatus,
   SeatOrderMode,
@@ -19,6 +20,11 @@ import { SeatPlan } from '../../../modules/seat-plans/entities/seat-plan.entity'
 import { SeatPlanSchedule } from '../../../modules/seat-plans/entities/seat-plan-schedule.entity';
 import { SeatAllocation } from '../../../modules/seat-plans/entities/seat-allocation.entity';
 import { ResultsService, RULE_VERSION } from '../../../modules/exams/results.service';
+import { FinalResultsService } from '../../../modules/final-results/final-results.service';
+import { FinalResult } from '../../../modules/final-results/entities/final-result.entity';
+import { FinalResultWeight } from '../../../modules/final-results/entities/final-result-weight.entity';
+import { FinalResultRow } from '../../../modules/final-results/entities/final-result-row.entity';
+import { FinalResultSubject } from '../../../modules/final-results/entities/final-result-subject.entity';
 import { SeatPlansService } from '../../../modules/seat-plans/seat-plans.service';
 import { sitsSubject } from '../../../modules/exams/exam-cohort';
 import {
@@ -94,12 +100,17 @@ export const slice: DemoSlice = {
     SeatPlan,
     SeatPlanSchedule,
     SeatAllocation,
+    FinalResult,
+    FinalResultWeight,
+    FinalResultRow,
+    FinalResultSubject,
   ],
   run: async (ctx) => {
     const org = orgIds(ctx);
     const { students } = studentIds(ctx);
     const results = ctx.app.get(ResultsService);
     const seatPlans = ctx.app.get(SeatPlansService);
+    const finals = ctx.app.get(FinalResultsService);
     const rng = ctx.rng;
     const uuid = () => rng.string.uuid();
     const u = () => rng.number.float();
@@ -525,6 +536,94 @@ export const slice: DemoSlice = {
           [tenant.id, examsToProcess],
         );
       }
+
+      // Final results (Epic 70, #3407), all through the real service. A past year: every class
+      // with published term results gets Half-Yearly 30 / Annual 70 and is published. In each past
+      // year one class also counts First Term (20/30/50), and one other uses best-of-2 (D23).
+      // The current year gets DRAFT finals only, as its Annual exam is not published yet.
+      for (const year of tenant.years) {
+        const withResults = await q<{ class_id: string }>(
+          `SELECT DISTINCT e.class_id FROM exams e
+             JOIN results r ON r.exam_id = e.id AND r.deleted_at IS NULL
+            WHERE e.tenant_id = $1 AND e.academic_year_id = $2 AND e.kind = 'TERM'
+              AND e.status = 'PUBLISHED' AND e.name = 'Annual Exam'`,
+          [tenant.id, year.id],
+        );
+        const classIds = year.isCurrent
+          ? year.classes.map((c) => c.id)
+          : year.classes.map((c) => c.id).filter((id) => withResults.some((r) => r.class_id === id));
+        const threeWay = classIds.length ? classIds[Math.floor(u() * classIds.length)] : null;
+        const bestOf = classIds.length > 1 ? classIds.filter((id) => id !== threeWay)[Math.floor(u() * (classIds.length - 1))] : null;
+        for (const classId of classIds) {
+          const final = await finals.create(
+            { class_id: classId, academic_year_id: year.id },
+            tenant.id,
+            org.adminUserId,
+          );
+          rows += 1;
+          if (year.isCurrent) continue;
+          const examIds = new Map(
+            (
+              await q<{ id: string; name: string }>(
+                `SELECT id, name FROM exams WHERE tenant_id = $1 AND class_id = $2
+                    AND academic_year_id = $3 AND kind = 'TERM' AND status = 'PUBLISHED'`,
+                [tenant.id, classId, year.id],
+              )
+            ).map((e) => [e.name, e.id]),
+          );
+          const share = (name: string, percent: number) => ({
+            exam_id: examIds.get(name)!,
+            subject_id: null,
+            share_percent: percent,
+          });
+          if (classId === bestOf) {
+            await finals.update(
+              final.id,
+              { mode: FinalResultMode.BEST_OF, best_of_count: 2 },
+              tenant.id,
+              org.adminUserId,
+            );
+          } else {
+            await finals.update(
+              final.id,
+              {
+                weights:
+                  classId === threeWay
+                    ? [
+                        share('First Term Exam', 20),
+                        share('Half-Yearly Exam', 30),
+                        share('Annual Exam', 50),
+                      ]
+                    : [share('Half-Yearly Exam', 30), share('Annual Exam', 70)],
+              },
+              tenant.id,
+              org.adminUserId,
+            );
+          }
+          await finals.build(final.id, tenant.id, org.adminUserId);
+          await finals.publish(final.id, tenant.id, org.adminUserId);
+        }
+      }
+      // The service stamps the real clock; date each published final just after its Annual exam
+      // so the story matches the exam dates and reruns on one anchor give identical rows.
+      await ctx.ds.query(
+        `UPDATE final_results fr
+            SET published_at = e.published_at + interval '2 days',
+                created_at = e.published_at + interval '1 day',
+                updated_at = e.published_at + interval '2 days'
+           FROM exams e
+          WHERE e.tenant_id = fr.tenant_id AND e.class_id = fr.class_id
+            AND e.academic_year_id = fr.academic_year_id AND e.name = 'Annual Exam'
+            AND fr.tenant_id = $1 AND fr.status = 'PUBLISHED'`,
+        [tenant.id],
+      );
+      await ctx.ds.query(
+        `UPDATE final_result_rows r
+            SET computed_at = fr.published_at - interval '1 day', published_at = fr.published_at
+           FROM final_results fr
+          WHERE fr.id = r.final_result_id AND fr.tenant_id = $1 AND fr.status = 'PUBLISHED'`,
+        [tenant.id],
+      );
 
       // The next exam's seat plan, across the branch's rooms (D15).
       if (nextSchedules.length) {
