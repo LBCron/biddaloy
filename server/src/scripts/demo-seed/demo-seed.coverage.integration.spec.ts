@@ -198,6 +198,7 @@ describe('demo seed coverage', () => {
   let fpA: Record<string, string> = {};
   let fpB: Record<string, string> = {};
   let openAlerts: Record<string, number> = {};
+  let finalBackedRuns = 0;
 
   /** Seeds `db` from a freshly loaded module graph (the app caches DATABASE_URL on first load). */
   async function seedInto(db: string, args: typeof MAIN, keepOpen: boolean) {
@@ -232,6 +233,16 @@ describe('demo seed coverage', () => {
       counts: keepOpen ? await countRows(run.ds, tables) : {},
       violations: keepOpen ? await validate(run.ds) : [],
       openAlerts: keepOpen ? await openAlertsByCard(run.ds) : {},
+      // [#3411] Promotion runs ranked on a published final result (#3410's merit source).
+      finalBackedRuns: keepOpen
+        ? Number(
+            (
+              await run.ds.query(
+                `SELECT count(*)::int AS n FROM promotion_runs WHERE final_result_id IS NOT NULL`,
+              )
+            )[0].n,
+          )
+        : 0,
     };
     if (keepOpen) closeMain = () => run.app.close();
     else await run.app.close();
@@ -248,6 +259,7 @@ describe('demo seed coverage', () => {
     });
     rows = main.counts;
     openAlerts = main.openAlerts;
+    finalBackedRuns = main.finalBackedRuns;
     fpA = (await seedInto(dbs[1], SMALL, false)).fp;
     fpB = (await seedInto(dbs[2], SMALL, false)).fp;
   }, 600_000);
@@ -326,6 +338,12 @@ describe('demo seed coverage', () => {
       Object.entries(openAlerts).filter(([, n]) => n < 3),
       'card key and its open alert count',
     ).toEqual([]);
+  });
+
+  it('seeds report-card notes and at least one promotion run ranked on a final result', () => {
+    // Notes are covered by the exams slice, so (c) already needs rows; this names the ticket.
+    expect(rows.ReportCardNote ?? 0, 'report_card_notes rows').toBeGreaterThan(0);
+    expect(finalBackedRuns, 'promotion_runs with final_result_id').toBeGreaterThan(0);
   });
 
   it('every invariant holds on the seeded data', () => {
