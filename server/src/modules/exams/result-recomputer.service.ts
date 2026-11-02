@@ -5,7 +5,8 @@ import { DataSource, EntityManager } from 'typeorm';
 import { ExamStatus, FinalResultStatus } from '@biddaloy/shared';
 import { RecomputeActor, ResultRecomputer } from '../grading/recompute.service';
 import { FinalResultsService } from '../final-results/final-results.service';
-import { lockExam, ResultsService } from './results.service';
+import { lockExam } from './exam-lock';
+import { ResultsService } from './results.service';
 
 interface ExamUsingScale {
   id: string;
@@ -40,7 +41,7 @@ export class ExamResultRecomputer implements ResultRecomputer {
       `SELECT DISTINCT f.id, c.name, f.status
          FROM final_result_rows r
          JOIN final_results f ON f.id = r.final_result_id AND f.tenant_id = $1 AND f.deleted_at IS NULL
-         JOIN classes c ON c.id = f.class_id
+         JOIN classes c ON c.id = f.class_id AND c.tenant_id = $1
         WHERE r.tenant_id = $1 AND r.grading_scale_id = $2 AND r.deleted_at IS NULL
         ORDER BY f.id`,
       [tenantId, scaleId],
@@ -75,11 +76,16 @@ export class ExamResultRecomputer implements ResultRecomputer {
           AND e.status = $3`,
       [tenantId, scaleId, ExamStatus.PROCESSED],
     );
-    const finals = await this.finalsUsingScale(manager, tenantId, scaleId);
-    return (
-      Number(rows[0]?.count ?? 0) +
-      finals.filter((f) => f.status === FinalResultStatus.PROCESSED).length
+    // Same unit as the exams: one per student row a confirm would regrade.
+    const finalRows: Array<{ count: string }> = await manager.query(
+      `SELECT COUNT(*)::text AS count
+         FROM final_result_rows r
+         JOIN final_results f ON f.id = r.final_result_id AND f.tenant_id = $1 AND f.deleted_at IS NULL
+        WHERE r.tenant_id = $1 AND r.grading_scale_id = $2 AND r.deleted_at IS NULL
+          AND f.status = $3`,
+      [tenantId, scaleId, FinalResultStatus.PROCESSED],
     );
+    return Number(rows[0]?.count ?? 0) + Number(finalRows[0]?.count ?? 0);
   }
 
   async findPublishedExams(
@@ -108,7 +114,7 @@ export class ExamResultRecomputer implements ResultRecomputer {
     const finals = await this.finalsUsingScale(manager, tenantId, scaleId);
     const lockedStatus: Array<{ id: string; status: FinalResultStatus }> = finals.length
       ? await manager.query(
-          `SELECT id, status FROM final_results WHERE tenant_id = $1 AND id = ANY($2::uuid[]) ORDER BY id FOR UPDATE`,
+          `SELECT id, status FROM final_results WHERE tenant_id = $1 AND id = ANY($2::uuid[]) AND deleted_at IS NULL ORDER BY id FOR UPDATE`,
           [tenantId, finals.map((f) => f.id)],
         )
       : [];
@@ -155,8 +161,15 @@ export class ExamResultRecomputer implements ResultRecomputer {
       ? this.moduleRef.get(FinalResultsService, { strict: false })
       : null;
     for (const f of lockedFinals.filter((x) => x.status === FinalResultStatus.PROCESSED)) {
-      await finalsService!.recompute(manager, f.id, tenantId, actor.userId, actor.context);
-      total += 1;
+      // Rebuilt against THIS scale (the one its rows pin), not whatever resolveScale picks now.
+      total += await finalsService!.recompute(
+        manager,
+        f.id,
+        tenantId,
+        actor.userId,
+        actor.context,
+        scaleId,
+      );
     }
     return total;
   }

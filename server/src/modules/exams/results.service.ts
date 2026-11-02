@@ -38,6 +38,7 @@ import {
   SubjectResult,
 } from './result-rules';
 import { loadExamCohort, sitsSubject } from './exam-cohort';
+import { lockExam } from './exam-lock';
 import { AttendanceComponentService } from './attendance-component.service';
 import { MarkGridService } from './mark-grid.service';
 import { attentionEvents } from '../attention/attention.constants';
@@ -55,37 +56,12 @@ import type { ApprovalContext } from '../auth/guards/approval.guard';
  * changes, not for a comment or a refactor. */
 export const RULE_VERSION = 'nctb-v3';
 
-/**
- * [pr-fix #945] The exam-level lock every result-changing path shares.
- * `process`, `publish`, `reopen` and the mark-change recompute take it
- * FOR UPDATE and re-check `status` under it, so none of them can act on
- * a status another has just changed. Mark writes take it FOR SHARE
- * (`MarksService`): autosaves on different grids don't block each other,
- * but a publish can't commit while a mark write is mid-transaction.
- * Lock order is always exam, then grid (`lockGrid`).
- */
 /** [ACAD-05] The one 409 for "results are published, reopen first". */
 export function examPublished(): ConflictException {
   return new ConflictException({
     message: "This exam's results are published. Reopen the results first.",
     details: { code: 'EXAM_PUBLISHED' },
   });
-}
-
-export async function lockExam(
-  manager: EntityManager,
-  examId: string,
-  tenantId: string,
-  mode: 'pessimistic_write' | 'pessimistic_read' = 'pessimistic_write',
-): Promise<Exam> {
-  const exam = await manager.getRepository(Exam).findOne({
-    where: { id: examId, tenant_id: tenantId, deleted_at: IsNull() },
-    lock: { mode },
-  });
-  if (!exam) {
-    throw new NotFoundException('Exam not found');
-  }
-  return exam;
 }
 
 /** [34.2.4] One opted-in (D22) program row on a student's report card. */
@@ -815,24 +791,35 @@ export class ResultsService {
       // order build/publish use, so a reopen cannot deadlock with them. A PUBLISHED final
       // refuses the reopen (409, same sentence as the final's own guards); a PROCESSED one
       // goes back to DRAFT because its rows would no longer match the exam (D24).
-      const finals: Array<{ id: string }> = await manager.query(
-        `SELECT DISTINCT f.id
-           FROM final_results f
-           JOIN final_result_weights w ON w.final_result_id = f.id AND w.tenant_id = $1
-          WHERE f.tenant_id = $1 AND f.deleted_at IS NULL AND w.exam_id = $2
-          ORDER BY f.id`,
-        [tenantId, examId],
-      );
-      if (finals.length > 0) {
+      const handled = new Set<string>();
+      const demoteFinalsCountingExam = async () => {
+        const finals: Array<{ id: string }> = await manager.query(
+          `SELECT DISTINCT f.id
+             FROM final_results f
+             JOIN final_result_weights w ON w.final_result_id = f.id AND w.tenant_id = $1
+            WHERE f.tenant_id = $1 AND f.deleted_at IS NULL AND w.exam_id = $2
+            ORDER BY f.id`,
+          [tenantId, examId],
+        );
+        const late = finals.filter((f) => !handled.has(f.id));
+        if (late.length === 0) return;
         const finalsService = this.moduleRef.get(FinalResultsService, { strict: false });
-        for (const f of finals) {
+        for (const f of late) {
           await finalsService.demoteToDraft(manager, f.id, tenantId, userId, context, examId);
+          handled.add(f.id);
         }
-      }
+      };
+      await demoteFinalsCountingExam();
       const locked = await lockExam(manager, examId, tenantId);
       if (locked.status !== ExamStatus.PUBLISHED) {
         throw new ConflictException(`This exam is not published (current: ${locked.status}).`);
       }
+      // Read again under the exam lock: a final built between the first read and the lock
+      // (it took the exam FOR SHARE and committed) was not in the first list. No final can be
+      // built or published on this exam after this point, so this list is complete.
+      // ponytail: a late final is locked exam-then-final; if its own publish holds it and waits
+      // on this exam, Postgres aborts one side (40P01, whole transaction rolled back). Rare.
+      await demoteFinalsCountingExam();
       await manager
         .getRepository(Exam)
         .update(

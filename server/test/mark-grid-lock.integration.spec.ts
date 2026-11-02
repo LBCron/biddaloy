@@ -11,7 +11,7 @@ import {
 } from '@test/constants';
 import { MarkGrid } from '../src/modules/exams/entities/mark-grid.entity';
 import { lockGrid } from '../src/modules/exams/mark-grid.service';
-import { lockExam } from '../src/modules/exams/results.service';
+import { lockExam } from '../src/modules/exams/exam-lock';
 
 /**
  * [pr-fix #945] `lockGrid` against real Postgres — the unit specs mock the
