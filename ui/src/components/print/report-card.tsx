@@ -34,8 +34,8 @@ export interface ReportCardSubject {
   is_fail: boolean;
   is_fourth_subject: boolean;
   components: ReportCardComponent[];
-  /** Final card only: obtained per counted exam, same order as `exam_columns`; null = absent. */
-  exam_cells?: (number | null)[];
+  /** Final card only: obtained per counted exam, keyed by `exam_columns[].id`; null = absent. */
+  exam_cells?: { exam_id: string; value: number | null }[];
 }
 
 export interface ReportCardLegendRow {
@@ -75,7 +75,7 @@ export interface ReportCardData {
   conduct?: { label: string; grade: string | null }[];
   /** Final card: one subject-table column per counted exam, then the final columns. */
   final?: { label: string; section_position: number | null };
-  exam_columns?: { label: string; share_label: string }[];
+  exam_columns?: { id: string; label: string; share_label: string }[];
 }
 
 /** Needed only when attendance / remark / conduct / final is passed. */
@@ -140,6 +140,10 @@ export function ReportCard({
   const score = (v: number) =>
     formatNumber(v, config, { decimals: String(v).split('.')[1]?.length ?? 0 });
   const columns = data.final ? (data.exam_columns ?? []) : [];
+  const cellText = (subject: ReportCardSubject, examId: string) => {
+    const cell = subject.exam_cells?.find((c) => c.exam_id === examId);
+    return cell === undefined ? '—' : cell.value === null ? labels.absent : num(cell.value);
+  };
   const att = data.attendance;
   const pct =
     att && att.working_days && att.present_days !== null
@@ -177,8 +181,8 @@ export function ReportCard({
         <thead>
           <tr className="border-b text-start text-text-secondary">
             <th className="py-1">{labels.subject}</th>
-            {columns.map((col, i) => (
-              <th key={`${col.label}-${i}`} className="py-1 text-end">
+            {columns.map((col) => (
+              <th key={`ex-${col.id}`} className="py-1 text-end">
                 {col.label}
                 <span className="block text-xs font-normal">{col.share_label}</span>
               </th>
@@ -202,13 +206,9 @@ export function ReportCard({
                     </span>
                   )}
                 </td>
-                {columns.map((col, i) => (
-                  <td key={`${col.label}-${i}`} className="py-1 text-end">
-                    {subject.exam_cells?.[i] === undefined
-                      ? '—'
-                      : subject.exam_cells[i] === null
-                        ? labels.absent
-                        : num(subject.exam_cells[i])}
+                {columns.map((col) => (
+                  <td key={`ex-${col.id}`} className="py-1 text-end">
+                    {cellText(subject, col.id)}
                   </td>
                 ))}
                 <td className="py-1 text-end">
@@ -226,8 +226,8 @@ export function ReportCard({
                     {component.obtained === null ? labels.absent : num(component.obtained)} /{' '}
                     {num(component.full_marks)}
                   </td>
-                  {columns.map((col, i) => (
-                    <td key={`${col.label}-${i}`} />
+                  {columns.map((col) => (
+                    <td key={`ex-${col.id}`} />
                   ))}
                   <td />
                   <td />
