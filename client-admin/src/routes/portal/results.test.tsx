@@ -99,6 +99,8 @@ describe('/portal/results', () => {
     students: unknown[];
     results: Record<string, unknown[]>;
     cards?: Record<string, unknown>;
+    /** Body of the family final-result-card route; absent = nothing published (404). */
+    final?: unknown;
   }) {
     cardRequests.length = 0;
     printLogs.length = 0;
@@ -115,6 +117,11 @@ describe('/portal/results', () => {
         if (!found) return HttpResponse.json({ message: 'Not found' }, { status: 404 });
         return HttpResponse.json(found);
       }),
+      http.get('/api/v1/students/:studentId/final-result-card', () =>
+        options.final
+          ? HttpResponse.json(options.final)
+          : HttpResponse.json({ message: 'Not found' }, { status: 404 }),
+      ),
       http.post('/api/v1/students/:studentId/document-prints', async ({ request }) => {
         printLogs.push(await request.json());
         return new HttpResponse(null, { status: 204 });
@@ -144,6 +151,46 @@ describe('/portal/results', () => {
     expect(await screen.findByText('First Term Exam')).toBeTruthy();
     // No unpublished row anywhere on the page — absent, not disabled/greyed.
     expect(screen.queryByText('Monthly Test')).toBeNull();
+  });
+
+  it('shows the published final result first, above the per-exam list', async () => {
+    mockResults({
+      students: [fatima],
+      results: { 'student-1': [resultRow('exam-1', 'First Term Exam', true)] },
+      final: {
+        final_result_id: 'fr-1',
+        academic_year_name: '2026',
+        student: { full_name: 'Fatima Rahman', roll_number: 14 },
+        final: { total_marks: 880, gpa: 4.8, grade: 'A', position: 2, is_fail: false },
+        exams: [],
+        exam_shares: [],
+        subjects: [],
+        legend: [],
+        attendance: { working_days: null, present_days: null },
+        remark: null,
+        conduct: [],
+        issuer: {},
+        logo_url: null,
+      },
+    });
+    renderResults();
+
+    const finalTitle = await screen.findByRole('heading', { level: 2, name: /Final result 2026/ });
+    const examTitle = await screen.findByRole('heading', { level: 2, name: 'First Term Exam' });
+    expect(
+      finalTitle.compareDocumentPosition(examTitle) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('shows no final card when nothing is published', async () => {
+    mockResults({
+      students: [fatima],
+      results: { 'student-1': [resultRow('exam-1', 'First Term Exam', true)] },
+    });
+    renderResults();
+
+    expect(await screen.findByText('First Term Exam')).toBeTruthy();
+    expect(screen.queryByRole('heading', { level: 2, name: /Final result/ })).toBeNull();
   });
 
   it('renders the friendly empty state when there are no published results yet', async () => {
