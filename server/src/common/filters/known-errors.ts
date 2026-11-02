@@ -150,6 +150,13 @@ export function finalPublished(): ConflictException {
   });
 }
 
+export function finalStale(): ConflictException {
+  return new ConflictException({
+    message: 'An exam in this final result changed after it was built. Build it again first.',
+    details: { code: 'FINAL_STALE' },
+  });
+}
+
 export function finalAlreadyExists(): ConflictException {
   return new ConflictException({
     message: 'This class already has a final result for this year.',

@@ -156,6 +156,12 @@ describe('[70.2.1] Final results routes', () => {
         ],
       )
     )[0].id;
+    // The final's cohort is the class-year's ACTIVE enrollments (D25).
+    await ds.query(
+      `INSERT INTO enrollments (student_id, class_id, section_id, academic_year_id, tenant_id, enrollment_status)
+       VALUES ($1, $2, $3, $4, $5, 'ACTIVE')`,
+      [studentId, SEED_CLASS_1_ID, SEED_SECTION_1_ID, SEED_ACADEMIC_YEAR_ID, SEED_TENANT_ID],
+    );
     const scaleId = (
       await ds.query(
         `INSERT INTO grading_scales (name, revision, academic_year_id, tenant_id, created_at, updated_at)

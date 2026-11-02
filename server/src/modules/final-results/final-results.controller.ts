@@ -63,6 +63,16 @@ export class FinalResultsController {
     private readonly teacherScope: TeacherScopeService,
   ) {}
 
+  /** A teacher's visible sections (class coordinators included, 83.3.1 D4); null = not a teacher. */
+  private scope(tenant: Tenant, user: JwtPayload): Promise<string[] | null> {
+    return this.teacherScope.sectionScope({
+      role: tenant.role,
+      userId: user.sub,
+      tenantId: tenant.id,
+      includeCoordinated: 'classLevel',
+    });
+  }
+
   private requireApproval(request: Request): ApprovalContext {
     const approval = (request as unknown as { approval?: ApprovalContext }).approval;
     if (!approval) {
@@ -79,8 +89,13 @@ export class FinalResultsController {
   @ApiOperation({
     summary: 'One line per class of the year: its final result status, or not set up.',
   })
-  list(@Query() query: ListFinalResultsQueryDto, @CurrentTenant() tenant: Tenant) {
-    return this.service.list(query.academic_year_id, tenant.id);
+  async list(
+    @Query() query: ListFinalResultsQueryDto,
+    @CurrentTenant() tenant: Tenant,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    // Rule 2: a teacher sees only the classes of their sections; none assigned = empty list.
+    return this.service.list(query.academic_year_id, tenant.id, await this.scope(tenant, user));
   }
 
   @Post()
@@ -103,8 +118,13 @@ export class FinalResultsController {
   @Roles(...READ_ROLES)
   @RequirePermissions(Permission.RESULT_READ)
   @ApiOperation({ summary: 'One final result with its shares, switches and counts.' })
-  get(@Param('id', ParseUUIDPipe) id: string, @CurrentTenant() tenant: Tenant) {
-    return this.service.get(id, tenant.id);
+  async get(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentTenant() tenant: Tenant,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    // Rule 2: another class's final is a 404 for a teacher, never a 403.
+    return this.service.get(id, tenant.id, await this.scope(tenant, user));
   }
 
   @Patch(':id')
