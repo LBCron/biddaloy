@@ -592,7 +592,9 @@ flowchart LR
   straight from `final_result_rows`. The final must be `PUBLISHED`, belong to the source
   class and its year; otherwise create answers 422. `exam_ids` is `[]` then
   (`CHK_promotion_runs_one_merit_source`). Commit refuses (409 `STALE_RESULTS`) if the
-  final was recomputed after the last refresh.
+  final was recomputed after the last refresh (a cohort row written or soft-deleted since).
+  A student with no row (joined after the build) ranks last with outcome RETAIN; that alone is
+  not stale.
 
 ### Calendar (`modules/calendar`) — see [16-academic-calendar.md](16-academic-calendar.md) for the full model
 
