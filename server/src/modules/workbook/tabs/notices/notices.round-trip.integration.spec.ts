@@ -157,6 +157,12 @@ describe('notices workbook tabs (round trip)', () => {
       published_at: new Date('2026-05-01T08:00:00.000Z'),
       public_token_hash: tokens.pub,
       public_token_created_at: new Date('2026-05-01T08:00:00.000Z'),
+      // D41: the SMS decision actor is an audit field and must round-trip.
+      sms_status: 'APPROVED',
+      sms_requested_at: new Date('2026-05-01T07:50:00.000Z'),
+      sms_requested_by_user_id: f.user.id,
+      sms_decided_at: new Date('2026-05-01T07:55:00.000Z'),
+      sms_decided_by_user_id: f.user.id,
       recipient_count: 2,
     } as any);
     await ds.getRepository(NoticeAttachment).save({
@@ -296,6 +302,9 @@ describe('notices workbook tabs (round trip)', () => {
       is_public: true,
       recipient_count: 2,
       author_user_id: a.user.id,
+      sms_requested_by_user_id: a.user.id, // D41: SMS actors survive the restore
+      sms_decided_by_user_id: a.user.id,
+      withdrawn_by_user_id: null,
       public_token_hash: null, // links do not survive a restore
       public_token_created_at: null,
       alert_id: null, // derived alert left off
@@ -330,7 +339,9 @@ describe('notices workbook tabs (round trip)', () => {
     expect(bRecipients.some((r) => r.link_token_hash === LINK_B)).toBe(true);
   });
 
-  it('restoring over live rows changes nothing and keeps links', async () => {
+  // D40: a restore follows an incident as often as not, so even a same-school
+  // restore over live rows clears every public and personal link.
+  it('restoring over live rows keeps the rows and clears every link', async () => {
     const a = await seedTenant(A, 'notices-a-5360', 'a');
     await seedNotice(A, a, { pub: TOKEN_A, link: LINK_A, key: KEY_A });
     const before = await ds.getRepository(Notice).findOneByOrFail({ tenant_id: A });
@@ -342,11 +353,15 @@ describe('notices workbook tabs (round trip)', () => {
     expect(await ds.getRepository(NoticeAttachment).count({ where: { tenant_id: A } })).toBe(1);
     const after = await ds.getRepository(Notice).findOneByOrFail({ tenant_id: A });
     expect(after.id).toBe(before.id);
-    expect(after.public_token_hash).toBe(TOKEN_A); // a same-school restore keeps the live link
+    expect(after).toMatchObject({
+      public_token_hash: null,
+      public_token_created_at: null,
+      sms_decided_by_user_id: before.sms_decided_by_user_id, // D41: actor kept
+    });
     const link = await ds
       .getRepository(NoticeRecipient)
       .findOneByOrFail({ tenant_id: A, kind: 'GUARDIAN' as any });
-    expect(link.link_token_hash).toBe(LINK_A);
+    expect(link.link_token_hash).toBeNull();
   });
 
   it("never keeps another school's file key, and rejects keys outside notice-files", async () => {
