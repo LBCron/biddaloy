@@ -2374,6 +2374,16 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'task-main',
     knownIssues: 0,
   },
+  'examsResults.finalResults': {
+    title: { bn: 'চূড়ান্ত ফলাফল তৈরি ও প্রকাশ', en: 'Final results' },
+    summary: {
+      bn: 'একটি শ্রেণির প্রকাশিত পরীক্ষাগুলো জুড়ে বছরের একটি চূড়ান্ত ফলাফল বানান, কোন পরীক্ষা কত শতাংশ গোনা হবে ঠিক করুন, ফল তৈরি করে দেখে নিন, অভিভাবকদের জন্য প্রকাশ করুন, এসএমএস পাঠান, রিপোর্ট কার্ড ছাপুন, আর দরকারে পুনরায় খুলুন।',
+      en: "Put a class's published exams together into one final result for the year, choose how much each exam counts, build and check it, publish it for guardians, send the SMS, print the report cards and reopen it when needed.",
+    },
+    path: 'exams-results/final-results',
+    anchor: '',
+    knownIssues: 0,
+  },
   'examsResults.analysis': {
     title: { bn: 'মেধা তালিকা ও ফলাফল বিশ্লেষণ', en: 'Merit list and result analysis' },
     summary: {
