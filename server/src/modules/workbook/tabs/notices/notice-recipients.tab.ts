@@ -1,7 +1,8 @@
 import type { EntityManager } from 'typeorm';
+import { Logger } from '@nestjs/common';
 import { NoticeRecipientKind } from '@biddaloy/shared';
 import { NoticeRecipient } from '../../../notices/entities/notice-recipient.entity';
-import { formatDateTime, fromCell } from '../../codec/cell-format';
+import { fromCell } from '../../codec/cell-format';
 import type {
   ColumnSpec,
   ExportContext,
@@ -12,22 +13,24 @@ import type {
 import { guardiansTab } from '../people/guardians.tab';
 import { studentsTab } from '../people/students.tab';
 import { usersTab } from '../people/users.tab';
-import { ID_COLUMN, NOTICES, keysById, noticesTab, rowError } from './notices.tab';
+import { ID_COLUMN, NOTICES, instant, keysById, noticesTab, rowError } from './notices.tab';
 
 /**
  * [53.6.02] `notice_recipients`: one row per person a notice went to, with the
  * seen / acknowledged / link-opened / SMS / push timestamps kept.
  *
- * Left out: `link_token_hash` (D28: personal links do not survive a restore, hashes never
- * enter a workbook) and `communication_log_id` (communication logs are not backed up, so
- * the pointer would dangle).
+ * Left out: `link_token_hash` (D28/D40: personal links do not survive a restore, even
+ * into the same school, so `upsert` clears it; hashes never enter a workbook) and
+ * `communication_log_id` (communication logs are not backed up, so the pointer would dangle).
  *
  * A recipient whose person is no longer exportable (staff who left, soft-deleted
- * student or guardian) is left out of the export instead of failing the whole backup;
- * its notice stays.
+ * student or guardian) is left out of the export instead of failing the whole backup,
+ * with a logged count; its notice stays. If a restore deletes that notice, the
+ * notices tab deletes these hidden rows with it.
  */
 type Rec = Record<string, unknown>;
 const TAB = 'notice_recipients';
+const logger = new Logger('NoticeRecipientsTab');
 const STAMP = '__keys';
 
 const REFS = [
@@ -89,9 +92,6 @@ const keyText = (
   guardian: unknown,
 ) => [notice, kind, user, student, guardian].map((p) => String(p ?? '')).join('|');
 
-const instant = (v: unknown): string =>
-  v === null || v === undefined || v === '' ? '' : formatDateTime(v);
-
 export const noticeRecipientsTab: TabSpec<NoticeRecipient, Rec> = {
   name: TAB,
   entity: NoticeRecipient,
@@ -120,6 +120,7 @@ export const noticeRecipientsTab: TabSpec<NoticeRecipient, Rec> = {
     const maps = { user: users, student: students, guardian: guardians } as const;
     const rows = await m.find(NoticeRecipient, { where: { tenant_id: tenantId } });
     const kept: NoticeRecipient[] = [];
+    const skipped: Record<string, number> = {};
     for (const r of rows) {
       const notice = notices.get(r.notice_id);
       if (notice === undefined) continue;
@@ -133,12 +134,18 @@ export const noticeRecipientsTab: TabSpec<NoticeRecipient, Rec> = {
           keys[key] = maps[key].get(id);
         } else {
           ok = false;
+          skipped[key] = (skipped[key] ?? 0) + 1;
         }
       }
       if (!ok) continue;
       (r as unknown as Rec)[STAMP] = keys;
       kept.push(r);
     }
+    // Counts only (no person ids, Rule 13). `load` also runs on validate and restore.
+    if (Object.keys(skipped).length > 0)
+      logger.warn(
+        `Tenant ${tenantId}: recipients left out, person not exportable: ${JSON.stringify(skipped)}`,
+      );
     return kept;
   },
 
@@ -232,8 +239,9 @@ export const noticeRecipientsTab: TabSpec<NoticeRecipient, Rec> = {
       const val = row[k] ?? null;
       e[k] = val === null ? null : new Date(val as string);
     }
-    // link_token_hash and communication_log_id are never touched: a restore over a live
-    // row keeps its link; a new row starts without one.
+    // D40: every restored recipient loses its personal link, a live one too.
+    // communication_log_id is untouched (not in the backup).
+    r.link_token_hash = null;
     return m.save(NoticeRecipient, r);
   },
 
