@@ -6,6 +6,7 @@ import {
   classKeys,
   classQueryOptions,
   examQueryOptions,
+  finalResultQueryOptions,
   gradingScaleQueryOptions,
   guardianQueryOptions,
   homeworkQueryOptions,
@@ -183,6 +184,17 @@ export const ENTITY_RESOLVERS: Record<string, EntityResolver> = {
         ctx.language,
         i18n.t('list.filters.wholeYear', { ns: 'studyPlans', lng: ctx.language }),
       );
+    },
+  },
+  // [70.5.5] "Class 8 2026", the same class and year the detail page's own title shows.
+  finalResultDetail: {
+    queryKeys: (id) => [finalResultQueryOptions(id).queryKey],
+    getName: (data) => {
+      const d = data as
+        { class?: { name?: string }; academic_year?: { name?: string } } | undefined;
+      return d?.class?.name && d.academic_year?.name
+        ? `${d.class.name} ${d.academic_year.name}`
+        : undefined;
     },
   },
   gradingScaleDetail: {

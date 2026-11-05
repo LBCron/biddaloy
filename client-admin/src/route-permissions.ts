@@ -165,6 +165,11 @@ export const STAFF_ROUTE_PERMISSIONS: Record<string, Permission> = {
   // is picked since it's the first write step in the flow).
   '/_staff/results/': Permission.RESULT_PROCESS,
   '/_staff/results/$examId/$studentId': Permission.RESULT_READ,
+  // [70.5.5] `RESULT_READ`, the server's own read gate for `GET /final-results`
+  // (teachers see their own sections' classes, Rule 2). Build and publish
+  // buttons check `RESULT_PROCESS` / `RESULT_PUBLISH` in the page.
+  '/_staff/results/final/': Permission.RESULT_READ,
+  '/_staff/results/final/$finalResultId': Permission.RESULT_READ,
   // [26.5.1] `MARK_VIEW` — matches `nav-tree.ts`'s `examsResults.analysis`
   // comment: analysis is read-only, gated the same as `/marks`.
   '/_staff/analysis/': Permission.MARK_VIEW,
@@ -216,6 +221,7 @@ export const STAFF_ROUTE_PERMISSIONS: Record<string, Permission> = {
   // the same way (`MY_CLASS_VIEW`).
   '/_staff/my-class/': Permission.MY_CLASS_VIEW,
   '/_staff/my-class/$sectionId': Permission.MY_CLASS_VIEW,
+  '/_staff/my-class/$sectionId_/notes': Permission.MY_CLASS_VIEW,
   // [83.4.1] Coordinator's page — TEACHER only, server-gated the same way (`COORDINATION_VIEW`).
   '/_staff/my-coordination/': Permission.COORDINATION_VIEW,
   '/_staff/attendance/': Permission.ATTENDANCE_READ,

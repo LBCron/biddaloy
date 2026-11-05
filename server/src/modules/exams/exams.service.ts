@@ -10,7 +10,8 @@ import { AuditAction, ExamComponentKind, ExamComponentSource, ExamStatus } from 
 import { Exam } from './entities/exam.entity';
 import { Mark } from './entities/mark.entity';
 import { Result } from './entities/result.entity';
-import { ResultsService, examPublished, lockExam } from './results.service';
+import { ResultsService, examPublished } from './results.service';
+import { lockExam } from './exam-lock';
 import { ExamComponent } from './entities/exam-component.entity';
 import { ExamTemplate } from './entities/exam-template.entity';
 import { ExamTemplatesService } from './exam-templates.service';
@@ -21,6 +22,7 @@ import { AcademicTerm } from '../calendar/entities/academic-term.entity';
 import { CreateExamDto, UpdateExamDto, QueryExamDto } from './dto/exams.dto';
 import { AuditService } from '../audit/audit.service';
 import { RequestContext } from '../../common/request-context.util';
+import { assertNoLiveDependents } from '../../common/utils/live-dependents';
 
 /** Postgres unique-violation code — used to turn a race-condition insert
  * conflict into a 409 instead of letting it fall through to a raw 500. */
@@ -260,9 +262,10 @@ export class ExamsService {
 
     const [data, total] = await this.repo.findAndCount({
       where,
-      // `Exam.class` is part of the response type; the analysis screen
-      // labels its print header with it.
-      relations: { class: true },
+      // `Exam.class` and `Exam.academic_year` are part of the response type; the
+      // analysis screen labels its print header with the class, and My class's
+      // remarks screen picks the current year by `academic_year.is_current` (#3421).
+      relations: { class: true, academic_year: true },
       order: { created_at: 'DESC' },
       skip,
       take: limit,
@@ -416,6 +419,22 @@ export class ExamsService {
           details: { code: 'EXAM_HAS_RESULTS' },
         });
       }
+      // [70.2.1] A final result's share row pins this exam (also a NO ACTION FK). The exam's own
+      // children (components, marks, grids, schedules) and results are counted above or have
+      // always gone with it, so they are excluded; anything else that points here blocks.
+      await assertNoLiveDependents(manager, Exam, id, {
+        code: 'EXAM_IN_USE',
+        message: 'This exam is still used by other records. Remove or reassign them first.',
+        exclude: [
+          'ExamComponent.exam',
+          'Mark.exam',
+          'MarkGrid.exam',
+          'Result.exam',
+          'ExamSchedule.exam',
+          // Remarks on this exam's own report card never blocked its delete before Epic 70.
+          'ReportCardNote.exam',
+        ],
+      });
       const repo = manager.getRepository(Exam);
       await repo.softDelete({ id, tenant_id: tenantId });
 

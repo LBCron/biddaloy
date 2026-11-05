@@ -450,12 +450,10 @@ flowchart LR
 - Recompute after a mark edit never throws; it leaves the unpicked group out
   until a pick is made and the exam is processed again.
 
-**Out of scope, on purpose:** composing several exams' results into one
-term/annual outcome — averaging or weighting marks across TERM + MONTHLY +
-MODEL exams — is deliberately **not** part of this epic (decision D3). Every
-entity above is scoped to a single `Exam`; nothing here reads across exams.
-A future epic owns that composition, so a reader who notices its absence
-should not read it as a gap left behind by accident.
+**Composing exams:** one exam never reads another. Averaging or weighting
+several exams into a term or annual outcome lives in its own entities, see
+[Final results and report-card notes](#final-results-and-report-card-notes-modulesfinal-results--epic-70)
+(Epic 70; this epic stayed single-exam, decision D3).
 
 **D17 — the exam cohort comes from `Enrollment`, not `Student.class_section`.**
 `ResultsService.computeAll`, `MarkGridService`'s roster, and the marks IDOR
@@ -495,6 +493,55 @@ group blocks `process()` with a 409 whose `details` carry
 components in the exam. A student whose stream matches no examined subject
 gets no stream subjects; if nothing at all is countable the grade is `-`, not `F`.
 
+**Learnings, Epic 70 wave 1** (surprise, cost, fix, rule candidate):
+
+- 2026-11-02. `effectiveShares` fell back to equal shares when the subject sat in
+  no weighted exam. Cost: a misconfigured final graded silently. Fix: it throws
+  `SharesNotHundred` like any other bad total. Rule: a missing config is an error,
+  never a default.
+- 2026-11-02. `working_days` / `present_days` shipped without CHECKs, so
+  `present > working` was storable. Cost: caught only in review. Fix: CHECK
+  `CHK_final_result_rows_days` (edited in the unshipped migration). Rule: every
+  paired numeric column gets its relation as a CHECK in the same migration.
+- 2026-11-02. The shared type `FinalResultWeight` had the same name as the entity.
+  Cost: ambiguous imports. Fix: shared types end in `Dto`. Rule: a shared type
+  never reuses an entity's name.
+
+### Final results and report-card notes (`modules/final-results`) — Epic 70
+
+A final result combines several PUBLISHED exams of one class and year into one
+outcome per student. Teacher remarks and conduct grades live in a note row.
+
+```mermaid
+erDiagram
+    FinalResult ||--o{ FinalResultWeight : "shares"
+    FinalResult ||--o{ FinalResultRow : "one per student"
+    FinalResultRow ||--o{ FinalResultSubject : "per subject"
+    FinalResultWeight }o--|| Exam : "counts"
+    FinalResultRow }o--|| Student : "belongs to"
+    ReportCardNote }o--o| Exam : "or"
+    ReportCardNote }o--o| FinalResult : "one target"
+    ReportCardNote }o--|| Student : "about"
+```
+
+| Table                   | Holds                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------ |
+| `final_results`         | One live row per (class, year): status DRAFT, PROCESSED, PUBLISHED; mode WEIGHTED or BEST_OF; rounding |
+| `final_result_weights`  | Share per exam, optionally per subject (`subject_id` null = whole exam); 0-100                         |
+| `final_result_rows`     | A student's total, GPA, grade, positions, pinned grading scale, attendance days                        |
+| `final_result_subjects` | The combined mark per subject for that row                                                             |
+| `report_card_notes`     | Remark and conduct grades; exactly one of `exam_id` / `final_result_id`                                |
+
+Example: Class 8, 2026. Half-Yearly counts 30 and Annual counts 70. Rahim gets
+60% and 90%, so his combined percent is 0.3 x 60 + 0.7 x 90 = 81. Math is a
+100-mark subject in both, so the card prints 81. Shares for a subject must add
+to exactly 100 (hundredths, no tolerance); an exam without the subject drops out
+and the rest renormalise. If every share left is 0 the final refuses to compute.
+
+DB guards: two `NULLS NOT DISTINCT` uniques (weights, notes), CHECK share range,
+CHECK `CHK_final_result_rows_days` (days not negative, present at most working,
+null-safe), CHECK one note target. Weights pin their exam (FK NO ACTION).
+
 ### Promotions (`modules/promotions`) — Epic 26.6–26.8
 
 ```
@@ -529,12 +576,25 @@ PromotionRun (Class 6 -> Class 7, 2026-2027)   status: DRAFT -> COMMITTED
   `target_enrollment_id` is filled in on commit once placement has created
   the student's next-year `Enrollment`.
 
-**Composition caveat, stated plainly:** a promotion run's `mean_gpa` is a
-**plain mean** of the selected exams' GPAs (D7) — not a weighted average
-(e.g. "Second Term counts double"). Weighted cross-exam composition is the
-same gap already called out above for report cards (D3): still absent, on
-purpose, not forgotten. A future epic that adds per-exam weights to result
-composition should extend the promotion mean the same way.
+**Composition caveat, stated plainly:** a promotion run's merit source is one of two
+things, never both:
+
+```mermaid
+flowchart LR
+  A["exam_ids"] --> B["plain mean of the exams' GPAs (D7)"]
+  C["final_result_id (70.3.3)"] --> D["the final's own GPA and total, weighted (D11)"]
+  B --> E["meritOrder: same ranking, placement and commit"]
+  D --> E
+```
+
+- With `exam_ids`, `mean_gpa` is still a **plain mean** — no per-exam weights.
+- With `final_result_id`, the run reads the weighted `gpa`, `total_marks` and `is_fail`
+  straight from `final_result_rows`. The final must be `PUBLISHED`, belong to the source
+  class and its year; otherwise create answers 422. `exam_ids` is `[]` then
+  (`CHK_promotion_runs_one_merit_source`). Commit refuses (409 `STALE_RESULTS`) if the
+  final was recomputed after the last refresh (a cohort row written or soft-deleted since).
+  A student with no row (joined after the build) ranks last with outcome RETAIN; that alone is
+  not stale.
 
 ### Calendar (`modules/calendar`) — see [16-academic-calendar.md](16-academic-calendar.md) for the full model
 

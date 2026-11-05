@@ -38,6 +38,7 @@ const KNOWN_OPEN_EPICS = new Set([
   '13.0',
   '42.0',
   '53.0',
+  '70.0',
 ]);
 
 // repo root is two levels up from client-admin/src

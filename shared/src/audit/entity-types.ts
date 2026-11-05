@@ -44,6 +44,8 @@ export const AUDIT_ENTITY_TYPES = [
   'ExamTemplate',
   'FeeGeneration',
   'FeeStructure',
+  // [70.2.1] Final result define / build / publish / reopen / SMS (D7).
+  'FinalResult',
   'FineRule',
   'GradingScale',
   'Guardian',

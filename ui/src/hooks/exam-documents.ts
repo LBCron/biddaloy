@@ -16,6 +16,7 @@ import { apiClient } from '../api/client';
 import type { components } from '../api/schema';
 
 import type { StudentResultCard } from './exams';
+import type { FinalCard } from './final-results';
 import type { CreatePrintJobResult } from './print';
 import { shouldRetryQuery } from './retry';
 
@@ -38,6 +39,9 @@ export interface Transcript {
   };
   academic_year: { id: string; name: string };
   exams: StudentResultCard[];
+  /** The year's PUBLISHED final result for this student (D9, published-only for everyone);
+   * null when there is none. Staff preview a PROCESSED final through `useStudentFinalCard`. */
+  final: FinalCard | null;
 }
 
 export const examDocumentKeys = {

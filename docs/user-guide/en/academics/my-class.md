@@ -8,6 +8,10 @@ sources:
   - client-admin/src/routes/_staff/my-class/$sectionId.tsx
   - client-admin/src/routes/_staff/my-class/-cards.tsx
   - client-admin/src/routes/_staff/my-class/-arrival-add-dialog.tsx
+  - client-admin/src/routes/_staff/my-class/$sectionId_.notes.tsx
+  - client-admin/src/routes/_staff/my-class/-notes-grid.tsx
+  - client-admin/src/routes/_staff/my-class/-notes-targets.ts
+  - server/src/modules/report-card-notes/report-card-notes.controller.ts
   - server/src/modules/classes/my-class.controller.ts
   - server/src/modules/classes/teacher-scope.service.ts
 labels:
@@ -28,7 +32,7 @@ keywords:
   [আমার শ্রেণি, শ্রেণি শিক্ষক, সহকারী শ্রেণি শিক্ষক, আমার শাখা, অনুপস্থিত, বকেয়া, ফলাফল, my class, class teacher, homeroom, form master, my section]
 appVersion: 0.1.0 (e424f8fc4)
 owner: tareq89
-lastVerified: 2026-10-24
+lastVerified: 2026-11-02
 knownIssues: []
 -->
 
@@ -41,7 +45,7 @@ See everything you need today for the section you are class teacher of, on one p
 
 **My class** is an at-a-glance sheet for your own section, for example **Class 6 – A**. Nothing is written or changed here; you only look. To act, follow a card to the page it points to, such as the attendance sheet.
 
-[Open your section page](#task-main) · [Take attendance](#task-attendance) · [Read the cards](#task-cards) · [Problems and fixes](#trouble)
+[Open your section page](#task-main) · [Take attendance](#task-attendance) · [Read the cards](#task-cards) · [Write remarks and conduct](#task-notes) · [Problems and fixes](#trouble)
 
 **On this page**
 
@@ -52,6 +56,7 @@ See everything you need today for the section you are class teacher of, on one p
   - [Take today's attendance](#task-attendance)
   - [What the six cards say](#task-cards)
   - [Call a guardian](#task-call)
+  - [Write remarks and conduct](#task-notes)
   - [If you have more than one section](#task-many)
 - [Problems and fixes](#trouble)
 - [Who can do what](#roles)
@@ -85,7 +90,7 @@ See everything you need today for the section you are class teacher of, on one p
 
    → The heading is the section name. Below it are your duty and today's date, for example **Class teacher · Today, 24 October 2026**. On the right is the **Take today's attendance** button, already focused.
 
-4. Read the six cards below: **Absent today**, **Attendance flags**, **Dues**, **Homework**, **Results**, **Students**. What each means: [What the six cards say](#task-cards).
+4. Read the six cards below: **Absent today**, **Attendance flags**, **Dues**, **Homework**, **Results**, **Students**. What each means: [What the six cards say](#task-cards). Below them is a seventh card, **Remarks and conduct**: [Write remarks and conduct](#task-notes).
 
    → Three columns on a computer, one column on a phone.
 
@@ -170,6 +175,33 @@ If the card says **Set by school**, an admin fixed it and you cannot change it. 
 
 If **No phone** is shown instead of a number, no guardian of that student has a phone on record. Tell the office; numbers are added on the [Guardians](../people/guardians.md) page.
 
+### Write remarks and conduct <a href="#task-notes" id="task-notes"></a>
+
+The **Remarks and conduct** card on your section page is where you write each student's remark and conduct grades for the report card. You can write them for the final result and for each exam.
+
+1. On your section page, find the **Remarks and conduct** card. It says, for example, **Final result — 12 given, 28 to do**.
+
+   → If the office has not started the final result yet, the card shows the summary of your class's exam instead, and the grid opens with that exam chosen. If there is no exam either, it says **No final result yet.** You can write for an exam, as in step 3.
+
+2. Press **Write remarks** on the card.
+
+   → The **Remarks and conduct** page opens, full screen. **For which result** shows **Final result**. Below it is a line like **28 students still need a remark and 30 still need conduct grades.** Then comes one row for each student: **Roll**, name, **Class teacher's remark** and one **Choose** box for every conduct line, such as Discipline or Neatness.
+
+3. To write for an exam, change **For which result** to that exam.
+
+4. In each row, write a line or two in **Class teacher's remark**. A counter shows how many of the 300 characters you used. In each conduct box choose a grade from **Grade A** to **Grade D**.
+
+5. Press **Save**.
+
+   → **Saved.** appears. The line at the top shows how many are still left. You can save a few rows now and come back later.
+
+| What you press | What happens                                                                   | Saved? |
+| -------------- | ------------------------------------------------------------------------------ | ------ |
+| **Save**       | The remarks and conduct grades of all rows go to the school's system.          | Yes    |
+| **Cancel**     | You leave the page. If you changed something, the app asks before it drops it. | No     |
+
+When the result is published, the page says **The result is published, so this cannot be changed now. Ask the office to reopen it.** and **Save** is off. The card then says **Published — changes closed** and the button is **View**. The conduct lines (names and number) are set by the office in [Settings](../administration/settings.md#task-conduct). If you save without finishing, the office sees a warning when it publishes, but it can still publish.
+
 ### If you have more than one section <a href="#task-many" id="task-many"></a>
 
 The section picker shows one card per section, ordered by the class grade. To switch sections, press **My class** in the left menu again and pick another card.
@@ -245,6 +277,7 @@ Only sections of the current academic year appear. Last year's sections are not 
 - [**Students**](../people/students.md) — all students of the section.
 - [**Syllabus and study plans**](syllabus.md) — your section's study plans and who is behind.
 - [**My coordination**](my-coordination.md) — if you also coordinate classes, what is still not done in them.
+- [**Final results**](../exams-results/final-results.md) — the result your remarks and conduct grades go on.
 
 ---
 

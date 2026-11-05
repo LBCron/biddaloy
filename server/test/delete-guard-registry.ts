@@ -7,6 +7,7 @@ import {
   FeeType,
   MarkStatus,
   PeriodSlotKind,
+  PlacementAlgorithm,
   RoutineState,
   SeatOrderMode,
   SlotRecurrence,
@@ -25,6 +26,9 @@ import { ExamSchedule } from '../src/modules/exams/entities/exam-schedule.entity
 import { Mark } from '../src/modules/exams/entities/mark.entity';
 import { Result } from '../src/modules/exams/entities/result.entity';
 import { GradingScale } from '../src/modules/grading/entities/grading-scale.entity';
+import { FinalResult } from '../src/modules/final-results/entities/final-result.entity';
+import { FinalResultRow } from '../src/modules/final-results/entities/final-result-row.entity';
+import { FinalResultWeight } from '../src/modules/final-results/entities/final-result-weight.entity';
 import { Room } from '../src/modules/routines/entities/room.entity';
 import { Routine } from '../src/modules/routines/entities/routine.entity';
 import { RoutineSlot } from '../src/modules/routines/entities/routine-slot.entity';
@@ -37,6 +41,7 @@ import { AcrFormVersion } from '../src/modules/acr/entities/acr-form-version.ent
 import { Survey } from '../src/modules/surveys/entities/survey.entity';
 import { SurveyTarget } from '../src/modules/surveys/entities/survey-target.entity';
 import { SurveyResponse } from '../src/modules/surveys/entities/survey-response.entity';
+import { PromotionRun } from '../src/modules/promotions/entities/promotion-run.entity';
 import { SEED_ADMIN_USER_ID } from './constants';
 import type { AcademicYearService } from '../src/modules/academics/academic-year.service';
 import type { ClassService, SectionService } from '../src/modules/classes/classes.service';
@@ -44,10 +49,12 @@ import type { SubjectService } from '../src/modules/academics/subjects.service';
 import type { FeeStructureService } from '../src/modules/fees/fees.service';
 import type { RoomsService } from '../src/modules/routines/rooms.service';
 import type { GradingService } from '../src/modules/grading/grading.service';
+import type { ExamsService } from '../src/modules/exams/exams.service';
+import type { FinalResultsService } from '../src/modules/final-results/final-results.service';
 
 /**
  * Delete-guard registry (#2655, D19'). Every many-to-one that points at one
- * of seven protected parents sits in exactly one of three lists. The spec
+ * of eight protected parents sits in exactly one of three lists. The spec
  * `delete-guard-registry.integration.spec.ts` fails when a relation is in none
  * of them (or a list names a relation that no longer exists).
  *
@@ -72,13 +79,23 @@ export interface Ctx {
     rooms: RoomsService;
     feeStructures: FeeStructureService;
     grading: GradingService;
+    exams: ExamsService;
+    finalResults: FinalResultsService;
   };
   /** Unique number per call, so names/codes never collide inside one school. */
   n(): number;
 }
 
 export type ParentKind =
-  'AcademicYear' | 'Class' | 'ClassSection' | 'Subject' | 'Room' | 'GradingScale' | 'FeeStructure';
+  | 'AcademicYear'
+  | 'Class'
+  | 'ClassSection'
+  | 'Subject'
+  | 'Room'
+  | 'GradingScale'
+  | 'FeeStructure'
+  | 'Exam'
+  | 'FinalResult';
 
 /** Saves one live child row; `release` soft-deletes it (or deletes it when the table has no soft delete). */
 export interface MadeChild {
@@ -90,6 +107,8 @@ export interface Guarded {
   parent: ParentKind;
   softDeletable: boolean;
   makeChild(ctx: Ctx, parentId: string): Promise<MadeChild>;
+  /** When set, the 409 must carry this `details.code` (the screen branches on it). */
+  code?: string;
 }
 
 export interface Allowed {
@@ -164,6 +183,17 @@ async function exam(ctx: Ctx, academicYearId: string, classId: string) {
     name: `Exam ${ctx.n()}`,
     kind: ExamKind.TERM,
   });
+}
+
+/** A DRAFT final result of a fresh class and year (one live final per class-year). */
+async function finalResult(ctx: Ctx) {
+  const h = await host(ctx);
+  const f = await ctx.ds.getRepository(FinalResult).save({
+    tenant_id: ctx.tenantId,
+    class_id: h.klass.id,
+    academic_year_id: h.year.id,
+  });
+  return { ...h, final: f };
 }
 
 const softDelete = (ctx: Ctx, entity: new () => object, id: string) => async () => {
@@ -242,6 +272,21 @@ export const PARENTS: Record<
       ).id,
     remove: (ctx, id) => ctx.svc.grading.remove(id, ctx.tenantId, null),
     isGone: async (ctx, id) => goneIn(ctx, GradingScale, id),
+  },
+  // [70.2.1] An exam is a parent too: a final result's share row pins it.
+  Exam: {
+    make: async (ctx) => {
+      const h = await host(ctx);
+      return (await exam(ctx, h.year.id, h.klass.id)).id;
+    },
+    remove: (ctx, id) => ctx.svc.exams.remove(id, ctx.tenantId),
+    isGone: async (ctx, id) => goneIn(ctx, Exam, id),
+  },
+  // [70.3.4] A final result parent too: a promotion run ranked on it pins it.
+  FinalResult: {
+    make: async (ctx) => (await finalResult(ctx)).final.id,
+    remove: (ctx, id) => ctx.svc.finalResults.remove(id, ctx.tenantId, SEED_ADMIN_USER_ID),
+    isGone: async (ctx, id) => goneIn(ctx, FinalResult, id),
   },
 };
 
@@ -532,6 +577,99 @@ export const GUARDED: Guarded[] = [
       return { release: softDelete(ctx, Result, r.id) };
     },
   },
+  {
+    // [70.2.1] GradingService.remove counts live final result rows (assertNoLiveDependents).
+    key: 'FinalResultRow.grading_scale -> GradingScale',
+    parent: 'GradingScale',
+    softDeletable: true,
+    code: 'GRADING_SCALE_IN_USE',
+    async makeChild(ctx, scaleId) {
+      const f = await finalResult(ctx);
+      const row = await ctx.ds.getRepository(FinalResultRow).save({
+        tenant_id: ctx.tenantId,
+        final_result_id: f.final.id,
+        student_id: f.student.id,
+        total_marks: '80.00',
+        gpa: '4.00',
+        grade: 'A',
+        grading_scale_id: scaleId,
+        grading_scale_revision: 1,
+        rule_version: 'test',
+        computed_at: new Date(),
+      });
+      return { release: softDelete(ctx, FinalResultRow, row.id) };
+    },
+  },
+  {
+    // [70.2.1] ExamsService.remove refuses while a final result shares this exam.
+    key: 'FinalResultWeight.exam -> Exam',
+    parent: 'Exam',
+    softDeletable: false,
+    code: 'EXAM_IN_USE',
+    async makeChild(ctx, examId) {
+      const f = await finalResult(ctx);
+      const w = await ctx.ds.getRepository(FinalResultWeight).save({
+        tenant_id: ctx.tenantId,
+        final_result_id: f.final.id,
+        exam_id: examId,
+        subject_id: null,
+        share_percent: '100.00',
+      });
+      return { release: hardDelete(ctx, FinalResultWeight, w.id) };
+    },
+  },
+  {
+    // ExamsService.remove counts live results first (EXAM_HAS_RESULTS).
+    key: 'Result.exam -> Exam',
+    parent: 'Exam',
+    softDeletable: true,
+    code: 'EXAM_HAS_RESULTS',
+    async makeChild(ctx, examId) {
+      const h = await host(ctx);
+      const scale = await ctx.ds.getRepository(GradingScale).save({
+        name: `Scale ${ctx.n()}`,
+        academic_year_id: h.year.id,
+        tenant_id: ctx.tenantId,
+      });
+      const r = await ctx.ds.getRepository(Result).save({
+        tenant_id: ctx.tenantId,
+        exam_id: examId,
+        student_id: h.student.id,
+        total_marks: '80',
+        gpa: '4.00',
+        grade: 'A',
+        grading_scale_id: scale.id,
+        grading_scale_revision: 1,
+        rule_version: 'test',
+        computed_at: new Date(),
+      });
+      return { release: softDelete(ctx, Result, r.id) };
+    },
+  },
+  {
+    // [70.3.4] FinalResultsService.remove refuses while a promotion run ranks on the final.
+    key: 'PromotionRun.final_result -> FinalResult',
+    parent: 'FinalResult',
+    softDeletable: false,
+    code: 'FINAL_RESULT_IN_USE',
+    async makeChild(ctx, finalId) {
+      const h = await host(ctx);
+      const target = await year(ctx);
+      const run = await ctx.ds.getRepository(PromotionRun).save({
+        tenant_id: ctx.tenantId,
+        source_class_id: h.klass.id,
+        source_academic_year_id: h.year.id,
+        target_academic_year_id: target.id,
+        target_class_id: null,
+        exam_ids: [],
+        final_result_id: finalId,
+        algorithm: PlacementAlgorithm.BLOCK,
+        refreshed_at: new Date(),
+        created_by_user_id: SEED_ADMIN_USER_ID,
+      });
+      return { release: hardDelete(ctx, PromotionRun, run.id) };
+    },
+  },
   auto('AdmissionIntake.class_section -> ClassSection', 'ClassSection'),
   auto('Application.academic_year -> AcademicYear', 'AcademicYear'),
   auto('AttendanceDevice.section -> ClassSection', 'ClassSection'),
@@ -544,6 +682,12 @@ export const GUARDED: Guarded[] = [
   auto('MarkGrid.subject -> Subject', 'Subject'),
   auto('ResultSubject.subject -> Subject', 'Subject'),
   auto('Result.section -> ClassSection', 'ClassSection'),
+  // [70.1.2] Final results: same shape as their per-exam twins above.
+  auto('FinalResult.class -> Class', 'Class'),
+  auto('FinalResult.academic_year -> AcademicYear', 'AcademicYear'),
+  auto('FinalResultRow.section -> ClassSection', 'ClassSection'),
+  auto('FinalResultWeight.subject -> Subject', 'Subject'),
+  auto('FinalResultSubject.subject -> Subject', 'Subject'),
   auto('FeeGeneration.academic_year -> AcademicYear', 'AcademicYear'),
   auto('FeeStructure.class -> Class', 'Class'),
   auto('FeeStructure.section -> ClassSection', 'ClassSection'),
@@ -638,6 +782,46 @@ export const ALLOWED: Allowed[] = [
     key: 'StudentSubjectChoice.academic_year -> AcademicYear',
     reason:
       'Choices belong to the year offerings: AcademicYearService.remove deletes them with the offerings (drop-class-subjects.ts).',
+  },
+  // [70.2.1] The exam's own parts: ExamsService.remove leaves them under the soft-deleted exam
+  // (excluded from its assertNoLiveDependents), where no screen reaches them.
+  {
+    key: 'ExamComponent.exam -> Exam',
+    reason: "An exam's own components: they stay under the soft-deleted exam (exams.service.ts).",
+  },
+  {
+    key: 'ExamSchedule.exam -> Exam',
+    reason:
+      "An exam's own timetable rows: they stay under the soft-deleted exam (exams.service.ts).",
+  },
+  {
+    key: 'Mark.exam -> Exam',
+    reason:
+      "An exam's own marks: they stay under the soft-deleted exam; live results are refused first (exams.service.ts).",
+  },
+  {
+    key: 'MarkGrid.exam -> Exam',
+    reason: "An exam's own mark grids: they stay under the soft-deleted exam (exams.service.ts).",
+  },
+  // [70.3.4] The final result's own parts: rows and weights go with it in
+  // FinalResultsService.remove; its notes stay under the soft-deleted final, like an exam's.
+  {
+    key: 'FinalResultRow.final_result -> FinalResult',
+    reason: 'FinalResultsService.remove soft-deletes the rows in the same transaction (dropRows).',
+  },
+  {
+    key: 'FinalResultWeight.final_result -> FinalResult',
+    reason: 'FinalResultsService.remove deletes the shares in the same transaction.',
+  },
+  {
+    key: 'ReportCardNote.final_result -> FinalResult',
+    reason:
+      "Remarks on the final's own report card: they stay under the soft-deleted final (final-results.service.ts).",
+  },
+  {
+    key: 'ReportCardNote.exam -> Exam',
+    reason:
+      "Remarks on the exam's own report card: they stay under the soft-deleted exam, as before Epic 70 (exams.service.ts).",
   },
 ];
 

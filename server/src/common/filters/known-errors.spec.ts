@@ -4,7 +4,7 @@ import { QueryFailedError } from 'typeorm';
 import { ImportFileErrorCode } from '@biddaloy/shared';
 import { ImportFileError } from '../errors/import-file.error';
 import { StaffUploadParseError } from '../../modules/users/staff-bulk-upload.parser';
-import { mapKnownError } from './known-errors';
+import { examInPublishedFinal, mapKnownError } from './known-errors';
 
 /** Builds what body-parser / http-errors throw: a plain Error with status + type. */
 function httpError(message: string, status?: number, type?: string) {
@@ -129,6 +129,18 @@ describe('mapKnownError — unique violations', () => {
       });
     }
   });
+
+  it('[70.2.1] maps a final_results duplicate (two creates at once) to FINAL_ALREADY_EXISTS', () => {
+    const mapped = mapKnownError(
+      pgError('23505', 'final_results', 'IDX_0a399d88dfd8d0ab2453810789'),
+    );
+    expect(mapped?.getStatus()).toBe(409);
+    // Same coded 409 as the service's own check, never the generic duplicate text.
+    expect(mapped?.getResponse()).toMatchObject({
+      message: 'This class already has a final result for this year.',
+      details: { code: 'FINAL_ALREADY_EXISTS' },
+    });
+  });
 });
 
 /** A 23514 CHECK violation as pg reports it: the constraint name, and a detail row holding values. */
@@ -156,6 +168,43 @@ describe('mapKnownError — student_fees money CHECKs (#2636)', () => {
 
   it('leaves any other CHECK violation alone (stays a 500)', () => {
     expect(mapKnownError(checkViolation('CHK_sf_paid_amount'))).toBeNull();
+  });
+});
+
+describe('mapKnownError — deadlock (#3411)', () => {
+  it('maps Postgres 40P01 to a fixed, retryable 409 that names no row', () => {
+    // Postgres rolled the whole transaction back, so the user can safely send it again.
+    const driverError = Object.assign(
+      new Error('deadlock detected: Process 41 waits for ShareLock on transaction 7'),
+      { code: '40P01', detail: 'Process 41 waits for ShareLock on tuple (0,7) of relation 1234' },
+    );
+    const mapped = mapKnownError(new QueryFailedError('UPDATE ...', [], driverError));
+    expect(mapped?.getStatus()).toBe(409);
+    expect(mapped?.message).toBe(
+      'Someone else changed this at the same moment. Nothing was saved. Try again.',
+    );
+    expect((mapped?.getResponse() as { details: { code: string } }).details.code).toBe(
+      'CONCURRENT_UPDATE',
+    );
+    expect(JSON.stringify(mapped?.getResponse())).not.toContain('Process 41');
+  });
+
+  it('leaves a serialization failure (40001) alone', () => {
+    const driverError = Object.assign(new Error('could not serialize access'), { code: '40001' });
+    expect(mapKnownError(new QueryFailedError('UPDATE ...', [], driverError))).toBeNull();
+  });
+});
+
+describe('examInPublishedFinal (#3411)', () => {
+  it('tells the user to reopen the final result first, on the Final results page', () => {
+    const err = examInPublishedFinal();
+    expect(err.getStatus()).toBe(409);
+    expect(err.message).toBe(
+      'A published final result counts this exam. Reopen that final result first, on the Final results page.',
+    );
+    expect((err.getResponse() as { details: { code: string } }).details.code).toBe(
+      'EXAM_IN_PUBLISHED_FINAL',
+    );
   });
 });
 

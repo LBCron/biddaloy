@@ -161,6 +161,7 @@ export function SchoolSettingsPage({ backupJobId }: SchoolSettingsPageProps = {}
             {loaded && (
               <>
                 <OrganisationSection
+                  key={loaded.schoolId}
                   schoolId={loaded.schoolId}
                   organisation={loaded.data.organisation}
                 />

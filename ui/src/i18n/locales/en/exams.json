@@ -198,6 +198,8 @@
   "studentResultsPanel": {
     "loadError": "Couldn't load results.",
     "empty": "No results yet for this student.",
+    "finalTitle": "Final result {{year}}",
+    "openFinal": "Open the final result",
     "caption": "Every exam this student has a result for",
     "columnExam": "Exam",
     "columnGrade": "Grade",
@@ -328,7 +330,17 @@
     "progress": "Progress",
     "latestMilestone": "Latest milestone",
     "scoreGrade": "Score/Grade",
-    "logError": "The print could not be recorded, so it was not printed. Try again."
+    "logError": "The print could not be recorded, so it was not printed. Try again.",
+    "finalTitle": "Final result",
+    "finalColumn": "Final",
+    "examsHeading": "Result by exam",
+    "workingDays": "Working days",
+    "presentDays": "Days present",
+    "remarkLabel": "Class teacher's remark",
+    "conductLabel": "Conduct",
+    "noGrade": "—",
+    "attendance": "Attendance",
+    "guardian": "Guardian"
   },
   "analysis": {
     "tabs": {
@@ -418,7 +430,14 @@
     "passMarks": "The pass mark of the part, e.g. 23. Not more than the full marks. Leave empty if not needed.",
     "exam": "The exam you are entering marks for. Its marks lists for the sections and subjects you may enter show below.",
     "mark": "The marks for that student and part, up to the maximum shown. Type A for absent and E for exempt. Attendance parts are worked out for you.",
-    "byPart": "On the Pass/fail tab, tick it to see the results for each part of a subject, not only for the whole subject."
+    "byPart": "On the Pass/fail tab, tick it to see the results for each part of a subject, not only for the whole subject.",
+    "finalResults": {
+      "share": "How much of the final result each exam counts for. They must add up to 100, e.g. Half Yearly 30, Annual 70.",
+      "rounding": "How a subject total is rounded. \"To a whole number\" turns 83.7 into 84.",
+      "failIfAnyExamFails": "When on, failing even one counted exam fails that subject, however high the total. When off, only the total decides.",
+      "perSubjectShare": "Turn on if subjects should not all use the same shares. For example Maths 40 and 60, English 30 and 70.",
+      "bestOf": "Only the student's best few exams count in each subject. For example the best 2 of 3 exams."
+    }
   },
   "helpRequired": {
     "name": "Yes",
@@ -428,5 +447,159 @@
     "fullMarks": "Yes, except attendance parts",
     "exam": "Yes",
     "mark": "Yes, the list cannot be submitted while blank"
+  },
+  "finalResults": {
+    "title": "Final results",
+    "breadcrumb": "Final results",
+    "documentTitle": {
+      "list": "Final results",
+      "detail": "{{class}} · Final result {{year}}"
+    },
+    "yearLabel": "Academic year",
+    "loadError": "Couldn't load final results.",
+    "list": {
+      "classColumn": "Class",
+      "statusColumn": "Status",
+      "publishedColumn": "Published on",
+      "start": "Start",
+      "open": "Open",
+      "emptyTitle": "No class has a final result set up yet",
+      "emptyBody": "Press \"Start\" next to a class.",
+      "startDisabled": "No exam result of this class is published yet, so you can't start.",
+      "startDisabledLink": "Go to results",
+      "startError": "Couldn't start the final result. Try again."
+    },
+    "status": {
+      "NOT_SET_UP": "Not set up",
+      "DRAFT": "Draft",
+      "PROCESSED": "Built",
+      "PUBLISHED": "Published"
+    },
+    "tabs": {
+      "setup": "Setup",
+      "results": "Results",
+      "print": "Print"
+    },
+    "counts": {
+      "students": "{{count}} students",
+      "failed": "{{count}} failed"
+    },
+    "setup": {
+      "examsHeading": "Which exams count",
+      "examColumn": "Exam",
+      "shareColumn": "Share (%)",
+      "shareSum": "Total {{sum}}",
+      "shareError": "Must total 100 (now {{sum}})",
+      "noExams": "No exam result of this class is published yet.",
+      "moreRules": "More rules",
+      "previewHeading": "Share per subject",
+      "previewNote": "A subject that an exam does not have is left out of that exam, and the other exams' shares are scaled up to 100.",
+      "save": "Save",
+      "saved": "Saved.",
+      "saveError": "Couldn't save. Try again.",
+      "locked": "The result is published, so it cannot be changed now. Reopen it first.",
+      "subjectShareError": "Each subject's shares must total 100."
+    },
+    "rules": {
+      "rounding": {
+        "label": "Round marks",
+        "whole": "To a whole number",
+        "twoDecimals": "To two decimals",
+        "description": "Whether a subject's total is a whole number or kept to two decimals."
+      },
+      "failIfAnyExamFails": {
+        "label": "Failing any exam fails the subject",
+        "description": "When on, failing any counted exam fails that subject."
+      },
+      "perSubjectShare": {
+        "label": "Different share per subject",
+        "description": "When on, you set the share of each exam separately for every subject.",
+        "subjectColumn": "Subject"
+      },
+      "bestOf": {
+        "label": "Count best N exams",
+        "description": "When on, only a student's best few exams count in each subject; the rest are left out.",
+        "countLabel": "How many best exams",
+        "countError": "Cannot be more than the number of exams."
+      }
+    },
+    "actions": {
+      "build": "Build results",
+      "publish": "Publish",
+      "reopen": "Reopen",
+      "sendSms": "Send SMS",
+      "rebuild": "Build again"
+    },
+    "buildDialog": {
+      "title": "Build the final results?",
+      "description": "Each student's final result is worked out from the published exams.",
+      "confirm": "Build results",
+      "done": "Results built for {{n}} students.",
+      "errorMessage": "Couldn't build the final results."
+    },
+    "publishDialog": {
+      "title": "Publish the final results?",
+      "description": "Guardians can see the result once it is published.",
+      "warning": "{{remark}} students have no remark and {{conduct}} have no conduct grades.",
+      "warningLink": "Go to section",
+      "confirm": "Publish",
+      "errorMessage": "Couldn't publish the final results."
+    },
+    "reopenDialog": {
+      "title": "Reopen the final results?",
+      "description": "Guardians will no longer see the result. Remarks and marks can be changed again.",
+      "confirm": "Reopen",
+      "errorMessage": "Couldn't reopen the final results."
+    },
+    "smsDialog": {
+      "title": "Send the final result SMS",
+      "name": "Final result {{year}}",
+      "disabledUnpublished": "Publish the result before sending SMS.",
+      "send": "Send",
+      "sent": "Sent to {{n}} guardians.",
+      "errorMessage": "Couldn't send the SMS."
+    },
+    "results": {
+      "sectionFilter": "Section",
+      "allSections": "All sections",
+      "roll": "Roll",
+      "name": "Name",
+      "totalMarks": "Total marks",
+      "gpa": "GPA",
+      "grade": "Grade",
+      "position": "Position",
+      "sectionPosition": "Position in section",
+      "workingDays": "Working days",
+      "presentDays": "Days present",
+      "absent": "Absent",
+      "fail": "Failed",
+      "emptyBuilt": "Results appear here once you build them.",
+      "loadError": "Couldn't load the results.",
+      "noRows": "No students found",
+      "noRowsHint": "Change the section or the search.",
+      "searchNote": "Searching only the {{shown}} students on this page. Pick a section to narrow the list."
+    },
+    "detail": {
+      "loadError": "Couldn't load this final result.",
+      "facts": {
+        "class": "Class",
+        "academicYear": "Academic year",
+        "students": "Students",
+        "failed": "Failed",
+        "publishedAt": "Published on"
+      }
+    },
+    "print": {
+      "studentLabel": "Student",
+      "printAll": "Print all cards",
+      "tabulation": "Tabulation sheet",
+      "notBuilt": "Build the results first, then you can print the cards.",
+      "noStudents": "No students in this section.",
+      "loadError": "Couldn't load the cards. Try again.",
+      "noStudentsHint": "Choose another section.",
+      "cappedNote": "Showing the first {{shown}} of {{total}} students. Print the rest one section at a time.",
+      "someFailed": "{{n}} cards couldn't load. They are marked on the printout. Print again to retry.",
+      "cardFailed": "card couldn't load"
+    }
   }
 }

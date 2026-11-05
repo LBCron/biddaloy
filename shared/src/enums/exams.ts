@@ -96,3 +96,29 @@ export const PlacementAlgorithm = {
   SNAKE: 'SNAKE',
 } as const;
 export type PlacementAlgorithm = (typeof PlacementAlgorithm)[keyof typeof PlacementAlgorithm];
+
+/** A cross-exam final result's lifecycle (70.1.1). Same three states as `ExamStatus`. */
+export const FinalResultStatus = {
+  DRAFT: 'DRAFT',
+  PROCESSED: 'PROCESSED',
+  PUBLISHED: 'PUBLISHED',
+} as const;
+export type FinalResultStatus = (typeof FinalResultStatus)[keyof typeof FinalResultStatus];
+
+/** How a final result combines exams: weighted shares, or best N exams. */
+export const FinalResultMode = {
+  WEIGHTED: 'WEIGHTED',
+  BEST_OF: 'BEST_OF',
+} as const;
+export type FinalResultMode = (typeof FinalResultMode)[keyof typeof FinalResultMode];
+
+/** Rounding applied to a final subject/total mark. */
+export const FinalResultRounding = {
+  WHOLE: 'WHOLE',
+  TWO_DECIMALS: 'TWO_DECIMALS',
+} as const;
+export type FinalResultRounding = (typeof FinalResultRounding)[keyof typeof FinalResultRounding];
+
+/** Letter grade for one conduct item on a report card. */
+export const ConductGrade = { A: 'A', B: 'B', C: 'C', D: 'D' } as const;
+export type ConductGrade = (typeof ConductGrade)[keyof typeof ConductGrade];

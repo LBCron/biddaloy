@@ -73,6 +73,7 @@ All your features, in the order of the left menu. The list is built automaticall
 **Exams & Results**
 
 - [Enter marks](../exams-results/marks-entry.md) — Pick an exam, open the marks list for your section and subject, type each student's marks or mark them absent or exempt, then submit the list.
+- [Final results](../exams-results/final-results.md) — See a class's final result for the year. Staff who may process results also put the published exams together, choose how much each counts, build and check it, publish it for guardians, send the SMS, print the report cards and reopen it.
 - [Result analysis](../exams-results/analysis.md) — See an exam's merit list, the students who failed or were absent and the pass/fail by subject, filter by section, print or download a CSV.
 
 **Finance**

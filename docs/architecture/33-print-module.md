@@ -18,7 +18,7 @@ flowchart TB
     CE["TRANSFER_CERTIFICATE · TESTIMONIAL · CHARACTER_CERTIFICATE<br/>STUDY_CERTIFICATE · PARTICIPATION_CERTIFICATE"]
   end
   subgraph C["Code-rendered documents — plain React/A4 pages, no template (Epic 48 D1)"]
-    D["seat list · invigilator sheet · seat stickers · blank marks sheet<br/>routine notice · tabulation · report card · transcript"]
+    D["seat list · invigilator sheet · seat stickers · blank marks sheet<br/>routine notice · tabulation · report card · transcript<br/>final tabulation · final report card (Epic 70, §10)"]
   end
 ```
 
@@ -411,3 +411,64 @@ flowchart LR
 - The `EXECUTIVE` role needed read access on the certificate channel (48.3.02)
   so it can open the register. It also holds `CERTIFICATE_ISSUE`, but not
   `DOCUMENT_PRINT`, so it does not see the To print tab.
+
+## 10. Report card blocks and final-result documents (Epic 70)
+
+Epic 70 (#2203) added a **final result**: one class-year result built from
+several published exams (for example Half-yearly 40% + Annual 60%). Its
+documents reuse the code-rendered pages above. No new template kind was added.
+
+### Where a report card's data comes from
+
+A report card (per exam or final) is put together from three sources. Only the
+marks come from the result; the other blocks are joined in when the card is read.
+
+```mermaid
+flowchart LR
+  R[("results / final_result_rows<br/>marks, GPA, position")] --> C["Report card<br/>(ui/src/components/print/report-card.tsx)"]
+  N[("report_card_notes<br/>remark + conduct grades<br/>keyed by exam_id or final_result_id")] --> C
+  A["attendance<br/>exam card: live AttendanceSummaryService<br/>final card: snapshot taken at publish"] --> C
+```
+
+- **Attendance** shows `present / days`. `days` is what the school's
+  percentage divides by: marked days under the `MARKED_DAYS` policy, otherwise
+  working days, minus leave when leave is not a working day
+  (`attendanceFrom` in `server/src/modules/exams/report-card-extras.ts`, D27).
+- **Remark and conduct** are typed by the class teacher per exam or per final.
+  Deleting an unpublished final keeps its notes under the soft-deleted final; a new
+  final gets a new id, so old notes never reappear.
+- **ABS**: a subject where every component was absent prints no mark, not 0.
+  The build, the card and the final tabulation share one rule,
+  `examSubjectObtained` in `server/src/modules/final-results/final-result-rules.ts`.
+
+### Final-result documents
+
+| Document                        | Route                                                                | Who sees what                                                                         | Print record                                                                            |
+| ------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Final report card               | `GET /students/:studentId/final-result-card?academic_year_id=`       | Staff: PROCESSED or PUBLISHED. Parent/student (linked only): PUBLISHED only, else 404 | Audit row, `document: FINAL_REPORT_CARD` on `POST /students/:studentId/document-prints` |
+| Yearly transcript, final column | `GET /students/:studentId/transcript?academic_year_id=` → `final`    | PUBLISHED only, for everyone (D9). `final: null` otherwise                            | Audit row, `document: TRANSCRIPT`                                                       |
+| Final tabulation                | `GET /final-results/:finalResultId/documents/tabulation?section_id=` | `DOCUMENT_PRINT` holders. One section: each subject's per-exam marks and final mark   | None (a sheet, not a per-student document)                                              |
+| Result certificate for a final  | Print job, context `EXAM` with the final's id (D21)                  | Refused per student while the final is not published                                  | Print job, like any template document                                                   |
+
+UI hooks: `useStudentFinalCard`, `useFinalTabulation` (in
+`ui/src/hooks/final-results.ts`) and `useTranscript` (its `final` field).
+Storybook: `Print/ReportCard` → `FinalCard`, `FinalCardBangla`;
+`Print/ExamDocuments/ResultSheets` → `FinalTabulation`, `FinalTranscript`.
+
+### Lessons from building it (Epic 70, wave 4)
+
+- **Regenerate types from the repo root.** `yarn api:types` at the root starts
+  a test database, writes `server/openapi.json`, then runs the UI generator. The
+  UI workspace's own `api:types` fails on a fresh worktree because that file is
+  not there yet.
+- **A route without `@ApiOkResponse` types as `Record<string, never>`.** The
+  student final card route has none, so `useStudentFinalCard` is typed from the
+  shared `FinalResultStudentCard`. Declare the response DTO when you add a
+  route, and the hook can use `schema.d.ts` directly (the final tabulation does).
+- **One rule, one helper.** The ABS-with-0 rule had a second copy in the final
+  tabulation SQL mapper. Shared rules live in `final-result-rules.ts`; grep
+  for the literal (`=== 'ABS'`) before writing it again.
+- **A read that shows a final must refresh with it.** Building, publishing or
+  reopening a final now invalidates the transcript and the student final card
+  too (`invalidateFinal` in `ui/src/hooks/final-results.ts`), not only the
+  final's own queries.

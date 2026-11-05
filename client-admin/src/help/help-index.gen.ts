@@ -2374,6 +2374,16 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'task-main',
     knownIssues: 0,
   },
+  'examsResults.finalResults': {
+    title: { bn: 'চূড়ান্ত ফলাফল তৈরি ও প্রকাশ', en: 'Final results' },
+    summary: {
+      bn: 'একটি শ্রেণির বছরের চূড়ান্ত ফলাফল দেখুন। যাঁরা ফলাফল প্রক্রিয়া করতে পারেন, তাঁরা প্রকাশিত পরীক্ষাগুলো জুড়ে ফল বানান, কোন পরীক্ষা কত শতাংশ গোনা হবে ঠিক করেন, ফল তৈরি করে দেখে নেন, অভিভাবকদের জন্য প্রকাশ করেন, এসএমএস পাঠান, রিপোর্ট কার্ড ছাপেন, আর দরকারে পুনরায় খুলেন।',
+      en: "See a class's final result for the year. Staff who may process results also put the published exams together, choose how much each counts, build and check it, publish it for guardians, send the SMS, print the report cards and reopen it.",
+    },
+    path: 'exams-results/final-results',
+    anchor: '',
+    knownIssues: 0,
+  },
   'examsResults.analysis': {
     title: { bn: 'মেধা তালিকা ও ফলাফল বিশ্লেষণ', en: 'Merit list and result analysis' },
     summary: {
@@ -5095,6 +5105,7 @@ export const HELP_ROUTES = {
   '/routines/my': 'academics.myRoutine',
   '/my-class': 'academics.myClass',
   '/my-class/$sectionId': 'academics.myClass',
+  '/my-class/$sectionId/notes': 'academics.myClass',
   '/my-coordination': 'academics.myCoordination',
   '/academics/homework': 'academics.homework',
   '/academics/homework/$homeworkId': 'academics.homework',
@@ -5120,6 +5131,8 @@ export const HELP_ROUTES = {
   '/grading-scales/$scaleId': 'examsResults.gradingScales',
   '/results': 'examsResults.results',
   '/results/$examId/$studentId': 'examsResults.results',
+  '/results/final': 'examsResults.finalResults',
+  '/results/final/$finalResultId': 'examsResults.finalResults',
   '/analysis': 'examsResults.analysis',
   '/promotions': 'examsResults.promotion',
   '/promotions/$runId': 'examsResults.promotion',

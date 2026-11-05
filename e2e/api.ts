@@ -2,7 +2,13 @@
 // a fresh access token via the refresh cookie already in the test's
 // request context, then tenant-scoped calls with the same headers the
 // SPA sends (Bearer + X-Tenant-ID).
-import { ALERT_RULES, type AlertRuleKey } from '@biddaloy/shared';
+import {
+  ALERT_RULES,
+  ExamComponentKind,
+  ExamComponentSource,
+  ExamKind,
+  type AlertRuleKey,
+} from '@biddaloy/shared';
 import type { APIRequestContext } from '@playwright/test';
 
 import type {
@@ -88,6 +94,23 @@ export async function parentApiSession(request: APIRequestContext): Promise<ApiS
   const body = (await response.json()) as RefreshResponse;
   const membership = body.memberships.find((m) => m.role === 'PARENT');
   if (!membership) throw new Error('no PARENT membership for seed parent');
+  return { token: body.access_token, tenantId: membership.tenantId };
+}
+
+/** Fresh login as the seeded TEACHER, so the API calls of a test whose browser is also the
+ * teacher do not rotate the browser's refresh cookie (the request context gets its own family). */
+export async function teacherApiSession(request: APIRequestContext): Promise<ApiSession> {
+  const password = process.env[SEED_PASSWORD_ENV];
+  if (!password) throw new Error(`${SEED_PASSWORD_ENV} is not set`);
+  const response = await request.post('/api/v1/auth/login', {
+    data: { email: SEED_ROLE_EMAILS.teacher, password },
+  });
+  if (!response.ok()) {
+    throw new Error(`teacher login failed: ${response.status()} ${await response.text()}`);
+  }
+  const body = (await response.json()) as RefreshResponse;
+  const membership = body.memberships.find((m) => m.role === 'TEACHER');
+  if (!membership) throw new Error('no TEACHER membership for seed teacher');
   return { token: body.access_token, tenantId: membership.tenantId };
 }
 
@@ -1686,4 +1709,74 @@ export async function onlyAttentionRule(
     ]),
   );
   await patch(request, session, path, { version: current.version, attention: { rules } });
+}
+
+/** [70.5.5] A TERM exam of `classId` with one written component, the given marks, processed and published. */
+export async function publishedTermExam(
+  request: APIRequestContext,
+  session: ApiSession,
+  scope: { classId: string; sectionId: string; academicYearId: string; subjectId: string },
+  name: string,
+  marks: Record<string, string>,
+): Promise<{ id: string }> {
+  const exam = await post<{ id: string }>(request, session, '/exams', {
+    name,
+    kind: ExamKind.TERM,
+    academic_year_id: scope.academicYearId,
+    class_id: scope.classId,
+  });
+  const component = await post<{ id: string }>(request, session, `/exams/${exam.id}/components`, {
+    subject_id: scope.subjectId,
+    name: 'Written',
+    kind: ExamComponentKind.WRITTEN,
+    source: ExamComponentSource.MANUAL,
+    full_marks: '100.00',
+    pass_marks: '33.00',
+    sequence: 1,
+  });
+  await patch(request, session, `/exams/${exam.id}/marks`, {
+    section_id: scope.sectionId,
+    subject_id: scope.subjectId,
+    cells: Object.entries(marks).map(([studentId, value]) => ({
+      student_id: studentId,
+      component_id: component.id,
+      value,
+      status: 'PRESENT',
+    })),
+  });
+  // Processing refuses while any section's sheet is open; unmarked students go in ABSENT.
+  const sections = await get<{ id: string }[]>(
+    request,
+    session,
+    `/classes/${scope.classId}/sections`,
+  );
+  for (const section of sections) {
+    await submitMarkSheet(request, session, exam.id, {
+      section_id: section.id,
+      subject_id: scope.subjectId,
+    });
+  }
+  await post(request, session, `/exams/${exam.id}/results/process`, {});
+  await post(request, session, `/exams/${exam.id}/results/publish`, {});
+  return exam;
+}
+
+/** [70.5.5] A fresh subject assigned to the class for the year (results only count those). */
+export async function newClassSubject(
+  request: APIRequestContext,
+  session: ApiSession,
+  classId: string,
+  yearId: string,
+): Promise<{ id: string }> {
+  const subject = await post<{ id: string }>(request, session, '/subjects', {
+    code: `E2EFR-${Date.now().toString(36).toUpperCase()}`,
+    name_en: 'E2E Final Subject',
+    name_bn: 'ই২ই চূড়ান্ত বিষয়',
+  });
+  // Results only count subjects assigned to the class.
+  await post(request, session, `/classes/${classId}/subjects`, {
+    subject_id: subject.id,
+    academic_year_id: yearId,
+  });
+  return subject;
 }

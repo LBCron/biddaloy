@@ -244,6 +244,9 @@ export function mergeTenantSettings(
     };
   }
 
+  // [70.2.01] Wholesale replace: a list can only shrink if the shorter one wins.
+  if (patch.exams !== undefined) merged.exams = patch.exams;
+
   return merged;
 }
 

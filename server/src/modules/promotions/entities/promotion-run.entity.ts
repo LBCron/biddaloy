@@ -7,9 +7,11 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
+  Check,
 } from 'typeorm';
 import { PromotionRunStatus, PlacementAlgorithm } from '@biddaloy/shared';
 import { School } from '../../schools/entities/school.entity';
+import { FinalResult } from '../../final-results/entities/final-result.entity';
 import { Class } from '../../academics/entities/class.entity';
 
 /**
@@ -36,6 +38,10 @@ import { Class } from '../../academics/entities/class.entity';
  * - Referenced-by → PromotionEntry: this run's per-student decisions
  */
 @Entity('promotion_runs')
+@Check(
+  'CHK_promotion_runs_one_merit_source',
+  `"final_result_id" IS NULL OR cardinality("exam_ids") = 0`,
+)
 @Index(['tenant_id'])
 @Index(['tenant_id', 'source_class_id', 'target_academic_year_id'], {
   unique: true,
@@ -71,6 +77,18 @@ export class PromotionRun {
 
   @Column({ type: 'uuid', array: true })
   exam_ids: string[];
+
+  /**
+   * [70.3.3] Merit source: a PUBLISHED final result of the source class (its weighted GPA and
+   * total decide merit order) instead of the plain mean of `exam_ids`. Exactly one of the two
+   * is set; `exam_ids` is `[]` here. NO ACTION: a final that a run uses cannot be hard-deleted.
+   */
+  @ManyToOne(() => FinalResult, { nullable: true, onDelete: 'NO ACTION' })
+  @JoinColumn({ name: 'final_result_id' })
+  final_result: FinalResult | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  final_result_id: string | null;
 
   @Column({ type: 'varchar', length: 30 })
   algorithm: PlacementAlgorithm;

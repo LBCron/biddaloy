@@ -557,5 +557,23 @@
     "noPushLink": "অ্যাপে বার্তা চালু করুন",
     "declinedHint": "শিক্ষক এখন চালু করেননি। চাইলে আবার জানান।",
     "disabled": "এই স্কুলে পৌঁছানোর খবর বন্ধ আছে।"
+  },
+  "finalResult": {
+    "title": "চূড়ান্ত ফলাফল",
+    "yearLine": "{{child}} · {{year}}",
+    "gpa": "জিপিএ {{gpa}}",
+    "outOf": "/ {{max}}",
+    "position": "অবস্থান {{position}}",
+    "failed": "উন্নতি দরকার: অন্তত একটা বিষয়ে ফেল",
+    "meterLabel": "{{max}}-এর মধ্যে জিপিএ",
+    "link": "পুরো ফল",
+    "emptyReason": "এখনো চূড়ান্ত ফলাফল প্রকাশ হয়নি।",
+    "loadError": "চূড়ান্ত ফলাফল লোড করা যায়নি।",
+    "retry": "আবার চেষ্টা করুন",
+    "cardTitle": "চূড়ান্ত ফলাফল {{year}} — {{class}}",
+    "share": "{{exam}} {{percent}}",
+    "attendance": "{{working}} দিনের মধ্যে উপস্থিত {{present}} দিন ({{percent}})",
+    "showDetails": "বিস্তারিত ও কার্ড দেখুন",
+    "hideDetails": "বিস্তারিত লুকান"
   }
 }

@@ -69,6 +69,9 @@ describe('delete-guard parent locks (integration)', () => {
         rooms: module.get(RoomsService),
         grading: module.get(GradingService),
         feeStructures: module.get(FeeStructureService),
+        // No lock test here removes an exam.
+        exams: {} as never,
+        finalResults: {} as never,
       },
     };
   }

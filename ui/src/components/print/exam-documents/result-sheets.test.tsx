@@ -202,3 +202,70 @@ describe('YearlyTranscript', () => {
     expect(screen.getAllByText('৪.৫০').length).toBeGreaterThan(0);
   });
 });
+
+describe('final variants', () => {
+  it('TabulationSheet variant=final adds an exam total column each, Absent for null', () => {
+    const { container } = render(
+      <TabulationSheet
+        {...tabProps}
+        variant="final"
+        examColumns={[
+          { id: 'e1', label: 'Half Yearly' },
+          { id: 'e2', label: 'Annual' },
+        ]}
+        rows={rows.slice(0, 1).map((r) => ({ ...r, examTotals: { e1: 160, e2: null } }))}
+        labels={{ ...tLabels, absent: 'Absent' }}
+      />,
+    );
+    const heads = [...container.querySelectorAll('thead tr:first-child th')].map(
+      (t) => t.textContent,
+    );
+    expect(heads.slice(-6)).toEqual(['Half Yearly', 'Annual', 'Total', 'GPA', 'Grade', 'Merit']);
+    const cells = [...container.querySelectorAll('tbody tr td')].map((t) => t.textContent);
+    expect(cells.slice(5, 7)).toEqual(['160', 'Absent']);
+  });
+
+  it('final variant and final transcript need their labels at compile time', () => {
+    const noop = () => (
+      <>
+        {/* @ts-expect-error the final variant needs labels.absent */}
+        <TabulationSheet {...tabProps} variant="final" examColumns={[]} />
+      </>
+    );
+    expect(typeof noop).toBe('function');
+  });
+
+  it('TabulationSheet default variant is unchanged (no exam columns)', () => {
+    const { container } = render(
+      <TabulationSheet {...tabProps} examColumns={[{ id: 'e1', label: 'X' }]} />,
+    );
+    expect(screen.queryByText('X')).toBeNull();
+    expect(container.querySelectorAll('thead tr:first-child th')).toHaveLength(8);
+  });
+
+  it('YearlyTranscript adds share column and a final row only when asked', () => {
+    const { container } = render(
+      <YearlyTranscript
+        {...yProps}
+        labels={{ ...yLabels, final: 'Final', share: 'Share' }}
+        exams={[
+          { ...exam('Half Yearly'), shareLabel: '40%' },
+          { ...exam('Annual'), shareLabel: '60%' },
+        ]}
+        final={{ total: 310, gpa: 4.5, grade: 'A', position: 2 }}
+      />,
+    );
+    const summary = container.querySelectorAll('table')[2]!;
+    expect([...summary.querySelectorAll('thead th')].map((t) => t.textContent)).toEqual([
+      'Exam',
+      'Share',
+      'Total',
+      'GPA',
+      'Grade',
+      'Position',
+    ]);
+    const last = [...summary.querySelectorAll('tbody tr')].at(-1)!;
+    expect(last.textContent).toBe('Final3104.50A2');
+    expect(container.textContent).not.toMatch(/composition|weight|override|best-of|snapshot/i);
+  });
+});
