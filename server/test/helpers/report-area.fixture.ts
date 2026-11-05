@@ -7,6 +7,8 @@ import { DataSource } from 'typeorm';
  * never share rows.
  */
 export class ReportAreaFixture {
+  private nextRoll = 0;
+
   constructor(private readonly ds: DataSource) {}
 
   private async one(sql: string, params: unknown[]): Promise<string> {
@@ -61,7 +63,7 @@ export class ReportAreaFixture {
       [
         opts.name ?? `S ${randomUUID()}`,
         `R-${randomUUID()}`,
-        Math.floor(Math.random() * 1e6),
+        ++this.nextRoll, // unique per section: random rolls collided ~12% of the time at 500 students
         cls.sectionId,
         opts.gender === undefined ? 'MALE' : opts.gender,
         opts.religion === undefined ? 'ISLAM' : opts.religion,

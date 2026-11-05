@@ -339,8 +339,16 @@ function SaveAsReportForm({
         </fieldset>
       )}
 
-      {(plan.unmappedFilters.length > 0 || plan.unmappedColumns.length > 0) && (
+      {(plan.unmappedFilters.length > 0 ||
+        plan.unmappedColumns.length > 0 ||
+        plan.notes.length > 0) && (
         <div className="flex flex-col gap-1 text-sm text-text-secondary" role="note">
+          {plan.notes.map((note) => (
+            <p key={note} className="flex items-start gap-2">
+              <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+              <span>{t(`saveAsReport.notes.${note}`)}</span>
+            </p>
+          ))}
           {plan.unmappedFilters.length > 0 && (
             <p className="flex items-start gap-2">
               <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />

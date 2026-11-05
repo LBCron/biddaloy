@@ -257,7 +257,7 @@ Only the admin gets this. It is not done on the **All reports** page; it is done
 
 6. Read the notes at the bottom. What will not go into the report is written there, for example **This filter will not go into the report: What you typed in search**.
 
-   → Dues and payments become **totals** in the report: dues by class and section, payments by day and method. There is no row for each student or each payment; this is also written in the notes.
+   → The dues list becomes one row for each student in the report, with the total billed, paid and still owed on their open bills. The payments list becomes one row for each payment, with its amount. A payment that was reversed later and is hidden on the list is hidden in the report too. If a student was deleted later, their payment stays in the report but the name and registration number are left blank, as on the list. Failed or pending payments are not in the report, because no money came in. If you pick a status or a fee type on the dues list, the report keeps only those bills, so a student's other open bills are not in the totals. The dialog says so in a separate note, because the filter still applies. If **Overdue only** is on, the report counts only bills past their due date, while the list adds up all open bills of each student it shows, so totals and the students shown can differ. The dialog notes this too.
 
 7. Press **Keep as report**.
 
@@ -549,8 +549,8 @@ Verified on version 0.1.0 on 2026-10-31. This section is removed once the fixes 
 | List         | What goes into the report                                     | Question when running                 |
 | ------------ | ------------------------------------------------------------- | ------------------------------------- |
 | Students     | The choices and the columns you see; one row for each student | Academic year                         |
-| Student dues | Totals by class and section                                   | None                                  |
-| Payments     | Totals by day and method                                      | Dates (if dates were set on the list) |
+| Student dues | One row for each student, with the total of their open bills  | None                                  |
+| Payments     | One row for each payment, with its amount                     | Dates (if dates were set on the list) |
 
 Class and section go into the report by name, not by id. If a class is renamed, check the report again.
 

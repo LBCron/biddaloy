@@ -403,7 +403,7 @@ describe('students list', () => {
 });
 
 describe('dues list', () => {
-  it('becomes totals per class and section on the FEES area, for open bills only', () => {
+  it('becomes one row per student on the FEES area, for open bills only', () => {
     const plan = planListReport({
       kind: 'dues',
       filters: { class_id: 'c8', status: 'PARTIALLY_PAID', fee_type: 'EXAM_FEE' },
@@ -412,7 +412,14 @@ describe('dues list', () => {
     });
     const def = plan.build();
     expect(def.subjectArea).toBe(ReportSubjectArea.FEES);
-    expect(def.dataset.dimensions.map((d) => d.field)).toEqual(['class', 'section', 'status']);
+    // The student is in the rows, so the report lists students like the dues list does.
+    expect(def.dataset.dimensions.map((d) => d.field)).toEqual([
+      'class',
+      'section',
+      'name',
+      'registration_number',
+      'roll_number',
+    ]);
     expect(def.dataset.measures.map((m) => m.field)).toEqual(['outstanding']);
     expect(def.dataset.filters).toEqual([
       { field: 'class', op: FilterOp.EQ, value: 'Class 8' },
@@ -420,8 +427,16 @@ describe('dues list', () => {
       { field: 'fee_type', op: FilterOp.EQ, value: 'EXAM_FEE' },
     ]);
     expect(def.layout).toMatchObject({ type: ReportLayoutType.GROUPED, group_by: ['class'] });
-    expect(plan.unmappedColumns).toEqual(['student', 'wallet', 'lastReminder']);
+    expect(plan.unmappedColumns).toEqual(['status', 'wallet', 'lastReminder']);
+    // status and fee type pick bills here, not students, so the dialog warns about it.
+    expect(plan.unmappedFilters).toEqual([]);
+    expect(plan.notes).toEqual(['billLevel']);
     expect(plan.name).toEqual({ scope: 'Class 8', area: 'dues' });
+  });
+
+  it('does not warn about bill-level filters when no status or fee type is set', () => {
+    const plan = planListReport({ kind: 'dues', filters: { class_id: 'c8' }, columns: ['due'] });
+    expect(plan.notes).toEqual([]);
   });
 
   it('keeps paid bills out when no status is chosen', () => {
@@ -443,6 +458,7 @@ describe('dues list', () => {
     ]);
     expect(def.dataset.measures.map((m) => m.field)).toEqual(['billed', 'paid', 'outstanding']);
     expect(plan.name.area).toBe('duesLate');
+    expect(plan.notes).toEqual(['lateBills']);
   });
 
   it('reports the fee month, year and search as filters that will not go in', () => {
@@ -473,18 +489,44 @@ describe('payments list', () => {
     expect(def.dataset.filters).toEqual([
       { field: 'payment_date', op: FilterOp.BETWEEN, value: { param: 'date_range' } },
       { field: 'method', op: FilterOp.EQ, value: 'BKASH' },
-      { field: 'is_reversal', op: FilterOp.EQ, value: false },
+      { field: 'is_reversed', op: FilterOp.EQ, value: false },
     ]);
-    expect(def.dataset.measures.map((m) => m.field)).toEqual(['collected', 'payments']);
+    // One row per payment, with the amount: the same rows as the list, no totals.
+    expect(def.dataset.measures).toEqual([]);
+    expect(def.dataset.dimensions.map((d) => d.field)).toEqual([
+      'payment_date',
+      'name',
+      'registration_number',
+      'method',
+      'reference',
+      'amount',
+    ]);
+    expect(def.dataset.sort).toEqual([
+      { field: 'payment_date', dir: 'desc' },
+      { field: 'paid_at', dir: 'desc' },
+    ]);
   });
 
-  it('says that payments the list hides because they were reversed are still counted', () => {
-    expect(planListReport({ kind: 'payments', filters: {} }).unmappedFilters).toEqual([
-      'reversedHidden',
+  it('hides reversed payments like the list, and shows them when the list does', () => {
+    const hidden = planListReport({ kind: 'payments', filters: {} });
+    expect(hidden.unmappedFilters).toEqual(['failedHidden']);
+    expect(hidden.build().dataset.filters).toEqual([
+      { field: 'is_reversed', op: FilterOp.EQ, value: false },
     ]);
     expect(
-      planListReport({ kind: 'payments', filters: { include_reversed: 'true' } }).unmappedFilters,
+      planListReport({ kind: 'payments', filters: { include_reversed: 'true' } }).build().dataset
+        .filters,
     ).toEqual([]);
+  });
+
+  it('follows the visible columns, and reports the status column as left out', () => {
+    const plan = planListReport({
+      kind: 'payments',
+      filters: { include_reversed: 'true' },
+      columns: ['date', 'amount', 'status'],
+    });
+    expect(plan.build().dataset.dimensions.map((d) => d.field)).toEqual(['payment_date', 'amount']);
+    expect(plan.unmappedColumns).toEqual(['status']);
   });
 
   it('fixes the dates when the prompt is off, and keeps reversals when the list does', () => {
@@ -495,12 +537,6 @@ describe('payments list', () => {
     expect(def.parameters).toEqual([]);
     expect(def.dataset.filters).toEqual([
       { field: 'payment_date', op: FilterOp.BETWEEN, value: ['2026-10-01', '2026-10-31'] },
-    ]);
-    expect(def.dataset.measures.map((m) => m.field)).toEqual([
-      'collected',
-      'reversed',
-      'net',
-      'payments',
     ]);
   });
 
@@ -519,8 +555,8 @@ describe('payments list', () => {
       kind: 'payments',
       filters: { search: 'r1', date_from: 'yesterday' },
     });
-    expect(plan.unmappedFilters).toEqual(['reversedHidden', 'search', 'date']);
-    expect(plan.unmappedColumns).toEqual(['student', 'reference']);
+    expect(plan.unmappedFilters).toEqual(['failedHidden', 'search', 'date']);
+    expect(plan.unmappedColumns).toEqual([]);
   });
 });
 

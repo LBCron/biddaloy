@@ -16,6 +16,7 @@ import { ALL_ENTITIES } from '@test/all-entities';
 import { startOfLocalDay, endOfLocalDay } from '../../../../../common/time';
 import type { TeacherScopeService } from '../../../../classes/teacher-scope.service';
 import { FeeDuesService } from '../../../../fees/fee-dues.service';
+import { PaymentsQueryService } from '../../../../fees/payments-query.service';
 import { Payment } from '../../../../fees/entities/payment.entity';
 import { StudentFee } from '../../../../fees/entities/student-fee.entity';
 import { Student } from '../../../../students/entities/student.entity';
@@ -125,6 +126,43 @@ describe('report areas: fees, payments, attendance (integration)', () => {
       const screen = await dues.getDues({}, tenantId);
       expect(Number(row.outstanding)).toBe(screen.total_due_sum);
       expect(Number(row.outstanding)).toBe(700 + 800); // (1000-250-50) + 800
+    });
+
+    it('lists one row per student with totals that equal the dues list rows', async () => {
+      const rows = await run(
+        definition(ReportSubjectArea.FEES, {
+          dimensions: [
+            { field: 'name' },
+            { field: 'registration_number' },
+            { field: 'roll_number' },
+          ],
+          measures: [
+            { field: 'billed', fn: AggregateFn.SUM },
+            { field: 'paid', fn: AggregateFn.SUM },
+            { field: 'outstanding', fn: AggregateFn.SUM },
+          ],
+          filters: [
+            { field: 'status', op: FilterOp.IN, value: ['PENDING', 'PARTIALLY_PAID', 'OVERDUE'] },
+          ],
+          sort: [{ field: 'name', dir: 'asc' }],
+        }),
+      );
+      const dues = new FeeDuesService(ds.getRepository(StudentFee), ds.getRepository(Student));
+      const screen = await dues.getDues({}, tenantId);
+      expect(rows.map((r) => [r.name, Number(r.outstanding)])).toEqual(
+        [...screen.data]
+          .map((r) => [r.full_name, r.total_due])
+          .sort((a, b) => (a[0]! < b[0]! ? -1 : 1)),
+      );
+      expect(rows.map((r) => [Number(r.billed), Number(r.paid)])).toEqual([
+        [1000, 250],
+        [800, 0],
+      ]);
+      // The dues list's student column carries the roll; so does the report.
+      const rolls = new Map(screen.data.map((r) => [r.full_name, r.roll_number]));
+      expect(rows.map((r) => [r.name, Number(r.roll_number)])).toEqual(
+        rows.map((r) => [r.name, Number(rolls.get(r.name as string))]),
+      );
     });
 
     it('charged and paid add up across all bills, open or closed', async () => {
@@ -266,6 +304,55 @@ describe('report areas: fees, payments, attendance (integration)', () => {
         }),
       );
       expect(Number(row.net)).toBe(1000);
+    });
+
+    it('lists one row per payment, like the payments list; only FAILED rows differ', async () => {
+      const rows = await run(
+        definition(ReportSubjectArea.PAYMENTS, {
+          dimensions: [{ field: 'name' }, { field: 'method' }, { field: 'amount' }],
+          filters: [{ field: 'is_reversed', op: FilterOp.EQ, value: false }],
+          sort: [{ field: 'amount', dir: 'asc' }],
+        }),
+      );
+      const list = await new PaymentsQueryService(ds.getRepository(Payment)).findAll(
+        { limit: 100 },
+        tenantId,
+      );
+      const key = (name: unknown, method: unknown, amount: unknown) =>
+        `${name}|${method}|${Number(amount)}`;
+      const engine = rows.map((r) => key(r.name, r.method, r.amount)).sort();
+      const screen = list.data
+        .filter((p) => p.payment_status !== 'FAILED')
+        .map((p) => key(p.student?.full_name, p.payment_method, p.total_amount))
+        .sort();
+      expect(engine).toEqual(screen);
+      expect(engine).toHaveLength(3); // B reversal 200, A bkash 300, A cash 500
+      // The one difference: the list also shows the FAILED 9999 payment, which moves no money.
+      expect(list.data.filter((p) => p.payment_status === 'FAILED')).toHaveLength(1);
+    });
+
+    it('keeps the payment of a deleted student but hides who they were, like the list', async () => {
+      await ds.query(`UPDATE students SET deleted_at = now() WHERE id = $1`, [studentB]);
+      const rows = await run(
+        definition(ReportSubjectArea.PAYMENTS, {
+          dimensions: [{ field: 'name' }, { field: 'registration_number' }, { field: 'amount' }],
+          filters: [{ field: 'is_reversed', op: FilterOp.EQ, value: false }],
+          sort: [{ field: 'amount', dir: 'asc' }],
+        }),
+      );
+      const list = await new PaymentsQueryService(ds.getRepository(Payment)).findAll(
+        { limit: 100 },
+        tenantId,
+      );
+      const bRow = rows.find((r) => Number(r.amount) === 200);
+      expect(bRow).toBeDefined(); // the money row stays
+      expect(bRow!.name ?? null).toBeNull();
+      expect(bRow!.registration_number ?? null).toBeNull();
+      // The list shows the same payment with no student.
+      expect(
+        list.data.find((p) => Number(p.total_amount) === 200 && !p.reversal_of_payment_id)
+          ?.student ?? null,
+      ).toBeNull();
     });
 
     it('shows who collected a payment, which needs a financial permission', async () => {

@@ -17,9 +17,10 @@
  * Two things the registry forces (server/src/modules/reports/engine/registry/areas/*.area.ts):
  *
  * - `class`, `section` and `academic_year` are **text** fields, so a list's ids become names.
- * - Money fields are measures, and a measure cannot sit beside a person's name (`name` is not
- *   groupable). So the dues and payments lists become *totals* (per class and section, per day
- *   and method), not one row per student or payment. The student column is reported as unmapped.
+ * - Money is a measure when it is a total, and a measure needs groupable dimensions. The dues list
+ *   is one row per student, so it groups by the student (name and registration number) and sums
+ *   their open bills. The payments list is one row per payment, so it uses the row-level
+ *   `amount` field of the PAYMENTS area, no totals at all.
  *
  * Answers to "ask when running" prompts use what the prompts component reads: an academic year is
  * the year's **name** (no default, so a run picks the current year and the report never goes
@@ -69,6 +70,8 @@ export interface ListReportPlan {
   unmappedFilters: string[];
   /** Keys of `saveAsReport.parts.*`: list columns that have no report field. */
   unmappedColumns: string[];
+  /** Keys of `saveAsReport.notes.*`: filters that do go in, but pick rows differently from the list. */
+  notes: string[];
   /** What the suggested name is made of: the class (and section) and the area. */
   name: {
     scope: string | undefined;
@@ -125,6 +128,15 @@ const STUDENT_COLUMN_FIELDS: Record<string, string[]> = {
 };
 /** Shown when every column is hidden (or none is known). */
 const STUDENT_DEFAULT_COLUMNS = ['name', 'class', 'status'];
+
+/** Payments list column to the PAYMENTS fields that show it. */
+const PAYMENT_COLUMN_FIELDS: Record<string, string[]> = {
+  date: ['payment_date'],
+  student: ['name', 'registration_number'],
+  method: ['method'],
+  reference: ['reference'],
+  amount: ['amount'],
+};
 
 /** Dues list columns that become totals. */
 const DUES_COLUMN_MEASURES: Record<string, string> = {
@@ -280,6 +292,7 @@ function planStudents(input: ListToDefinitionInput): ListReportPlan {
     prompts,
     unmappedFilters,
     unmappedColumns,
+    notes: [],
     name: { scope: scopeOf(input.names), area: 'students' },
     build(ask, title = { en: 'Students', bn: 'শিক্ষার্থী' }) {
       const def = emptyDefinition(ReportSubjectArea.STUDENTS, title);
@@ -311,6 +324,7 @@ function planDues(input: ListToDefinitionInput): ListReportPlan {
   const { filters } = input;
   const unmappedFilters: string[] = [];
   const unmappedColumns: string[] = [];
+  const notes: string[] = [];
   const fixed: ReportFilter[] = [...classAndSection(input, unmappedFilters)];
 
   const late = value(filters, 'flagged') === 'true';
@@ -332,21 +346,28 @@ function planDues(input: ListToDefinitionInput): ListReportPlan {
     if (FEE_TYPES.includes(feeType)) fixed.push(eq('fee_type', feeType));
     else unmappedFilters.push('feeType');
   }
+  // The list picks students (by status/fee type, or by a bill past its reminder date) and totals
+  // all their open bills; the report filters bills, so a student's other open bills drop out of
+  // the totals. The filter still applies, so this is a note, not "left out".
+  // ponytail: needs student-level selection in the report engine to match exactly (#3506).
+  if (late) notes.push('lateBills');
+  if (fixed.some((f) => (f.field === 'fee_type' || f.field === 'status') && f.op === FilterOp.EQ)) {
+    notes.push('billLevel');
+  }
   // Fee period (month and year of the bill) and the search text have no field in the report.
   if (value(filters, 'month')) unmappedFilters.push('month');
   if (value(filters, 'year')) unmappedFilters.push('year');
   if (value(filters, 'search')) unmappedFilters.push('search');
 
-  // One row per student cannot carry money (see the header), so it becomes totals per class.
-  unmappedColumns.push('student');
+  // The list is one row per student: group by the student and add up their open bills.
   const measures: string[] = [];
-  let withStatus = false;
   for (const column of input.columns ?? []) {
     const measure = DUES_COLUMN_MEASURES[column];
     if (measure) {
       if (!measures.includes(measure)) measures.push(measure);
     } else if (column === 'status') {
-      withStatus = true;
+      // The list's status is worked out per student; the area only knows the status of each bill.
+      unmappedColumns.push('status');
     } else if (UNMAPPED_COLUMN_PART[column]) {
       unmappedColumns.push(UNMAPPED_COLUMN_PART[column]);
     }
@@ -358,10 +379,12 @@ function planDues(input: ListToDefinitionInput): ListReportPlan {
     prompts: [],
     unmappedFilters,
     unmappedColumns,
+    notes,
     name: { scope: scopeOf(input.names), area: late ? 'duesLate' : 'dues' },
     build(_ask, title = { en: 'Dues', bn: 'বকেয়া' }) {
       const def = emptyDefinition(ReportSubjectArea.FEES, title);
-      const dimensions = ['class', 'section', ...(withStatus ? ['status'] : [])];
+      // The list's student column carries the roll too.
+      const dimensions = ['class', 'section', 'name', 'registration_number', 'roll_number'];
       def.dataset.dimensions = dimensions.map((field) => ({ field }));
       def.dataset.measures = measures.map((field) => ({ field, fn: AggregateFn.SUM }));
       def.dataset.filters = fixed;
@@ -380,6 +403,7 @@ function planDues(input: ListToDefinitionInput): ListReportPlan {
 function planPayments(input: ListToDefinitionInput): ListReportPlan {
   const { filters } = input;
   const unmappedFilters: string[] = [];
+  const unmappedColumns: string[] = [];
   const fixed: ReportFilter[] = [];
 
   const method = value(filters, 'payment_method');
@@ -388,13 +412,9 @@ function planPayments(input: ListToDefinitionInput): ListReportPlan {
     else unmappedFilters.push('method');
   }
   const includeReversed = value(filters, 'include_reversed') === 'true';
-  if (!includeReversed) {
-    // The list hides payments that were later reversed (`reversed_by_payment_id`); the area has no
-    // field for that, so the report still counts them. Leaving out the reversal rows themselves
-    // changes no total (every money measure skips them) but drops days that hold only reversals.
-    fixed.push({ field: 'is_reversal', op: FilterOp.EQ, value: false });
-    unmappedFilters.push('reversedHidden');
-  }
+  // The list hides a payment that was later reversed; the reversal row itself stays, as in the list.
+  unmappedFilters.push('failedHidden');
+  if (!includeReversed) fixed.push({ field: 'is_reversed', op: FilterOp.EQ, value: false });
   if (value(filters, 'search')) unmappedFilters.push('search');
 
   let from = value(filters, 'date_from');
@@ -414,17 +434,25 @@ function planPayments(input: ListToDefinitionInput): ListReportPlan {
     : [];
   const openEnded = !range ? dateRangeFilter('payment_date', from, to) : undefined;
 
-  const measures = includeReversed
-    ? ['collected', 'reversed', 'net', 'payments']
-    : ['collected', 'payments'];
+  // Visible columns, in list order, each field once (the list's own columns: date, student, method,
+  // reference, amount; `status` only shows with "include reversed" and has no field).
+  const fields: string[] = [];
+  for (const column of input.columns ?? []) {
+    const mapped = PAYMENT_COLUMN_FIELDS[column];
+    if (mapped) {
+      for (const f of mapped) if (!fields.includes(f)) fields.push(f);
+    } else if (column === 'status') {
+      unmappedColumns.push('status');
+    }
+  }
+  const dimensions = fields.length > 0 ? fields : Object.values(PAYMENT_COLUMN_FIELDS).flat();
 
   return {
     kind: 'payments',
     prompts,
     unmappedFilters,
-    // One row per payment cannot carry the amount (see the header): the student and the
-    // reference are not in the totals.
-    unmappedColumns: ['student', 'reference'],
+    unmappedColumns,
+    notes: [],
     name: { scope: undefined, area: 'payments' },
     build(ask, title = { en: 'Payments', bn: 'জমা' }) {
       const def = emptyDefinition(ReportSubjectArea.PAYMENTS, title);
@@ -447,14 +475,14 @@ function planPayments(input: ListToDefinitionInput): ListReportPlan {
       } else if (openEnded) {
         dates.push(openEnded);
       }
-      def.dataset.dimensions = [{ field: 'payment_date' }, { field: 'method' }];
-      def.dataset.measures = measures.map((field) => ({ field, fn: AggregateFn.SUM }));
+      def.dataset.dimensions = dimensions.map((field) => ({ field }));
       def.dataset.filters = [...dates, ...fixed];
+      // Newest first, like the list.
       def.dataset.sort = [
-        { field: 'payment_date', dir: 'asc' },
-        { field: 'method', dir: 'asc' },
+        { field: 'payment_date', dir: 'desc' },
+        { field: 'paid_at', dir: 'desc' },
       ];
-      def.layout = { type: ReportLayoutType.TABLE, totals: true };
+      def.layout = { type: ReportLayoutType.TABLE };
       return def;
     },
   };

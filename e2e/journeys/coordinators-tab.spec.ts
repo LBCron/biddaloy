@@ -39,7 +39,7 @@ test.describe('admin: coordinators', () => {
       name: t('teacherAssignments.fields.coordinatorClasses'),
     });
     for (let pick = 0; pick < 2; pick += 1) {
-      await classes.click();
+      await classes.press('ArrowDown'); // opens the list whether or not it is already open
       // The last option not yet ticked: two different classes, away from the ones the seed assigns.
       await page.getByRole('option', { selected: false }).last().click({ force: true });
     }
