@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { AggregateFn, FieldSensitivity, UserRole } from '@biddaloy/shared';
+import { AggregateFn, FieldSensitivity, UserRole, roleHasPermission } from '@biddaloy/shared';
 import { TeacherScopeService } from '../../../classes/teacher-scope.service';
 import type { FieldDef, MeasureDef, SubjectAreaDef } from '../registry/registry.types';
 import { roleMaySee } from './sensitivity-permissions';
@@ -44,6 +44,9 @@ export class RoleScopePolicy {
 
   async scopeFor(ctx: ReportRunContext, area: SubjectAreaDef): Promise<ScopeClause[]> {
     if (ctx.role === UserRole.PARENT || ctx.role === UserRole.STUDENT) {
+      throw new ReportAccessDeniedError();
+    }
+    if (area.permission && !roleHasPermission(ctx.role, area.permission)) {
       throw new ReportAccessDeniedError();
     }
     const sections = await this.teacherScope.sectionScope({

@@ -114,5 +114,8 @@ export const ReportSubjectArea = {
   FEES: 'FEES',
   PAYMENTS: 'PAYMENTS',
   ATTENDANCE: 'ATTENDANCE',
+  FINAL_RESULTS: 'FINAL_RESULTS',
+  PROGRAMS: 'PROGRAMS',
+  APPLICATIONS: 'APPLICATIONS',
 } as const;
 export type ReportSubjectArea = (typeof ReportSubjectArea)[keyof typeof ReportSubjectArea];

@@ -86,14 +86,19 @@ flowchart TB
 
 ## 5. Subject areas
 
-| Area           | Root entity                  | Joins                                    | Owner ticket |
-| -------------- | ---------------------------- | ---------------------------------------- | ------------ |
-| `STUDENTS`     | `students`                   | enrolments, sections, classes, guardians | 8.15.20      |
-| `STAFF`        | `staff_profiles`             | designations, users                      | 8.15.20      |
-| `PUBLIC_EXAMS` | public exam results          | students, classes                        | 8.15.20      |
-| `FEES`         | `student_fees`               | students, fee structures, invoices       | 8.15.21      |
-| `PAYMENTS`     | `payments`                   | allocations, students, collectors        | 8.15.21      |
-| `ATTENDANCE`   | attendance records (summary) | students, sections                       | 8.15.21      |
+| Area            | Root entity                            | Joins                                             | Owner ticket |
+| --------------- | -------------------------------------- | ------------------------------------------------- | ------------ |
+| `STUDENTS`      | `students`                             | enrolments, sections, classes, guardians          | 8.15.20      |
+| `STAFF`         | `staff_profiles`                       | designations, users                               | 8.15.20      |
+| `PUBLIC_EXAMS`  | public exam results                    | students, classes                                 | 8.15.20      |
+| `FEES`          | `student_fees`                         | students, fee structures, invoices                | 8.15.21      |
+| `PAYMENTS`      | `payments`                             | allocations, students, collectors                 | 8.15.21      |
+| `ATTENDANCE`    | attendance records (summary)           | students, sections                                | 8.15.21      |
+| `FINAL_RESULTS` | `final_result_rows` (published only)   | students, final results, sections, classes, years | #3523        |
+| `PROGRAMS`      | `program_enrollments`                  | students, programs, sections, classes             | #3523        |
+| `APPLICATIONS`  | `applications` (no letter, no payload) | students, sections, classes                       | #3523        |
+
+An area may name a `permission` (the screen's own): `FINAL_RESULTS` needs `RESULT_READ`, `PROGRAMS` `PROGRAM_READ`, `APPLICATIONS` `APPLICATION_MANAGE`. A role without it gets the usual 403. A TEACHER is narrowed to assigned sections; an application about a staff member has no section, so a teacher never sees it.
 
 ## 6. Field sensitivity
 

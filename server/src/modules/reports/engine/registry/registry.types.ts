@@ -1,6 +1,7 @@
 import type {
   AggregateFn,
   FieldSensitivity,
+  Permission,
   ReportFieldType,
   ReportSubjectArea,
 } from '@biddaloy/shared';
@@ -97,6 +98,11 @@ export interface SubjectAreaDef {
   measures: readonly MeasureDef[];
   /** Absent when rows have no section (staff): a TEACHER cannot run reports on such an area. */
   scope?: AreaScopeDef;
+  /**
+   * The permission the matching screen needs. A role without it cannot run a report on this area,
+   * so a report never shows what the screen would hide (e.g. applications need APPLICATION_MANAGE).
+   */
+  permission?: Permission;
   /**
    * Predicates (aliases only) that are always part of the area, because they define what one row
    * of it IS: e.g. payments counts a payment only when it succeeded or is part of a reversal,

@@ -245,4 +245,81 @@ export class ReportAreaFixture {
       ],
     );
   }
+  /** One published (or draft) final result for a class; returns `{ finalId, scaleId }`. */
+  async finalResult(
+    tenantId: string,
+    yearId: string,
+    classId: string,
+    status: 'PUBLISHED' | 'DRAFT' = 'PUBLISHED',
+  ): Promise<{ finalId: string; scaleId: string }> {
+    const scaleId = await this.one(
+      `INSERT INTO grading_scales (tenant_id, academic_year_id, class_id, name) VALUES ($1, $2, $3, 'Scale') RETURNING id`,
+      [tenantId, yearId, classId],
+    );
+    const finalId = await this.one(
+      `INSERT INTO final_results (tenant_id, class_id, academic_year_id, status, published_at)
+       VALUES ($1, $2, $3, $4::final_results_status_enum, CASE WHEN $4::text = 'PUBLISHED' THEN now() END) RETURNING id`,
+      [tenantId, classId, yearId, status],
+    );
+    return { finalId, scaleId };
+  }
+
+  finalResultRow(
+    tenantId: string,
+    f: { finalId: string; scaleId: string },
+    studentId: string,
+    sectionId: string,
+    opts: { gpa: number; grade: string; total: number; published?: boolean; fail?: boolean },
+  ): Promise<unknown> {
+    return this.ds.query(
+      `INSERT INTO final_result_rows (tenant_id, final_result_id, student_id, total_marks, gpa, grade, section_id,
+         is_fail, grading_scale_id, grading_scale_revision, rule_version, computed_at, published_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 1, 'v1', now(), CASE WHEN $10 THEN now() END)`,
+      [
+        tenantId,
+        f.finalId,
+        studentId,
+        opts.total,
+        opts.gpa,
+        opts.grade,
+        sectionId,
+        opts.fail ?? false,
+        f.scaleId,
+        opts.published ?? true,
+      ],
+    );
+  }
+
+  /** A program with one enrolment per given student; returns the program id. */
+  async program(
+    tenantId: string,
+    name: string,
+    enrolled: Array<{ studentId: string; status?: string }>,
+  ): Promise<string> {
+    const programId = await this.one(
+      `INSERT INTO programs (tenant_id, name) VALUES ($1, $2) RETURNING id`,
+      [tenantId, name],
+    );
+    for (const e of enrolled) {
+      await this.ds.query(
+        `INSERT INTO program_enrollments (tenant_id, program_id, student_id, started_on, status)
+         VALUES ($1, $2, $3, '2026-01-01', $4)`,
+        [tenantId, programId, e.studentId, e.status ?? 'ACTIVE'],
+      );
+    }
+    return programId;
+  }
+
+  application(
+    tenantId: string,
+    serialNo: number,
+    opts: { studentId: string; type: string; status: string },
+  ): Promise<unknown> {
+    return this.ds.query(
+      `INSERT INTO applications (tenant_id, type, status, serial_year, serial_no, subject_student_id,
+         applicant_name, source, letter_text, letter_locale)
+       VALUES ($1, $2, $3, 2026, $4, $5, 'Parent', 'PAPER', 'secret medical reason', 'en')`,
+      [tenantId, opts.type, opts.status, serialNo, opts.studentId],
+    );
+  }
 }
