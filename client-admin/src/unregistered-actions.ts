@@ -37,14 +37,14 @@ export const UNREGISTERED_ACTIONS: readonly UnregisteredAction[] = [
     owningEpic: '53.0',
     note: 'copy (কপি), withdraw (প্রত্যাহার) and public-link-off (পাবলিক লিংক বন্ধ) need palette notice-context plumbing; follow-up',
   },
-  {
-    file: `${R}_staff/my-class/$sectionId_.notes.tsx`,
-    owningEpic: '70.0',
-    note: 'Remarks and conduct screen (#3418); #3421 registers the `my-class.notes` palette action and removes this entry',
-  },
 ];
 
 export const PALETTE_ALLOW_LIST: readonly PaletteAllowListEntry[] = [
+  {
+    file: `${R}_staff/results/final/-sms-dialog.tsx`,
+    reason:
+      'acts on one published final result, opened from its detail header; `final-result.open` lands on the list it is reached from',
+  },
   {
     file: `${R}_staff/communications/message-log/-row-detail.tsx`,
     reason:

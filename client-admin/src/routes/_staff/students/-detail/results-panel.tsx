@@ -10,6 +10,7 @@
  * Mounted as a tab the same way [19.6.1]'s `SubjectChoicesPanel` is
  * (`$studentId.tsx`).
  */
+import { Permission } from '@biddaloy/shared';
 import {
   DataTable,
   ErrorState,
@@ -19,12 +20,14 @@ import {
 } from '@biddaloy/ui/components';
 import {
   useFinalResults,
+  useHasPermission,
   useStudentEnrollments,
   useStudentFinalCard,
   useStudentResults,
 } from '@biddaloy/ui/hooks';
 import { useRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { formatNumber } from '@biddaloy/ui/utils';
+import { Link } from '@tanstack/react-router';
 import { AwardIcon } from 'lucide-react';
 
 export interface ResultsPanelProps {
@@ -35,13 +38,14 @@ export interface ResultsPanelProps {
  * [70.5.x] One year's final result of this student, shown above the per-exam rows. The server
  * decides what staff may see (PUBLISHED, or PROCESSED for those who may process); a year with
  * no visible final answers 404 and the row renders nothing.
- * ponytail: no link to the final card, `/results/final/...` has no route yet.
+ * Links to the final result's own page (#3421) for anyone who can read it.
  */
 function FinalResultRow({ studentId, yearId }: { studentId: string; yearId: string }) {
   const { t } = useTranslation('exams');
   const regionConfig = useRegionConfig();
   const card = useStudentFinalCard(studentId, yearId);
   const finals = useFinalResults(yearId);
+  const canOpen = useHasPermission(Permission.RESULT_READ);
   if (!card.data) return null;
   const status = finals.data?.find((f) => f.final_result_id === card.data.final_result_id)?.status;
   const { final: result, academic_year_name } = card.data;
@@ -77,6 +81,15 @@ function FinalResultRow({ studentId, yearId }: { studentId: string; yearId: stri
           </dd>
         </div>
       </dl>
+      {canOpen && (
+        <Link
+          to="/results/final/$finalResultId"
+          params={{ finalResultId: card.data.final_result_id }}
+          className="mt-3 inline-block font-medium underline underline-offset-2"
+        >
+          {t('studentResultsPanel.openFinal')}
+        </Link>
+      )}
     </section>
   );
 }

@@ -199,6 +199,7 @@
     "loadError": "Couldn't load results.",
     "empty": "No results yet for this student.",
     "finalTitle": "Final result {{year}}",
+    "openFinal": "Open the final result",
     "caption": "Every exam this student has a result for",
     "columnExam": "Exam",
     "columnGrade": "Grade",
@@ -337,7 +338,9 @@
     "presentDays": "Days present",
     "remarkLabel": "Class teacher's remark",
     "conductLabel": "Conduct",
-    "noGrade": "—"
+    "noGrade": "—",
+    "attendance": "Attendance",
+    "guardian": "Guardian"
   },
   "analysis": {
     "tabs": {
@@ -494,7 +497,8 @@
       "save": "Save",
       "saved": "Saved.",
       "saveError": "Couldn't save. Try again.",
-      "locked": "The result is published, so it cannot be changed now. Reopen it first."
+      "locked": "The result is published, so it cannot be changed now. Reopen it first.",
+      "subjectShareError": "Each subject's shares must total 100."
     },
     "rules": {
       "rounding": {
@@ -523,13 +527,14 @@
       "build": "Build results",
       "publish": "Publish",
       "reopen": "Reopen",
-      "sendSms": "Send SMS"
+      "sendSms": "Send SMS",
+      "rebuild": "Build again"
     },
     "buildDialog": {
       "title": "Build the final results?",
       "description": "Each student's final result is worked out from the published exams.",
       "confirm": "Build results",
-      "done": "Results built for {{count}} students.",
+      "done": "Results built for {{n}} students.",
       "errorMessage": "Couldn't build the final results."
     },
     "publishDialog": {
@@ -551,7 +556,7 @@
       "name": "Final result {{year}}",
       "disabledUnpublished": "Publish the result before sending SMS.",
       "send": "Send",
-      "sent": "Sent to {{count}} guardians.",
+      "sent": "Sent to {{n}} guardians.",
       "errorMessage": "Couldn't send the SMS."
     },
     "results": {
@@ -569,7 +574,32 @@
       "absent": "Absent",
       "fail": "Failed",
       "emptyBuilt": "Results appear here once you build them.",
-      "loadError": "Couldn't load the results."
+      "loadError": "Couldn't load the results.",
+      "noRows": "No students found",
+      "noRowsHint": "Change the section or the search.",
+      "searchNote": "Searching only the {{shown}} students on this page. Pick a section to narrow the list."
+    },
+    "detail": {
+      "loadError": "Couldn't load this final result.",
+      "facts": {
+        "class": "Class",
+        "academicYear": "Academic year",
+        "students": "Students",
+        "failed": "Failed",
+        "publishedAt": "Published on"
+      }
+    },
+    "print": {
+      "studentLabel": "Student",
+      "printAll": "Print all cards",
+      "tabulation": "Tabulation sheet",
+      "notBuilt": "Build the results first, then you can print the cards.",
+      "noStudents": "No students in this section.",
+      "loadError": "Couldn't load the cards. Try again.",
+      "noStudentsHint": "Choose another section.",
+      "cappedNote": "Showing the first {{shown}} of {{total}} students. Print the rest one section at a time.",
+      "someFailed": "{{n}} cards couldn't load. They are marked on the printout. Print again to retry.",
+      "cardFailed": "card couldn't load"
     }
   }
 }
