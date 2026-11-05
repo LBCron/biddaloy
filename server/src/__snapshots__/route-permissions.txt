@@ -685,6 +685,7 @@ POST /reports/definitions/:id/clone | ReportDefinitionsController | perm: REPORT
 POST /reports/definitions/:id/publish | ReportDefinitionsController | perm: REPORTS_DESIGN
 POST /reports/definitions/:id/schedules | ReportDeliveryController | perm: REPORTS_DESIGN
 POST /reports/run | ReportRunsController | perm: REPORTS_VIEW
+POST /reports/run/branches | ReportRunsController | perm: REPORTS_VIEW
 POST /reports/runs/:id/feedback | ReportRunsController | perm: REPORTS_VIEW
 POST /reports/runs/:id/snapshot | ReportDeliveryController | perm: REPORTS_EXPORT
 POST /reports/runs/export | ReportRunsController | perm: REPORTS_EXPORT

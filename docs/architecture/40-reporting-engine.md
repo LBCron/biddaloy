@@ -100,6 +100,32 @@ flowchart TB
 
 An area may name a `permission` (the screen's own): `FINAL_RESULTS` needs `RESULT_READ`, `PROGRAMS` `PROGRAM_READ`, `APPLICATIONS` `APPLICATION_MANAGE`. A role without it gets the usual 403. A TEACHER is narrowed to assigned sections; an application about a staff member has no section, so a teacher never sees it.
 
+### 5.1 Counts across branches (D13, #3516)
+
+A branch is a school (tenant). A person who belongs to several has one membership per branch in their
+login token. `POST /reports/run/branches { definitionId }` runs one saved report in each of them and
+adds the counts. No query is ever widened: each branch runs through the normal runner as its own
+school, with the person's role **in that branch**.
+
+```mermaid
+flowchart LR
+  R["POST /reports/run/branches"] --> C{"report in this school's<br/>catalogue and counts only?"}
+  C -- no --> N["404 / 422 (one fixed sentence)"]
+  C -- yes --> L["for each membership in the token"]
+  L --> F{"active school, role may open reports,<br/>report visible to that role?"}
+  F -- no --> S["left out, no word said"]
+  F -- yes --> Q["runner as that school and that role<br/>(row scope, masking, small counts apply)"]
+  Q --> T["rows per branch + totals<br/>(hidden cell hides the total)"]
+```
+
+Example: Rahim is ADMIN in High School (6 students) and TEACHER in the College branch with no section
+(0 visible). Totals: 6. A school he does not belong to is never read, and never mentioned.
+
+Rules: counts only (no sum or average adds up across schools); no questions (a class or year id belongs
+to one school); a count hidden from a COMMITTEE member in one branch leaves that total empty, because
+total minus the visible cells would give the number back; one `report_runs` row is written in the school
+the request came from (D8). Needs `REPORTS_VIEW`.
+
 ## 6. Field sensitivity
 
 Every registry field carries one level. The runner hides a field the caller's role may not see, even if a definition lists it (D5).

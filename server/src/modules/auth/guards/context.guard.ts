@@ -68,7 +68,7 @@ function isPlatformSuperAdmin(
  * in the tenant, that role is used. If multiple, the highest-priority role
  * wins unless the client explicitly sends X-Role.
  */
-function resolveRole(
+export function resolveRole(
   memberships: JwtMembership[],
   tenantId: string,
   explicitRole: string | undefined,

@@ -5398,6 +5398,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/run/branches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run a saved counts-only report in every branch you belong to and add the counts up (D13). Branches you may not see are left out. */
+        post: operations["ReportRunsController_runInBranches_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/runs/export": {
         parameters: {
             query?: never;
@@ -15218,7 +15235,7 @@ export interface components {
             /** @example 1 */
             schema: number;
             /** @enum {string} */
-            subjectArea: "STUDENTS" | "STAFF" | "PUBLIC_EXAMS" | "FEES" | "PAYMENTS" | "ATTENDANCE";
+            subjectArea: "STUDENTS" | "STAFF" | "PUBLIC_EXAMS" | "FEES" | "PAYMENTS" | "ATTENDANCE" | "FINAL_RESULTS" | "PROGRAMS" | "APPLICATIONS";
             parameters: {
                 [key: string]: unknown;
             }[];
@@ -15305,6 +15322,37 @@ export interface components {
                 [key: string]: unknown;
             };
             page?: number;
+        };
+        BranchCountsDto: {
+            /**
+             * Format: uuid
+             * @description A saved report of this school. It must hold counts only, no questions, and is run in each branch you belong to.
+             */
+            definitionId: string;
+        };
+        BranchCountsBranchDto: {
+            /** Format: uuid */
+            branch_id: string;
+            branch_name: string;
+            rows: {
+                [key: string]: unknown;
+            }[];
+            masked: string[];
+            suppressed: boolean;
+            truncated: boolean;
+        };
+        BranchCountsResultDto: {
+            columns: {
+                [key: string]: unknown;
+            }[];
+            branches: components["schemas"]["BranchCountsBranchDto"][];
+            /** @description The branches added together, row by row. A count a branch hid (under 5, for a committee member) leaves the total empty. */
+            totals: {
+                [key: string]: unknown;
+            }[];
+            suppressed: boolean;
+            /** @description True when any branch had more rows than a preview shows. */
+            truncated: boolean;
         };
         ExportRunDto: {
             /** Format: uuid */
@@ -32626,6 +32674,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": Record<string, never>;
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReportRunsController_runInBranches_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BranchCountsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BranchCountsResultDto"];
                 };
             };
             /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */

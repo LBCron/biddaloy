@@ -37,6 +37,8 @@ import { ContextGuard, RolesGuard } from '../auth/guards/context.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { StorageService } from '../storage/storage.service';
 import {
+  BranchCountsDto,
+  BranchCountsResultDto,
   ExportRunDto,
   QueuedExportDto,
   ReportRunStatusDto,
@@ -45,6 +47,7 @@ import {
 } from './dto/report-engine.dto';
 import { DEFINITION_SOURCE } from './engine/runner/definition-row-source';
 import { ReportRunnerService, type ReportRunResult } from './engine/runner/report-runner.service';
+import { CrossBranchCountsService } from './cross-branch-counts.service';
 import { ReportDefinitionsService } from './definitions/report-definitions.service';
 import { ReportRun } from './entities/report-run.entity';
 import { ExportTooLargeError, ReportExportService } from './export/report-export.service';
@@ -80,6 +83,7 @@ export class ReportRunsController {
     private readonly queue: ReportExportQueue,
     private readonly sources: ReportRowSourceRegistry,
     private readonly storage: StorageService,
+    private readonly branchCounts: CrossBranchCountsService,
     @InjectRepository(ReportRun) private readonly runs: Repository<ReportRun>,
   ) {}
 
@@ -110,6 +114,22 @@ export class ReportRunsController {
     if (!dto.definitionId) throw new NotFoundException('Report not found');
     const versionId = await this.visibleVersion(tenant, user, dto.definitionId);
     return this.runner.run({ ctx, versionId, params: dto.params, mode: 'RUN', page: dto.page });
+  }
+
+  @Post('run/branches')
+  @HttpCode(200)
+  @RequirePermissions(Permission.REPORTS_VIEW)
+  @ApiOperation({
+    summary:
+      'Run a saved counts-only report in every branch you belong to and add the counts up (D13). Branches you may not see are left out.',
+  })
+  @ApiOkResponse({ type: BranchCountsResultDto })
+  runInBranches(
+    @Body() dto: BranchCountsDto,
+    @CurrentTenant() tenant: Tenant,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<BranchCountsResultDto> {
+    return this.branchCounts.run({ tenant, user, definitionId: dto.definitionId });
   }
 
   @Post('runs/export')
