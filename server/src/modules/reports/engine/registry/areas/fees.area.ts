@@ -123,6 +123,14 @@ export const feesArea: SubjectAreaDef = {
       { en: 'Registration no.', bn: 'রেজিস্ট্রেশন নম্বর' },
       { sensitivity: S.PERSONAL, groupable: true },
     ),
+    field(
+      'roll_number',
+      T.NUMBER,
+      's.roll_number',
+      's',
+      { en: 'Roll', bn: 'রোল' },
+      { sensitivity: S.PERSONAL, groupable: true },
+    ),
     field('class', T.TEXT, 'c.name', 'c', { en: 'Class', bn: 'শ্রেণি' }),
     field('section', T.TEXT, 'cs.section_name', 'cs', { en: 'Section', bn: 'শাখা' }),
     field(

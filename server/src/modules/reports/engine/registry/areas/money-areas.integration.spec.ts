@@ -131,7 +131,11 @@ describe('report areas: fees, payments, attendance (integration)', () => {
     it('lists one row per student with totals that equal the dues list rows', async () => {
       const rows = await run(
         definition(ReportSubjectArea.FEES, {
-          dimensions: [{ field: 'name' }, { field: 'registration_number' }],
+          dimensions: [
+            { field: 'name' },
+            { field: 'registration_number' },
+            { field: 'roll_number' },
+          ],
           measures: [
             { field: 'billed', fn: AggregateFn.SUM },
             { field: 'paid', fn: AggregateFn.SUM },
@@ -154,6 +158,11 @@ describe('report areas: fees, payments, attendance (integration)', () => {
         [1000, 250],
         [800, 0],
       ]);
+      // The dues list's student column carries the roll; so does the report.
+      const rolls = new Map(screen.data.map((r) => [r.full_name, r.roll_number]));
+      expect(rows.map((r) => [r.name, Number(r.roll_number)])).toEqual(
+        rows.map((r) => [r.name, Number(rolls.get(r.name as string))]),
+      );
     });
 
     it('charged and paid add up across all bills, open or closed', async () => {
@@ -320,6 +329,30 @@ describe('report areas: fees, payments, attendance (integration)', () => {
       expect(engine).toHaveLength(3); // B reversal 200, A bkash 300, A cash 500
       // The one difference: the list also shows the FAILED 9999 payment, which moves no money.
       expect(list.data.filter((p) => p.payment_status === 'FAILED')).toHaveLength(1);
+    });
+
+    it('keeps the payment of a deleted student but hides who they were, like the list', async () => {
+      await ds.query(`UPDATE students SET deleted_at = now() WHERE id = $1`, [studentB]);
+      const rows = await run(
+        definition(ReportSubjectArea.PAYMENTS, {
+          dimensions: [{ field: 'name' }, { field: 'registration_number' }, { field: 'amount' }],
+          filters: [{ field: 'is_reversed', op: FilterOp.EQ, value: false }],
+          sort: [{ field: 'amount', dir: 'asc' }],
+        }),
+      );
+      const list = await new PaymentsQueryService(ds.getRepository(Payment)).findAll(
+        { limit: 100 },
+        tenantId,
+      );
+      const bRow = rows.find((r) => Number(r.amount) === 200);
+      expect(bRow).toBeDefined(); // the money row stays
+      expect(bRow!.name ?? null).toBeNull();
+      expect(bRow!.registration_number ?? null).toBeNull();
+      // The list shows the same payment with no student.
+      expect(
+        list.data.find((p) => Number(p.total_amount) === 200 && !p.reversal_of_payment_id)
+          ?.student ?? null,
+      ).toBeNull();
     });
 
     it('shows who collected a payment, which needs a financial permission', async () => {

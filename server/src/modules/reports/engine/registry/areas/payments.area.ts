@@ -13,7 +13,8 @@ const NOT_REVERSAL = 'p.reversal_of_payment_id IS NULL';
  * [8.15.21] Payments, one row per payment row (a reversal is its own positive row that subtracts,
  * the convention of the payments list and the collections report). `baseWhere` is the collections
  * report's own rule for what counts: a payment that succeeded, or is one side of a reversal.
- * A student who was later deleted still shows: money is never hidden. The report author can filter
+ * A student who was later deleted: the payment still shows (money is never hidden) but the student's
+ * name and registration number come out empty, as on the payments list. The report author can filter
  * out reversals with `is_reversal`, or hide the originals that were later taken back with
  * `is_reversed` (what the payments list does by default); it is never decided here.
  */
@@ -30,7 +31,8 @@ export const paymentsArea: SubjectAreaDef = {
     "(p.payment_status = 'SUCCESS' OR p.reversal_of_payment_id IS NOT NULL OR p.reversed_by_payment_id IS NOT NULL)",
   ],
   joins: [
-    // No soft-delete rule on the student: a payment of a removed student is still a payment.
+    // No soft-delete rule on the join: a payment of a removed student is still a payment; the name
+    // and registration fields below hide who it was.
     {
       from: 'p',
       to: { alias: 's', table: 'students', tenantColumn: 'tenant_id' },
@@ -94,7 +96,7 @@ export const paymentsArea: SubjectAreaDef = {
     field(
       'name',
       T.TEXT,
-      's.full_name',
+      'CASE WHEN s.deleted_at IS NULL THEN s.full_name END',
       's',
       { en: 'Student name', bn: 'শিক্ষার্থীর নাম' },
       { sensitivity: S.PERSONAL, groupable: false },
@@ -102,7 +104,7 @@ export const paymentsArea: SubjectAreaDef = {
     field(
       'registration_number',
       T.TEXT,
-      's.registration_number',
+      'CASE WHEN s.deleted_at IS NULL THEN s.registration_number END',
       's',
       { en: 'Registration no.', bn: 'রেজিস্ট্রেশন নম্বর' },
       { sensitivity: S.PERSONAL, groupable: false },

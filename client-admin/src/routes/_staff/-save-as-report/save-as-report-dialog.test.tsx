@@ -418,6 +418,7 @@ describe('dues list', () => {
       'section',
       'name',
       'registration_number',
+      'roll_number',
     ]);
     expect(def.dataset.measures.map((m) => m.field)).toEqual(['outstanding']);
     expect(def.dataset.filters).toEqual([

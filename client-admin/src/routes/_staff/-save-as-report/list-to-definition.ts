@@ -383,7 +383,8 @@ function planDues(input: ListToDefinitionInput): ListReportPlan {
     name: { scope: scopeOf(input.names), area: late ? 'duesLate' : 'dues' },
     build(_ask, title = { en: 'Dues', bn: 'বকেয়া' }) {
       const def = emptyDefinition(ReportSubjectArea.FEES, title);
-      const dimensions = ['class', 'section', 'name', 'registration_number'];
+      // The list's student column carries the roll too.
+      const dimensions = ['class', 'section', 'name', 'registration_number', 'roll_number'];
       def.dataset.dimensions = dimensions.map((field) => ({ field }));
       def.dataset.measures = measures.map((field) => ({ field, fn: AggregateFn.SUM }));
       def.dataset.filters = fixed;
