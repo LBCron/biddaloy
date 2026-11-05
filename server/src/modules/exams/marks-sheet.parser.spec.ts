@@ -9,6 +9,10 @@ import { ImportFileError } from '../../common/errors/import-file.error';
 import { MarksSheetFileError, parseMarksSheet } from './marks-sheet.parser';
 import { makeFilledSheet } from './marks-sheet.test-helper';
 
+const EID = '11111111-1111-4111-8111-111111111111';
+const SID = '22222222-2222-4222-8222-222222222222';
+const SUBID = '33333333-3333-4333-8333-333333333333';
+
 function makeGrid(studentCount = 3): GridResponse {
   const students = Array.from({ length: studentCount }, (_, i) => ({
     id: `st${i + 1}`,
@@ -27,9 +31,9 @@ function makeGrid(studentCount = 3): GridResponse {
     sequence,
   });
   return {
-    exam_id: 'e',
-    section_id: 's',
-    subject_id: 'sub',
+    exam_id: EID,
+    section_id: SID,
+    subject_id: SUBID,
     state: 'DRAFT',
     submitted_by: null,
     submitted_at: null,
@@ -102,7 +106,18 @@ describe('parseMarksSheet', () => {
 
   it('reads sheetId from a built sheet', async () => {
     const buf = await makeFilledSheet(makeGrid(), meta, []);
-    expect((await parseMarksSheet(buf, 'm.xlsx')).sheetId).toBe('e:s:sub');
+    expect((await parseMarksSheet(buf, 'm.xlsx')).sheetId).toBe(`${EID}:${SID}:${SUBID}`);
+  });
+
+  it("parses a component header 'sheet: Written' as a normal component", async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('x');
+    ws.addRow(['Roll', 'Name', 'sheet: Written /75', 'Total', 'Student key']);
+    ws.addRow([1, 'A', 5, null, 'k1']);
+    const parsed = await parseMarksSheet(Buffer.from(await wb.xlsx.writeBuffer()), 'm.xlsx');
+    expect(parsed.components.map((c) => c.name)).toEqual(['sheet: Written']);
+    expect(parsed.rows[0].entries['sheet: Written']).toEqual({ kind: 'value', value: '5' });
+    expect(parsed.sheetId).toBeUndefined();
   });
 
   it('leaves sheetId undefined when the sheet has no identity cell', async () => {
