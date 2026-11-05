@@ -31,7 +31,7 @@ const deny = (role: string) =>
 /**
  * The single "may this caller write marks for this section-subject?"
  * gate (19.4.1 D20), a sibling of `AttendanceAccessService`. The route's
- * `@RequirePermissions(MARK_ENTER)` (held by ADMIN and TEACHER) is only the
+ * `@RequirePermissions(MARK_ENTER)` (held by ADMIN, TEACHER and EXAM_CONTROLLER) is only the
  * coarse gate; this is the real, object-level one. Both
  * `MarksService.upsertBatch` and `MarkGridService.submit` call this
  * directly rather than re-deriving the same join.

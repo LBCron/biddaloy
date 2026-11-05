@@ -183,7 +183,7 @@ If some marks are not saved yet and you try to go to another page inside the app
 
 ### Open a list to view only <a href="#task-view" id="task-view"></a>
 
-The Academic coordinator and the Exam controller can view marks but cannot type them. In their list each row ends with **View marks**. In the open list the cells are grey and there is no **Submit** button.
+The Academic coordinator can view marks but cannot type them. The Exam controller can type and submit marks too, as a backup when the teacher is absent. In their list each row ends with **View marks**. In the open list the cells are grey and there is no **Submit** button.
 
 ---
 

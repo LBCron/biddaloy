@@ -21,7 +21,7 @@ As an Exam controller you are busiest in exam season. First you create the exams
 ## Who does what <a href="#diagram" id="diagram"></a>
 
 ![Exam controller in the middle; teachers submit marks, the Admin sets the grading scale, and when the Exam controller publishes results they reach the guardian's and student's portal](diagrams/roles-exam-controller.svg)
-<!-- diagram brief: teacher -> Exam controller : submitted marks (MARK_ENTER -> MARK_VIEW); Admin -> Exam controller : grading scale (GRADING_SCALE_MANAGE Admin only); Exam controller -> portal (guardian, student) : published results (RESULT_PUBLISH -> RESULT_READ); Exam controller -> student : seat plan and exam papers (SEAT_PLAN_MANAGE, DOCUMENT_PRINT); Exam controller -> Academic coordinator : results and analysis (RESULT_READ); Exam controller -> Admin : results for promotion (PROMOTION_MANAGE Admin only) -->
+<!-- diagram brief: teacher -> Exam controller : submitted marks (MARK_ENTER -> MARK_VIEW); Exam controller -> teacher : backup mark entry when the teacher is absent (MARK_ENTER); Admin -> Exam controller : grading scale (GRADING_SCALE_MANAGE Admin only); Exam controller -> portal (guardian, student) : published results (RESULT_PUBLISH -> RESULT_READ); Exam controller -> student : seat plan and exam papers (SEAT_PLAN_MANAGE, DOCUMENT_PRINT); Exam controller -> Academic coordinator : results and analysis (RESULT_READ); Exam controller -> Admin : results for promotion (PROMOTION_MANAGE Admin only) -->
 
 Where marks come from, and where results go.
 
@@ -83,7 +83,6 @@ All your features, in the order of the left menu. The list is built automaticall
 
 ## What you cannot do <a href="#cannot" id="cannot"></a>
 
-- Enter or change marks. You only view marks. Who can: the [Teacher](./teacher.md).
 - Set the grading scale, or promote students. Who can: the [Admin](./admin.md).
 - Issue certificates. Who can: the [Academic coordinator](./headmaster.md) or [Office staff](./office-staff.md).
 - Add students or change their details. Who can: [Office staff](./office-staff.md).

@@ -472,6 +472,23 @@ describe('/marks/$examId/$sectionId/$subjectId', () => {
     await screen.findByRole('heading', { name: 'Submit this marks list?' });
   });
 
+  it('an exam controller (backup entry, 81 D5b) edits an unsubmitted grid and can submit', async () => {
+    const user = userEvent.setup();
+    server.use(http.get(GRID_URL, () => HttpResponse.json(baseGrid)));
+
+    renderWithRouter(routeTree, {
+      initialEntries: ['/marks/exam-1/sec-1/subj-1'],
+      tenantId: 'tenant-1',
+      role: 'EXAM_CONTROLLER',
+      locale: 'en',
+    });
+
+    const cell = await screen.findByLabelText<HTMLInputElement>('Rafi Ahmed — Written');
+    expect(cell.disabled).toBe(false);
+    await user.keyboard('{Control>}{Enter}{/Control}');
+    await screen.findByRole('heading', { name: 'Submit this marks list?' });
+  });
+
   it('an admin sees a Reopen action on a submitted grid', async () => {
     server.use(
       http.get(GRID_URL, () =>

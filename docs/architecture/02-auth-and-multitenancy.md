@@ -285,18 +285,18 @@ used as a tiebreak when a caller has multiple roles in one tenant and omits
 `RolesGuard` enforces it after `ContextGuard` has resolved which role the
 caller is acting as.
 
-| Role              | Who it is for                           | Data scope (`ROLE_SCOPE`) |
-| ----------------- | --------------------------------------- | ------------------------- |
-| `SUPER_ADMIN`     | Platform operator                       | `TENANT`                  |
-| `ADMIN`           | School head / IT admin                  | `TENANT`                  |
-| `ACCOUNTANT`      | Fees and payments                       | `TENANT`                  |
-| `EXECUTIVE`       | Principal / management, read-mostly     | `TENANT`                  |
-| `OFFICE_STAFF`    | Front-office clerk: admissions, records | `TENANT`                  |
+| Role              | Who it is for                                                                        | Data scope (`ROLE_SCOPE`) |
+| ----------------- | ------------------------------------------------------------------------------------ | ------------------------- |
+| `SUPER_ADMIN`     | Platform operator                                                                    | `TENANT`                  |
+| `ADMIN`           | School head / IT admin                                                               | `TENANT`                  |
+| `ACCOUNTANT`      | Fees and payments                                                                    | `TENANT`                  |
+| `EXECUTIVE`       | Principal / management, read-mostly                                                  | `TENANT`                  |
+| `OFFICE_STAFF`    | Front-office clerk: admissions, records                                              | `TENANT`                  |
 | `EXAM_CONTROLLER` | Runs exams, marks and results; enters marks as backup for an absent teacher (81 D5b) | `TENANT`                  |
-| `COMMITTEE`       | Governing / admission committee member  | `TENANT`                  |
-| `TEACHER`         | Classroom teacher                       | `ASSIGNED_SECTIONS`       |
-| `PARENT`          | Guardian                                | `FAMILY`                  |
-| `STUDENT`         | Learner                                 | `SELF`                    |
+| `COMMITTEE`       | Governing / admission committee member                                               | `TENANT`                  |
+| `TEACHER`         | Classroom teacher                                                                    | `ASSIGNED_SECTIONS`       |
+| `PARENT`          | Guardian                                                                             | `FAMILY`                  |
+| `STUDENT`         | Learner                                                                              | `SELF`                    |
 
 `SUPER_ADMIN`'s `TENANT` scope does not open a school's own data (marks,
 attendance, homework, performance): `hasTenantDataScope` in

@@ -93,11 +93,12 @@ describe('[#1364] new roles vs ROLE_NARROWINGS routes', () => {
   };
   const DATE = '2026-01-15';
 
-  it('EXAM_CONTROLLER reaches results review and publish, never writes marks', async () => {
+  it('EXAM_CONTROLLER reaches results review and publish, may write marks (81 D5b) but never reopen', async () => {
     const R = UserRole.EXAM_CONTROLLER;
     reached(await call(R, 'get', `/exams/${UNKNOWN_ID}/results`));
     reached(await call(R, 'post', `/exams/${UNKNOWN_ID}/results/publish`));
-    expect((await call(R, 'patch', `/exams/${UNKNOWN_ID}/marks`, {})).status).toBe(403);
+    // The guard now passes; the empty body then fails validation (400), never 403.
+    expect((await call(R, 'patch', `/exams/${UNKNOWN_ID}/marks`, {})).status).not.toBe(403);
     expect((await call(R, 'post', `/exams/${UNKNOWN_ID}/marks/reopen`, {})).status).toBe(403);
   });
 
