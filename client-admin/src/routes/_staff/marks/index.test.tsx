@@ -115,7 +115,7 @@ describe('/marks', () => {
     const hrefs = screen
       .getAllByRole('link')
       .map((a) => a.getAttribute('href'))
-      .filter((h) => h?.startsWith('/marks/exam-1'));
+      .filter((h) => h?.startsWith('/marks/exam-1') && !h.endsWith('/import'));
     expect(hrefs).toEqual(['/marks/exam-1/sec-1/subj-1', '/marks/exam-1/sec-2/subj-2']);
     expect(screen.getByText(`Total ${formatNumber(2, REGION_BD_BN)}`)).toBeTruthy();
   });
@@ -200,5 +200,76 @@ describe('/marks', () => {
     render('TEACHER');
 
     await screen.findByText("Couldn't load marks lists.");
+  });
+  describe('row sheet actions [81.3.gB]', () => {
+    const importLinks = () => rowLinks('Upload sheet');
+    // jsdom has no blob URLs; stub them for the sheet save and restore after.
+    const stubBlobUrl = () => {
+      vi.stubGlobal(
+        'URL',
+        Object.assign(URL, {
+          createObjectURL: () => 'blob:test',
+          revokeObjectURL: () => undefined,
+        }),
+      );
+      return () => vi.unstubAllGlobals();
+    };
+
+    it.each(['ADMIN', 'EXAM_CONTROLLER'])(
+      '%s: Download on every row, Upload on the draft row only',
+      async (role) => {
+        mockExam([row('Six - A', 'Math', '1', 'DRAFT'), row('Six - B', 'Math', '2', 'SUBMITTED')]);
+        render(role);
+        await findRowLinks('Enter marks');
+        expect(screen.getAllByRole('button', { name: 'Download sheet' })).toHaveLength(2);
+        const up = importLinks();
+        expect(up).toHaveLength(1);
+        expect(up[0]!.getAttribute('href')).toBe('/marks/exam-1/sec-1/subj-1/import');
+      },
+    );
+
+    it('TEACHER: Upload only on the draft (own-subject) row, none on a submitted one', async () => {
+      mockExam([row('Six - A', 'Math', '1', 'DRAFT'), row('Six - B', 'Bangla', '2', 'SUBMITTED')]);
+      render('TEACHER');
+      await findRowLinks('Enter marks');
+      expect(importLinks().map((a) => a.getAttribute('href'))).toEqual([
+        '/marks/exam-1/sec-1/subj-1/import',
+      ]);
+    });
+
+    it('EXECUTIVE (MARK_VIEW only): Download but no Upload', async () => {
+      mockExam([row('Six - A', 'Math', '1', 'DRAFT')]);
+      render('EXECUTIVE');
+      await findRowLinks('View marks');
+      expect(screen.getAllByRole('button', { name: 'Download sheet' })).toHaveLength(1);
+      expect(importLinks()).toHaveLength(0);
+    });
+
+    it("Download requests the sheet for that row's section and subject", async () => {
+      const restore = stubBlobUrl();
+      try {
+        const user = userEvent.setup();
+        let query: string | undefined;
+        server.use(
+          http.get('/api/v1/exams/exam-1/marks/sheet', ({ request }) => {
+            query = new URL(request.url).search;
+            return new HttpResponse(new Blob(['x']), {
+              headers: { 'content-disposition': 'attachment; filename="m.xlsx"' },
+            });
+          }),
+        );
+        mockExam([row('Six - A', 'Math', '1', 'DRAFT'), row('Six - B', 'Math', '2', 'SUBMITTED')]);
+        render('ADMIN');
+        await findRowLinks('View marks');
+        const buttons = screen.getAllByRole('button', { name: 'Download sheet' });
+        // Draft first, submitted second; click the submitted row's.
+        await user.click(buttons[1]!);
+        await waitFor(() => expect(query).toBeDefined());
+        expect(query).toContain('section_id=sec-2');
+        expect(query).toContain('subject_id=subj-2');
+      } finally {
+        restore();
+      }
+    });
   });
 });

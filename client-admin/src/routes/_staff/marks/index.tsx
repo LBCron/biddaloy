@@ -24,9 +24,16 @@ import {
   SelectValue,
   Skeleton,
   StatusBadge,
+  toast,
   type DataTableColumn,
 } from '@biddaloy/ui/components';
-import { examsQueryOptions, useExamProgress, useExams, useHasPermission } from '@biddaloy/ui/hooks';
+import {
+  examsQueryOptions,
+  useDownloadMarksSheet,
+  useExamProgress,
+  useExams,
+  useHasPermission,
+} from '@biddaloy/ui/hooks';
 import { useRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import {
   FilterBar,
@@ -36,7 +43,7 @@ import {
 } from '@biddaloy/ui/shells';
 import { formatNumber } from '@biddaloy/ui/utils';
 import { createFileRoute } from '@tanstack/react-router';
-import { FileX2Icon, ListChecksIcon } from 'lucide-react';
+import { FileX2Icon, ListChecksIcon, UploadIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { loadRouteNamespaces, swallowUnlessOffline } from '../../../route-loaders';
@@ -59,6 +66,7 @@ function MarksListPage() {
   const { t, i18n } = useTranslation('grading');
   const { t: tExams } = useTranslation('exams');
   const { t: tNav } = useTranslation('nav');
+  const { t: tCommon } = useTranslation('common');
   const config = useRegionConfig();
   const canManage = useHasPermission(Permission.EXAM_MANAGE);
   const canEnter = useHasPermission(Permission.MARK_ENTER);
@@ -68,6 +76,23 @@ function MarksListPage() {
   const [examId, setExamId] = React.useState<string | undefined>(undefined);
   const [filters, setFilters] = React.useState<Record<string, string>>({});
   const selectedExamId = examId ?? exams[0]?.id;
+
+  // The hook binds one grid's ids, so a row click parks that row here and the
+  // effect fires the download once the hook has re-bound to it.
+  const [sheetRow, setSheetRow] = React.useState<Row | null>(null);
+  const downloadSheet = useDownloadMarksSheet(
+    selectedExamId ?? '',
+    sheetRow?.section_id ?? '',
+    sheetRow?.subject_id ?? '',
+  );
+  const startDownload = downloadSheet.mutate;
+  React.useEffect(() => {
+    if (!sheetRow) return;
+    startDownload(undefined, {
+      onError: () => toast.error(tCommon('errors.generic')),
+      onSettled: () => setSheetRow(null),
+    });
+  }, [sheetRow, startDownload, tCommon]);
 
   const progressQuery = useExamProgress(selectedExamId);
   const progress = progressQuery.data;
@@ -190,6 +215,25 @@ function MarksListPage() {
               label: t('marksEntry.viewMarks'),
               to: gridPath(row),
               allowed: !draft || !canEnter,
+            },
+            // MARK_VIEW holders (this page's own gate) may always download; the
+            // server scopes a teacher's list to their sections, so Upload only
+            // needs the same MARK_ENTER check the grid page uses.
+            {
+              intent: 'download',
+              label: tExams('marksSheet.download'),
+              display: 'text',
+              busy:
+                sheetRow?.section_id === row.section_id && sheetRow.subject_id === row.subject_id,
+              onClick: () => setSheetRow(row),
+            },
+            {
+              intent: 'edit',
+              label: tExams('marksSheet.upload'),
+              display: 'text',
+              icon: <UploadIcon className="size-4" aria-hidden />,
+              to: `${gridPath(row)}/import`,
+              allowed: draft && canEnter,
             },
           ];
         }}
