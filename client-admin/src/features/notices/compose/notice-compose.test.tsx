@@ -275,6 +275,31 @@ describe('NoticeCompose writes (#3430)', () => {
     expect(onPublished).toHaveBeenCalledWith(ID);
   });
 
+  it('the public-link dialog has no Close button that does nothing: Done is the only way out', async () => {
+    mock();
+    server.use(
+      http.get('/api/v1/notices/:id', () => HttpResponse.json(notice({ isPublic: true }))),
+      http.post('/api/v1/notices/:id/publish', () =>
+        HttpResponse.json(notice({ status: 'PUBLISHED', isPublic: true })),
+      ),
+      http.post('/api/v1/notices/:id/public-link', () =>
+        HttpResponse.json({ token: 'tok789' }, { status: 201 }),
+      ),
+    );
+    const user = userEvent.setup();
+    const { localeReady } = mount({ noticeId: ID, onPublished: vi.fn() });
+    await localeReady;
+    await toReview(user);
+    await user.click(screen.getByRole('button', { name: 'Publish' }));
+    await user.click(await screen.findByRole('button', { name: 'Yes, publish' }));
+    const dialog = await screen.findByRole('dialog');
+    await within(dialog).findByDisplayValue(/\/n\/tok789/);
+    // The dialog holds the page until the admin has seen the link once, so it ignores Close.
+    // A Close button there would be read out and focused but do nothing (Epic 53 audit).
+    expect(within(dialog).queryByRole('button', { name: 'Close' })).toBeNull();
+    expect(within(dialog).getByRole('button', { name: 'Done' })).toBeTruthy();
+  });
+
   it('edit mode shows the saved files and counts them against the 3-file limit', async () => {
     mock();
     const file = (id: string, name: string) => ({
