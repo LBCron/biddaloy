@@ -24,7 +24,7 @@ const ESCALATIONS: [string, UserRole[]][] = [
 ];
 
 function allowedCategories(role: UserRole): Set<AlertCategory> {
-  const allowed = new Set<AlertCategory>([AlertCategory.MANUAL]);
+  const allowed = new Set<AlertCategory>([AlertCategory.MANUAL, AlertCategory.NOTICE]);
   for (const rule of ALERT_RULES) {
     if (rule.roles.length === 0 || rule.roles.includes(role)) allowed.add(rule.category);
   }

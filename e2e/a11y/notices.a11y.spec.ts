@@ -60,7 +60,8 @@ for (const locale of ['bn', 'en'] as const) {
       });
       await page.goto(path);
       await expect(
-        page.getByRole('heading', { level: 1, name: t('portalNotices.title') }),
+        // seed.notices.ts E2E_NOTICE_TITLE; the page h1 is the notice title (#3438)
+        page.getByRole('heading', { level: 1, name: 'E2E seeded notice' }),
       ).toBeVisible();
       await expectNoAxeViolations(page);
     });
