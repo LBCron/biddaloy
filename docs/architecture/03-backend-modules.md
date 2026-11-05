@@ -416,6 +416,38 @@ docstring (see [01-domain-model.md](01-domain-model.md) for the convention),
 needs corresponding tests — see `server/CLAUDE.md` for the testing
 standards enforced in this package.
 
+## Marks sheet import (Epic 81)
+
+A teacher, admin or exam controller fills marks in Excel and uploads the file. The file is read, shown as a diff, and only then written.
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant C as MarksController
+  participant I as MarksImportService
+  participant R as Redis staging
+  participant M as MarksService
+  U->>C: GET /exams/:examId/marks/sheet
+  C-->>U: .xlsx (builder, hidden grid id cell)
+  U->>C: POST sheet/validate (file)
+  C->>I: validateFile
+  I->>R: stage parsed cells (expires)
+  I-->>U: staging_id + new / changed / errors
+  U->>C: POST sheet/commit (staging_id, Idempotency-Key)
+  C->>I: commit
+  I->>R: consume once
+  I->>M: upsertBatch(cells, 'SHEET')
+  M-->>U: saved count
+```
+
+| Route | Permission | Redis down |
+| --- | --- | --- |
+| `GET /exams/:examId/marks/sheet` | `MARK_VIEW` (grid access rules apply) | open, no Redis used |
+| `POST /exams/:examId/marks/sheet/validate` | `MARK_ENTER` | 503 (`@FailClosedWithoutRedis`) |
+| `POST /exams/:examId/marks/sheet/commit` | `MARK_ENTER` | 503 (`@FailClosedWithoutRedis`) |
+
+Example: a teacher uploads a sheet where roll 3 has `54` and the grid has `45`. `validate` answers `changed: 1 (45 -> 54)` and writes nothing. `commit` writes it through `upsertBatch`, which does the full-marks, derived-column, lock and audit checks.
+
 ## Learnings: marks sheet import (Epic 81, W1)
 
 - **2026-11-05** The marks sheet builder and parser are pinned together by `marks-sheet.roundtrip.spec.ts` (value / absent / exempt / blank, en and bn). Change one side, run that spec.
