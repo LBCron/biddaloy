@@ -568,6 +568,8 @@
     "meterLabel": "GPA out of {{max}}",
     "link": "Full result",
     "emptyReason": "The final result is not published yet.",
+    "loadError": "The final result could not be loaded.",
+    "retry": "Try again",
     "cardTitle": "Final result {{year}} — {{class}}",
     "share": "{{exam}} {{percent}}",
     "attendance": "Present {{present}} of {{working}} days ({{percent}})",

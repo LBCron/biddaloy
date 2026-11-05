@@ -177,7 +177,12 @@ function invalidateFinal(queryClient: QueryClient, id: string) {
   void queryClient.invalidateQueries({ queryKey: finalResultKeys.detail(id) });
   void queryClient.invalidateQueries({ queryKey: ['report-card-notes'] });
   void queryClient.invalidateQueries({ queryKey: ['promotions'] });
-  void queryClient.invalidateQueries({
+  void invalidateStudentFinalViews(queryClient);
+}
+
+/** Refresh every student's loaded results, transcript and final card. */
+export function invalidateStudentFinalViews(queryClient: QueryClient) {
+  return queryClient.invalidateQueries({
     predicate: (q) => q.queryKey[0] === 'students' && STUDENT_FINAL_VIEWS.includes(q.queryKey[2]),
   });
 }

@@ -1,5 +1,5 @@
 import { cleanupTestState, renderWithRouter, server, studentFactory } from '@biddaloy/ui/test';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -20,12 +20,17 @@ function renderPanel(
   finals: unknown[] = [],
   cards: Record<string, { name: string }> = {},
   years = [enrollment('year-1', '2026-01-01T00:00:00Z')],
+  finalsFail = false, // the `/final-results` lookup answers 500
 ) {
-  // The panel renders router links, so it is mounted through the real route.
+  //The panel renders router links, so it is mounted through the real route.
   server.use(
     http.get('/api/v1/students/:id', () => HttpResponse.json(STUDENT)),
     http.get('/api/v1/enrollments/student/:id', () => HttpResponse.json(years)),
-    http.get('/api/v1/final-results', () => HttpResponse.json(finals)),
+    http.get('/api/v1/final-results', () =>
+      finalsFail
+        ? HttpResponse.json({ statusCode: 500, message: 'boom' }, { status: 500 })
+        : HttpResponse.json(finals),
+    ),
     http.get('/api/v1/students/:studentId/final-result-card', ({ request }) => {
       const card = cards[new URL(request.url).searchParams.get('academic_year_id') ?? ''];
       if (!card) return HttpResponse.json({ statusCode: 404, message: 'none' }, { status: 404 });
@@ -166,6 +171,14 @@ describe('ResultsPanel', () => {
       final.compareDocumentPosition(screen.getByText('First Term Exam')) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('keeps the unpublished warning when the final status lookup fails', async () => {
+    server.use(oneExam());
+    renderPanel([], { 'year-1': { name: '2026' } }, undefined, true);
+
+    const final = await screen.findByTestId('student-final-result');
+    expect(await within(final).findByText('Not yet published')).toBeTruthy();
   });
 
   it('shows no final row when the server has no final for the year', async () => {

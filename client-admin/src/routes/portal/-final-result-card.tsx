@@ -6,7 +6,8 @@
  * error) means nothing is published and the container renders nothing, so the
  * per-exam list below stays the page.
  */
-import { Button, Card, Meter, StatusBadge } from '@biddaloy/ui/components';
+import { isNotFoundError } from '@biddaloy/ui/api';
+import { Button, Card, ErrorState, Meter, StatusBadge } from '@biddaloy/ui/components';
 import { useStudentFinalCard, type FinalCard } from '@biddaloy/ui/hooks';
 import { useRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { formatNumber, formatScore } from '@biddaloy/ui/utils';
@@ -190,7 +191,18 @@ export function FinalResultCard({
   childName: string;
   className: string | null;
 }) {
+  const { t } = useTranslation('portal');
   const query = useStudentFinalCard(studentId, academicYearId);
+  // A 404 means nothing is published; any other failure may hide a published final, so say so.
+  if (query.isError && !isNotFoundError(query.error)) {
+    return (
+      <ErrorState
+        message={t('finalResult.loadError')}
+        retryLabel={t('finalResult.retry')}
+        onRetry={() => void query.refetch()}
+      />
+    );
+  }
   if (!query.data) return null;
   return <FinalResultCardView card={query.data} childName={childName} className={className} />;
 }

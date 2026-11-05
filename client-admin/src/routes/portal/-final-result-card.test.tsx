@@ -99,6 +99,23 @@ describe('FinalResultCard', () => {
     expect(screen.getByRole('cell', { name: 'Absent' })).toBeTruthy();
   });
 
+  it('shows a retry error, not nothing, when the card request fails with a 500', async () => {
+    server.use(
+      http.get('/api/v1/students/:id/final-result-card', () =>
+        HttpResponse.json({ message: 'boom' }, { status: 500 }),
+      ),
+    );
+    renderPortalCard(
+      <FinalResultCard
+        studentId="kid-a"
+        academicYearId="y1"
+        childName="Fatima"
+        className="Class 8"
+      />,
+    );
+    expect(await screen.findByRole('button', { name: 'Try again' })).toBeTruthy();
+  });
+
   it('renders nothing when no final is published (404)', async () => {
     const { container } = renderCard(null);
     await new Promise((resolve) => setTimeout(resolve, 50));

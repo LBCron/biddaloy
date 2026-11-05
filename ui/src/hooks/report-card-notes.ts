@@ -8,6 +8,7 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/r
 import { apiClient } from '../api/client';
 import type { components } from '../api/schema';
 
+import { invalidateStudentFinalViews } from './final-results';
 import { createEntityKeys } from './query-keys';
 import { shouldRetryQuery } from './retry';
 
@@ -91,6 +92,7 @@ export function useSaveReportCardNotes(sectionId: string, target: ReportCardNote
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['final-results'] });
+      void invalidateStudentFinalViews(queryClient);
       return queryClient.invalidateQueries({ queryKey: reportCardNotesKeys.all });
     },
     retry: false,

@@ -60,6 +60,8 @@ describe('useSaveReportCardNotes', () => {
     expect(body).toEqual({ notes });
     expect(exam).toBe('e1');
     expect(invalidate).toHaveBeenCalledWith({ queryKey: reportCardNotesKeys.all });
+    // Student result, transcript and final-card views show the remark and conduct too.
+    expect(invalidate).toHaveBeenCalledWith({ predicate: expect.any(Function) });
   });
 
   it('a 500 is sent once', async () => {

@@ -52,7 +52,7 @@ function FinalResultRow({ studentId, yearId }: { studentId: string; yearId: stri
     >
       <h3 className="flex flex-wrap items-center gap-2 text-h3">
         {t('studentResultsPanel.finalTitle', { year: academic_year_name })}
-        {status !== undefined && status !== 'PUBLISHED' && (
+        {!finals.isPending && status !== 'PUBLISHED' && (
           <StatusBadge tone="warning" label={t('studentResultsPanel.notPublished')} />
         )}
         {result.is_fail && <StatusBadge tone="danger" label={t('studentResultsPanel.failTag')} />}

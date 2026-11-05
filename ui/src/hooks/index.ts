@@ -482,6 +482,7 @@ export {
   useFinalResults,
   useFinalResultStudentCard,
   useStudentFinalCard,
+  type FinalCard,
   type FinalResultListItem,
   type FinalResultRowsPage,
 } from './final-results';
@@ -775,7 +776,6 @@ export {
   type Tabulation,
   type Transcript,
 } from './exam-documents';
-export { type FinalCard } from './final-results';
 export {
   seatPlanKeys,
   seatPlanDetailQueryOptions,

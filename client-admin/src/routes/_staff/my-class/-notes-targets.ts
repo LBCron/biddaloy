@@ -46,7 +46,9 @@ export function useNotesTargets(classId: string | undefined) {
   return {
     options,
     isPending: !classId || exams.isPending || (yearId !== undefined && finals.isPending),
-    isError: exams.isError || finals.isError,
+    // The exam targets stay usable when only the final lookup fails; that one has its own flag.
+    isError: exams.isError,
+    finalError: !exams.isError && finals.isError,
     refetch: () => {
       void exams.refetch();
       void finals.refetch();

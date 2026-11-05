@@ -568,6 +568,8 @@
     "meterLabel": "{{max}}-এর মধ্যে জিপিএ",
     "link": "পুরো ফল",
     "emptyReason": "এখনো চূড়ান্ত ফলাফল প্রকাশ হয়নি।",
+    "loadError": "চূড়ান্ত ফলাফল লোড করা যায়নি।",
+    "retry": "আবার চেষ্টা করুন",
     "cardTitle": "চূড়ান্ত ফলাফল {{year}} — {{class}}",
     "share": "{{exam}} {{percent}}",
     "attendance": "{{working}} দিনের মধ্যে উপস্থিত {{present}} দিন ({{percent}})",

@@ -39,7 +39,7 @@ export const UNREGISTERED_ACTIONS: readonly UnregisteredAction[] = [
   },
   {
     file: `${R}_staff/my-class/$sectionId_.notes.tsx`,
-    owningEpic: '#3421',
+    owningEpic: '70.0',
     note: 'Remarks and conduct screen (#3418); #3421 registers the `my-class.notes` palette action and removes this entry',
   },
 ];

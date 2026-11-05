@@ -205,7 +205,7 @@ function NotesPage() {
         rows={view.rows}
         items={items}
         drafts={drafts}
-        disabled={locked}
+        disabled={locked || save.isPending}
         onChange={(id, next) => setDrafts((d) => ({ ...d, [id]: next }))}
       />
     );
@@ -263,6 +263,13 @@ function NotesPage() {
               </SelectContent>
             </Select>
           </div>
+        )}
+        {targets.finalError && (
+          <ErrorState
+            message={t('notes.loadError')}
+            retryLabel={t('retry')}
+            onRetry={() => targets.refetch()}
+          />
         )}
         {view && view.rows.length > 0 && (
           <p role="status" className="text-text-secondary">
