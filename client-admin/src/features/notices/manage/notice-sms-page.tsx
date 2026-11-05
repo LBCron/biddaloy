@@ -165,7 +165,12 @@ export function NoticeSmsPage({ noticeId, onClose }: { noticeId: string; onClose
       accessorFn: (p) => (
         <SendBox
           noticeId={noticeId}
-          label={t('manage.sms.sendTo', { name: p.guardianName })}
+          // A guardian has one row per child (D17); the student keeps the two names apart (#3486).
+          label={
+            p.forStudent
+              ? t('manage.sms.sendToFor', { name: p.guardianName, student: p.forStudent })
+              : t('manage.sms.sendTo', { name: p.guardianName })
+          }
           checked={p.smsWanted}
           disabled={!pending || !p.reachable}
           onChange={(smsWanted) => tick.mutate({ id: p.id, smsWanted })}
@@ -272,6 +277,7 @@ export function NoticeSmsPage({ noticeId, onClose }: { noticeId: string; onClose
         title={t('manage.sms.declineTitle')}
         description={t('manage.sms.declineBody')}
         confirmLabel={t('manage.sms.decline')}
+        tone="default"
         busy={decide.isPending}
         onConfirm={() => send('decline')}
       />

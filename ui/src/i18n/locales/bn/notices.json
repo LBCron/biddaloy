@@ -112,6 +112,7 @@
       "colPhone": "ফোন",
       "colSend": "পাঠান",
       "sendTo": "{{name}}-কে SMS পাঠান",
+      "sendToFor": "{{name}}-কে SMS পাঠান ({{student}}-এর জন্য)",
       "noPhoneRow": "ফোন নম্বর নেই",
       "empty": "পাঠানোর মতো কেউ নেই",
       "emptyBody": "কারও ফোন নম্বর নেই, অথবা সবাই SMS নিতে চাননি।",

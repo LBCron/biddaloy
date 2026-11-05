@@ -94,8 +94,36 @@ describe('NoticeSmsPage', () => {
     expect(await screen.findByText('Rahim Uddin')).toBeTruthy();
     expect(screen.getByText(/Exam routine https/)).toBeTruthy();
     expect(screen.getByText('SMS credits it will use')).toBeTruthy();
-    await user.click(screen.getByRole('checkbox', { name: 'Send an SMS to Rahim Uddin' }));
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Send an SMS to Rahim Uddin (for Sumi, 6 A)' }),
+    );
     await waitFor(() => expect(patch).toEqual({ ids: [ROW], smsWanted: false }));
+  });
+
+  it('a guardian with two children gets two tick boxes with different names (#3486)', async () => {
+    const row = view().items[0]!;
+    server.use(
+      http.get(`*/notices/${ID}/sms`, () =>
+        HttpResponse.json(
+          view({
+            items: [
+              row,
+              { ...row, id: '66666666-6666-4666-8666-666666666666', forStudent: 'Rafi, 8 B' },
+              { ...row, id: '77777777-7777-4777-8777-777777777777', forStudent: null },
+            ],
+            total: 3,
+          }),
+        ),
+      ),
+    );
+    renderPage();
+
+    const names = (await screen.findAllByRole('checkbox')).map((b) => b.getAttribute('aria-label'));
+    expect(names).toEqual([
+      'Send an SMS to Rahim Uddin (for Sumi, 6 A)',
+      'Send an SMS to Rahim Uddin (for Rafi, 8 B)',
+      'Send an SMS to Rahim Uddin',
+    ]);
   });
 
   it('Approve sends one POST with an Idempotency-Key and closes', async () => {
@@ -132,7 +160,9 @@ describe('NoticeSmsPage', () => {
     await screen.findByText('Rahim Uddin');
     await user.click(screen.getByRole('button', { name: 'Decline' }));
     expect(declined).toBe(0);
-    await user.click(screen.getAllByRole('button', { name: 'Decline' }).at(-1)!);
+    const confirm = screen.getAllByRole('button', { name: 'Decline' }).at(-1)!;
+    expect(confirm.querySelector('.lucide-trash-2')).toBeNull(); // nothing is deleted (#3487)
+    await user.click(confirm);
     await waitFor(() => expect(declined).toBe(1));
   });
 
@@ -197,7 +227,9 @@ describe('NoticeSmsPage', () => {
     renderPage();
 
     await screen.findByText('Rahim Uddin');
-    await user.click(screen.getByRole('checkbox', { name: 'Send an SMS to Rahim Uddin' }));
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Send an SMS to Rahim Uddin (for Sumi, 6 A)' }),
+    );
     expect(await screen.findByText('Something went wrong. Please try again.')).toBeTruthy();
   });
 
@@ -217,7 +249,9 @@ describe('NoticeSmsPage', () => {
     await screen.findByText('Rahim Uddin');
     const approve = screen.getByRole('button', { name: 'Approve and send' });
     expect(approve.hasAttribute('disabled')).toBe(false);
-    const box = screen.getByRole('checkbox', { name: 'Send an SMS to Rahim Uddin' });
+    const box = screen.getByRole('checkbox', {
+      name: 'Send an SMS to Rahim Uddin (for Sumi, 6 A)',
+    });
     await user.click(box);
     // Approving now would still send to the person just unticked.
     await waitFor(() => expect(approve.hasAttribute('disabled')).toBe(true));
@@ -242,7 +276,9 @@ describe('NoticeSmsPage', () => {
     renderPage();
 
     await screen.findByText('Rahim Uddin');
-    const box = screen.getByRole('checkbox', { name: 'Send an SMS to Rahim Uddin' });
+    const box = screen.getByRole('checkbox', {
+      name: 'Send an SMS to Rahim Uddin (for Sumi, 6 A)',
+    });
     await user.click(screen.getByRole('button', { name: 'Approve and send' }));
     // An untick now would race the approve and change who gets the SMS.
     await waitFor(() => expect(box.hasAttribute('disabled')).toBe(true));
@@ -260,7 +296,9 @@ describe('NoticeSmsPage', () => {
     expect(screen.queryByRole('button', { name: 'Approve and send' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Decline' })).toBeNull();
     expect(
-      screen.getByRole('checkbox', { name: 'Send an SMS to Rahim Uddin' }).hasAttribute('disabled'),
+      screen
+        .getByRole('checkbox', { name: 'Send an SMS to Rahim Uddin (for Sumi, 6 A)' })
+        .hasAttribute('disabled'),
     ).toBe(true);
   });
 

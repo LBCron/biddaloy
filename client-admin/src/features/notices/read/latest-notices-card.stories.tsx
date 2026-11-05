@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
+import { withMemoryRouter } from '../../../../../ui/.storybook/router-decorator';
+
 import { LatestNoticesCardView } from './latest-notices-card';
 
 const n = (i: number, over: Record<string, unknown> = {}) => ({
@@ -25,10 +27,12 @@ const meta: Meta<typeof LatestNoticesCardView> = {
         <Story />
       </div>
     ),
+    // Rows and "সব নোটিশ" are router links.
+    withMemoryRouter(['/']),
   ],
   args: {
     variant: 'full',
-    listHref: '/portal/notices',
+    portalLinks: true,
     items: [n(1, { important: true }), n(2, { seen: true }), n(3)],
   },
 };
@@ -37,6 +41,8 @@ type Story = StoryObj<typeof LatestNoticesCardView>;
 
 export const Populated: Story = {};
 export const Compact: Story = { args: { variant: 'compact' } };
+/** The staff dashboard widget: plain rows, no link (#3448). */
+export const Staff: Story = { args: { portalLinks: false } };
 export const Loading: Story = { args: { loading: true, items: [] } };
 export const Empty: Story = { args: { items: [] } };
 export const Failed: Story = { args: { failed: true, items: [], onRetry: () => undefined } };
