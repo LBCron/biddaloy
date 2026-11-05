@@ -428,13 +428,14 @@ describe('dues list', () => {
     expect(def.layout).toMatchObject({ type: ReportLayoutType.GROUPED, group_by: ['class'] });
     expect(plan.unmappedColumns).toEqual(['status', 'wallet', 'lastReminder']);
     // status and fee type pick bills here, not students, so the dialog warns about it.
-    expect(plan.unmappedFilters).toEqual(['billLevel']);
+    expect(plan.unmappedFilters).toEqual([]);
+    expect(plan.notes).toEqual(['billLevel']);
     expect(plan.name).toEqual({ scope: 'Class 8', area: 'dues' });
   });
 
   it('does not warn about bill-level filters when no status or fee type is set', () => {
     const plan = planListReport({ kind: 'dues', filters: { class_id: 'c8' }, columns: ['due'] });
-    expect(plan.unmappedFilters).not.toContain('billLevel');
+    expect(plan.notes).toEqual([]);
   });
 
   it('keeps paid bills out when no status is chosen', () => {
@@ -456,6 +457,7 @@ describe('dues list', () => {
     ]);
     expect(def.dataset.measures.map((m) => m.field)).toEqual(['billed', 'paid', 'outstanding']);
     expect(plan.name.area).toBe('duesLate');
+    expect(plan.notes).toEqual(['lateBills']);
   });
 
   it('reports the fee month, year and search as filters that will not go in', () => {

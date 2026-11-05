@@ -257,7 +257,7 @@ Only the admin gets this. It is not done on the **All reports** page; it is done
 
 6. Read the notes at the bottom. What will not go into the report is written there, for example **This filter will not go into the report: What you typed in search**.
 
-   → The dues list becomes one row for each student in the report, with the total billed, paid and still owed on their open bills. The payments list becomes one row for each payment, with its amount. A payment that was reversed later and is hidden on the list is hidden in the report too. Failed or pending payments are not in the report, because no money came in. If you pick a status or a fee type on the dues list, the report keeps only those bills, so a student's other open bills are not in the totals. The dialog tells you when this applies.
+   → The dues list becomes one row for each student in the report, with the total billed, paid and still owed on their open bills. The payments list becomes one row for each payment, with its amount. A payment that was reversed later and is hidden on the list is hidden in the report too. Failed or pending payments are not in the report, because no money came in. If you pick a status or a fee type on the dues list, the report keeps only those bills, so a student's other open bills are not in the totals. The dialog says so in a separate note, because the filter still applies. If **Overdue only** is on, the report counts only bills past their due date, while the list adds up all open bills of each student it shows, so totals and the students shown can differ. The dialog notes this too.
 
 7. Press **Keep as report**.
 

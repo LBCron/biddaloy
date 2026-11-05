@@ -70,6 +70,8 @@ export interface ListReportPlan {
   unmappedFilters: string[];
   /** Keys of `saveAsReport.parts.*`: list columns that have no report field. */
   unmappedColumns: string[];
+  /** Keys of `saveAsReport.notes.*`: filters that do go in, but pick rows differently from the list. */
+  notes: string[];
   /** What the suggested name is made of: the class (and section) and the area. */
   name: {
     scope: string | undefined;
@@ -290,6 +292,7 @@ function planStudents(input: ListToDefinitionInput): ListReportPlan {
     prompts,
     unmappedFilters,
     unmappedColumns,
+    notes: [],
     name: { scope: scopeOf(input.names), area: 'students' },
     build(ask, title = { en: 'Students', bn: 'শিক্ষার্থী' }) {
       const def = emptyDefinition(ReportSubjectArea.STUDENTS, title);
@@ -321,6 +324,7 @@ function planDues(input: ListToDefinitionInput): ListReportPlan {
   const { filters } = input;
   const unmappedFilters: string[] = [];
   const unmappedColumns: string[] = [];
+  const notes: string[] = [];
   const fixed: ReportFilter[] = [...classAndSection(input, unmappedFilters)];
 
   const late = value(filters, 'flagged') === 'true';
@@ -342,11 +346,13 @@ function planDues(input: ListToDefinitionInput): ListReportPlan {
     if (FEE_TYPES.includes(feeType)) fixed.push(eq('fee_type', feeType));
     else unmappedFilters.push('feeType');
   }
-  // The list picks students by status/fee type, then totals all their open bills; the report
-  // filters bills, so a student's other open bills drop out of the totals. Say so in the dialog.
-  // ponytail: needs a student-level selection in the report engine to match exactly.
+  // The list picks students (by status/fee type, or by a bill past its reminder date) and totals
+  // all their open bills; the report filters bills, so a student's other open bills drop out of
+  // the totals. The filter still applies, so this is a note, not "left out".
+  // ponytail: needs student-level selection in the report engine to match exactly (#3506).
+  if (late) notes.push('lateBills');
   if (fixed.some((f) => (f.field === 'fee_type' || f.field === 'status') && f.op === FilterOp.EQ)) {
-    unmappedFilters.push('billLevel');
+    notes.push('billLevel');
   }
   // Fee period (month and year of the bill) and the search text have no field in the report.
   if (value(filters, 'month')) unmappedFilters.push('month');
@@ -373,6 +379,7 @@ function planDues(input: ListToDefinitionInput): ListReportPlan {
     prompts: [],
     unmappedFilters,
     unmappedColumns,
+    notes,
     name: { scope: scopeOf(input.names), area: late ? 'duesLate' : 'dues' },
     build(_ask, title = { en: 'Dues', bn: 'বকেয়া' }) {
       const def = emptyDefinition(ReportSubjectArea.FEES, title);
@@ -444,6 +451,7 @@ function planPayments(input: ListToDefinitionInput): ListReportPlan {
     prompts,
     unmappedFilters,
     unmappedColumns,
+    notes: [],
     name: { scope: undefined, area: 'payments' },
     build(ask, title = { en: 'Payments', bn: 'জমা' }) {
       const def = emptyDefinition(ReportSubjectArea.PAYMENTS, title);

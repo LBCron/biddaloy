@@ -471,8 +471,11 @@
       "wallet": "Credit balance",
       "lastReminder": "Last reminder",
       "date": "Date",
-      "failedHidden": "Failed or pending payments (no money came in)",
-      "billLevel": "Status or fee type picks single bills, not whole students: a student's other open bills are left out of the totals"
+      "failedHidden": "Failed or pending payments (no money came in)"
+    },
+    "notes": {
+      "billLevel": "Status and fee type still apply, but to single bills, not whole students: a student's other open bills are left out of the totals.",
+      "lateBills": "Overdue only still applies, but to single bills: the report counts only bills past their due date, while this list adds up all open bills of each student it shows. Totals can be lower, and which students show can differ."
     }
   },
   "reportPrint": {
