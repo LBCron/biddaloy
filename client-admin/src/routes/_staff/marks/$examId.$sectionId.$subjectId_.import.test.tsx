@@ -150,6 +150,39 @@ describe('/marks/$examId/$sectionId/$subjectId/import', () => {
     expect(committed).toBe(false);
   });
 
+  it('D7: row errors next to staged cells keep Save on, with the count and the error table', async () => {
+    let commitBody: unknown;
+    server.use(
+      http.post(VALIDATE_URL, () =>
+        HttpResponse.json(
+          {
+            staging_id: 'stage-2',
+            expires_at: '2030-01-01T00:00:00Z',
+            summary: { rows: 3, new: 2, changed: 0, unchanged: 0, absent: 0, exempt: 0, errors: 1 },
+            changes: [],
+            errors: [{ row: 4, roll: 9, component_name: 'Written', code: 'ABOVE_FULL_MARKS' }],
+          },
+          { status: 201 },
+        ),
+      ),
+      http.post(COMMIT_URL, async ({ request }) => {
+        commitBody = await request.json();
+        return HttpResponse.json({ saved: 2 }, { status: 201 });
+      }),
+    );
+    renderPage();
+    await upload();
+
+    await screen.findByText('Above full marks');
+    expect(screen.getByText('1 errors')).toBeTruthy();
+    const save = screen.getByRole('button', { name: 'Save 2' });
+    expect(save.hasAttribute('disabled')).toBe(false);
+
+    await userEvent.setup().click(save);
+    await screen.findByText('2 marks saved');
+    expect(commitBody).toMatchObject({ staging_id: 'stage-2' });
+  });
+
   it('says a sheet from another exam or section is the wrong sheet', async () => {
     server.use(
       http.post(VALIDATE_URL, () =>
