@@ -703,4 +703,74 @@ describe('/marks/$examId/$sectionId/$subjectId', () => {
     await user.click(screen.getByRole('button', { name: 'Stay' }));
     expect(screen.queryByRole('heading', { name: 'Leave without saving?' })).toBeNull();
   });
+
+  describe('sheet toolbar', () => {
+    const SHEET_URL = '/api/v1/exams/exam-1/marks/sheet';
+    const open = (role: string) =>
+      renderWithRouter(routeTree, {
+        initialEntries: ['/marks/exam-1/sec-1/subj-1'],
+        tenantId: 'tenant-1',
+        role,
+        locale: 'en',
+      });
+
+    it('DRAFT with entry rights shows Download, Upload and Submit in tab order', async () => {
+      server.use(http.get(GRID_URL, () => HttpResponse.json(baseGrid)));
+      open('TEACHER');
+      const download = await screen.findByRole('button', { name: 'Download sheet' });
+      const upload = screen.getByRole('button', { name: 'Upload sheet' });
+      const submit = screen.getByRole('button', { name: /^Submit/ });
+      const order = [download, upload, submit].map((b) =>
+        Array.from(document.querySelectorAll('button')).indexOf(b as HTMLButtonElement),
+      );
+      expect(order).toEqual([...order].sort((a, b) => a - b));
+    });
+
+    it('SUBMITTED grid shows only Download', async () => {
+      server.use(http.get(GRID_URL, () => HttpResponse.json({ ...baseGrid, state: 'SUBMITTED' })));
+      open('TEACHER');
+      await screen.findByRole('button', { name: 'Download sheet' });
+      expect(screen.queryByRole('button', { name: 'Upload sheet' })).toBeNull();
+    });
+
+    it('a read-only role shows only Download', async () => {
+      server.use(http.get(GRID_URL, () => HttpResponse.json(baseGrid)));
+      open('EXECUTIVE');
+      await screen.findByRole('button', { name: 'Download sheet' });
+      expect(screen.queryByRole('button', { name: 'Upload sheet' })).toBeNull();
+    });
+
+    it('Upload opens the import page', async () => {
+      const user = userEvent.setup();
+      server.use(http.get(GRID_URL, () => HttpResponse.json(baseGrid)));
+      const { router } = open('TEACHER') as unknown as {
+        router: { state: { location: { pathname: string } } };
+      };
+      await user.click(await screen.findByRole('button', { name: 'Upload sheet' }));
+      await waitFor(() =>
+        expect(router.state.location.pathname).toBe('/marks/exam-1/sec-1/subj-1/import'),
+      );
+    });
+
+    it('Download calls the sheet endpoint once', async () => {
+      const user = userEvent.setup();
+      const hit = vi.fn();
+      vi.stubGlobal(
+        'URL',
+        Object.assign(URL, { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} }),
+      );
+      server.use(
+        http.get(GRID_URL, () => HttpResponse.json(baseGrid)),
+        http.get(SHEET_URL, () => {
+          hit();
+          return new HttpResponse(new Uint8Array([1]), {
+            headers: { 'content-disposition': 'attachment; filename="m.xlsx"' },
+          });
+        }),
+      );
+      open('TEACHER');
+      await user.click(await screen.findByRole('button', { name: 'Download sheet' }));
+      await waitFor(() => expect(hit).toHaveBeenCalledTimes(1));
+    });
+  });
 });
