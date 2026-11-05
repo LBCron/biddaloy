@@ -298,3 +298,15 @@ Dated learning (2026-11-02, Epic 53 Wave 4 close):
 
 - **Surprise:** `@sweep`-tagged specs run only in the nightly `-sweeps` project, so a new a11y spec tagged `@sweep` is not part of PR CI. Fix: the notices a11y spec carries no tag. Rule candidate: say in the ticket which project a spec must run in.
 - **Surprise:** `getByLabel('Name')` matched both an input and a tab panel whose name contained the word. Fix: `exact: true`.
+
+## Epic 70 — final result
+
+Dated learning (2026-11-05, Epic 70 close):
+
+- **Surprise:** the notes publish lock was checked outside the transaction, so a racing publish let a save through. Cost: found in review, not by a test. Fix: check under the row lock. Rule candidate: a lock check lives inside the transaction it guards.
+- **Surprise:** `GET /exams` lacked `academic_year`, a field its type declares; mocked unit tests passed. Fix: join it. Rule candidate: a list route returns every relation its type declares.
+- **Surprise:** `_staff.tsx` writes `document.title` after a page's own effect, so the page title was overwritten. Fix: set it through the breadcrumb trail. Rule candidate: one owner per `document.title`.
+- **Surprise:** adding one heading to a shared page broke `getByRole('heading', { name })` in an unrelated spec. Fix: scope the locator. Rule candidate: new headings on shared pages need a locator sweep.
+- **Surprise:** restoring `final_result_rows` could change published numbers. Fix: restore adds, never changes (#3422). Rule candidate: derived result rows are add-only on restore.
+
+Open Epic 70 follow-ups (all in the Biddaloy Development project): #3461 (scale recompute can race a build), #3462 (preview mixes final ids into the exam list, reopen 409 unnamed, missing index), #3463 (leavers cannot get a remark or conduct grade), #3484 (no UI to issue certificates from a final; final prints not in print history).

@@ -139,7 +139,7 @@ Exams & Results
   Exams [19.0]                                                      A E T
   Exam setup [19.0] · Types & heads · Marks distribution · Report-card templates
   Marks entry [19.0+29.0] · Marks view [19.0] · Grading scales [20.0]
-  Results [19.0] · Result by student ID · Final result [70.0]
+  Results [19.0] · Result by student ID · Final result [70.0, shipped]
   Analysis [have] · Merit list · Defaulted list · Pass/fail (+ by component)
   Promotion [have] · Draft run · Grid override · Commit                   A E
   Segregation [26.0, not yet shipped]
@@ -226,6 +226,7 @@ See [34-onboarding.md](34-onboarding.md) and [23-attention.md](23-attention.md).
 | P12 | **My class** (Epic 47.0) lives under **Academics**, next to My routine. TEACHER only (`MY_CLASS_VIEW`). Routes `/my-class` and `/my-class/$sectionId`; palette actions `my-class.open` and `my-class.take-attendance` (`/my-class?then=attendance`). One section redirects straight to its page. A teacher with no class-teacher or assistant section sees "You are not a class teacher of any section yet — ask an admin." A section card shows a role badge (class teacher or assistant). Current academic year only.                                           |
 | P13 | **Applications** is a top-level staff item (like Dashboard) because every staff role both files and decides; its report also sits in the Reports hub (P5). Portal item "আবেদন" sits under More.                                                                                                                                                                                                                                                                                                                                                                   |
 | P14 | **My coordination** (Epic 83) lives under **Academics**, next to My class. TEACHER only (`COORDINATION_VIEW`); the nav item shows for every teacher like My class. Route `/my-coordination`; palette actions `coordination.open` and `coordination.notify-teachers` (`/my-coordination?then=notify`). A teacher with no coordinator rows sees "You are not a coordinator of any class yet — ask an admin." One card per coordinated class; current academic year only. Admins assign coordinators on Teaching assignments › Coordinators (`coordinators.assign`). |
+| P15 | **Final result** (Epic 70) lives under **Exams & Results**, next to Results. Routes `/results/final`, `/results/final/$finalResultId?tab=setup\|results\|print`; class teachers write remarks at `/my-class/$sectionId/notes?for=<examId\|final>`; the conduct item list is edited in Settings › Organisation. Portal Results and student detail show the final first. Palette: `final-result.open`, `final-result.process`, `final-result.publish`, `my-class.notes`.                                                                                            |
 
 ## 4. Command palette — `Ctrl/Cmd+K`
 
