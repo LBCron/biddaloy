@@ -491,4 +491,30 @@ describe('Report engine routes E2E', () => {
         .expect(400);
     });
   });
+  describe('POST /reports/run/branches', () => {
+    const body = { definitionId: randomUUID() };
+
+    it('answers 401 without a school header and 401 for a school the caller is not in', async () => {
+      await http()
+        .post('/api/v1/reports/run/branches')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send(body)
+        .expect(401);
+      await as(
+        UserRole.ADMIN,
+        http().post('/api/v1/reports/run/branches'),
+        adminToken,
+        randomUUID(),
+      )
+        .send(body)
+        .expect(401);
+    });
+
+    it('answers 400 for a non-UUID report id and 404 for one that is not in the catalogue', async () => {
+      await as(UserRole.ADMIN, http().post('/api/v1/reports/run/branches'))
+        .send({ definitionId: 'nope' })
+        .expect(400);
+      await as(UserRole.ADMIN, http().post('/api/v1/reports/run/branches')).send(body).expect(404);
+    });
+  });
 });

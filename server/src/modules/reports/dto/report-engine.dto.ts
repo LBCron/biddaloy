@@ -135,3 +135,39 @@ export class RunFeedbackDto {
   @MaxLength(500)
   comment?: string;
 }
+
+export class BranchCountsDto {
+  @ApiProperty({
+    format: 'uuid',
+    description:
+      'A saved report of this school. It must hold counts only, no questions, and is run in each branch you belong to.',
+  })
+  @IsUUID()
+  definitionId: string;
+}
+
+export class BranchCountsBranchDto {
+  @ApiProperty({ format: 'uuid' }) branch_id: string;
+  @ApiProperty() branch_name: string;
+  @ApiProperty({ type: 'array', items: { type: 'object', additionalProperties: true } })
+  rows: Array<Record<string, unknown>>;
+  @ApiProperty({ type: [String] }) masked: string[];
+  @ApiProperty() suppressed: boolean;
+  @ApiProperty() truncated: boolean;
+}
+
+export class BranchCountsResultDto {
+  @ApiProperty({ type: 'array', items: { type: 'object', additionalProperties: true } })
+  columns: Array<Record<string, unknown>>;
+  @ApiProperty({ type: [BranchCountsBranchDto] }) branches: BranchCountsBranchDto[];
+  @ApiProperty({
+    type: 'array',
+    items: { type: 'object', additionalProperties: true },
+    description:
+      'The branches added together, row by row. A count a branch hid (under 5, for a committee member) leaves the total empty.',
+  })
+  totals: Array<Record<string, unknown>>;
+  @ApiProperty() suppressed: boolean;
+  @ApiProperty({ description: 'True when any branch had more rows than a preview shows.' })
+  truncated: boolean;
+}

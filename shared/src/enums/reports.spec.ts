@@ -95,6 +95,9 @@ describe('report enums', () => {
       'FEES',
       'PAYMENTS',
       'ATTENDANCE',
+      'FINAL_RESULTS',
+      'PROGRAMS',
+      'APPLICATIONS',
     ]);
   });
 });

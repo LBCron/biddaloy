@@ -131,6 +131,7 @@ const AREA_TOPIC: Record<string, DesignerTopic> = {
   ATTENDANCE: 'attendance',
   STAFF: 'staff',
   PUBLIC_EXAMS: 'exam',
+  FINAL_RESULTS: 'exam',
 };
 
 export function defaultTopicOf(areaKey: string, fieldKey: string): DesignerTopic {

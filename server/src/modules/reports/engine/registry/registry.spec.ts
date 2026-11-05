@@ -35,7 +35,7 @@ const nameField: FieldDef = {
 };
 
 describe('report registry', () => {
-  it('the six stub areas validate', () => {
+  it('every area validates', () => {
     expect(() => assertRegistryValid(ALL_AREAS)).not.toThrow();
     expect(ALL_AREAS.map((a) => a.key)).toEqual([
       'STUDENTS',
@@ -44,6 +44,9 @@ describe('report registry', () => {
       'FEES',
       'PAYMENTS',
       'ATTENDANCE',
+      'FINAL_RESULTS',
+      'PROGRAMS',
+      'APPLICATIONS',
     ]);
   });
 
@@ -169,7 +172,7 @@ describe('report registry', () => {
   it('the registry service looks areas up and refuses to start when invalid', () => {
     const registry = new ReportRegistry();
     expect(registry.area(ReportSubjectArea.STUDENTS)?.root.table).toBe('enrollments');
-    expect(registry.areas()).toHaveLength(6);
+    expect(registry.areas()).toHaveLength(9);
     expect(() => registry.onModuleInit()).not.toThrow();
   });
 

@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from '../audit/audit.module';
 import { Payment } from '../fees/entities/payment.entity';
 import { CollectionsReportService } from './collections-report.service';
+import { CrossBranchCountsService } from './cross-branch-counts.service';
 import { ReportsController } from './reports.controller';
 import { ReportsDashboardController } from './reports-dashboard.controller';
 import { DashboardModule } from '../dashboard/dashboard.module';
@@ -51,7 +52,12 @@ import {
     ReportEngineModule,
     StorageModule,
   ],
-  providers: [CollectionsReportService, ReportDefinitionsService, PlatformReportUsageService],
+  providers: [
+    CrossBranchCountsService,
+    CollectionsReportService,
+    ReportDefinitionsService,
+    PlatformReportUsageService,
+  ],
   controllers: [
     ReportsController,
     ReportsDashboardController,

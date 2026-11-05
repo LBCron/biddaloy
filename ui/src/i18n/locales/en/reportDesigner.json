@@ -50,7 +50,10 @@
       "PUBLIC_EXAMS": "Public exam results",
       "FEES": "Fees and bills",
       "PAYMENTS": "Paid",
-      "ATTENDANCE": "Attendance"
+      "ATTENDANCE": "Attendance",
+      "FINAL_RESULTS": "Final results",
+      "PROGRAMS": "Programs",
+      "APPLICATIONS": "Applications"
     }
   },
   "keyboard": {

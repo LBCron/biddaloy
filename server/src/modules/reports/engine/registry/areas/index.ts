@@ -1,7 +1,10 @@
 import type { SubjectAreaDef } from '../registry.types';
 import { attendanceArea } from './attendance.area';
+import { applicationsArea } from './applications.area';
 import { feesArea } from './fees.area';
+import { finalResultsArea } from './final-results.area';
 import { paymentsArea } from './payments.area';
+import { programsArea } from './programs.area';
 import { publicExamsArea } from './public-exams.area';
 import { staffArea } from './staff.area';
 import { studentsArea } from './students.area';
@@ -14,4 +17,7 @@ export const ALL_AREAS: readonly SubjectAreaDef[] = [
   feesArea,
   paymentsArea,
   attendanceArea,
+  finalResultsArea,
+  programsArea,
+  applicationsArea,
 ];

@@ -50,7 +50,10 @@
       "PUBLIC_EXAMS": "পাবলিক পরীক্ষার ফল",
       "FEES": "ফি ও বিল",
       "PAYMENTS": "জমা",
-      "ATTENDANCE": "উপস্থিতি"
+      "ATTENDANCE": "উপস্থিতি",
+      "FINAL_RESULTS": "চূড়ান্ত ফলাফল",
+      "PROGRAMS": "প্রোগ্রাম",
+      "APPLICATIONS": "আবেদন"
     }
   },
   "keyboard": {
