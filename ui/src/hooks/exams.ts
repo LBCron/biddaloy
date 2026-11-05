@@ -1050,7 +1050,12 @@ export function useDownloadMarksSheet(examId: string, sectionId: string, subject
   });
 }
 
-/** `POST /exams/:examId/marks/sheet/validate`, multipart field `file`. Writes nothing. */
+/**
+ * `POST /exams/:examId/marks/sheet/validate`, multipart field `file`. Writes nothing.
+ * Row errors come back in `errors[]`. File-level codes (WRONG_SHEET, UNREADABLE, TOO_LARGE,
+ * TOO_MANY_ROWS) arrive as HTTP 400/413 with `details.code`, so the W3 screens must map those
+ * to `marksImport.errors.*` themselves.
+ */
 export function useValidateMarksSheet(examId: string, sectionId: string, subjectId: string) {
   return useMutation({
     mutationFn: async ({
@@ -1076,14 +1081,15 @@ export function useValidateMarksSheet(examId: string, sectionId: string, subject
           },
         );
         const body = res.data;
-        // The server sends a code and a roll, never prose: the screen translates `code`.
+        // The server sends a code, never prose: the screen translates `code`. `value` stays
+        // unset on purpose: the error table shows it as the "offending value" column, and the
+        // roll is not that. The sheet row number is the identity; `roll` is dropped here.
         const errors: BulkImportError[] = body.errors.map((e) => ({
           row: e.row,
           column: e.component_name,
           message: e.code,
           severity: 'error',
           code: e.code,
-          ...(e.roll !== null ? { value: String(e.roll) } : {}),
         }));
         return {
           // null when any row failed: nothing was staged, so there is nothing to commit.
