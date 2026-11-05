@@ -335,6 +335,10 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
     // Static: three ids cannot feed one resolver; the page h1 names section and subject.
     { label: { key: 'marksEntryGrid' } },
   ],
+  '/_staff/marks/$examId/$sectionId/$subjectId_/import': [
+    { label: { key: 'marksEntry' } },
+    { label: { key: 'marksEntryGrid' } },
+  ],
   '/_staff/results/$examId/$studentId': [
     { label: { key: 'results' } },
     { label: { key: 'reportCard' }, dynamic: 'entity' },

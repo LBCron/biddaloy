@@ -196,7 +196,7 @@ const REGISTERED_ACTION_FILES: Record<string, string> = {
   'routines.addSubstitution': `${R}_staff/routines/-substitution-dialog.tsx`,
   'routines.copyLastYearRoutine': 'client-admin/src/routes/_staff/routines/review.tsx',
   'results.enterMarks': 'client-admin/src/routes/_staff/marks/index.tsx',
-  'marks.uploadSheet': 'client-admin/src/routes/_staff/marks/index.tsx',
+  'marks.uploadSheet': `${R}_staff/marks/$examId.$sectionId.$subjectId_.import.tsx`,
   'results.process': 'client-admin/src/routes/_staff/results/-process-dialog.tsx',
   'results.publish': 'client-admin/src/routes/_staff/results/-publish-dialog.tsx',
   'results.sendSms': 'client-admin/src/routes/_staff/results/-send-result-sms-dialog.tsx',
