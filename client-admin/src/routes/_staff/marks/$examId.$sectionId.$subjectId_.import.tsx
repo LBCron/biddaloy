@@ -183,5 +183,5 @@ function MarksSheetImportContent() {
 
 function MarksSheetImportPending() {
   const { t } = useTranslation('nav');
-  return <RoutePending variant="form" label={t('routePending.label')} />;
+  return <RoutePending variant="form" label={t('routePending.label', { ns: 'nav' })} />;
 }

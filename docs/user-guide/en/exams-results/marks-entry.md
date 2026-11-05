@@ -31,6 +31,8 @@ labels:
 helpIds:
   [
     examsResults.marksEntry,
+    examsResults.marksEntry.action.downloadSheet,
+    examsResults.marksEntry.action.uploadSheet,
     examsResults.marksEntry.action.submit,
     examsResults.marksEntry.action.reopen,
     examsResults.marksEntry.field.exam,

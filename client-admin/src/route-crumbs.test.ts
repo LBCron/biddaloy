@@ -61,7 +61,11 @@ describe('ROUTE_CRUMBS', () => {
       const isParamRoute = segments.some((segment) => segment.startsWith('$'));
       if (!isParamRoute || !Array.isArray(value)) continue;
       // Deliberately static: three ids cannot feed one resolver (31.3.5).
-      if (routeId === '/_staff/marks/$examId/$sectionId/$subjectId') continue;
+      if (
+        routeId === '/_staff/marks/$examId/$sectionId/$subjectId' ||
+        routeId === '/_staff/marks/$examId/$sectionId/$subjectId_/import'
+      )
+        continue;
 
       const hasDynamicSegment = value.some((segment) => segment.dynamic === 'entity');
       expect(
