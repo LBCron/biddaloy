@@ -15232,8 +15232,11 @@ export interface components {
         ReportPresentationDto: {
             /** @description The published version a run uses. */
             version_id: string;
-            /** @example 1 */
-            schema: number;
+            /**
+             * @example 1
+             * @enum {number}
+             */
+            schema: 1;
             /** @enum {string} */
             subjectArea: "STUDENTS" | "STAFF" | "PUBLIC_EXAMS" | "FEES" | "PAYMENTS" | "ATTENDANCE" | "FINAL_RESULTS" | "PROGRAMS" | "APPLICATIONS";
             parameters: {
