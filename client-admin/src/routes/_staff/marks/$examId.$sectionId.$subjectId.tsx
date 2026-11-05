@@ -287,16 +287,20 @@ function MarksEntryPage() {
           )}
         </div>
         <div className="flex w-full shrink-0 flex-wrap items-center gap-2 md:w-auto">
-          <Button
-            type="button"
-            variant="outline"
-            loading={downloadSheet.isPending}
-            onClick={() => downloadSheet.mutate()}
-          >
-            <DownloadIcon aria-hidden="true" />
-            {t('marksSheet.download')}
-          </Button>
-          <HelpHint helpId="examsResults.marksEntry.action.downloadSheet" />
+          {gridQuery.data !== undefined && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                loading={downloadSheet.isPending}
+                onClick={() => downloadSheet.mutate()}
+              >
+                <DownloadIcon aria-hidden="true" />
+                {t('marksSheet.download')}
+              </Button>
+              <HelpHint helpId="examsResults.marksEntry.action.downloadSheet" />
+            </>
+          )}
           {canSubmit && (
             <>
               <Button

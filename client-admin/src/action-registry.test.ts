@@ -499,6 +499,9 @@ describe('action-registry.ts', () => {
     it('needs MARK_ENTER', () => {
       expect(action?.permission).toBe(Permission.MARK_ENTER);
     });
+    it('is greyed out off an exam route (context: exam)', () => {
+      expect(action?.context).toEqual(['exam']);
+    });
     it('on a grid route opens that grid’s import page', () => {
       expect(target({ examId: 'e1', sectionId: 's1', subjectId: 'u1' })).toBe(
         '/marks/e1/s1/u1/import',
