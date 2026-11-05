@@ -470,9 +470,8 @@
       "preferredCommunication": "পছন্দের যোগাযোগ",
       "wallet": "জমা টাকা",
       "lastReminder": "শেষ রিমাইন্ডার",
-      "student": "প্রতিজন শিক্ষার্থীর আলাদা সারি",
       "date": "তারিখ",
-      "reference": "রেফারেন্স"
+      "failedHidden": "ব্যর্থ বা অপেক্ষমাণ পেমেন্ট (টাকা জমা হয়নি)"
     }
   },
   "reportPrint": {

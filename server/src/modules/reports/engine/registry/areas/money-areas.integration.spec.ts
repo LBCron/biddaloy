@@ -16,6 +16,7 @@ import { ALL_ENTITIES } from '@test/all-entities';
 import { startOfLocalDay, endOfLocalDay } from '../../../../../common/time';
 import type { TeacherScopeService } from '../../../../classes/teacher-scope.service';
 import { FeeDuesService } from '../../../../fees/fee-dues.service';
+import { PaymentsQueryService } from '../../../../fees/payments-query.service';
 import { Payment } from '../../../../fees/entities/payment.entity';
 import { StudentFee } from '../../../../fees/entities/student-fee.entity';
 import { Student } from '../../../../students/entities/student.entity';
@@ -296,7 +297,7 @@ describe('report areas: fees, payments, attendance (integration)', () => {
       expect(Number(row.net)).toBe(1000);
     });
 
-    it('lists one row per payment, with the amount, like the payments list', async () => {
+    it('lists one row per payment, like the payments list; only FAILED rows differ', async () => {
       const rows = await run(
         definition(ReportSubjectArea.PAYMENTS, {
           dimensions: [{ field: 'name' }, { field: 'method' }, { field: 'amount' }],
@@ -304,12 +305,21 @@ describe('report areas: fees, payments, attendance (integration)', () => {
           sort: [{ field: 'amount', dir: 'asc' }],
         }),
       );
-      // The reversed original is hidden, its reversal row stays: the same rows the list shows by default.
-      expect(rows.map((r) => [r.name, r.method, Number(r.amount)])).toEqual([
-        ['B', 'CASH', 200],
-        ['A', 'BKASH', 300],
-        ['A', 'CASH', 500],
-      ]);
+      const list = await new PaymentsQueryService(ds.getRepository(Payment)).findAll(
+        { limit: 100 },
+        tenantId,
+      );
+      const key = (name: unknown, method: unknown, amount: unknown) =>
+        `${name}|${method}|${Number(amount)}`;
+      const engine = rows.map((r) => key(r.name, r.method, r.amount)).sort();
+      const screen = list.data
+        .filter((p) => p.payment_status !== 'FAILED')
+        .map((p) => key(p.student?.full_name, p.payment_method, p.total_amount))
+        .sort();
+      expect(engine).toEqual(screen);
+      expect(engine).toHaveLength(3); // B reversal 200, A bkash 300, A cash 500
+      // The one difference: the list also shows the FAILED 9999 payment, which moves no money.
+      expect(list.data.filter((p) => p.payment_status === 'FAILED')).toHaveLength(1);
     });
 
     it('shows who collected a payment, which needs a financial permission', async () => {

@@ -14,7 +14,8 @@ const NOT_REVERSAL = 'p.reversal_of_payment_id IS NULL';
  * the convention of the payments list and the collections report). `baseWhere` is the collections
  * report's own rule for what counts: a payment that succeeded, or is one side of a reversal.
  * A student who was later deleted still shows: money is never hidden. The report author can filter
- * out reversals with `is_reversal`; it is never decided here.
+ * out reversals with `is_reversal`, or hide the originals that were later taken back with
+ * `is_reversed` (what the payments list does by default); it is never decided here.
  */
 export const paymentsArea: SubjectAreaDef = {
   key: ReportSubjectArea.PAYMENTS,
@@ -114,6 +115,15 @@ export const paymentsArea: SubjectAreaDef = {
       'p',
       { en: 'Amount', bn: 'টাকার পরিমাণ' },
       { sensitivity: S.FINANCIAL, groupable: false },
+    ),
+    // Exact time, only to break ties when sorting by day.
+    field(
+      'paid_at',
+      T.DATE,
+      'p.payment_date',
+      'p',
+      { en: 'Paid at', bn: 'সময়' },
+      { groupable: false },
     ),
     // A payment later taken back: the payments list hides these by default.
     field('is_reversed', T.BOOLEAN, 'p.reversed_by_payment_id IS NOT NULL', 'p', {

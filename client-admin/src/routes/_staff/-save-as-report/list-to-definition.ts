@@ -399,6 +399,7 @@ function planPayments(input: ListToDefinitionInput): ListReportPlan {
   }
   const includeReversed = value(filters, 'include_reversed') === 'true';
   // The list hides a payment that was later reversed; the reversal row itself stays, as in the list.
+  unmappedFilters.push('failedHidden');
   if (!includeReversed) fixed.push({ field: 'is_reversed', op: FilterOp.EQ, value: false });
   if (value(filters, 'search')) unmappedFilters.push('search');
 
@@ -462,7 +463,10 @@ function planPayments(input: ListToDefinitionInput): ListReportPlan {
       def.dataset.dimensions = dimensions.map((field) => ({ field }));
       def.dataset.filters = [...dates, ...fixed];
       // Newest first, like the list.
-      def.dataset.sort = [{ field: 'payment_date', dir: 'desc' }];
+      def.dataset.sort = [
+        { field: 'payment_date', dir: 'desc' },
+        { field: 'paid_at', dir: 'desc' },
+      ];
       def.layout = { type: ReportLayoutType.TABLE };
       return def;
     },

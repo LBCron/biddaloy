@@ -491,12 +491,15 @@ describe('payments list', () => {
       'reference',
       'amount',
     ]);
-    expect(def.dataset.sort).toEqual([{ field: 'payment_date', dir: 'desc' }]);
+    expect(def.dataset.sort).toEqual([
+      { field: 'payment_date', dir: 'desc' },
+      { field: 'paid_at', dir: 'desc' },
+    ]);
   });
 
   it('hides reversed payments like the list, and shows them when the list does', () => {
     const hidden = planListReport({ kind: 'payments', filters: {} });
-    expect(hidden.unmappedFilters).toEqual([]);
+    expect(hidden.unmappedFilters).toEqual(['failedHidden']);
     expect(hidden.build().dataset.filters).toEqual([
       { field: 'is_reversed', op: FilterOp.EQ, value: false },
     ]);
@@ -542,7 +545,7 @@ describe('payments list', () => {
       kind: 'payments',
       filters: { search: 'r1', date_from: 'yesterday' },
     });
-    expect(plan.unmappedFilters).toEqual(['search', 'date']);
+    expect(plan.unmappedFilters).toEqual(['failedHidden', 'search', 'date']);
     expect(plan.unmappedColumns).toEqual([]);
   });
 });

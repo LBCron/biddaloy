@@ -470,9 +470,8 @@
       "preferredCommunication": "Preferred contact",
       "wallet": "Credit balance",
       "lastReminder": "Last reminder",
-      "student": "One row for each student",
       "date": "Date",
-      "reference": "Reference"
+      "failedHidden": "Failed or pending payments (no money came in)"
     }
   },
   "reportPrint": {
