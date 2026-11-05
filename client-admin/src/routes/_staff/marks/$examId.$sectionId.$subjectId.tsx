@@ -31,6 +31,7 @@ import {
   useMarkGrid,
   useAutosave,
   useReopenMarkGrid,
+  useDownloadMarksSheet,
   useSubmitMarkGrid,
   saveMarkBatch,
   type MarkGridCell,
@@ -38,13 +39,15 @@ import {
 import { useRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { PageContainer } from '@biddaloy/ui/shells';
 import { formatDateTime, formatNumber, formatTime } from '@biddaloy/ui/utils';
-import { createFileRoute, useBlocker } from '@tanstack/react-router';
+import { createFileRoute, useBlocker, useNavigate } from '@tanstack/react-router';
 import {
   CircleAlertIcon,
   CircleCheckIcon,
   CircleDashedIcon,
+  DownloadIcon,
   LoaderCircleIcon,
   SendIcon,
+  UploadIcon,
 } from 'lucide-react';
 import * as React from 'react';
 
@@ -105,6 +108,8 @@ function MarksEntryPage() {
 
   const gridQuery = useMarkGrid(examId, sectionId, subjectId);
   const submitGrid = useSubmitMarkGrid(examId, sectionId, subjectId);
+  const downloadSheet = useDownloadMarksSheet(examId, sectionId, subjectId);
+  const navigate = useNavigate();
   const reopenGrid = useReopenMarkGrid(examId, sectionId, subjectId);
   const submitted = gridQuery.data?.state === 'SUBMITTED';
   // One gate for the Submit button and its Ctrl/Cmd+Enter shortcut.
@@ -281,20 +286,46 @@ function MarksEntryPage() {
             </p>
           )}
         </div>
-        {canSubmit && (
-          <div className="flex w-full shrink-0 items-center gap-2 md:w-auto">
-            <Button
-              type="button"
-              className="flex-1 md:flex-none"
-              aria-keyshortcuts="Control+Enter"
-              onClick={() => setSubmitOpen(true)}
-            >
-              <SendIcon aria-hidden="true" />
-              {t('submitDialog.confirm')}
-            </Button>
-            <HelpHint helpId="examsResults.marksEntry.action.submit" />
-          </div>
-        )}
+        <div className="flex w-full shrink-0 flex-wrap items-center gap-2 md:w-auto">
+          <Button
+            type="button"
+            variant="outline"
+            loading={downloadSheet.isPending}
+            onClick={() => downloadSheet.mutate()}
+          >
+            <DownloadIcon aria-hidden="true" />
+            {t('marksSheet.download')}
+          </Button>
+          <HelpHint helpId="examsResults.marksEntry.action.downloadSheet" />
+          {canSubmit && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  void navigate({
+                    to: '/marks/$examId/$sectionId/$subjectId/import',
+                    params: { examId, sectionId, subjectId },
+                  })
+                }
+              >
+                <UploadIcon aria-hidden="true" />
+                {t('marksSheet.upload')}
+              </Button>
+              <HelpHint helpId="examsResults.marksEntry.action.uploadSheet" />
+              <Button
+                type="button"
+                className="flex-1 md:flex-none"
+                aria-keyshortcuts="Control+Enter"
+                onClick={() => setSubmitOpen(true)}
+              >
+                <SendIcon aria-hidden="true" />
+                {t('submitDialog.confirm')}
+              </Button>
+              <HelpHint helpId="examsResults.marksEntry.action.submit" />
+            </>
+          )}
+        </div>
       </header>
 
       {submitted && (
