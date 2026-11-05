@@ -342,6 +342,12 @@ function planDues(input: ListToDefinitionInput): ListReportPlan {
     if (FEE_TYPES.includes(feeType)) fixed.push(eq('fee_type', feeType));
     else unmappedFilters.push('feeType');
   }
+  // The list picks students by status/fee type, then totals all their open bills; the report
+  // filters bills, so a student's other open bills drop out of the totals. Say so in the dialog.
+  // ponytail: needs a student-level selection in the report engine to match exactly.
+  if (fixed.some((f) => (f.field === 'fee_type' || f.field === 'status') && f.op === FilterOp.EQ)) {
+    unmappedFilters.push('billLevel');
+  }
   // Fee period (month and year of the bill) and the search text have no field in the report.
   if (value(filters, 'month')) unmappedFilters.push('month');
   if (value(filters, 'year')) unmappedFilters.push('year');

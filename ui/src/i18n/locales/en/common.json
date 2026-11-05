@@ -471,7 +471,8 @@
       "wallet": "Credit balance",
       "lastReminder": "Last reminder",
       "date": "Date",
-      "failedHidden": "Failed or pending payments (no money came in)"
+      "failedHidden": "Failed or pending payments (no money came in)",
+      "billLevel": "Status or fee type picks single bills, not whole students: a student's other open bills are left out of the totals"
     }
   },
   "reportPrint": {
