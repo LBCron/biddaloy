@@ -128,7 +128,7 @@ test.describe('admin', () => {
           new_values: { source?: string } | null;
           performed_by_name: string | null;
         }[];
-      }>(request, session, '/audit-logs?entity_type=Mark&limit=100');
+      }>(request, session, `/audit-logs?entity_type=Mark&entity_id=${scene.examId}&limit=100`); // Mark audit rows carry the exam id
       const sheetRow = logs.data.find((l) => l.new_values?.source === 'SHEET');
       expect(sheetRow?.performed_by_name).toBeTruthy();
     });

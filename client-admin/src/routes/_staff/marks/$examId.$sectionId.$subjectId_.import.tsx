@@ -191,7 +191,8 @@ function MarksSheetImportContent() {
               maxFileSize={MAX_FILE_SIZE}
               validate={validate}
               commit={commit}
-              // The hook gives '' when the sheet had errors: nothing was staged.
+              // The hook gives '' only when nothing was staged (no valid cell at all). Row
+              // errors alongside staged cells do not block Save (D7).
               canCommit={(r) => r.staging_id !== '' && r.hard_error_count === 0}
               hideConfirm
               onControllerChange={setController}
