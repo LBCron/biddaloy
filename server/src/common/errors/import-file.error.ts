@@ -1,4 +1,4 @@
-import type { ImportFileErrorCode } from '@biddaloy/shared';
+import type { ImportFileErrorCode, MarksSheetFileErrorCode } from '@biddaloy/shared';
 
 /**
  * A whole import file was refused. The message is a fixed, server-written sentence and
@@ -6,7 +6,7 @@ import type { ImportFileErrorCode } from '@biddaloy/shared';
  */
 export class ImportFileError extends Error {
   constructor(
-    readonly code: ImportFileErrorCode,
+    readonly code: ImportFileErrorCode | MarksSheetFileErrorCode,
     message: string,
   ) {
     super(message);

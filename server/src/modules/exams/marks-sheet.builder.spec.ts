@@ -73,6 +73,7 @@ describe('buildMarksSheet', () => {
       'Practical /25',
       'Total',
       'Student key',
+      'sheet:e:s:sub',
     ]);
   });
 
@@ -80,6 +81,7 @@ describe('buildMarksSheet', () => {
     const { buffer } = await buildMarksSheet(makeGrid(), meta);
     const ws = (await reopen(buffer)).worksheets[0];
     expect(ws.getColumn(6).hidden).toBe(true);
+    expect(ws.getColumn(7).hidden).toBe(true);
     // Locked is the default, so a missing protection object means locked.
     expect(ws.getCell(2, 6).protection?.locked ?? true).toBe(true);
     expect(ws.getCell(2, 1).protection?.locked ?? true).toBe(true);
@@ -139,6 +141,7 @@ describe('buildMarksSheet', () => {
     // `sheetProtection` is set by exceljs on load but missing from its typings.
     expect((ws as unknown as { sheetProtection?: object }).sheetProtection).toBeTruthy();
     expect(ws.getColumn(6).hidden).toBe(true);
+    expect(ws.getColumn(7).hidden).toBe(true);
     expect(ws.getCell(2, 3).protection?.locked).toBe(false);
     expect(ws.getCell(2, 1).protection?.locked ?? true).toBe(true);
     expect(ws.getCell(2, 2).protection?.locked ?? true).toBe(true);

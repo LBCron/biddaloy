@@ -200,12 +200,12 @@ flowchart LR
 
 ### Rule 15: Redis down has a written answer per route
 
-- **Rule.** When Redis is down, routes marked `@FailClosedWithoutRedis()` (sign-in, OTP, reset, step-up, contact change) answer 503. The throttler and lockout fail open everywhere else. Every route on an `/auth*` or `/account*` controller is listed as fail-closed or fail-open in `server/test/helpers/redis-outage-routes.ts`. A down Redis raises a platform alert: a SUPER_ADMIN banner plus SMS.
+- **Rule.** When Redis is down, routes marked `@FailClosedWithoutRedis()` (sign-in, OTP, reset, step-up, contact change) answer 503. The throttler and lockout fail open everywhere else. Every route on an `/auth*` or `/account*` controller, and on `MarksController` (sheet import, 81 D21), is listed as fail-closed or fail-open in `server/test/helpers/redis-outage-routes.ts`. A down Redis raises a platform alert: a SUPER_ADMIN banner plus SMS.
 - **Why.** "Open everywhere" means unlimited password guessing; "closed everywhere" takes the app down (D4, D4b, D15, 75.18, 75.34).
 - **Example.** `POST /auth/login` with Redis down → `503`; `POST /auth/refresh` → served. The public notice link routes (`/public/notices/:token*`) are not `/auth*` or `/account*`: they stay open without Redis (the throttle fails open, #3374 D29).
 - **Test.** `app-throttler.guard.spec.ts`, `app-throttler.guard.e2e-spec.ts`, `route-guard-coverage.e2e-spec.ts`, `platform-alerts.service.spec.ts`.
 
-**The one route family that fails open on purpose: `Idempotency-Key`.** A double-click or a retry of a send or create must not send twice. `IdempotencyInterceptor` keeps the first answer in Redis for 24 hours and replays it. If Redis is down the request runs unprotected and an error is logged, because a closed route would stop a school from messaging anyone at all. Routes: `communications/send`, `reminder/bulk`, `reminder/single/:studentId`, `invoices/:id/send`, `promotions` (create), `students` (create), `final-results` (create), `final-results/:id/sms` (the key is required: no key is a 400). Test: `idempotency.interceptor.spec.ts`, `reminders.e2e-spec.ts`.
+**The one route family that fails open on purpose: `Idempotency-Key`.** A double-click or a retry of a send or create must not send twice. `IdempotencyInterceptor` keeps the first answer in Redis for 24 hours and replays it. If Redis is down the request runs unprotected and an error is logged, because a closed route would stop a school from messaging anyone at all. Routes: `communications/send`, `reminder/bulk`, `reminder/single/:studentId`, `invoices/:id/send`, `promotions` (create), `students` (create), `final-results` (create), `final-results/:id/sms` (the key is required: no key is a 400), `exams/:examId/marks/sheet/commit`. Test: `idempotency.interceptor.spec.ts`, `reminders.e2e-spec.ts`.
 
 ```mermaid
 flowchart LR

@@ -193,6 +193,32 @@ describe('MarksService.upsertBatch', () => {
     ]);
   });
 
+  it('records the write source in the audit new_values (default GRID, SHEET when told)', async () => {
+    const { service, auditService } = await buildService({
+      existingMarks: [
+        { student_id: 'stu-1', component_id: 'comp-1', value: '75.00', status: MarkStatus.PRESENT },
+      ],
+    });
+    const dto = () =>
+      batchDto([
+        { student_id: 'stu-1', component_id: 'comp-1', value: '75', status: MarkStatus.PRESENT },
+      ]);
+    await service.upsertBatch(EXAM_ID, dto(), TENANT_ID, UserRole.TEACHER, 'user-1');
+    await service.upsertBatch(
+      EXAM_ID,
+      dto(),
+      TENANT_ID,
+      UserRole.TEACHER,
+      'user-1',
+      { ip: null, userAgent: null },
+      'SHEET',
+    );
+    const sources = (
+      auditService.record.mock.calls as unknown as [{ new_values: { source: string } }][]
+    ).map((c) => c[0].new_values.source);
+    expect(sources).toEqual(['GRID', 'SHEET']);
+  });
+
   it('overwrites an existing cell (update, not a duplicate insert)', async () => {
     const { service, markRepo } = await buildService({
       existingMarks: [

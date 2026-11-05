@@ -5,7 +5,8 @@ import {
   MarksSheetRowErrorCode,
 } from '@biddaloy/shared';
 import type { GridResponse } from './mark-grid.service';
-import { parseMarksSheet } from './marks-sheet.parser';
+import { ImportFileError } from '../../common/errors/import-file.error';
+import { MarksSheetFileError, parseMarksSheet } from './marks-sheet.parser';
 import { makeFilledSheet } from './marks-sheet.test-helper';
 
 function makeGrid(studentCount = 3): GridResponse {
@@ -97,6 +98,27 @@ describe('parseMarksSheet', () => {
     const parsed = await parseMarksSheet(buf, 'm.xlsx');
     expect(parsed.rows).toHaveLength(3);
     expect(parsed.rows[1].entries['Written']).toEqual({ kind: 'value', value: '30' });
+  });
+
+  it('reads sheetId from a built sheet', async () => {
+    const buf = await makeFilledSheet(makeGrid(), meta, []);
+    expect((await parseMarksSheet(buf, 'm.xlsx')).sheetId).toBe('e:s:sub');
+  });
+
+  it('leaves sheetId undefined when the sheet has no identity cell', async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('x');
+    ws.addRow(['Roll', 'Name', 'Written /75', 'Total', 'Student key']);
+    ws.addRow([1, 'A', 5, null, 'k1']);
+    const parsed = await parseMarksSheet(Buffer.from(await wb.xlsx.writeBuffer()), 'm.xlsx');
+    expect(parsed.sheetId).toBeUndefined();
+    expect('sheetId' in parsed).toBe(false);
+  });
+
+  it('MarksSheetFileError is an ImportFileError', () => {
+    const e = new MarksSheetFileError(MarksSheetFileErrorCode.WRONG_SHEET, 'x');
+    expect(e).toBeInstanceOf(ImportFileError);
+    expect(e.name).toBe('MarksSheetFileError');
   });
 
   it('ignores the Total column', async () => {

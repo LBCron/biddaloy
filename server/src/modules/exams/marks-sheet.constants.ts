@@ -1,5 +1,8 @@
 export type SheetLang = 'en' | 'bn';
 
+/** Hidden header cell `sheet:<exam_id>:<section_id>:<subject_id>`: the only thing that ties a sheet to its grid. */
+export const SHEET_ID_PREFIX = 'sheet:';
+
 /** Header text for the fixed columns, in both languages (D4: the parser accepts either). */
 export const SHEET_HEADERS = {
   roll: { en: 'Roll', bn: 'রোল' },

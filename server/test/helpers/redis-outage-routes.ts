@@ -6,6 +6,7 @@ import { FirstPasswordController } from '../../src/modules/account-access/first-
 import { SchoolInvitesController } from '../../src/modules/account-access/school-invites.controller';
 import { RegistrationController } from '../../src/modules/registration/registration.controller';
 import { UserController } from '../../src/modules/users/users.controller';
+import { MarksController } from '../../src/modules/exams/marks.controller';
 
 // What each sign-in-related route does while Redis (the rate limiter) is down. Shared by
 // app-throttler.guard.spec (every route on these controllers must be in exactly one list) and
@@ -13,7 +14,7 @@ import { UserController } from '../../src/modules/users/users.controller';
 // `@FailClosedWithoutRedis()` defaults to fail open, so these lists make that a written choice.
 
 // Every controller under /auth or /account, plus UserController (POST /users/me/contact-change
-// checks a password).
+// checks a password), plus MarksController (81 D21: the sheet import stages in Redis).
 export const REDIS_OUTAGE_CONTROLLERS: Function[] = [
   AuthController,
   StepUpController,
@@ -23,6 +24,7 @@ export const REDIS_OUTAGE_CONTROLLERS: Function[] = [
   SchoolInvitesController,
   RegistrationController,
   UserController,
+  MarksController,
 ];
 
 // Checks a password, or sends or checks a one-time code: answers 503 without Redis, because
@@ -49,6 +51,9 @@ export const FAIL_CLOSED = [
   'DELETE /auth/social/identities/:provider',
   'POST /auth/social/facebook/data-deletion',
   'POST /users/me/contact-change',
+  // MarksController: the sheet import stages in Redis, so without it validate and commit cannot work.
+  'POST /exams/:examId/marks/sheet/validate',
+  'POST /exams/:examId/marks/sheet/commit',
 ];
 
 // Served without a rate limit while Redis is down: keeps signed-in people signed in, reads,
@@ -94,4 +99,11 @@ export const FAIL_OPEN = [
   'POST /teachers',
   'PATCH /teachers/:id',
   'GET /teachers/:teacherId/assignments',
+  // MarksController: reads and grid writes use Postgres only
+  'GET /exams/:examId/marks',
+  'PATCH /exams/:examId/marks',
+  'POST /exams/:examId/marks/submit',
+  'POST /exams/:examId/marks/reopen',
+  'GET /exams/:examId/marks/progress',
+  'GET /exams/:examId/marks/sheet',
 ];

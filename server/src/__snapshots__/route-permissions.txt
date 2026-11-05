@@ -208,6 +208,7 @@ GET /exams/:examId/documents/merit-candidates | ExamDocumentsController | perm: 
 GET /exams/:examId/documents/tabulation | ExamDocumentsController | perm: DOCUMENT_PRINT
 GET /exams/:examId/marks | MarksController | perm: MARK_VIEW
 GET /exams/:examId/marks/progress | MarksController | perm: MARK_VIEW
+GET /exams/:examId/marks/sheet | MarksController | perm: MARK_VIEW
 GET /exams/:examId/report-card-notes | ReportCardNotesController | perm: RESULT_PROCESS
 GET /exams/:examId/report-card-notes/missing | ReportCardNotesController | perm: RESULT_PROCESS
 GET /exams/:examId/results | ResultsController | perm: RESULT_READ | roles: ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
@@ -590,6 +591,8 @@ POST /exams | ExamsController | perm: EXAM_MANAGE
 POST /exams/:examId/components | ExamComponentsController | perm: EXAM_MANAGE
 POST /exams/:examId/components/copy | ExamComponentsController | perm: EXAM_MANAGE
 POST /exams/:examId/marks/reopen | MarksController | perm: MARK_ENTER | roles: ADMIN
+POST /exams/:examId/marks/sheet/commit | MarksController | perm: MARK_ENTER
+POST /exams/:examId/marks/sheet/validate | MarksController | perm: MARK_ENTER
 POST /exams/:examId/marks/submit | MarksController | perm: MARK_ENTER
 POST /exams/:examId/results/process | ResultsController | perm: RESULT_PROCESS
 POST /exams/:examId/results/publish | ResultsController | perm: RESULT_PUBLISH
