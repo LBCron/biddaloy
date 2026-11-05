@@ -266,6 +266,7 @@ flowchart LR
 - **Why.** Guard changes are easy to miss in a diff (D21). A `/platform/*` route also needs `PlatformSuperAdminGuard`, which only this snapshot shows.
 - **Example.** `GET /api/v1/platform/alerts  401 PASS 403 …` (`TENANT_SA` 403).
 - **Test.** `server/src/route-status-snapshot.e2e-spec.ts`. See `server/CLAUDE.md` "Route status snapshot".
+- **Log.** [81.0.1] D5b: `PATCH /exams/:examId/marks` and `POST /exams/:examId/marks/submit` flip `EXAM_CONTROLLER` 403 → PASS (it now holds `MARK_ENTER`, a backup for an absent teacher). Teacher scope, other roles and other routes unchanged.
 
 ### Rule 21: CI actions and images are pinned
 

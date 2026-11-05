@@ -8,7 +8,7 @@ import { AppShellPage } from '../pages/app-shell';
 
 /**
  * [24.4.2] EXAM_CONTROLLER journey (#1369, D13, D16): the built-in exam controller
- * runs exams, seat plans and results, can look at marks but never enter them, and
+ * runs exams, seat plans and results, enters marks as backup for an absent teacher (81 D5b), and
  * has no access to fees or settings.
  *
  * Logs in as `exam@biddaloy.test` (seeded by #1368) via `loggedIn()`. The API sets the scene as ADMIN in its own
@@ -27,7 +27,7 @@ async function adminScene(
   return { ctx, session: await adminApiSession(ctx) };
 }
 
-test('runs an exam: create, seat plan, read-only marks, publish result', async ({
+test('runs an exam: create, seat plan, backup mark entry, publish result', async ({
   page,
   playwright,
   baseURL,
@@ -147,19 +147,16 @@ test('runs an exam: create, seat plan, read-only marks, publish result', async (
   // Generating lands straight on the new plan.
   await expect(page.getByRole('heading', { name: planName })).toBeVisible();
 
-  // --- 3. marks grid is view-only: disabled cells, no submit button, and the API refuses a write
+  // --- 3. marks grid is editable for the controller (81 D5b): enabled cells, and the API accepts a DRAFT write
   await page.goto(`/marks/${exam.id}/${sectionId}/${subjectId}`);
   await expect(page.getByRole('heading', { name: t('exams.marksGrid.caption') })).toBeVisible();
-  await expect(page.getByRole('textbox', { name: / — Written$/ }).first()).toBeDisabled();
-  await expect(
-    page.getByRole('button', { name: new RegExp(`^${t('exams.submitDialog.confirm')}`) }),
-  ).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: / — Written$/ }).first()).toBeEnabled();
   const controller = await apiSession(page.request, 'EXAM_CONTROLLER');
   const write = await page.request.patch(`/api/v1/exams/${exam.id}/marks`, {
     headers: { Authorization: `Bearer ${controller.token}`, 'X-Tenant-ID': controller.tenantId },
     data: { section_id: sectionId, subject_id: subjectId, cells: [] },
   });
-  expect(write.status()).toBe(403);
+  expect(write.status()).toBe(200);
 
   // --- 4. process and publish the result ----------------------------------------
   await page.goto(`/exams/${exam.id}`);

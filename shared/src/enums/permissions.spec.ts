@@ -951,6 +951,7 @@ describe('new role grants [#1358]', () => {
       Permission.EXAM_MANAGE,
       Permission.SEAT_PLAN_MANAGE,
       Permission.MARK_VIEW,
+      Permission.MARK_ENTER, // [81.0.1] D5b
       Permission.RESULT_PROCESS,
       Permission.RESULT_PUBLISH,
       Permission.RESULT_READ,
@@ -982,8 +983,8 @@ describe('new role grants [#1358]', () => {
     });
   }
 
-  it('EXAM_CONTROLLER cannot enter marks or edit print templates', () => {
-    expect(has(UserRole.EXAM_CONTROLLER, Permission.MARK_ENTER)).toBe(false);
+  it('EXAM_CONTROLLER enters marks (81 D5b) but cannot edit print templates', () => {
+    expect(has(UserRole.EXAM_CONTROLLER, Permission.MARK_ENTER)).toBe(true);
     expect(has(UserRole.EXAM_CONTROLLER, Permission.PRINT_TEMPLATE_MANAGE)).toBe(false);
   });
 
