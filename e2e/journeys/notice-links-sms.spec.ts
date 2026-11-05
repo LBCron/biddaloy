@@ -34,7 +34,7 @@ const bearer = (s: ApiSession) => ({
 });
 
 interface SmsView {
-  items: { id: string; guardianName: string; reachable: boolean }[];
+  items: { id: string; guardianName: string; forStudent: string | null; reachable: boolean }[];
   counts: { willSend: number };
 }
 
@@ -180,7 +180,12 @@ test.describe('notice links and SMS', () => {
       const first = view.items[0]!;
       await page
         .getByRole('checkbox', {
-          name: t('notices.manage.sms.sendTo', { name: first.guardianName }),
+          name: first.forStudent
+            ? t('notices.manage.sms.sendToFor', {
+                name: first.guardianName,
+                student: first.forStudent,
+              })
+            : t('notices.manage.sms.sendTo', { name: first.guardianName }),
         })
         .click();
       await expect

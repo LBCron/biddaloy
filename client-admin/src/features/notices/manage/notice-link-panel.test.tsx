@@ -76,7 +76,10 @@ describe('notice link and SMS panels', () => {
     await user.click(await screen.findByRole('button', { name: 'New link' }));
     expect(calls).toEqual([]); // the dialog asks first
     expect(screen.getByText('The old link stops working', { exact: false })).toBeTruthy();
-    await user.click(screen.getAllByRole('button', { name: 'New link' }).at(-1)!);
+    const confirm = screen.getAllByRole('button', { name: 'New link' }).at(-1)!;
+    // Nothing is deleted, so no trash can (#3487; 21-ui-patterns §5 keeps it for delete).
+    expect(confirm.querySelector('.lucide-trash-2')).toBeNull();
+    await user.click(confirm);
 
     const box = await screen.findByRole<HTMLInputElement>('textbox', { name: 'Notice link' });
     expect(box.value).toBe(`${window.location.origin}/n/tok123`);

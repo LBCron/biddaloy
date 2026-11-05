@@ -2,11 +2,16 @@
  * [53.3.03] One notice for its reader: title, date, "edited", body (pre-line), files, and — for an
  * important notice not yet acknowledged — the filled "পড়েছি" button. Opening it is the "seen"
  * write (D22), done by `useMyNotice`. `MyNoticeDetailView` is presentational (tests, stories).
+ * `MyNoticePage` is the full page (`/portal/notices/<id>`): there the title is the page `h1` (#3438);
+ * in the list's dialog it stays the detail's own `h2`.
  */
 import { Button } from '@biddaloy/ui/components';
 import { useRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
+import { PageContainer, PageHeader } from '@biddaloy/ui/shells';
 import { formatDate } from '@biddaloy/ui/utils';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
+import { ArrowLeftIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import {
@@ -73,19 +78,22 @@ export interface MyNoticeDetailViewProps {
   notice: MyNoticeDetail;
   onAcknowledge: () => void;
   acknowledging?: boolean;
+  /** False on the full page, where the title is already the page `h1`. */
+  showTitle?: boolean;
 }
 
 export function MyNoticeDetailView({
   notice,
   onAcknowledge,
   acknowledging = false,
+  showTitle = true,
 }: MyNoticeDetailViewProps) {
   const { t } = useTranslation('portalNotices');
   const config = useRegionConfig();
   return (
     <article className="flex flex-col gap-4">
       <header className="flex flex-col gap-1">
-        <h2 className="text-h2">{notice.title}</h2>
+        {showTitle ? <h2 className="text-h2">{notice.title}</h2> : null}
         <p className="text-caption text-text-secondary">
           {formatDate(notice.published_at, config)}
           {notice.edited ? ` · ${t('badge.edited')}` : ''}
@@ -120,7 +128,7 @@ export function MyNoticeDetailView({
   );
 }
 
-export function MyNoticeDetail({ id }: { id: string }) {
+export function MyNoticeDetail({ id, inPage = false }: { id: string; inPage?: boolean }) {
   const { t } = useTranslation('portalNotices');
   const query = useMyNotice(id);
   const acknowledge = useAcknowledgeNotice();
@@ -140,6 +148,26 @@ export function MyNoticeDetail({ id }: { id: string }) {
       notice={query.data}
       acknowledging={acknowledge.isPending}
       onAcknowledge={() => acknowledge.mutate(id)}
+      showTitle={!inPage}
     />
+  );
+}
+
+export function MyNoticePage({ id }: { id: string }) {
+  const { t } = useTranslation('portalNotices');
+  // Same query key as the detail below, so this is the one "seen" read, not a second one.
+  const title = useMyNotice(id).data?.title;
+  return (
+    <PageContainer>
+      <Link
+        to="/portal/notices"
+        className="inline-flex min-h-11 items-center gap-1 font-medium text-primary"
+      >
+        <ArrowLeftIcon className="size-4" aria-hidden="true" />
+        {t('title')}
+      </Link>
+      <PageHeader title={title ?? t('title')} />
+      <MyNoticeDetail id={id} inPage />
+    </PageContainer>
   );
 }

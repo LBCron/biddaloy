@@ -9,6 +9,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  StatusBadge,
   Tabs,
   TabsContent,
   TabsList,
@@ -25,8 +26,6 @@ import { useMyNotices, type MyNoticeItem } from './use-my-notices';
 
 const PAGE_SIZE = 20;
 const YEARS_BACK = 5;
-
-const badge = 'rounded-full px-2 py-0.5 text-caption';
 
 export function MyNoticesList() {
   const { t } = useTranslation('portalNotices');
@@ -81,14 +80,8 @@ export function MyNoticesList() {
       card: 'badge',
       accessorFn: (n) => (
         <span className="flex flex-wrap gap-1">
-          {n.important ? (
-            <span className={`${badge} bg-status-overdue-bg text-status-overdue-fg`}>
-              {t('badge.important')}
-            </span>
-          ) : null}
-          {n.edited ? (
-            <span className={`${badge} bg-muted text-text-secondary`}>{t('badge.edited')}</span>
-          ) : null}
+          {n.important ? <StatusBadge tone="danger" label={t('badge.important')} /> : null}
+          {n.edited ? <StatusBadge tone="neutral" label={t('badge.edited')} /> : null}
         </span>
       ),
     },

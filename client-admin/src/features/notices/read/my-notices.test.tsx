@@ -8,6 +8,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { renderPortalCard } from '../../../routes/portal/-card-test-utils';
 
+import { LatestNoticesCard } from './latest-notices-card';
+import { MyNoticePage } from './my-notice-detail';
 import { MyNoticesList } from './my-notices-list';
 
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-/;
@@ -71,6 +73,17 @@ describe('MyNoticesList', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Archive' }));
     await waitFor(() => expect(tabs).toContain('archive'));
     expect(tabs[0]).toBe('current');
+  });
+
+  it('shows the important and edited tags as the shared StatusBadge', async () => {
+    mockList([item({ important: true, edited: true })]);
+    const { container } = renderPortalCard(<MyNoticesList />);
+    await screen.findAllByText('Important');
+    const badges = [...container.querySelectorAll('[data-slot="status-badge"]')];
+    const tone = (label: string) =>
+      badges.find((b) => b.textContent === label)?.getAttribute('data-tone');
+    expect(tone('Important')).toBe('danger');
+    expect(tone('Edited')).toBe('neutral');
   });
 
   it('shows the guardian child line and never a UUID', async () => {
@@ -151,5 +164,44 @@ describe('MyNoticesList', () => {
     mockList([]);
     renderPortalCard(<MyNoticesList />);
     expect(await screen.findByText('No current notices')).toBeTruthy();
+  });
+});
+
+describe('MyNoticePage (/portal/notices/<id>)', () => {
+  afterEach(async () => {
+    await cleanupTestState();
+  });
+
+  it('the page h1 is the notice title, shown once, with a link back to the list (#3438)', async () => {
+    const detail = mockDetail();
+    renderPortalCard(<MyNoticePage id="11111111-1111-4111-8111-111111111111" />);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Winter break' })).toBeTruthy();
+    await screen.findByText(/School is closed/);
+    expect(screen.getAllByRole('heading', { name: 'Winter break' })).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Notices' }).getAttribute('href')).toBe(
+      '/portal/notices',
+    );
+    expect(detail.calls()).toBe(1); // the page title and the body share one "seen" read
+  });
+});
+
+describe('LatestNoticesCard (portal Overview)', () => {
+  afterEach(async () => {
+    await cleanupTestState();
+  });
+
+  it('a row opens its notice and "All notices" opens the list, both through the router (#3437)', async () => {
+    mockList([item()]);
+    const { router } = renderPortalCard(<LatestNoticesCard variant="full" portalLinks />);
+    const row = await screen.findByRole('link', { name: /Winter break/ });
+    expect(screen.getByRole('link', { name: 'All notices' }).getAttribute('href')).toBe(
+      '/portal/notices',
+    );
+    await userEvent.click(row);
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(
+        '/portal/notices/11111111-1111-4111-8111-111111111111',
+      ),
+    );
   });
 });

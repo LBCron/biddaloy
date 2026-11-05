@@ -1,6 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { http, HttpResponse } from 'msw';
 
+import { withMemoryRouter } from '../../../../../ui/.storybook/router-decorator';
+import { withSession } from '../../../../../ui/.storybook/session-decorator';
+
 import { NoticeDetail } from './notice-detail';
 import { NoticeList } from './notice-list';
 
@@ -81,15 +84,20 @@ const meta: Meta<typeof NoticeList> = {
 export default meta;
 type Story = StoryObj<typeof NoticeList>;
 
-export const List: Story = {};
+// The list and the detail each need a router (links, `?tab=`); per story, so Report can start on its tab.
+const atRoot = [withMemoryRouter(['/']), withSession('ADMIN')];
+
+export const List: Story = { decorators: atRoot };
 
 export const Empty: Story = {
+  decorators: atRoot,
   parameters: {
     msw: { handlers: [http.get('/api/v1/notices', () => HttpResponse.json(page([])))] },
   },
 };
 
 export const Phone: Story = {
+  decorators: atRoot,
   parameters: { viewport: { defaultViewport: 'mobile1' } },
 };
 
@@ -100,10 +108,17 @@ const detailHandlers = [
 
 export const Detail: StoryObj<typeof NoticeDetail> = {
   render: () => <NoticeDetail noticeId={ID} />,
+  decorators: atRoot,
   parameters: { msw: { handlers: detailHandlers } },
 };
 
 export const Report: StoryObj<typeof NoticeDetail> = {
   render: () => <NoticeDetail noticeId={ID} />,
-  parameters: { msw: { handlers: detailHandlers }, router: { initialEntries: ['/?tab=report'] } },
+  decorators: [withMemoryRouter(['/?tab=report']), withSession('ADMIN')],
+  parameters: { msw: { handlers: detailHandlers } },
+};
+
+export const DetailPhone: StoryObj<typeof NoticeDetail> = {
+  ...Detail,
+  parameters: { ...Detail.parameters, viewport: { defaultViewport: 'mobile1' } },
 };

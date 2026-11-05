@@ -51,8 +51,8 @@ const iso = (d: Date | string) => new Date(d).toISOString();
  * old cached row with no subject_id, the stored action_url is the fallback.
  * Example: a teacher who is also a parent gets /communications/notices/<id> as TEACHER
  * and /portal/notices/<id> as PARENT, from the same alert.
- * ponytail: both notice pages (/communications/notices/:id, /portal/notices/:id) arrive with
- * #3381; until then either link 404s in the client.
+ * Both pages exist (53.4.01). The staff page is gated by NOTICE_POST, so a staff reader with only
+ * NOTICE_READ cannot open it yet (#3448).
  */
 function actionUrlFor(row: Row, role?: string): string | undefined {
   if (

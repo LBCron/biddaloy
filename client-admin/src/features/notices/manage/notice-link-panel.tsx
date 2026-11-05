@@ -99,6 +99,7 @@ export function NoticeLinkPanel({ notice }: { notice: Notice }) {
         title={t('manage.link.renewTitle')}
         description={t('manage.link.renewBody')}
         confirmLabel={t('manage.link.renew')}
+        tone="default"
         busy={renew.isPending}
         onConfirm={() =>
           renew.mutate(undefined, {

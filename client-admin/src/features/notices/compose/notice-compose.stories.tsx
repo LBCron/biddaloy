@@ -1,6 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { http, HttpResponse } from 'msw';
 
+import { withMemoryRouter } from '../../../../../ui/.storybook/router-decorator';
+import { withSession } from '../../../../../ui/.storybook/session-decorator';
+
 import { NoticeCompose } from './notice-compose';
 import { PublishConfirmDialog } from './publish-confirm-dialog';
 
@@ -11,6 +14,7 @@ import { PublishConfirmDialog } from './publish-confirm-dialog';
 const meta: Meta<typeof NoticeCompose> = {
   component: NoticeCompose,
   args: { onClose: () => undefined, onPublished: () => undefined },
+  decorators: [withMemoryRouter(['/']), withSession('ADMIN')],
 };
 export default meta;
 type Story = StoryObj<typeof NoticeCompose>;

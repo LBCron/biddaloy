@@ -112,6 +112,7 @@
       "colPhone": "Phone",
       "colSend": "Send",
       "sendTo": "Send an SMS to {{name}}",
+      "sendToFor": "Send an SMS to {{name}} (for {{student}})",
       "noPhoneRow": "No phone number",
       "empty": "No one to send to",
       "emptyBody": "No one has a phone number or everyone asked not to get SMS.",

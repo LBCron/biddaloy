@@ -42,8 +42,8 @@ describe('latest-notices widget', () => {
     renderPortalCard(<Widget variant="full" size="M" />, 'en', 'TEACHER');
     expect((await screen.findAllByText('Notice 1')).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Notice 3').length).toBeGreaterThan(0);
-    // #3430 finding 3: `/portal/notices` bounced staff to the dashboard; the staff list route is
-    // not mounted yet (#3381), so the staff widget shows no list link.
+    // #3430 finding 3: `/portal/notices` bounced staff to the dashboard, and the staff list is gated
+    // by NOTICE_POST (staff with only NOTICE_READ have no reader route, #3448): no list link.
     expect(screen.queryByRole('link', { name: 'All notices' })).toBeNull();
   });
 
