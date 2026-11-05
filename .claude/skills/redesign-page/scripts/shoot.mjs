@@ -41,6 +41,7 @@ if (!html.includes(MARK)) {
 // Tailwind instead.
 const css = readFileSync(resolve(styles, "globals.css"), "utf8")
   .replace(/^@import "tw-animate-css";$/m, "")
+  .replace(/^@import "sonner\/dist\/styles.css";$/m, "")
   .replace(/^@source .*$/m, "")
   .replaceAll('url("./fonts/', `url("${pathToFileURL(styles).href}/fonts/`);
 const head = [
