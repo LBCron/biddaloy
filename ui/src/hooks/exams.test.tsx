@@ -1,6 +1,6 @@
 import { waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { server } from '../test/msw/server';
 import { renderHookWithProviders } from '../test/render-hook-with-providers';
@@ -61,6 +61,17 @@ describe('usePublishResults', () => {
 
 describe('marks sheet hooks [81.2.2]', () => {
   const sheetUrl = '/api/v1/exams/e1/marks/sheet';
+  let restoreUrl:
+    { create: typeof URL.createObjectURL; revoke: typeof URL.revokeObjectURL } | undefined;
+
+  afterEach(() => {
+    if (restoreUrl) {
+      URL.createObjectURL = restoreUrl.create;
+      URL.revokeObjectURL = restoreUrl.revoke;
+      restoreUrl = undefined;
+    }
+    vi.restoreAllMocks();
+  });
 
   it('validate maps errors to table rows and keeps counts + changes', async () => {
     let query: string | undefined;
@@ -90,8 +101,9 @@ describe('marks sheet hooks [81.2.2]', () => {
       column: 'MCQ',
       code: 'ABOVE_FULL_MARKS',
       severity: 'error',
-      value: '7',
     });
+    // The error table shows `value` as the offending cell value; the roll is not that.
+    expect(preview.errors[0]).not.toHaveProperty('value');
     expect(preview.summary.summary.errors).toBe(1);
   });
 
@@ -149,6 +161,9 @@ describe('marks sheet hooks [81.2.2]', () => {
         }),
       ),
     );
+    // Saved only to put back in afterEach; never called unbound.
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    restoreUrl = { create: URL.createObjectURL, revoke: URL.revokeObjectURL };
     URL.createObjectURL = vi.fn(() => 'blob:x');
     URL.revokeObjectURL = vi.fn();
     let name = '';
