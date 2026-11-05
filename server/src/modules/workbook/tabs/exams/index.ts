@@ -9,6 +9,13 @@ import { marksTab } from './marks.tab';
 import { resultsTab } from './results.tab';
 import { resultSubjectsTab } from './result-subjects.tab';
 import { studentSubjectChoicesTab } from './student-subject-choices.tab';
+import {
+  finalResultsTab,
+  finalResultWeightsTab,
+  finalResultRowsTab,
+  finalResultSubjectsTab,
+  reportCardNotesTab,
+} from './final-results.tabs';
 import { seatPlansTab } from './seat-plans.tab';
 import { seatPlanSchedulesTab } from './seat-plan-schedules.tab';
 import { seatAllocationsTab } from './seat-allocations.tab';
@@ -47,6 +54,12 @@ export const examsTabs: TabSpec<any, any>[] = [
   resultsTab,
   resultSubjectsTab,
   studentSubjectChoicesTab,
+  // [70.6.01] After results and choices; they depend on exams, students, sections, users.
+  finalResultsTab,
+  finalResultWeightsTab,
+  finalResultRowsTab,
+  finalResultSubjectsTab,
+  reportCardNotesTab,
 ];
 
 export {
@@ -60,6 +73,11 @@ export {
   resultsTab,
   resultSubjectsTab,
   studentSubjectChoicesTab,
+  finalResultsTab,
+  finalResultWeightsTab,
+  finalResultRowsTab,
+  finalResultSubjectsTab,
+  reportCardNotesTab,
   seatPlansTab,
   seatPlanSchedulesTab,
   seatAllocationsTab,

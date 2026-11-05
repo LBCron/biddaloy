@@ -15,6 +15,10 @@ export const INSERT_ONLY_TABS: ReadonlySet<string> = new Set([
   'mark_grids',
   'results',
   'result_subjects',
+  // [70.6.01] computed and published cards: add, never change.
+  'final_results',
+  'final_result_rows',
+  'final_result_subjects',
   'exam_components',
   'grading_scales',
   'grading_bands',
