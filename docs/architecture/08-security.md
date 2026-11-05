@@ -112,8 +112,8 @@ The layers diagram above shows where most of these rules sit on a request's way 
 
 - **Rule.** An upload is accepted on its leading bytes (`matchesDeclaredType` in `server/src/modules/storage/file-signature.ts`), never on the client's mimetype. An xlsx goes through `xlsx-guard.util.ts` before parsing.
 - **Why.** The mimetype is client-sent; a zip bomb hid behind a valid header (75.8, #2330).
-- **Example.** A `.png` whose bytes are a PDF → `400 File content does not match its declared type`.
-- **Test.** `homework-submission.controller.e2e-spec.ts`, `xlsx-guard.util.spec.ts`.
+- **Example.** A `.png` whose bytes are a PDF → `400 File content does not match its declared type`. The marks sheet upload (`POST /exams/:examId/marks/sheet/validate`, 81.0) is checked the same way: signature and `xlsx-guard.util.ts` first, then the parser.
+- **Test.** `homework-submission.controller.e2e-spec.ts`, `xlsx-guard.util.spec.ts`, `marks-sheet.controller.e2e-spec.ts`.
 
 ### Rule 7: Outbound HTTP goes through the SSRF guard or a reviewed fixed host
 
@@ -205,6 +205,11 @@ flowchart LR
 - **Example.** `POST /auth/login` with Redis down → `503`; `POST /auth/refresh` → served. The public notice link routes (`/public/notices/:token*`) are not `/auth*` or `/account*`: they stay open without Redis (the throttle fails open, #3374 D29).
 - **Test.** `app-throttler.guard.spec.ts`, `app-throttler.guard.e2e-spec.ts`, `route-guard-coverage.e2e-spec.ts`, `platform-alerts.service.spec.ts`.
 
+| Marks sheet route (81 D21) | Redis down | Why |
+| --- | --- | --- |
+| `POST /exams/:examId/marks/sheet/validate` | 503 fail-closed | The parsed diff is staged in Redis; without it nothing can be committed. |
+| `POST /exams/:examId/marks/sheet/commit` | 503 fail-closed | It consumes the staged diff once; the `Idempotency-Key` interceptor still fails open (below). |
+
 **The one route family that fails open on purpose: `Idempotency-Key`.** A double-click or a retry of a send or create must not send twice. `IdempotencyInterceptor` keeps the first answer in Redis for 24 hours and replays it. If Redis is down the request runs unprotected and an error is logged, because a closed route would stop a school from messaging anyone at all. Routes: `communications/send`, `reminder/bulk`, `reminder/single/:studentId`, `invoices/:id/send`, `promotions` (create), `students` (create), `final-results` (create), `final-results/:id/sms` (the key is required: no key is a 400), `exams/:examId/marks/sheet/commit`. Test: `idempotency.interceptor.spec.ts`, `reminders.e2e-spec.ts`.
 
 ```mermaid
@@ -267,6 +272,7 @@ flowchart LR
 - **Example.** `GET /api/v1/platform/alerts  401 PASS 403 …` (`TENANT_SA` 403).
 - **Test.** `server/src/route-status-snapshot.e2e-spec.ts`. See `server/CLAUDE.md` "Route status snapshot".
 - **Log.** 2026-11-05 [81.0.1] D5b: `PATCH /exams/:examId/marks` and `POST /exams/:examId/marks/submit` flip `EXAM_CONTROLLER` 403 → PASS (it now holds `MARK_ENTER`, a backup for an absent teacher). Teacher scope, other roles and other routes unchanged.
+- **Log.** 2026-11-06 [81.2] D5a/D21: new routes `GET /exams/:examId/marks/sheet` (`MARK_VIEW`), `POST …/marks/sheet/validate` and `POST …/marks/sheet/commit` (`MARK_ENTER`; the two writes pass for `ADMIN`, `TEACHER` and `EXAM_CONTROLLER`; `EXECUTIVE` and every other role get 403). Lines are in `route-status.snapshot.txt`.
 
 ### Rule 21: CI actions and images are pinned
 
@@ -317,6 +323,7 @@ flowchart LR
 ```
 
 - **Test.** `ui/src/hooks/mutation-retry.guard.spec.ts`, `server/src/common/idempotency/idempotency.interceptor.spec.ts`, `e2e/journeys/double-submit.spec.ts` (registry: `double-submit.registry.ts`).
+- **Log.** 2026-11-06 [81.2] `POST /exams/:examId/marks/sheet/commit` carries `IdempotencyInterceptor`; the mutation default of `retry: false` applies.
 
 ### Rule 26: Money is compared in whole paisa, with DB CHECKs behind it
 

@@ -138,7 +138,7 @@ Attendance
 Exams & Results
   Exams [19.0]                                                      A E T
   Exam setup [19.0] · Types & heads · Marks distribution · Report-card templates
-  Marks entry [19.0+29.0] · Marks view [19.0] · Grading scales [20.0]
+  Marks entry [19.0+29.0+81.0] (+ sheet upload [81.0]) · Marks view [19.0] · Grading scales [20.0]
   Results [19.0] · Result by student ID · Final result [70.0, shipped]
   Analysis [have] · Merit list · Defaulted list · Pass/fail (+ by component)
   Promotion [have] · Draft run · Grid override · Commit                   A E
