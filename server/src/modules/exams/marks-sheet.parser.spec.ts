@@ -156,4 +156,45 @@ describe('parseMarksSheet', () => {
       parseMarksSheet(Buffer.from(await wb.xlsx.writeBuffer()), 'm.xlsx'),
     ).rejects.toThrow(/^(?!.*SECRET-CELL)/);
   });
+
+  it('reads exempt typed precomposed (U+09DC) or decomposed (U+09A1 U+09BC)', async () => {
+    expect(await parseWritten('ছা\u09dc')).toEqual({ kind: 'exempt' });
+    expect(await parseWritten('ছা\u09a1\u09bc')).toEqual({ kind: 'exempt' });
+  });
+
+  it('turns a date cell into invalid, not blank', async () => {
+    expect(await parseWritten(new Date('2026-01-01') as unknown as string)).toEqual({
+      kind: 'invalid',
+    });
+  });
+
+  it('refuses two columns with the same component name', async () => {
+    const wb = new ExcelJS.Workbook();
+    wb.addWorksheet('x').addRow(['Roll', 'Written /75', 'Written /25', 'Student key']);
+    await expect(
+      parseMarksSheet(Buffer.from(await wb.xlsx.writeBuffer()), 'm.xlsx'),
+    ).rejects.toMatchObject({ code: MarksSheetFileErrorCode.DUPLICATE_COMPONENT });
+  });
+
+  it('keeps a __proto__ header as an ordinary entry', async () => {
+    const csv = 'Roll,__proto__ /10,Student key\n1,5,k1\n';
+    const parsed = await parseMarksSheet(Buffer.from(csv), 'm.csv');
+    expect(Object.keys(parsed.rows[0].entries)).toEqual(['__proto__']);
+  });
+
+  it('refuses a sheet far over the row cap before reading rows', async () => {
+    const lines = Array.from({ length: 2100 }, (_, i) => `${i},1,k${i}`).join('\n');
+    const csv = `Roll,Written /75,Student key\n${lines}\n`;
+    await expect(parseMarksSheet(Buffer.from(csv), 'm.csv')).rejects.toMatchObject({
+      code: ImportFileErrorCode.TOO_MANY_ROWS,
+    });
+  });
+
+  it('reads a component whose name starts with = back by its real name', async () => {
+    const grid = makeGrid();
+    grid.components[0].name = '=Written';
+    const buf = await makeFilledSheet(grid, meta, [{ roll: 1, component: "'=Written", cell: 9 }]);
+    const parsed = await parseMarksSheet(buf, 'm.xlsx');
+    expect(parsed.rows[0].entries['=Written']).toEqual({ kind: 'value', value: '9' });
+  });
 });
