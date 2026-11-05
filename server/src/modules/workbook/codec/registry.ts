@@ -105,6 +105,12 @@ export const EXPECTED_TABS = [
   'results',
   'result_subjects',
   'student_subject_choices',
+  // [70.6.01] Epic 70 final results and report card notes (exams lane barrel).
+  'final_results',
+  'final_result_weights',
+  'final_result_rows',
+  'final_result_subjects',
+  'report_card_notes',
   // Epic 21.0 (class routine/timetable), appended at the end: no other
   // tab depends on these, and they depend on tabs already earlier in
   // this list (academic_years, sections, subjects, teachers, users).

@@ -1,5 +1,6 @@
 import type { EntityManager } from 'typeorm';
 import { formatDateOnly, formatDateTime, fromCell } from '../../codec/cell-format';
+import { optionalKeyOf } from '../../codec/tab-spec';
 import type {
   ColumnSpec,
   ColumnType,
@@ -25,6 +26,8 @@ export interface RefSpec {
   fk: string; // entity FK property, e.g. `user_id`
   tab: TabSpec<any, any>; // the referenced tab
   label: { en: string; bn: string };
+  /** A nullable FK: a blank cell means null, and an unresolvable parent exports blank. */
+  optional?: boolean;
 }
 
 export interface FieldSpec {
@@ -91,7 +94,7 @@ export function createRefChildTab<E extends { id: string }>(
       key: r.key,
       type: 'ref' as const,
       ref: r.tab.name,
-      required: true,
+      required: !r.optional,
       label: r.label,
     })),
     ...fields.map((f) => ({ ...f })),
@@ -122,6 +125,7 @@ export function createRefChildTab<E extends { id: string }>(
       // Skipping the row silently would lose data from the backup, so fail loudly.
       for (const row of rows as unknown as Rec[]) {
         for (const r of refs) {
+          if (r.optional) continue;
           if ((row[STAMP] as Rec)[r.key] === '') {
             throw new Error(
               `Workbook export: tab "${name}" row ${String(row.id)} has a "${r.key}" (${r.fk}) that is not exportable (is it a platform SUPER_ADMIN user, or a missing parent?).`,
@@ -135,7 +139,14 @@ export function createRefChildTab<E extends { id: string }>(
     toRow(entity: E, ctx: ExportContext): Rec {
       const e = entity as unknown as Rec;
       const out: Rec = { id: e.id };
-      for (const r of refs) out[r.key] = ctx.keyOf(r.tab.name, e[r.fk] as string);
+      for (const r of refs) {
+        const id = e[r.fk] as string | null;
+        out[r.key] = r.optional
+          ? id
+            ? optionalKeyOf(ctx, r.tab.name, id)
+            : null
+          : ctx.keyOf(r.tab.name, id as string);
+      }
       for (const f of fields) out[f.key] = e[f.key];
       return out;
     },
@@ -156,7 +167,12 @@ export function createRefChildTab<E extends { id: string }>(
 
       const out: Rec = { id: values.id };
       for (const r of refs) {
-        const key = values[r.key] as string;
+        const key = (values[r.key] as string | null) ?? '';
+        if (r.optional && key === '') {
+          out[r.fk] = null;
+          out[`${r.key}_key`] = '';
+          continue;
+        }
         const id = ctx.ref(r.tab.name, key);
         if (!id) {
           errors.push({

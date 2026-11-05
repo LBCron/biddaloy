@@ -91,6 +91,12 @@ describe('EXPECTED_TABS', () => {
       'results',
       'result_subjects',
       'student_subject_choices',
+      // [70.6.01]
+      'final_results',
+      'final_result_weights',
+      'final_result_rows',
+      'final_result_subjects',
+      'report_card_notes',
       'shifts',
       'period_slots',
       'rooms',

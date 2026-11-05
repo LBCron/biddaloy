@@ -1,9 +1,4 @@
 import type { EntityTarget } from 'typeorm';
-import { FinalResult } from '../../final-results/entities/final-result.entity';
-import { FinalResultWeight } from '../../final-results/entities/final-result-weight.entity';
-import { FinalResultRow } from '../../final-results/entities/final-result-row.entity';
-import { FinalResultSubject } from '../../final-results/entities/final-result-subject.entity';
-import { ReportCardNote } from '../../report-card-notes/entities/report-card-note.entity';
 import { SeatOrder } from '../../billing/entities/seat-order.entity';
 import { PlatformPayment } from '../../billing/entities/platform-payment.entity';
 import { CalendarEventClass } from '../../calendar/entities/calendar-event-class.entity';
@@ -143,27 +138,6 @@ export const ENTITY_COVERAGE_EXEMPT: ReadonlyMap<EntityTarget<unknown>, string> 
     PrintJobItem,
     'print audit trail + certificate register (Epic 32 D44, Epic 48 D33): verify tokens and serial numbers must not travel to another tenant',
   ],
-
-  // --- Epic 70 final results (temporary) ---
-  // FinalResultsService (#3405) writes the four final-result tables; a restore loses them until
-  // the workbook tabs ship in Epic 70 wave 4 (#3422), which deletes these five entries.
-  [
-    FinalResult,
-    'FinalResultsService now writes this table; a restore loses it until the workbook tabs ship (#3422).',
-  ],
-  [
-    FinalResultWeight,
-    'FinalResultsService now writes this table; a restore loses it until the workbook tabs ship (#3422).',
-  ],
-  [
-    FinalResultRow,
-    'FinalResultsService now writes this table; a restore loses it until the workbook tabs ship (#3422).',
-  ],
-  [
-    FinalResultSubject,
-    'FinalResultsService now writes this table; a restore loses it until the workbook tabs ship (#3422).',
-  ],
-  [ReportCardNote, 'Epic 70 report card notes: workbook tab owed by #3422; nothing writes it yet.'],
 
   // Epic 19.0's exams/marks/results spine got a workbook tab in [19.10.1]
   // (#906). No exemption entries left for them.
