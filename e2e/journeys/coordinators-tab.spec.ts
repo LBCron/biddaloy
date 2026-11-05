@@ -43,6 +43,14 @@ test.describe('admin: coordinators', () => {
       // The last option not yet ticked: two different classes, away from the ones the seed assigns.
       await page.getByRole('option', { selected: false }).last().click({ force: true });
     }
+    // A multi-select keeps its list open after each pick so more can follow; the open
+    // list sits over the dialog footer, so close it before reaching for Save. Escape is
+    // handled by the picker itself (closes the list only), not by the dialog.
+    await classes.press('Escape');
+    await expect(
+      page.getByRole('listbox', { name: t('teacherAssignments.fields.coordinatorClasses') }),
+    ).toBeHidden();
+    await expect(dialog).toBeVisible();
     await dialog
       .getByRole('button', { name: t('teacherAssignments.assignCoordinatorDialog.save') })
       .click();
