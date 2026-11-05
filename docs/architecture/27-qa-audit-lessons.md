@@ -308,3 +308,5 @@ Dated learning (2026-11-05, Epic 70 close):
 - **Surprise:** `_staff.tsx` writes `document.title` after a page's own effect, so the page title was overwritten. Fix: set it through the breadcrumb trail. Rule candidate: one owner per `document.title`.
 - **Surprise:** adding one heading to a shared page broke `getByRole('heading', { name })` in an unrelated spec. Fix: scope the locator. Rule candidate: new headings on shared pages need a locator sweep.
 - **Surprise:** restoring `final_result_rows` could change published numbers. Fix: restore adds, never changes (#3422). Rule candidate: derived result rows are add-only on restore.
+
+Open Epic 70 follow-ups (all in the Biddaloy Development project): #3461 (scale recompute can race a build), #3462 (preview mixes final ids into the exam list, reopen 409 unnamed, missing index), #3463 (leavers cannot get a remark or conduct grade), #3484 (no UI to issue certificates from a final; final prints not in print history).
