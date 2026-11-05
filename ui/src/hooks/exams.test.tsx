@@ -107,6 +107,27 @@ describe('marks sheet hooks [81.2.2]', () => {
     expect(preview.summary.summary.errors).toBe(1);
   });
 
+  it('validate: a sheet with some bad rows but staged cells still reports no hard errors (D7)', async () => {
+    server.use(
+      http.post(`${sheetUrl}/validate`, () =>
+        HttpResponse.json({
+          staging_id: 'st-1',
+          expires_at: '2030-01-01T00:00:00Z',
+          summary: { rows: 2, new: 1, changed: 0, unchanged: 0, absent: 0, exempt: 0, errors: 1 },
+          changes: [],
+          errors: [{ row: 3, roll: 7, component_name: 'MCQ', code: 'ABOVE_FULL_MARKS' }],
+        }),
+      ),
+    );
+    const { result } = renderHookWithProviders(() => useValidateMarksSheet('e1', 'sec1', 'sub1'), {
+      tenantId: 'tenant-1',
+    });
+    const preview = await result.current.mutateAsync({ file: new File(['x'], 'm.xlsx') });
+    expect(preview.staging_id).toBe('st-1');
+    expect(preview.hard_error_count).toBe(0);
+    expect(preview.errors).toHaveLength(1);
+  });
+
   it('commit sends an Idempotency-Key, does not retry, and refreshes the grid + progress', async () => {
     let key: string | null = null;
     let calls = 0;

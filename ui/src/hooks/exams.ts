@@ -1096,7 +1096,9 @@ export function useValidateMarksSheet(examId: string, sectionId: string, subject
           staging_id: body.staging_id ?? '',
           expires_at: body.expires_at ?? '',
           errors,
-          hard_error_count: errors.length,
+          // D7: row errors never block the rest. Only a sheet where nothing was staged is stuck;
+          // `BulkUploadPreview` disables Save on any hard error, so staged sheets report 0.
+          hard_error_count: body.staging_id ? 0 : errors.length,
           summary: { summary: body.summary, changes: body.changes },
         };
       } catch (error) {
