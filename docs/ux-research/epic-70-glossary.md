@@ -31,13 +31,13 @@ Conduct scale on screen: A best, D weakest (fixed, D30). Never say **weight, pro
 
 ## Error and help sentences (always next to the control)
 
-| Where                                     | bn                                                | en                                           |
-| ----------------------------------------- | ------------------------------------------------- | -------------------------------------------- |
-| Shares do not add up (setup)              | মোট ১০০ হতে হবে (এখন ৯০)।                         | Must total 100 (now 90).                     |
-| Shares hint under the table               | সব মিলিয়ে ১০০% হতে হবে।                          | Everything together must be 100%.            |
-| Renaming a conduct item                   | নাম বদলালে আগে প্রকাশিত ফলাফলে পুরোনো নামই থাকবে। | Old name stays on results already published. |
-| Conduct list limit                        | সর্বোচ্চ ৮টি বিষয়।                               | At most 8 items.                             |
-| Conduct empty grade                       | খালি রাখলে কার্ডে দেখাবে না।                      | Leave empty: not shown on the card.          |
-| Publish dialog (D18, warns, never blocks) | N জনের মন্তব্য নেই, M জনের আচরণ নেই।              | N students have no remark, M no conduct.     |
+| Where                                     | bn                                                                   | en                                           |
+| ----------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------- |
+| Shares do not add up (setup)              | মোট ১০০ হতে হবে (এখন ৯০)।                                            | Must total 100 (now 90).                     |
+| Shares hint under the table               | সব মিলিয়ে ১০০% হতে হবে।                                             | Everything together must be 100%.            |
+| Renaming a conduct item                   | নাম বদলালে আগে প্রকাশিত ফলাফলে পুরোনো নামই থাকবে।                    | Old name stays on results already published. |
+| Conduct list limit                        | সর্বোচ্চ ৮টি বিষয়।                                                  | At most 8 items.                             |
+| Conduct empty grade                       | খালি রাখলে কার্ডে দেখাবে না।                                         | Leave empty: not shown on the card.          |
+| Publish dialog (D18, warns, never blocks) | N জনের শ্রেণিশিক্ষকের মন্তব্য নেই, M জনের আচরণ ও সহশিক্ষা গ্রেড নেই। | N students have no remark, M no conduct.     |
 
 The exact build-refusal sentences (reopen blocked, exam missing) are fixed by the server tickets, not drawn on the mockups. Add them here when those tickets land.
