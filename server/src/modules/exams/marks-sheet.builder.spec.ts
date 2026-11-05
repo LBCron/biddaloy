@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs';
 import { buildMarksSheet } from './marks-sheet.builder';
+import { howToLines } from './marks-sheet.constants';
 import type { GridResponse } from './mark-grid.service';
 
 function makeGrid(): GridResponse {
@@ -130,5 +131,33 @@ describe('buildMarksSheet', () => {
     const ws = (await reopen(buffer)).worksheets[0];
     expect(ws.getCell(2, 2).value).toBe(`'=HYPERLINK("x")`);
     expect(ws.getCell(1, 4).value).toBe("'@Practical /25");
+  });
+
+  it('protects the sheet: key hidden, entry cells unlocked, roll and name locked', async () => {
+    const { buffer } = await buildMarksSheet(makeGrid(), meta);
+    const ws = (await reopen(buffer)).worksheets[0];
+    // `sheetProtection` is set by exceljs on load but missing from its typings.
+    expect((ws as unknown as { sheetProtection?: object }).sheetProtection).toBeTruthy();
+    expect(ws.getColumn(6).hidden).toBe(true);
+    expect(ws.getCell(2, 3).protection?.locked).toBe(false);
+    expect(ws.getCell(2, 1).protection?.locked ?? true).toBe(true);
+    expect(ws.getCell(2, 2).protection?.locked ?? true).toBe(true);
+  });
+
+  it('puts the first how-to line in the first cell of tab 2, in en and bn', async () => {
+    for (const lang of ['en', 'bn'] as const) {
+      const { buffer } = await buildMarksSheet(makeGrid(), { ...meta, lang });
+      const wb = await reopen(buffer);
+      expect(wb.worksheets[1].getCell(1, 1).value).toBe(howToLines(lang)[0]);
+    }
+  });
+
+  it('writes the legend under the table in en and bn', async () => {
+    const en = await reopen((await buildMarksSheet(makeGrid(), meta)).buffer);
+    expect(en.worksheets[0].getCell(7, 1).value).toBe('A = absent');
+    expect(en.worksheets[0].getCell(8, 1).value).toBe('E = exempt');
+    const bn = await reopen((await buildMarksSheet(makeGrid(), { ...meta, lang: 'bn' })).buffer);
+    expect(bn.worksheets[0].getCell(7, 1).value).toBe('A = অনুপস্থিত');
+    expect(bn.worksheets[0].getCell(8, 1).value).toBe('E = অব্যাহতি');
   });
 });
