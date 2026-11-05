@@ -538,6 +538,35 @@ Example: Class 8, 2026. Half-Yearly counts 30 and Annual counts 70. Rahim gets
 to exactly 100 (hundredths, no tolerance); an exam without the subject drops out
 and the rest renormalise. If every share left is 0 the final refuses to compute.
 
+Life cycle, and what each step does to notes and source exams (D24, D28):
+
+```mermaid
+stateDiagram-v2
+  [*] --> DRAFT: start
+  DRAFT --> PROCESSED: build
+  PROCESSED --> PUBLISHED: publish (notes lock, SMS)
+  PUBLISHED --> PROCESSED: reopen (step-up, notes unlock)
+  PROCESSED --> DRAFT: a source exam reopens (rows deleted)
+```
+
+A PUBLISHED final also refuses to let a source exam reopen (409 `EXAM_IN_PUBLISHED_FINAL`).
+Epic 69 (year rollover, #2202) must treat all five tables as year data: the year-close guard covers them.
+
+Learnings, Epic 70 waves 2-6 (surprise, cost, fix, rule candidate):
+
+- 2026-11-02. Notes were checked for the publish lock before the transaction, so a
+  publish racing a save could slip a write in. Cost: a locked card could change.
+  Fix: check under the row lock. Rule: a lock check lives inside the transaction it guards.
+- 2026-11-02. `GET /exams` joined `class` but not `academic_year`, which its type lists;
+  mocks hid it. Cost: the My class notes link broke on real data. Fix: join it.
+  Rule: a list route returns every relation its type declares.
+- 2026-11-02. The demo seed published a past final before saving its notes. Cost: 409
+  `REPORT_CARD_NOTES_LOCKED` in seeding. Fix: save notes between `build` and `publish`.
+  Rule: seed in the order the lock allows.
+- 2026-11-03. Workbook restore of `final_result_rows` could change published numbers.
+  Cost: a restore could rewrite a card. Fix: restore adds rows, never changes them
+  (#3422). Rule: derived result rows are add-only on restore.
+
 DB guards: two `NULLS NOT DISTINCT` uniques (weights, notes), CHECK share range,
 CHECK `CHK_final_result_rows_days` (days not negative, present at most working,
 null-safe), CHECK one note target. Weights pin their exam (FK NO ACTION).

@@ -12,7 +12,7 @@ at hand instead of loading the whole set.
 | Doc | Read this when you're... |
 |---|---|
 | [00-overview.md](00-overview.md) | Getting oriented, or need the big picture / tech stack / what changed from the original plan |
-| [01-domain-model.md](01-domain-model.md) | Touching any database entity, or need to understand how the data model fits together |
+| [01-domain-model.md](01-domain-model.md) | Touching any database entity, or need to understand how the data model fits together (incl. final results, Epic 70) |
 | [02-auth-and-multitenancy.md](02-auth-and-multitenancy.md) | Working on login, tokens, roles, permissions, or anything tenant-scoped |
 | [03-backend-modules.md](03-backend-modules.md) | Adding/changing a NestJS module, controller, or API route |
 | [04-fees-payments-invoices.md](04-fees-payments-invoices.md) | Working on fee generation, payments, dues, or invoices — the core business flow |
@@ -38,7 +38,7 @@ at hand instead of loading the whole set.
 | [24-applications.md](24-applications.md) | Working on `modules/applications` — any application type (leave, fee waiver, certificates, general letters), who decides it, what approval does, the inbox/pending count, or the portal application pages |
 | [25-cloudflare.md](25-cloudflare.md) | Changing a Cloudflare setting: the tunnel, DNS, Access apps for staging and ops, cache and WAF rules, Turnstile widgets, R2 tokens, or what direct mode replaces |
 | [26-dashboard.md](26-dashboard.md) | Working on `/dashboard`: role dashboards, widgets and the widget catalogue, adding a widget, the layout and digest preferences, the morning summary push, or committee aggregates |
-| [27-qa-audit-lessons.md](27-qa-audit-lessons.md) | You are fixing a bug found by QA, or closing a wave of Epic #2642 |
+| [27-qa-audit-lessons.md](27-qa-audit-lessons.md) | You are fixing a bug found by QA, or closing a wave of Epic #2642 (also Epic 70 learnings) |
 | [28-platform-runbook.md](28-platform-runbook.md) | Running the servers: day-0 checklist, provisioning, `biddaloy-deploy`, releases and rollback, the verification log, restore, secret rotation, growing or moving the VM. Part 10b (test inbox deploy) also in Bangla: [bn/test-inbox-deploy.md](bn/test-inbox-deploy.md). The staging databases, the nightly drill and part 10b together, in plain Bangla for the owner: [runbook-bn/staging-and-test-inbox.md](runbook-bn/staging-and-test-inbox.md) |
 | [29-landing.md](29-landing.md) | Working on the public marketing site `landing/`: content flags, third parties and consent, sitemap/robots/`llms.txt`/JSON-LD, the Lighthouse budget and Playwright smoke in CI, copy rules, screenshots |
 | [30-deployment-target.md](30-deployment-target.md) | Asking *why* the deployment is shaped this way (decisions D1–D26), how it compares with a larger company, *when* to add HA, a managed DB, a second VM or Cloudflare as code (future-work triggers), or what each Epic 79.0 wave learned |
