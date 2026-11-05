@@ -52,7 +52,7 @@ export function DatePicker({
   const { t } = useTranslation('common');
   const [open, setOpen] = React.useState(false);
   const [viewMonth, setViewMonth] = React.useState(() => value ?? new Date());
-  const valueId = React.useId();
+  const visibleText = value ? formatDate(value, config) : (placeholder ?? t('date.pick'));
 
   React.useEffect(() => {
     if (value) setViewMonth(value);
@@ -64,14 +64,13 @@ export function DatePicker({
         <button
           type="button"
           {...props}
-          // `aria-label` replaces the visible text as the name, so the value is
-          // read as the description (kept alongside a form field's own).
-          aria-describedby={[valueId, props['aria-describedby']].filter(Boolean).join(' ')}
+          // WCAG 2.5.3 (label in name): the name is the field's label followed by
+          // exactly the text on screen, so a voice user who says what they see
+          // ("5 Nov 2026") reaches the control.
+          aria-label={`${props['aria-label']}, ${visibleText}`}
           className={cn(pickerTriggerClass, !value && 'text-text-secondary', className)}
         >
-          <span id={valueId}>
-            {value ? formatDate(value, config) : (placeholder ?? t('date.pick'))}
-          </span>
+          <span>{visibleText}</span>
           <CalendarIcon className="size-4 text-text-secondary" aria-hidden="true" />
         </button>
       </PopoverTrigger>

@@ -138,7 +138,7 @@ describe('LogFineModal', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Log fine' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Incident date' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Incident date, / })).toBeTruthy();
   });
 
   it('names the chip remove button "Remove <name>"', async () => {

@@ -61,7 +61,7 @@ function isoOffset(days: number): string {
 /** The date picker is capped at today: tomorrow is disabled, today is pickable. The
  * `errors.dateFuture` branch in the dialog is therefore a defensive backstop. */
 async function expectFutureDaysDisabled(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: 'Date' }));
+  await user.click(screen.getByRole('button', { name: /^Date, / }));
   const cell = (iso: string) => document.querySelector<HTMLElement>(`[data-date="${iso}"]`);
   await waitFor(() => expect(cell(isoOffset(0))).not.toBeNull());
   expect(cell(isoOffset(0))?.getAttribute('aria-disabled')).toBeNull();

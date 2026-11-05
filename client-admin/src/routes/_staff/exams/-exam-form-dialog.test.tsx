@@ -201,7 +201,7 @@ describe('ExamFormDialog mark entry deadline', () => {
     await cleanupTestState();
   });
 
-  const trigger = () => screen.getByRole('button', { name: 'Mark entry deadline' });
+  const trigger = () => screen.getByRole('button', { name: /^Mark entry deadline, / });
 
   it('has a visible label, the help text, and no clear button without a value', async () => {
     mockApi();

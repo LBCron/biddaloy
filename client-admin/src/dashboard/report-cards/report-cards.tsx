@@ -247,7 +247,6 @@ export function UsefulReportsCard() {
                 <Link
                   to="/reports/$reportId"
                   params={{ reportId: entry.id }}
-                  aria-label={t('usefulCard.open', { name })}
                   className="flex min-h-11 flex-col justify-center py-1 no-underline hover:bg-muted"
                 >
                   <span className="font-medium">{name}</span>

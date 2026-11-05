@@ -259,7 +259,7 @@ export const StaffMobile: Story = {
     mobileTitle: 'Greenview School',
     mobileActions: (
       <>
-        <button type="button" aria-label="Search (Ctrl+K)">
+        <button type="button" aria-label="Search… Ctrl+K">
           <CreditCardIcon className="size-4" aria-hidden="true" />
         </button>
         <button type="button" aria-label="Notifications">

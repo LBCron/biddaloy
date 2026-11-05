@@ -395,7 +395,6 @@
   "usefulCard": {
     "title": "Reports you may need",
     "explanation": "Ready reports you have not opened yet.",
-    "open": "Open {{name}}",
     "dismiss": "Hide this card",
     "thisYear": "Not opened this academic year yet.",
     "lines": {

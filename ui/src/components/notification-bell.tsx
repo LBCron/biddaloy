@@ -114,6 +114,9 @@ export function NotificationBell({
             badgeCount > 0
               ? t(attention ? 'notifications.bellLabelActive' : 'notifications.bellLabelUnread', {
                   count: badgeCount,
+                  // The exact badge text, so the name always contains what is on screen
+                  // (WCAG 2.5.3); `count` only picks the plural form.
+                  badge: badgeText,
                 })
               : resolvedLabel
           }

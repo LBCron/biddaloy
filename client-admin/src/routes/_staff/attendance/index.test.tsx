@@ -242,7 +242,7 @@ describe('/attendance', () => {
     await localeReady;
 
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'তারিখ' }));
+    await user.click(await screen.findByRole('button', { name: /^তারিখ, / }));
     await user.click(document.querySelector('[data-date="2026-09-10"]') as HTMLElement);
 
     await waitFor(() =>

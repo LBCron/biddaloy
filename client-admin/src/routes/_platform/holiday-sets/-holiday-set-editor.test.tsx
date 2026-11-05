@@ -103,7 +103,7 @@ describe('HolidaySetEditor', () => {
     const { user, props } = renderEditor();
 
     await screen.findByDisplayValue('International Mother Language Day');
-    await user.click(screen.getByRole('button', { name: 'Start date' }));
+    await user.click(screen.getByRole('button', { name: /^Start date, / }));
     await screen.findByRole('grid', { name: 'Calendar' });
     await user.click(document.querySelector<HTMLElement>('[data-date="2026-02-23"]')!);
     await waitFor(() => expect(screen.queryByRole('grid', { name: 'Calendar' })).toBeNull());

@@ -28,9 +28,8 @@ function pageOrDialogHeading(page: Page, route: ManifestRoute) {
  * both locales. [8.13.12] adds a third variant — `bn` in dark mode, see
  * `VARIANTS`'s own comment below for why it is one locale rather than
  * both. Suppressions only via `exceptions.ts`'s time-boxed
- * `a11yException` passed to `.disableRules()` — the one currently in
- * effect lives in `assert.ts` (`label-content-name-mismatch`, axe-core
- * 4.14) and names the issue that removes it.
+ * `a11yException` passed to `.disableRules()` — none are currently in
+ * effect.
  */
 
 const LOCALES = ['bn', 'en'] as const;

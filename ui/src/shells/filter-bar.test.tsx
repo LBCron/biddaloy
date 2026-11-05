@@ -87,8 +87,8 @@ describe('FilterBar', () => {
 
     expect(screen.getByRole('textbox', { name: 'Search' })).toBeTruthy();
     expect(screen.getByRole('combobox', { name: 'Status' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'From date' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'To date' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^From date, / })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^To date, / })).toBeTruthy();
     expect(screen.getByRole('checkbox', { name: 'Flagged' })).toBeTruthy();
     expect(screen.getByRole('textbox', { name: 'Min amount' })).toBeTruthy();
     expect(screen.getByRole('textbox', { name: 'Max amount' })).toBeTruthy();
@@ -185,7 +185,7 @@ describe('FilterBar', () => {
     const onChangeSpy = vi.fn();
     await renderInEnglish(<FilterBarDemo onChangeSpy={onChangeSpy} />);
 
-    await user.click(screen.getByRole('button', { name: 'From date' }));
+    await user.click(screen.getByRole('button', { name: /^From date, / }));
     await user.click(document.querySelector<HTMLElement>(`[data-date="${pickedIso()}"]`)!);
 
     expect(onChangeSpy).toHaveBeenLastCalledWith({ from_date: pickedIso() });
@@ -196,7 +196,7 @@ describe('FilterBar', () => {
     const onChangeSpy = vi.fn();
     await renderInEnglish(<FilterBarDemo onChangeSpy={onChangeSpy} />);
 
-    await user.click(screen.getByRole('button', { name: 'To date' }));
+    await user.click(screen.getByRole('button', { name: /^To date, / }));
     await user.click(document.querySelector<HTMLElement>(`[data-date="${pickedIso()}"]`)!);
 
     expect(onChangeSpy).toHaveBeenLastCalledWith({ to_date: pickedIso() });
@@ -234,7 +234,7 @@ describe('FilterBar', () => {
     await user.click(trigger);
     const dialog = await screen.findByRole('dialog', { name: 'Filters' });
     expect(within(dialog).getByLabelText('Status')).toBeTruthy();
-    expect(within(dialog).getByLabelText('From date')).toBeTruthy();
+    expect(within(dialog).getByLabelText(/^From date, /)).toBeTruthy();
     expect(within(dialog).getByLabelText('Min amount')).toBeTruthy();
     expect(within(dialog).getByRole('checkbox', { name: 'Flagged' })).toBeTruthy();
   });
@@ -307,8 +307,8 @@ describe('FilterBar', () => {
         screen.getByRole('textbox', { name: 'Search' }),
         screen.getByRole('button', { name: 'Filters' }),
         screen.getByRole('combobox', { name: 'Status' }),
-        screen.getByRole('button', { name: 'From date' }),
-        screen.getByRole('button', { name: 'To date' }),
+        screen.getByRole('button', { name: /^From date, / }),
+        screen.getByRole('button', { name: /^To date, / }),
         screen.getByRole('checkbox', { name: 'Flagged' }),
         screen.getByRole('textbox', { name: 'Min amount' }),
         screen.getByRole('textbox', { name: 'Max amount' }),
@@ -359,7 +359,9 @@ describe('FilterBar', () => {
   it('shows a malformed date value as an empty field instead of crashing', async () => {
     await renderInEnglish(<FilterBarDemo initialValues={{ from_date: 'not-a-date' }} />);
 
-    expect(screen.getByRole('button', { name: 'From date' }).textContent).toContain('Pick a date');
+    expect(screen.getByRole('button', { name: /^From date, / }).textContent).toContain(
+      'Pick a date',
+    );
   });
 
   it('warns in dev when more than one field declares `primary: true`, without crashing', async () => {

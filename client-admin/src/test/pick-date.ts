@@ -5,6 +5,13 @@ import type { UserEvent } from '@testing-library/user-event';
 const PREVIOUS_MONTH = /^(Previous month|আগের মাস)$/;
 const NEXT_MONTH = /^(Next month|পরের মাস)$/;
 
+/** A `DatePicker`'s accessible name is `<label>, <text on screen>` (WCAG 2.5.3), so a plain
+ * label matches as that prefix; a RegExp is used as given. */
+export function dateTriggerName(label: string | RegExp): RegExp {
+  if (label instanceof RegExp) return label;
+  return new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}, `);
+}
+
 /**
  * Opens a `DatePicker` by its accessible name, steps to the target month and
  * clicks the day. Scoped to the open popover (the last `dialog`, portalled
@@ -19,7 +26,7 @@ export async function pickDate(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _config: RegionConfig = REGION_BD_BN,
 ): Promise<void> {
-  await user.click(screen.getByRole('button', { name: triggerName }));
+  await user.click(screen.getByRole('button', { name: dateTriggerName(triggerName) }));
   const root = (await screen.findAllByRole('dialog')).at(-1)!;
   const popover = within(root);
   let lastMonth = '';

@@ -176,8 +176,8 @@
   },
   "notifications": {
     "bellLabel": "Notifications",
-    "bellLabelUnread_one": "Notifications, {{count}} unread",
-    "bellLabelUnread_other": "Notifications, {{count}} unread",
+    "bellLabelUnread_one": "Notifications, {{badge}} unread",
+    "bellLabelUnread_other": "Notifications, {{badge}} unread",
     "badgeOverflow": "{{count}}+",
     "panelLabel": "Notifications",
     "pageTitle": "Alerts & notifications",
@@ -200,12 +200,12 @@
     "attentionNone": "Nothing needs you right now.",
     "attentionError": "Could not load alerts.",
     "attentionRetry": "Try again",
-    "bellLabelActive_one": "Notifications, {{count}} need your attention",
-    "bellLabelActive_other": "Notifications, {{count}} need your attention",
+    "bellLabelActive_one": "Notifications, {{badge}} need your attention",
+    "bellLabelActive_other": "Notifications, {{badge}} need your attention",
     "deviceTitle": "On this device"
   },
   "commandPalette": {
-    "buttonLabel": "Search (Ctrl+K)",
+    "buttonLabel": "Search… Ctrl+K",
     "ariaLabel": "Search",
     "title": "Search",
     "placeholder": "Search students, guardians, pages, and actions…",

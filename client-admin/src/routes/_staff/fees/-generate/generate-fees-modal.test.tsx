@@ -361,7 +361,9 @@ describe('GenerateFeesModal', () => {
     await user.click(await screen.findByRole('button', { name: 'October' }));
     expect(screen.getByRole('button', { name: 'Month' }).textContent).toBe('October 2026');
     // Due date defaults to the 10th and shows in a readable form.
-    expect(screen.getByRole('button', { name: 'Due date' }).textContent).toBe('10th October, 2026');
+    expect(screen.getByRole('button', { name: /^Due date, / }).textContent).toBe(
+      '10th October, 2026',
+    );
 
     await user.click(await screen.findByRole('button', { name: /Select all/ }));
     const feeCheckboxes = await within(await screen.findByTestId('fee-picker')).findAllByRole(

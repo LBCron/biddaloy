@@ -211,7 +211,7 @@ describe('/attendance/staff', () => {
       expect(await screen.findByText('2 staff members')).toBeTruthy();
       // The trigger shows the long date and is named "Date" (not the ISO text).
       expect(await screen.findByText('4th October, 2026')).toBeTruthy();
-      expect(screen.getByRole('button', { name: 'Date' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /^Date, / })).toBeTruthy();
       expect(screen.getByRole('link', { name: 'Leave' }).getAttribute('href')).toBe(
         '/attendance/staff/leave',
       );
@@ -234,7 +234,7 @@ describe('/attendance/staff', () => {
       const { router, localeReady } = renderPage('?date=2026-10-04');
       await localeReady;
 
-      await user.click(await screen.findByRole('button', { name: 'Date' }));
+      await user.click(await screen.findByRole('button', { name: /^Date, / }));
       await user.click(document.querySelector('[data-date="2026-10-10"]') as HTMLElement);
 
       await waitFor(() =>
