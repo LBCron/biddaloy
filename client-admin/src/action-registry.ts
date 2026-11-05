@@ -596,6 +596,9 @@ export const ACTIONS: readonly PaletteAction[] = [
     // Stricter than `/marks`'s MARK_VIEW gate: uploading writes marks.
     permission: Permission.MARK_ENTER,
     kind: 'navigate',
+    // Greyed out (with a reason) off an exam route. On an exam page that is not a grid the
+    // run() falls back to the marks list, where the teacher picks a grid.
+    context: ['exam'],
     group: 'examsResults',
     run: (ctx) => {
       const { examId, sectionId, subjectId } = ctx.params ?? {};

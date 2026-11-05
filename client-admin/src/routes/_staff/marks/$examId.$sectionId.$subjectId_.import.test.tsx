@@ -75,6 +75,19 @@ async function upload() {
   );
 }
 
+const apiError = (status: number, message: string, details?: Record<string, unknown>) =>
+  HttpResponse.json(
+    {
+      statusCode: status,
+      message,
+      timestamp: '2026-11-05T00:00:00Z',
+      path: COMMIT_URL,
+      requestId: 'r1',
+      ...(details ? { details } : {}),
+    },
+    { status },
+  );
+
 describe('/marks/$examId/$sectionId/$subjectId/import', () => {
   afterEach(async () => {
     vi.unstubAllGlobals();
@@ -102,7 +115,7 @@ describe('/marks/$examId/$sectionId/$subjectId/import', () => {
     expect(commitBody).toBeUndefined();
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save 2' }));
     await screen.findByText('2 marks saved');
     expect(commitBody).toEqual({ staging_id: 'stage-1', section_id: S, subject_id: SUB });
   });
@@ -133,7 +146,7 @@ describe('/marks/$examId/$sectionId/$subjectId/import', () => {
     await screen.findByText('Above full marks');
     expect(screen.queryByText('ABOVE_FULL_MARKS')).toBeNull();
     expect(screen.getByText('1 errors')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Save' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: /^Save/ }).hasAttribute('disabled')).toBe(true);
     expect(committed).toBe(false);
   });
 
@@ -158,6 +171,150 @@ describe('/marks/$examId/$sectionId/$subjectId/import', () => {
 
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toBe('This sheet belongs to another exam or section');
+  });
+
+  it('keeps Save off when the server staged nothing (staging_id empty)', async () => {
+    server.use(
+      http.post(VALIDATE_URL, () =>
+        HttpResponse.json({ ...cleanBody, staging_id: '' }, { status: 201 }),
+      ),
+    );
+    renderPage();
+    await upload();
+    await screen.findByText('1 new');
+    expect(screen.getByRole('button', { name: /^Save/ }).hasAttribute('disabled')).toBe(true);
+  });
+
+  it('shows the count on Save, and keeps it off with nothing new or changed', async () => {
+    server.use(
+      http.post(VALIDATE_URL, () =>
+        HttpResponse.json(
+          {
+            ...cleanBody,
+            summary: { rows: 3, new: 0, changed: 0, unchanged: 3, absent: 0, exempt: 0, errors: 0 },
+            changes: [],
+          },
+          { status: 201 },
+        ),
+      ),
+    );
+    renderPage();
+    await upload();
+    await screen.findByText(/nothing to save/);
+    expect(screen.getByRole('button', { name: 'Save 0' }).hasAttribute('disabled')).toBe(true);
+  });
+
+  it('409 on Save: a translated sentence, never the server text, and a way back to the grid', async () => {
+    server.use(
+      http.post(VALIDATE_URL, () => HttpResponse.json(cleanBody, { status: 201 })),
+      http.post(COMMIT_URL, () =>
+        apiError(409, 'SERVER ENGLISH: list is submitted', { code: 'GRID_SUBMITTED' }),
+      ),
+    );
+    renderPage();
+    await upload();
+    await screen.findByText('1 new');
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Save 2' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe(
+      'This marks list is submitted. Ask an admin to reopen it before uploading a sheet.',
+    );
+    expect(screen.queryByText(/SERVER ENGLISH/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Back to grid' })).toBeTruthy();
+  });
+
+  it('409 on validate gets the same sentence and link', async () => {
+    server.use(
+      http.post(VALIDATE_URL, () => apiError(409, 'SERVER ENGLISH', { code: 'GRID_SUBMITTED' })),
+    );
+    renderPage();
+    await upload();
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toMatch(/is submitted/);
+    expect(screen.getByRole('button', { name: 'Back to grid' })).toBeTruthy();
+  });
+
+  it('503 on Save: a translated sentence (Redis down)', async () => {
+    server.use(
+      http.post(VALIDATE_URL, () => HttpResponse.json(cleanBody, { status: 201 })),
+      http.post(COMMIT_URL, () => apiError(503, 'SERVER ENGLISH: redis')),
+    );
+    renderPage();
+    await upload();
+    await screen.findByText('1 new');
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Save 2' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe(
+      'Uploading is not available right now. Please try again in a few minutes.',
+    );
+  });
+
+  it('410 on Save: says the review expired and offers another upload', async () => {
+    server.use(
+      http.post(VALIDATE_URL, () => HttpResponse.json(cleanBody, { status: 201 })),
+      http.post(COMMIT_URL, () => apiError(410, 'SERVER ENGLISH: gone')),
+    );
+    renderPage();
+    await upload();
+    await screen.findByText('1 new');
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Save 2' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).not.toMatch(/SERVER ENGLISH/);
+    expect(screen.getByRole('button', { name: /another/i })).toBeTruthy();
+  });
+
+  it('asks before leaving with an unsaved review (Cancel, then Keep editing)', async () => {
+    server.use(http.post(VALIDATE_URL, () => HttpResponse.json(cleanBody, { status: 201 })));
+    renderPage();
+    await upload();
+    await screen.findByText('1 new');
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await screen.findByText('Discard your changes?');
+    await user.click(screen.getByRole('button', { name: 'Keep editing' }));
+    expect(screen.queryByText('Discard your changes?')).toBeNull();
+    expect(screen.getByText('1 new')).toBeTruthy();
+  });
+
+  it('Esc with an unsaved review asks first', async () => {
+    server.use(http.post(VALIDATE_URL, () => HttpResponse.json(cleanBody, { status: 201 })));
+    renderPage();
+    await upload();
+    await screen.findByText('1 new');
+    const user = userEvent.setup();
+    await user.keyboard('{Escape}');
+    await screen.findByText('Discard your changes?');
+  });
+
+  it('after Save, Close lands on the grid and loads it fresh', async () => {
+    // The commit hook invalidates the grid and progress queries (covered in hooks/exams.test.tsx);
+    // here: the page hands over to the grid, which fetches it.
+    let gridHits = 0;
+    server.use(
+      http.get(GRID_URL, () => {
+        gridHits += 1;
+        return HttpResponse.json(emptyGrid);
+      }),
+      http.post(VALIDATE_URL, () => HttpResponse.json(cleanBody, { status: 201 })),
+      http.post(COMMIT_URL, () => HttpResponse.json({ saved: 2 }, { status: 201 })),
+    );
+    renderWithRouter(routeTree, {
+      initialEntries: [`/marks/${E}/${S}/${SUB}/import`],
+      tenantId: 'tenant-1',
+      role: 'TEACHER',
+      locale: 'en',
+    });
+    await upload();
+    await screen.findByText('1 new');
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Save 2' }));
+    await screen.findByText('2 marks saved');
+    // The footer's primary Close is the last one (the shell also has a header Close).
+    await user.click(screen.getAllByRole('button', { name: 'Close' }).at(-1)!);
+    await waitFor(() => expect(gridHits).toBeGreaterThan(0));
   });
 
   it('the first step downloads the sheet', async () => {

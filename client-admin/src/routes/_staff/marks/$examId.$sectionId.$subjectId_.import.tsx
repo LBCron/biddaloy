@@ -33,6 +33,25 @@ function fileErrorCode(err: unknown): (typeof FILE_ERROR_CODES)[number] | undefi
   return FILE_ERROR_CODES.find((c) => c === code);
 }
 
+/** HTTP status of an error from the hooks (they carry `status`, see `withHttpStatusShape`). */
+const httpStatus = (err: unknown): number | undefined =>
+  (err as { status?: number } | null)?.status;
+
+/**
+ * 409 (the list was submitted) and 503 (Redis down) arrive with server English; swap in a
+ * translated sentence and keep `status` so the preview still treats 404/410 as "expired".
+ */
+function withSheetMessage(
+  err: unknown,
+  t: (key: string) => string,
+  onSubmitted: () => void,
+): unknown {
+  const status = httpStatus(err);
+  if (status === 409) onSubmitted();
+  const key = status === 409 ? 'submitted' : status === 503 ? 'redisDown' : undefined;
+  return key ? Object.assign(new Error(t(`errors.${key}`), { cause: err }), { status }) : err;
+}
+
 /**
  * `/marks/:examId/:sectionId/:subjectId/import` — [81.3.2] the teacher drops a filled marks
  * sheet, reads what will change, then saves. The trailing `_` in the file name makes it a
@@ -66,16 +85,30 @@ function MarksSheetImportContent() {
   const { mutateAsync: validateAsync } = useValidateMarksSheet(examId, sectionId, subjectId);
   const { mutateAsync: commitAsync } = useCommitMarksSheet(examId, sectionId, subjectId);
 
+  // Set when the server says the list is submitted: the page then offers "Back to grid".
+  const [submitted, setSubmitted] = React.useState(false);
+  const markSubmitted = React.useCallback(() => setSubmitted(true), []);
+
   const validate = React.useCallback(
     (file: File, onProgress: (percent: number) => void) =>
       validateAsync({ file, onProgress }).then(
         (result) => ({ ...result, errors: translateSheetErrors(result.errors, t) }),
         (err: unknown) => {
           const code = fileErrorCode(err);
-          throw code ? new Error(t(`errors.${code}`), { cause: err }) : err;
+          throw code
+            ? new Error(t(`errors.${code}`), { cause: err })
+            : withSheetMessage(err, t, markSubmitted);
         },
       ),
-    [validateAsync, t],
+    [validateAsync, t, markSubmitted],
+  );
+
+  const commit = React.useCallback(
+    (stagingId: string) =>
+      commitAsync(stagingId).catch((err: unknown) => {
+        throw withSheetMessage(err, t, markSubmitted);
+      }),
+    [commitAsync, t, markSubmitted],
   );
 
   const backToGrid = () =>
@@ -105,15 +138,20 @@ function MarksSheetImportContent() {
     },
   };
 
+  // Save shows how many marks it will write; with nothing to write it stays off.
+  const summaryCounts = controller?.result?.summary.summary;
+  const toSave = summaryCounts ? summaryCounts.new + summaryCounts.changed : 0;
+  const nothingToSave = dirty && toSave === 0;
+
   const primary =
     status === 'done'
       ? { label: tCommon('actions.close'), onClick: backToGrid }
       : dirty
         ? {
-            label: t('summary.save'),
+            label: t('summary.saveCount', { n: toSave }),
             onClick: () => controller?.confirm(),
             busy: status === 'committing',
-            disabled: controller?.confirmDisabled ?? true,
+            disabled: nothingToSave || (controller?.confirmDisabled ?? true),
           }
         : { label: t('summary.save'), onClick: () => undefined, disabled: true };
 
@@ -152,12 +190,22 @@ function MarksSheetImportContent() {
               accept=".xlsx,.csv"
               maxFileSize={MAX_FILE_SIZE}
               validate={validate}
-              commit={commitAsync}
+              commit={commit}
               // The hook gives '' when the sheet had errors: nothing was staged.
               canCommit={(r) => r.staging_id !== '' && r.hard_error_count === 0}
               hideConfirm
               onControllerChange={setController}
-              renderSummary={(result) => <SheetReview result={result} />}
+              renderSummary={(result) => (
+                <>
+                  <SheetReview result={result} />
+                  {result.summary.summary.new + result.summary.summary.changed === 0 &&
+                    result.hard_error_count === 0 && (
+                      <p className="text-muted-foreground" role="status">
+                        {t('summary.noChanges')}
+                      </p>
+                    )}
+                </>
+              )}
               renderDone={(res) => (
                 <p className="text-h2" role="status">
                   {t('summary.saved', { count: res.saved })}
@@ -165,6 +213,13 @@ function MarksSheetImportContent() {
               )}
             />
           </Card>
+          {submitted && (
+            <div>
+              <Button type="button" variant="outline" onClick={backToGrid}>
+                {t('backToGrid')}
+              </Button>
+            </div>
+          )}
         </div>
       </FullPageShell>
       <ConfirmDialog

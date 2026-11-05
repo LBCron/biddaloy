@@ -20,7 +20,9 @@
     "exempt": "{{count}} exempt",
     "errors": "{{count}} errors",
     "save": "Save",
-    "saved": "{{count}} marks saved"
+    "saved": "{{count}} marks saved",
+    "saveCount": "Save {{n}}",
+    "noChanges": "This sheet has no new or changed marks, so there is nothing to save."
   },
   "change": {
     "oldToNew": "{{old}} → {{new}}",
@@ -36,6 +38,9 @@
     "WRONG_SHEET": "This sheet belongs to another exam or section",
     "UNREADABLE": "We could not read this file. Download a fresh sheet and try again",
     "TOO_LARGE": "This file is too big",
-    "TOO_MANY_ROWS": "This sheet has too many rows"
-  }
+    "TOO_MANY_ROWS": "This sheet has too many rows",
+    "submitted": "This marks list is submitted. Ask an admin to reopen it before uploading a sheet.",
+    "redisDown": "Uploading is not available right now. Please try again in a few minutes."
+  },
+  "backToGrid": "Back to grid"
 }
