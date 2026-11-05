@@ -472,8 +472,7 @@
       "lastReminder": "Last reminder",
       "student": "One row for each student",
       "date": "Date",
-      "reference": "Reference",
-      "reversedHidden": "Hiding payments that were later reversed"
+      "reference": "Reference"
     }
   },
   "reportPrint": {

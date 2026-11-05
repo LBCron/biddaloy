@@ -106,6 +106,20 @@ export const paymentsArea: SubjectAreaDef = {
       { en: 'Registration no.', bn: 'রেজিস্ট্রেশন নম্বর' },
       { sensitivity: S.PERSONAL, groupable: false },
     ),
+    // One row per payment: the amount sits beside the name (a measure could not).
+    field(
+      'amount',
+      T.MONEY,
+      'p.total_amount',
+      'p',
+      { en: 'Amount', bn: 'টাকার পরিমাণ' },
+      { sensitivity: S.FINANCIAL, groupable: false },
+    ),
+    // A payment later taken back: the payments list hides these by default.
+    field('is_reversed', T.BOOLEAN, 'p.reversed_by_payment_id IS NOT NULL', 'p', {
+      en: 'Was reversed',
+      bn: 'পরে ফেরত দেওয়া হয়েছে',
+    }),
     field('class', T.TEXT, 'c.name', 'c', { en: 'Class', bn: 'শ্রেণি' }),
     field('section', T.TEXT, 'cs.section_name', 'cs', { en: 'Section', bn: 'শাখা' }),
   ],

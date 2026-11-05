@@ -127,6 +127,34 @@ describe('report areas: fees, payments, attendance (integration)', () => {
       expect(Number(row.outstanding)).toBe(700 + 800); // (1000-250-50) + 800
     });
 
+    it('lists one row per student with totals that equal the dues list rows', async () => {
+      const rows = await run(
+        definition(ReportSubjectArea.FEES, {
+          dimensions: [{ field: 'name' }, { field: 'registration_number' }],
+          measures: [
+            { field: 'billed', fn: AggregateFn.SUM },
+            { field: 'paid', fn: AggregateFn.SUM },
+            { field: 'outstanding', fn: AggregateFn.SUM },
+          ],
+          filters: [
+            { field: 'status', op: FilterOp.IN, value: ['PENDING', 'PARTIALLY_PAID', 'OVERDUE'] },
+          ],
+          sort: [{ field: 'name', dir: 'asc' }],
+        }),
+      );
+      const dues = new FeeDuesService(ds.getRepository(StudentFee), ds.getRepository(Student));
+      const screen = await dues.getDues({}, tenantId);
+      expect(rows.map((r) => [r.name, Number(r.outstanding)])).toEqual(
+        [...screen.data]
+          .map((r) => [r.full_name, r.total_due])
+          .sort((a, b) => (a[0]! < b[0]! ? -1 : 1)),
+      );
+      expect(rows.map((r) => [Number(r.billed), Number(r.paid)])).toEqual([
+        [1000, 250],
+        [800, 0],
+      ]);
+    });
+
     it('charged and paid add up across all bills, open or closed', async () => {
       const [row] = await run(
         definition(ReportSubjectArea.FEES, {
@@ -266,6 +294,22 @@ describe('report areas: fees, payments, attendance (integration)', () => {
         }),
       );
       expect(Number(row.net)).toBe(1000);
+    });
+
+    it('lists one row per payment, with the amount, like the payments list', async () => {
+      const rows = await run(
+        definition(ReportSubjectArea.PAYMENTS, {
+          dimensions: [{ field: 'name' }, { field: 'method' }, { field: 'amount' }],
+          filters: [{ field: 'is_reversed', op: FilterOp.EQ, value: false }],
+          sort: [{ field: 'amount', dir: 'asc' }],
+        }),
+      );
+      // The reversed original is hidden, its reversal row stays: the same rows the list shows by default.
+      expect(rows.map((r) => [r.name, r.method, Number(r.amount)])).toEqual([
+        ['B', 'CASH', 200],
+        ['A', 'BKASH', 300],
+        ['A', 'CASH', 500],
+      ]);
     });
 
     it('shows who collected a payment, which needs a financial permission', async () => {
