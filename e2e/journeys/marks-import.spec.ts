@@ -263,7 +263,8 @@ test.describe('exam controller', () => {
 /** `/marks` list: pick the scene's exam, then use the row's Upload action. */
 async function openUploadFromList(page: Page, scene: MarksImportScene) {
   await page.goto('/marks');
-  await page.getByLabel(t('exams.marksList.examLabel')).click();
+  // The help buttons beside the picker share its label, so ask for the combobox itself.
+  await page.getByRole('combobox', { name: t('exams.marksList.examLabel') }).click();
   await page.getByRole('option', { name: new RegExp(scene.examName) }).click();
   await page.getByRole('link', { name: t('exams.marksSheet.upload') }).click();
   await expect(page.getByRole('heading', { level: 1, name: t('marksImport.title') })).toBeVisible();

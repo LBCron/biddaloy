@@ -206,6 +206,63 @@ describe('/marks/$examId/$sectionId/$subjectId/import', () => {
     expect(alert.textContent).toBe('This sheet belongs to another exam or section');
   });
 
+  // The real `details.code` values the server sends (#3584): the generic import codes carry an
+  // `IMPORT_FILE_` prefix, so a match on the bare names never hit and the server English showed.
+  it.each([
+    [
+      400,
+      'IMPORT_FILE_UNREADABLE',
+      'We could not read this file. Download a fresh sheet and try again',
+    ],
+    [
+      400,
+      'IMPORT_FILE_UNSUPPORTED_TYPE',
+      'This file type is not supported. Upload the Excel (.xlsx) sheet you downloaded',
+    ],
+    [400, 'IMPORT_FILE_TOO_LARGE', 'This file is too big'],
+    [400, 'IMPORT_FILE_TOO_MANY_ROWS', 'This sheet has too many rows'],
+    [
+      400,
+      'IMPORT_FILE_NO_ROWS',
+      'This sheet has no student rows. Download a fresh sheet and fill it in',
+    ],
+    [
+      400,
+      'DUPLICATE_COMPONENT',
+      'This sheet has the same marks column twice. Download a fresh sheet and try again',
+    ],
+    [413, undefined, 'This file is too big'],
+  ])(
+    'a %i with code %s shows its own sentence, never the server text',
+    async (status, code, text) => {
+      server.use(
+        http.post(VALIDATE_URL, () =>
+          apiError(status, 'SERVER ENGLISH', code === undefined ? undefined : { code }),
+        ),
+      );
+      renderPage();
+      await upload();
+
+      const alert = await screen.findByRole('alert');
+      expect(alert.textContent).toBe(text);
+    },
+  );
+
+  it('a 409 that is not GRID_SUBMITTED (exam published) gets the general sentence', async () => {
+    server.use(
+      http.post(VALIDATE_URL, () =>
+        apiError(409, 'This exam is already published — its marks can no longer be edited.'),
+      ),
+    );
+    renderPage();
+    await upload();
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toMatch(/^This sheet cannot be used right now/);
+    expect(screen.queryByText(/is submitted\. Ask an admin/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Back to grid' })).toBeTruthy();
+  });
+
   it('keeps Save off when the server staged nothing (staging_id empty)', async () => {
     server.use(
       http.post(VALIDATE_URL, () =>

@@ -200,4 +200,34 @@ describe('marks sheet hooks [81.2.2]', () => {
     expect(name).toBe('Mid_A_Math.xlsx');
     click.mockRestore();
   });
+
+  it('download keeps a Bangla name: prefers filename*=UTF-8 over the ? fallback', async () => {
+    const bnName = 'অর্ধবার্ষিক_ষষ্ঠ-ক_গণিত.xlsx';
+    server.use(
+      http.get(sheetUrl, () =>
+        HttpResponse.arrayBuffer(new ArrayBuffer(4), {
+          // The shape Express `res.attachment()` sends for a non-Latin-1 name.
+          headers: {
+            'Content-Disposition': `attachment; filename="???????????_????-?_????.xlsx"; filename*=UTF-8''${encodeURIComponent(bnName)}`,
+          },
+        }),
+      ),
+    );
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    restoreUrl = { create: URL.createObjectURL, revoke: URL.revokeObjectURL };
+    URL.createObjectURL = vi.fn(() => 'blob:x');
+    URL.revokeObjectURL = vi.fn();
+    let name = '';
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      name = this.download;
+    });
+    const { result } = renderHookWithProviders(() => useDownloadMarksSheet('e1', 'sec1', 'sub1'), {
+      tenantId: 'tenant-1',
+    });
+    await result.current.mutateAsync();
+    expect(name).toBe(bnName);
+    click.mockRestore();
+  });
 });

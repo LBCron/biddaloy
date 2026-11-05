@@ -139,15 +139,15 @@ If you have many students, fill the marks in Excel and upload the file. The app 
 3. Go back to the app. In the marks list press **Upload sheet** and choose the file (or drop it on the box). The page shows three steps: **1. Download the sheet**, **2. Fill in the marks**, **3. Upload the sheet**. → The app reads the file.
 4. Read the review. → It counts **new** marks, **changed** marks (for example `45 → 54`), **not changed**, **absent**, **exempt** and **errors**. Check the changed marks carefully.
 5. Press **Save**. → The button shows how many marks it will save. A message says how many marks were saved. If an error row exists, only the good rows are saved.
-6. Fix each error row in the grid: press **Back to grid**, type the correct mark in that cell. Each error says what is wrong, for example "Above full marks" or "This student is not in this section".
+6. Fix each error row in the grid: press **Close**, type the correct mark in that cell. Each error says what is wrong, for example "Above full marks" or "This student is not in this section".
 7. When every cell is filled, press **Submit** as usual ([step 8 above](#task-main)).
 
-| Write in the cell | Meaning |
-| ----------------- | ------- |
-| A mark, e.g. `34.5` | That mark. Bangla or English digits both work. |
-| **A** (also AB, অ, অনু) | Absent |
-| **E** (also EX, ছাড়) | Exempt |
-| blank | Keep the mark already in the app |
+| Write in the cell       | Meaning                                        |
+| ----------------------- | ---------------------------------------------- |
+| A mark, e.g. `34.5`     | That mark. Bangla or English digits both work. |
+| **A** (also AB, অ, অনু) | Absent                                         |
+| **E** (also EX, ছাড়)   | Exempt                                         |
+| blank                   | Keep the mark already in the app               |
 
 > **Remember:** if the list is **Submitted**, you cannot upload a sheet. The Admin must [reopen it](#task-reopen) first. If many people press upload at once or the service is busy, wait a few minutes and try again.
 
@@ -215,7 +215,7 @@ If some marks are not saved yet and you try to go to another page inside the app
 
 ### Open a list to view only <a href="#task-view" id="task-view"></a>
 
-The Academic coordinator can view marks but cannot type them. The Exam controller can type and submit marks too, as a backup when the teacher is absent. In their list each row ends with **View marks**. In the open list the cells are grey and there is no **Submit** button.
+The Academic coordinator can view marks but cannot type them. In the coordinator's list each row ends with **View marks**. In the open list the cells are grey and there is no **Submit** button. The Exam controller is different: they can type and submit marks too, as a backup when the teacher is absent.
 
 ---
 
@@ -240,13 +240,13 @@ The Academic coordinator can view marks but cannot type them. The Exam controlle
 
 ## Who can do what <a href="#roles" id="roles"></a>
 
-| Role                                       | Which lists they see                                                                                                                        | Enter and submit marks   | Reopen a submitted list            |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ---------------------------------- |
-| Admin                                      | All in the school                                                                                                                           | Yes, in every list       | Yes (if results are not published) |
-| Teacher                                    | Only where they are the Subject teacher for that subject, in the current academic year (also a draft exam for a class of the previous year) | Yes, only in those lists | No                                 |
-| Exam controller | All in the school | Yes, in every list (backup when a teacher is away) | No |
-| Academic coordinator | All in the school | No, view only | No |
-| Accountant, Office staff, Committee member | **Enter marks** is not in their menu                                                                                                        | No                       | No                                 |
+| Role                                       | Which lists they see                                                                                                                        | Enter and submit marks                             | Reopen a submitted list            |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------- |
+| Admin                                      | All in the school                                                                                                                           | Yes, in every list                                 | Yes (if results are not published) |
+| Teacher                                    | Only where they are the Subject teacher for that subject, in the current academic year (also a draft exam for a class of the previous year) | Yes, only in those lists                           | No                                 |
+| Exam controller                            | All in the school                                                                                                                           | Yes, in every list (backup when a teacher is away) | No                                 |
+| Academic coordinator                       | All in the school                                                                                                                           | No, view only                                      | No                                 |
+| Accountant, Office staff, Committee member | **Enter marks** is not in their menu                                                                                                        | No                                                 | No                                 |
 
 If a Teacher opens the address of a list in another section directly, the app shows it as "not found", as if the list did not exist.
 

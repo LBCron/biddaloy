@@ -1052,9 +1052,10 @@ export function useDownloadMarksSheet(examId: string, sectionId: string, subject
 
 /**
  * `POST /exams/:examId/marks/sheet/validate`, multipart field `file`. Writes nothing.
- * Row errors come back in `errors[]`. File-level codes (WRONG_SHEET, UNREADABLE, TOO_LARGE,
- * TOO_MANY_ROWS) arrive as HTTP 400/413 with `details.code`, so the W3 screens must map those
- * to `marksImport.errors.*` themselves.
+ * Row errors come back in `errors[]`. Whole-file problems arrive as HTTP 400 with `details.code`
+ * set to an `ImportFileErrorCode` value (`IMPORT_FILE_UNREADABLE`, `IMPORT_FILE_TOO_LARGE`, …) or a
+ * `MarksSheetFileErrorCode` (`WRONG_SHEET`, `DUPLICATE_COMPONENT`); multer's size cap is a 413 with
+ * no code. The import page maps those to `marksImport.errors.*` itself.
  */
 export function useValidateMarksSheet(examId: string, sectionId: string, subjectId: string) {
   return useMutation({
@@ -1092,7 +1093,8 @@ export function useValidateMarksSheet(examId: string, sectionId: string, subject
           code: e.code,
         }));
         return {
-          // null when any row failed: nothing was staged, so there is nothing to commit.
+          // null only when no cell was staged (every row failed, or nothing changed). Row errors
+          // next to staged cells still get an id (D7).
           staging_id: body.staging_id ?? '',
           expires_at: body.expires_at ?? '',
           errors,

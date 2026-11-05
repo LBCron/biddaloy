@@ -39,7 +39,11 @@
     "UNREADABLE": "We could not read this file. Download a fresh sheet and try again",
     "TOO_LARGE": "This file is too big",
     "TOO_MANY_ROWS": "This sheet has too many rows",
+    "UNSUPPORTED_TYPE": "This file type is not supported. Upload the Excel (.xlsx) sheet you downloaded",
+    "NO_ROWS": "This sheet has no student rows. Download a fresh sheet and fill it in",
+    "DUPLICATE_COMPONENT": "This sheet has the same marks column twice. Download a fresh sheet and try again",
     "submitted": "This marks list is submitted. Ask an admin to reopen it before uploading a sheet.",
+    "conflict": "This sheet cannot be used right now: the exam or this marks list has changed (it may be published or submitted). Go back to the grid to check.",
     "redisDown": "Uploading is not available right now. Please try again in a few minutes."
   },
   "backToGrid": "Back to grid"

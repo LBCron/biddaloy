@@ -55,7 +55,12 @@ test('admin builds a section routine, resolves a teacher clash, fill-assists, an
   request,
 }) => {
   const admin = await adminApiSession(request);
-  const subjects = await get<{ data: { id: string; code: string }[] }>(request, admin, '/subjects');
+  const subjects = await get<{ data: { id: string; code: string }[] }>(
+    request,
+    admin,
+    // The default page is 10 by name; specs that add "E2E …" subjects push Mathematics off it.
+    '/subjects?limit=100',
+  );
   const mathSubject = subjects.data.find((s) => s.code === 'MATH');
   if (!mathSubject) throw new Error('seeded "MATH" subject not found — run the seed script first');
 

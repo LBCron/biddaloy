@@ -1,3 +1,4 @@
+import { ImportFileErrorCode, MarksSheetFileErrorCode } from '@biddaloy/shared';
 import {
   Button,
   BulkUploadPreview,
@@ -25,17 +26,31 @@ import { SheetReview, translateSheetErrors } from './-sheet-review';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // mirrors the server's multer limit
 
-/** Whole-file problems the server answers with HTTP 400/413 and `details.code`. */
-const FILE_ERROR_CODES = ['WRONG_SHEET', 'UNREADABLE', 'TOO_LARGE', 'TOO_MANY_ROWS'] as const;
+/** Whole-file problems: the server's `details.code` value → the `marksImport.errors.*` key. */
+const FILE_ERROR_KEYS: Readonly<Record<string, string>> = {
+  [ImportFileErrorCode.UNREADABLE]: 'UNREADABLE',
+  [ImportFileErrorCode.UNSUPPORTED_TYPE]: 'UNSUPPORTED_TYPE',
+  [ImportFileErrorCode.TOO_LARGE]: 'TOO_LARGE',
+  [ImportFileErrorCode.TOO_MANY_ROWS]: 'TOO_MANY_ROWS',
+  [ImportFileErrorCode.NO_ROWS]: 'NO_ROWS',
+  [MarksSheetFileErrorCode.WRONG_SHEET]: 'WRONG_SHEET',
+  [MarksSheetFileErrorCode.DUPLICATE_COMPONENT]: 'DUPLICATE_COMPONENT',
+};
 
-function fileErrorCode(err: unknown): (typeof FILE_ERROR_CODES)[number] | undefined {
-  const code = (err as { details?: { code?: unknown } } | null)?.details?.code;
-  return FILE_ERROR_CODES.find((c) => c === code);
-}
+const detailsCode = (err: unknown): unknown =>
+  (err as { details?: { code?: unknown } } | null)?.details?.code;
 
 /** HTTP status of an error from the hooks (they carry `status`, see `withHttpStatusShape`). */
 const httpStatus = (err: unknown): number | undefined =>
   (err as { status?: number } | null)?.status;
+
+function fileErrorKey(err: unknown): string | undefined {
+  const code = detailsCode(err);
+  if (typeof code === 'string' && Object.hasOwn(FILE_ERROR_KEYS, code))
+    return FILE_ERROR_KEYS[code];
+  // multer's 5 MB cap answers 413 with no code.
+  return httpStatus(err) === 413 && code === undefined ? 'TOO_LARGE' : undefined;
+}
 
 /**
  * 409 (the list was submitted) and 503 (Redis down) arrive with server English; swap in a
@@ -48,7 +63,17 @@ function withSheetMessage(
 ): unknown {
   const status = httpStatus(err);
   if (status === 409) onSubmitted();
-  const key = status === 409 ? 'submitted' : status === 503 ? 'redisDown' : undefined;
+  // Only GRID_SUBMITTED means "ask an admin to reopen". Other 409s (exam published, results
+  // just processed, a racing write, a grid submitted between validate and commit, #3578)
+  // get a sentence that covers all of them.
+  const key =
+    status === 409
+      ? detailsCode(err) === 'GRID_SUBMITTED'
+        ? 'submitted'
+        : 'conflict'
+      : status === 503
+        ? 'redisDown'
+        : undefined;
   return key ? Object.assign(new Error(t(`errors.${key}`), { cause: err }), { status }) : err;
 }
 
@@ -94,9 +119,9 @@ function MarksSheetImportContent() {
       validateAsync({ file, onProgress }).then(
         (result) => ({ ...result, errors: translateSheetErrors(result.errors, t) }),
         (err: unknown) => {
-          const code = fileErrorCode(err);
-          throw code
-            ? new Error(t(`errors.${code}`), { cause: err })
+          const key = fileErrorKey(err);
+          throw key
+            ? new Error(t(`errors.${key}`), { cause: err })
             : withSheetMessage(err, t, markSubmitted);
         },
       ),
@@ -166,7 +191,7 @@ function MarksSheetImportContent() {
         primary={primary}
       >
         <div className="flex flex-col gap-6">
-          <Card padded aria-label={t('title')}>
+          <Card padded role="region" aria-label={t('title')}>
             <ol className="grid gap-3 md:grid-cols-3" data-testid="sheet-steps">
               <li className="flex flex-col items-start gap-2">
                 <span className="font-medium">{t('steps.download')}</span>
@@ -185,7 +210,7 @@ function MarksSheetImportContent() {
             </ol>
           </Card>
 
-          <Card padded aria-label={t('steps.upload')}>
+          <Card padded role="region" aria-label={t('steps.upload')}>
             <BulkUploadPreview<MarksSheetPreviewSummary, MarksSheetCommitResult>
               accept=".xlsx,.csv"
               maxFileSize={MAX_FILE_SIZE}

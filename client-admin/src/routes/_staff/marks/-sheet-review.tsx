@@ -66,7 +66,7 @@ export function SheetReview({ result }: { result: PreviewResult<MarksSheetPrevie
 
   return (
     <div className="flex flex-col gap-6" data-testid="sheet-review">
-      <Card padded aria-labelledby="sheet-review-heading">
+      <Card padded role="region" aria-labelledby="sheet-review-heading">
         <h2 id="sheet-review-heading" className="text-h2">
           {t('summary.title')}
         </h2>

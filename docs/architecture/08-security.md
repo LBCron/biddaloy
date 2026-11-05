@@ -112,7 +112,7 @@ The layers diagram above shows where most of these rules sit on a request's way 
 
 - **Rule.** An upload is accepted on its leading bytes (`matchesDeclaredType` in `server/src/modules/storage/file-signature.ts`), never on the client's mimetype. An xlsx goes through `xlsx-guard.util.ts` before parsing.
 - **Why.** The mimetype is client-sent; a zip bomb hid behind a valid header (75.8, #2330).
-- **Example.** A `.png` whose bytes are a PDF → `400 File content does not match its declared type`. The marks sheet upload (`POST /exams/:examId/marks/sheet/validate`, 81.0) is checked the same way: signature and `xlsx-guard.util.ts` first, then the parser.
+- **Example.** A `.png` whose bytes are a PDF → `400 File content does not match its declared type`. The marks sheet upload (`POST /exams/:examId/marks/sheet/validate`, 81.0) is checked by `xlsx-guard.util.ts` (which refuses a non-zip, so it is the signature check) before the parser; a `.csv` is read as plain text, as in the homework bulk upload.
 - **Test.** `homework-submission.controller.e2e-spec.ts`, `xlsx-guard.util.spec.ts`, `marks-sheet.controller.e2e-spec.ts`.
 
 ### Rule 7: Outbound HTTP goes through the SSRF guard or a reviewed fixed host
@@ -205,10 +205,10 @@ flowchart LR
 - **Example.** `POST /auth/login` with Redis down → `503`; `POST /auth/refresh` → served. The public notice link routes (`/public/notices/:token*`) are not `/auth*` or `/account*`: they stay open without Redis (the throttle fails open, #3374 D29).
 - **Test.** `app-throttler.guard.spec.ts`, `app-throttler.guard.e2e-spec.ts`, `route-guard-coverage.e2e-spec.ts`, `platform-alerts.service.spec.ts`.
 
-| Marks sheet route (81 D21) | Redis down | Why |
-| --- | --- | --- |
-| `POST /exams/:examId/marks/sheet/validate` | 503 fail-closed | The parsed diff is staged in Redis; without it nothing can be committed. |
-| `POST /exams/:examId/marks/sheet/commit` | 503 fail-closed | It consumes the staged diff once; the `Idempotency-Key` interceptor still fails open (below). |
+| Marks sheet route (81 D21)                 | Redis down      | Why                                                                                           |
+| ------------------------------------------ | --------------- | --------------------------------------------------------------------------------------------- |
+| `POST /exams/:examId/marks/sheet/validate` | 503 fail-closed | The parsed diff is staged in Redis; without it nothing can be committed.                      |
+| `POST /exams/:examId/marks/sheet/commit`   | 503 fail-closed | It consumes the staged diff once; the `Idempotency-Key` interceptor still fails open (below). |
 
 **The one route family that fails open on purpose: `Idempotency-Key`.** A double-click or a retry of a send or create must not send twice. `IdempotencyInterceptor` keeps the first answer in Redis for 24 hours and replays it. If Redis is down the request runs unprotected and an error is logged, because a closed route would stop a school from messaging anyone at all. Routes: `communications/send`, `reminder/bulk`, `reminder/single/:studentId`, `invoices/:id/send`, `promotions` (create), `students` (create), `final-results` (create), `final-results/:id/sms` (the key is required: no key is a 400), `exams/:examId/marks/sheet/commit`. Test: `idempotency.interceptor.spec.ts`, `reminders.e2e-spec.ts`.
 
