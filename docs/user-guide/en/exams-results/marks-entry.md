@@ -57,11 +57,12 @@ Enter the marks for your section and subject in an exam, and submit the marks li
 
 This page is about the **marks list**. There is one marks list for each subject in each section of an exam, for example "Section A · Mathematics". Each row is a student, and each column is a mark part of the subject (for example written, multiple choice). A marks list is in one of two states: **Not submitted** (you can type marks) or **Submitted** (view only).
 
-[Enter and submit marks](#task-main) · [Enter marks on a phone](#task-phone) · [Reopen a submitted list](#task-reopen) · [Problems and fixes](#trouble)
+[Enter and submit marks](#task-main) · [Fill marks in Excel](#task-excel) · [Enter marks on a phone](#task-phone) · [Reopen a submitted list](#task-reopen) · [Problems and fixes](#trouble)
 
 **On this page**
 
 - [Enter and submit marks](#task-main)
+- [Fill marks in Excel](#task-excel)
 - [How to know the marks are saved and submitted](#confirm)
 - [Other situations](#other)
   - [Enter marks on a phone](#task-phone)
@@ -122,6 +123,35 @@ This page is about the **marks list**. There is one marks list for each subject 
 | **Cancel**                   | The window closes. The marks you typed stay as they were (they were already saved by the app). | No         |
 
 > **Remember:** marks save by themselves, but the list is not submitted until you press **Submit**. If a list is still not submitted when the Admin goes to process the results, the Admin gets a warning ([Results](results.md)).
+
+---
+
+## Fill marks in Excel <a href="#task-excel" id="task-excel"></a>
+
+If you have many students, fill the marks in Excel and upload the file. The app checks the file first and shows you what will change. Nothing is saved until you press **Save**.
+
+**Who can enter marks:** the **Subject teacher** of that subject, the **Admin**, and the **Exam controller**. The Exam controller is the backup when a teacher is away.
+
+**When the teacher is away:** the Admin or Exam controller does not need to open the list first. In the **Enter marks** list each row has **Download sheet** and **Upload sheet** buttons. Press them there.
+
+1. Open the marks list ([steps 1–3 above](#task-main)) and press **Download sheet**. → An Excel file is saved on your computer. It has two tabs: **Marks** and **How to fill**.
+2. Open the file and fill **only the white cells**. Grey columns are worked out by the app; do not touch them. Write **A** if the student was absent, **E** if exempt. A blank cell means "keep the mark as it is".
+3. Go back to the app. In the marks list press **Upload sheet** and choose the file (or drop it on the box). The page shows three steps: **1. Download the sheet**, **2. Fill in the marks**, **3. Upload the sheet**. → The app reads the file.
+4. Read the review. → It counts **new** marks, **changed** marks (for example `45 → 54`), **not changed**, **absent**, **exempt** and **errors**. Check the changed marks carefully.
+5. Press **Save**. → The button shows how many marks it will save. A message says how many marks were saved. If an error row exists, only the good rows are saved.
+6. Fix each error row in the grid: press **Back to grid**, type the correct mark in that cell. Each error says what is wrong, for example "Above full marks" or "This student is not in this section".
+7. When every cell is filled, press **Submit** as usual ([step 8 above](#task-main)).
+
+| Write in the cell | Meaning |
+| ----------------- | ------- |
+| A mark, e.g. `34.5` | That mark. Bangla or English digits both work. |
+| **A** (also AB, অ, অনু) | Absent |
+| **E** (also EX, ছাড়) | Exempt |
+| blank | Keep the mark already in the app |
+
+> **Remember:** if the list is **Submitted**, you cannot upload a sheet. The Admin must [reopen it](#task-reopen) first. If many people press upload at once or the service is busy, wait a few minutes and try again.
+
+<!-- screenshots pending: marks-sheet-01 .. marks-sheet-07, one per step (not shot yet; needs the guide:shoot demo environment) -->
 
 ---
 
@@ -214,7 +244,8 @@ The Academic coordinator can view marks but cannot type them. The Exam controlle
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ---------------------------------- |
 | Admin                                      | All in the school                                                                                                                           | Yes, in every list       | Yes (if results are not published) |
 | Teacher                                    | Only where they are the Subject teacher for that subject, in the current academic year (also a draft exam for a class of the previous year) | Yes, only in those lists | No                                 |
-| Academic coordinator, Exam controller      | All in the school                                                                                                                           | No, view only            | No                                 |
+| Exam controller | All in the school | Yes, in every list (backup when a teacher is away) | No |
+| Academic coordinator | All in the school | No, view only | No |
 | Accountant, Office staff, Committee member | **Enter marks** is not in their menu                                                                                                        | No                       | No                                 |
 
 If a Teacher opens the address of a list in another section directly, the app shows it as "not found", as if the list did not exist.
