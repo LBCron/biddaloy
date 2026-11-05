@@ -288,7 +288,7 @@ Only the admin gets this. It is on the **New report** button at the top right of
    → The designer opens on one screen. The controls are on the left and the **Result** on the right. On a phone the result is on top, and the **Change** button opens the controls from the bottom.
 
 3. Change the report by clicking:
-   - **About** picks what the report is about, such as students or fees. It also offers **Final results** (published results only, for people who can open results), **Programs** (who is enrolled in which program) and **Applications** (kind, status and dates, never the letter itself; for people who manage applications). A teacher sees only their own sections.
+   - **About** picks what the report is about, such as students or fees. It also offers [**Final results**](../exams-results/final-results.md) (published results only, for people who can open results), **Programs** (who is enrolled in which program) and [**Applications**](../applications/applications.md) (kind, status and dates, never the letter itself; for people who manage applications). A teacher sees only their own sections.
    - **Show**, **Split by** and **Count / Add up** are three boxes. Press a name under a topic to put it in a box. Type in **Search** to find a name faster.
    - **Only those who…** narrows the report, for example "Class is Class 6". Switch on **Ask when running** to make the condition a question that is asked each time.
    - **How it looks** has four pictures: **List**, **Grouped**, **Table of counts** and **Chart**. One is chosen for you, with a line that says why.
