@@ -26,6 +26,13 @@ export const RUN_PAGE_SIZE = 100;
 export const INTERACTIVE_TIMEOUT_MS = 15_000;
 export const JOB_TIMEOUT_MS = 120_000;
 
+/**
+ * [#3521, D6] The Postgres role every report runs as, and the setting that names the school its
+ * row-level-security policies read. Both are created by migration `ReportReaderRls`.
+ */
+export const REPORT_DB_ROLE = 'report_reader';
+export const REPORT_TENANT_SETTING = 'app.report_tenant';
+
 /** pg's "query_canceled": the statement timeout fired. */
 const QUERY_CANCELED = '57014';
 
@@ -208,8 +215,10 @@ export class ReportRunnerService {
       if (hit) return hit;
     }
 
-    const raw = await this.withReadOnlyTransaction(INTERACTIVE_TIMEOUT_MS, (runner) =>
-      compiled.query.setQueryRunner(runner).getRawMany<Record<string, unknown>>(),
+    const raw = await this.withReadOnlyTransaction(
+      INTERACTIVE_TIMEOUT_MS,
+      (runner) => compiled.query.setQueryRunner(runner).getRawMany<Record<string, unknown>>(),
+      compiled.tenantId,
     );
     const truncated = raw.length > cap;
     const set = this.shape(compiled, req.ctx.role, truncated ? raw.slice(0, cap) : raw, truncated);
@@ -255,8 +264,9 @@ export class ReportRunnerService {
   async withReadOnlyTransaction<T>(
     timeoutMs: number,
     work: (runner: QueryRunner) => Promise<T>,
+    tenantId?: string,
   ): Promise<T> {
-    const runner = await this.openReadOnly(timeoutMs);
+    const runner = await this.openReadOnly(timeoutMs, tenantId);
     try {
       return await work(runner);
     } catch (error) {
@@ -275,7 +285,7 @@ export class ReportRunnerService {
     compiled: CompiledReport,
     timeoutMs: number,
   ): AsyncGenerator<Record<string, unknown>> {
-    const runner = await this.openReadOnly(timeoutMs);
+    const runner = await this.openReadOnly(timeoutMs, compiled.tenantId);
     try {
       // The SQL is the compiler's own text; every value in it is a bound parameter.
       const [sql, params] = compiled.query.getQueryAndParameters();
@@ -294,7 +304,11 @@ export class ReportRunnerService {
     }
   }
 
-  private async openReadOnly(timeoutMs: number): Promise<QueryRunner> {
+  /**
+   * `tenantId` switches the transaction to the report role with that school named (D6); without
+   * it nothing changes (only a spec that proves a write fails passes none). Report paths always pass it.
+   */
+  private async openReadOnly(timeoutMs: number, tenantId?: string): Promise<QueryRunner> {
     const runner = this.dataSource.createQueryRunner();
     await runner.connect();
     try {
@@ -302,6 +316,11 @@ export class ReportRunnerService {
       await runner.query('SET TRANSACTION READ ONLY');
       // `timeoutMs` is one of the numeric constants above, never user input.
       await runner.query(`SET LOCAL statement_timeout = ${Math.trunc(timeoutMs)}`);
+      if (tenantId) {
+        // The setting first, then the role: from here Postgres itself keeps the query in one school.
+        await runner.query('SELECT set_config($1, $2, true)', [REPORT_TENANT_SETTING, tenantId]);
+        await runner.query(`SET LOCAL ROLE ${REPORT_DB_ROLE}`);
+      }
       return runner;
     } catch (error) {
       await runner.release();

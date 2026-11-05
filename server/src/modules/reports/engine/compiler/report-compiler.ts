@@ -34,6 +34,8 @@ export interface CompiledColumn {
 }
 
 export interface CompiledReport {
+  /** The school the query was built for; the runner names it to the database for RLS (D6). */
+  tenantId: string;
   /** Not yet executed. The runner ([8.15.22]) runs it in a read-only transaction. */
   query: SelectQueryBuilder<object>;
   columns: CompiledColumn[];
@@ -250,6 +252,7 @@ export class ReportCompiler {
     ];
 
     return {
+      tenantId: ctx.tenantId,
       query,
       columns,
       masked,

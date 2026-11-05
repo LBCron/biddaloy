@@ -126,6 +126,38 @@ to one school); a count hidden from a COMMITTEE member in one branch leaves that
 total minus the visible cells would give the number back; one `report_runs` row is written in the school
 the request came from (D8). Needs `REPORTS_VIEW`.
 
+### 5.2 The second tenant wall: `report_reader` (D6, #3521)
+
+The compiler already adds `tenant_id` to every table. That is wall one. Wall two lives in Postgres: a
+`NOLOGIN` role `report_reader` with row-level security. The runner switches to it for the length of
+each report transaction (`SET LOCAL ROLE`) and names the school (`set_config('app.report_tenant', ...)`).
+
+```mermaid
+sequenceDiagram
+  participant R as Runner
+  participant P as Postgres
+  R->>P: BEGIN, SET TRANSACTION READ ONLY, statement_timeout
+  R->>P: set_config('app.report_tenant', school-id, local)
+  R->>P: SET LOCAL ROLE report_reader
+  R->>P: the compiled SELECT (or a cursor, for exports and schedules)
+  P-->>R: only that school's rows, even if the SQL forgot tenant_id
+  R->>P: ROLLBACK
+```
+
+Example: `SELECT count(*) FROM students` with no WHERE, run as `report_reader` for school A, answers A's
+count; with no school named it answers 0 (never an error).
+
+- The app's own role is untouched. It connects as the table owner (the compose bootstrap
+  `POSTGRES_USER`), and owners skip RLS. Policies are `TO report_reader` only, never PUBLIC.
+- `student_fees` and `student_guardians` have no `tenant_id`; their policy asks the student.
+  `users` is global (one login, many schools), so the role may read only `id`, `full_name`, `status`
+  and `deleted_at` of it, reached from a scoped row. That is the one table this wall cannot cut by row.
+- **A new area must list its tables in a new migration** (grant, `ENABLE ROW LEVEL SECURITY`, a
+  `report_tenant` policy). `report-rls.integration.spec.ts` fails if an area reads a table without it.
+- The role is cluster-wide. `down()` keeps it (other databases on the cluster hold grants to it).
+  A restore into a **brand-new cluster** must `CREATE ROLE report_reader NOLOGIN NOINHERIT` first, or
+  the GRANT lines of the dump fail and reports answer "role does not exist" (loud, never open).
+
 ## 6. Field sensitivity
 
 Every registry field carries one level. The runner hides a field the caller's role may not see, even if a definition lists it (D5).
