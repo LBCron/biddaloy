@@ -197,4 +197,25 @@ describe('parseMarksSheet', () => {
     const parsed = await parseMarksSheet(buf, 'm.xlsx');
     expect(parsed.rows[0].entries['=Written']).toEqual({ kind: 'value', value: '9' });
   });
+
+  it('parses Bangla digits with the Arabic decimal separator or a dot as 7.5', async () => {
+    expect(await parseWritten('৭٫৫')).toEqual({ kind: 'value', value: '7.5' });
+    expect(await parseWritten('৭.৫')).toEqual({ kind: 'value', value: '7.5' });
+  });
+
+  it('turns a bad data cell into invalid and never copies its text into the result', async () => {
+    const buf = await makeFilledSheet(makeGrid(), meta, [
+      { roll: 1, component: 'Written', cell: 'SECRET-CELL' },
+    ]);
+    const parsed = await parseMarksSheet(buf, 'm.xlsx');
+    expect(parsed.rows[0].entries['Written']).toEqual({ kind: 'invalid' });
+    expect(JSON.stringify(parsed)).not.toContain('SECRET-CELL');
+  });
+
+  it('returns studentKey and roll as raw sheet text', async () => {
+    // #3472 must NOT put these two fields into error messages (Rule 23): they are user-typed.
+    const buf = await makeFilledSheet(makeGrid(), meta, []);
+    const parsed = await parseMarksSheet(buf, 'm.xlsx');
+    expect(parsed.rows[0]).toMatchObject({ studentKey: 'st1', roll: '1' });
+  });
 });
