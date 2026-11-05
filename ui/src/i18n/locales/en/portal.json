@@ -557,5 +557,23 @@
     "noPushLink": "Turn on app messages",
     "declinedHint": "Your teacher has not turned this on. You can ask again.",
     "disabled": "Arrival notices are turned off at this school."
+  },
+  "finalResult": {
+    "title": "Final result",
+    "yearLine": "{{child}} · {{year}}",
+    "gpa": "GPA {{gpa}}",
+    "outOf": "/ {{max}}",
+    "position": "Position {{position}}",
+    "failed": "Needs improvement: failed at least one subject",
+    "meterLabel": "GPA out of {{max}}",
+    "link": "Full result",
+    "emptyReason": "The final result is not published yet.",
+    "loadError": "The final result could not be loaded.",
+    "retry": "Try again",
+    "cardTitle": "Final result {{year}} — {{class}}",
+    "share": "{{exam}} {{percent}}",
+    "attendance": "Present {{present}} of {{working}} days ({{percent}})",
+    "showDetails": "Details and card",
+    "hideDetails": "Hide details"
   }
 }

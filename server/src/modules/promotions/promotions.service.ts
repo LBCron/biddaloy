@@ -13,6 +13,7 @@ import {
   PromotionRunStatus,
   PlacementAlgorithm,
   ExamStatus,
+  FinalResultStatus,
   EnrollmentStatus,
   AuditAction,
   ApprovalScope,
@@ -26,6 +27,8 @@ import { Class } from '../academics/entities/class.entity';
 import { ClassSection } from '../academics/entities/class-section.entity';
 import { Exam } from '../exams/entities/exam.entity';
 import { Result } from '../exams/entities/result.entity';
+import { FinalResult } from '../final-results/entities/final-result.entity';
+import { FinalResultRow } from '../final-results/entities/final-result-row.entity';
 import { Student } from '../students/entities/student.entity';
 import { Enrollment } from '../students/entities/enrollment.entity';
 import { AcademicYear } from '../academics/entities/academic-year.entity';
@@ -58,6 +61,12 @@ export interface TargetSuggestion {
     group_name: string | null;
   }>;
   blocking_reason?: BlockingReason;
+}
+
+/** Where a run's merit comes from: the plain mean of exams, or a final result (70.3.3). */
+interface MeritSource {
+  exam_ids: string[];
+  final_result_id: string | null;
 }
 
 interface CohortStudentStat {
@@ -94,6 +103,8 @@ export class PromotionsService {
     private readonly auditService: AuditService,
     private readonly approvalService: ApprovalService,
     private readonly studentLifecycleService: StudentLifecycleService,
+    @InjectRepository(FinalResult) private readonly finalResultRepo: Repository<FinalResult>,
+    @InjectRepository(FinalResultRow) private readonly finalRowRepo: Repository<FinalResultRow>,
   ) {}
 
   // ────────────────────────
@@ -218,7 +229,7 @@ export class PromotionsService {
   private async computeCohortStats(
     sourceClassId: string,
     sourceAcademicYearId: string,
-    examIds: string[],
+    source: MeritSource,
     tenantId: string,
   ): Promise<CohortStudentStat[]> {
     const enrollments = await this.enrollmentRepo.find({
@@ -233,6 +244,10 @@ export class PromotionsService {
     });
     if (enrollments.length === 0) return [];
 
+    if (source.final_result_id) {
+      return this.cohortStatsFromFinal(enrollments, source.final_result_id, tenantId);
+    }
+    const examIds = source.exam_ids;
     const studentIds = enrollments.map((e) => e.student_id);
     const results = await this.resultRepo.find({
       where: {
@@ -278,6 +293,68 @@ export class PromotionsService {
       return PromotionOutcome.GRADUATE;
     }
     return suggested;
+  }
+
+  /**
+   * [70.3.3] The final result must be PUBLISHED and be the source class's own final for its
+   * year. One fixed sentence for every failure: no echo of the id sent (Rule 23).
+   * Given a transaction `manager`, the final row is share-locked so a concurrent reopen (and so a
+   * rebuild) waits until the refresh or commit is done.
+   */
+  private async assertUsableFinal(
+    finalResultId: string,
+    sourceClassId: string,
+    sourceAcademicYearId: string,
+    tenantId: string,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repo = manager ? manager.getRepository(FinalResult) : this.finalResultRepo;
+    const final = await repo.findOne({
+      ...(manager ? { lock: { mode: 'pessimistic_read' as const } } : {}),
+      where: {
+        id: finalResultId,
+        tenant_id: tenantId,
+        class_id: sourceClassId,
+        academic_year_id: sourceAcademicYearId,
+        status: FinalResultStatus.PUBLISHED,
+        deleted_at: IsNull(),
+      },
+    });
+    if (!final) {
+      throw new UnprocessableEntityException(
+        'final_result_id must be a PUBLISHED final result of the source class in its academic year',
+      );
+    }
+  }
+
+  /** Merit stats straight from the final's rows: its weighted GPA and total (D11). */
+  private async cohortStatsFromFinal(
+    enrollments: Enrollment[],
+    finalResultId: string,
+    tenantId: string,
+  ): Promise<CohortStudentStat[]> {
+    const rows = await this.finalRowRepo.find({
+      where: {
+        final_result_id: finalResultId,
+        student_id: In(enrollments.map((e) => e.student_id)),
+        tenant_id: tenantId,
+        deleted_at: IsNull(),
+      },
+    });
+    const rowByStudent = new Map(rows.map((r) => [r.student_id, r]));
+    return enrollments.map((enrollment) => {
+      const row = rowByStudent.get(enrollment.student_id);
+      return {
+        student_id: enrollment.student_id,
+        enrollment_id: enrollment.id,
+        section_id: enrollment.section_id,
+        group_name: null,
+        // No row in the final counts as not passed, like a student with no result.
+        passed_all: !!row && !row.is_fail,
+        mean_gpa: row ? Number(row.gpa) : 0,
+        total_marks_sum: row ? Number(row.total_marks) : 0,
+      };
+    });
   }
 
   /** Runs `place()` for every entry that moves up (PROMOTE or CONDITIONAL) and writes back its placement. */
@@ -348,6 +425,15 @@ export class PromotionsService {
     tenantId: string,
     userId: string,
   ): Promise<PromotionRun> {
+    const examIds = dto.exam_ids ?? [];
+    const finalResultId = dto.final_result_id ?? null;
+    // Exactly one merit source (70.3.3). Fixed sentence, no echo (Rule 23).
+    if (examIds.length > 0 === (finalResultId !== null)) {
+      throw new UnprocessableEntityException(
+        'Give exactly one of exam_ids or final_result_id as the merit source',
+      );
+    }
+
     const sourceClass = await this.classRepo.findOne({
       where: { id: dto.source_class_id, tenant_id: tenantId, deleted_at: IsNull() },
     });
@@ -374,17 +460,30 @@ export class PromotionsService {
       throw new UnprocessableEntityException({ details: { code: 'TARGET_SECTIONS_MISSING' } });
     }
 
-    const exams = await this.examRepo.find({
-      where: {
-        id: In(dto.exam_ids),
-        tenant_id: tenantId,
-        class_id: dto.source_class_id,
-        academic_year_id: sourceClass.academic_year_id,
-        status: ExamStatus.PUBLISHED,
-        deleted_at: IsNull(),
-      },
-    });
-    if (exams.length !== new Set(dto.exam_ids).size) {
+    if (finalResultId) {
+      await this.assertUsableFinal(
+        finalResultId,
+        dto.source_class_id,
+        sourceClass.academic_year_id,
+        tenantId,
+      );
+    }
+
+    // A final-result run has no exams to check.
+    const exams =
+      examIds.length === 0
+        ? []
+        : await this.examRepo.find({
+            where: {
+              id: In(examIds),
+              tenant_id: tenantId,
+              class_id: dto.source_class_id,
+              academic_year_id: sourceClass.academic_year_id,
+              status: ExamStatus.PUBLISHED,
+              deleted_at: IsNull(),
+            },
+          });
+    if (exams.length !== new Set(examIds).size) {
       throw new UnprocessableEntityException(
         'exam_ids must all be PUBLISHED exams of the source class in its academic year',
       );
@@ -393,7 +492,7 @@ export class PromotionsService {
     const stats = await this.computeCohortStats(
       dto.source_class_id,
       sourceClass.academic_year_id,
-      dto.exam_ids,
+      { exam_ids: examIds, final_result_id: finalResultId },
       tenantId,
     );
 
@@ -434,7 +533,8 @@ export class PromotionsService {
           source_academic_year_id: sourceClass.academic_year_id,
           target_academic_year_id: dto.target_academic_year_id,
           target_class_id: suggestion.target_class?.id ?? null,
-          exam_ids: dto.exam_ids,
+          exam_ids: examIds,
+          final_result_id: finalResultId,
           algorithm: dto.algorithm,
           status: PromotionRunStatus.DRAFT,
           refreshed_at: new Date(),
@@ -664,13 +764,24 @@ export class PromotionsService {
           throw new ConflictException('Only DRAFT runs can be refreshed');
         }
 
+        if (run.final_result_id) {
+          // The final may have been unpublished since: refuse rather than rank everyone 0.
+          await this.assertUsableFinal(
+            run.final_result_id,
+            run.source_class_id,
+            run.source_academic_year_id,
+            tenantId,
+            manager,
+          );
+        }
+
         const entries = await entryRepo.find({ where: { run_id: run.id, tenant_id: tenantId } });
         const entryByStudent = new Map(entries.map((e) => [e.student_id, e]));
 
         const stats = await this.computeCohortStats(
           run.source_class_id,
           run.source_academic_year_id,
-          run.exam_ids,
+          { exam_ids: run.exam_ids, final_result_id: run.final_result_id },
           tenantId,
         );
         const isGraduationRun = run.target_class_id === null;
@@ -894,6 +1005,36 @@ export class PromotionsService {
       }
 
       const cohortStudentIds = entries.map((e) => e.student_id);
+      if (run.final_result_id) {
+        // Same rule as create: the final must still be PUBLISHED, and a recompute since the
+        // last refresh means the merit order on screen is stale.
+        await this.assertUsableFinal(
+          run.final_result_id,
+          run.source_class_id,
+          run.source_academic_year_id,
+          tenantId,
+          manager,
+        );
+        // A rebuild soft-deletes the old rows and writes new ones, so a row written OR dropped
+        // after the refresh is stale. A student who never had a row (joined after the build)
+        // was ranked without one at refresh too, so that alone is not stale.
+        const changedRows = cohortStudentIds.length
+          ? await manager
+              .getRepository(FinalResultRow)
+              .createQueryBuilder('r')
+              .withDeleted()
+              .where('r.final_result_id = :finalId AND r.tenant_id = :tenantId', {
+                finalId: run.final_result_id,
+                tenantId,
+              })
+              .andWhere('r.student_id IN (:...ids)', { ids: cohortStudentIds })
+              .andWhere('(r.computed_at > :at OR r.deleted_at > :at)', { at: run.refreshed_at })
+              .getCount()
+          : 0;
+        if (changedRows > 0) {
+          throw new ConflictException({ details: { code: 'STALE_RESULTS' } });
+        }
+      }
       const results =
         run.exam_ids.length && cohortStudentIds.length
           ? await resultRepo.find({

@@ -580,7 +580,8 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
       )}
 
       <Dialog open={linkDone !== undefined}>
-        <DialogContent size="md">
+        {/* No X: the dialog ignores close until Done, so an X would do nothing. */}
+        <DialogContent size="md" showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>{t('publicLink.title')}</DialogTitle>
             <DialogDescription>{t('publicLink.hint')}</DialogDescription>

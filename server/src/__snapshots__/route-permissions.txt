@@ -24,6 +24,7 @@ DELETE /fees/generations/:id | FeeGenerationsController | perm: FEE_GENERATE
 DELETE /fees/generations/:id/students/:studentId | FeeGenerationsController | perm: FEE_GENERATE
 DELETE /fees/schedules/:id | RecurringSchedulesController | perm: SCHEDULE_MANAGE
 DELETE /fees/schedules/:id/exclusions/:studentId | RecurringSchedulesController | perm: SCHEDULE_MANAGE
+DELETE /final-results/:id | FinalResultsController | perm: RESULT_PROCESS
 DELETE /grading/scales/:id | GradingController | perm: GRADING_SCALE_MANAGE
 DELETE /guardians/:id | StudentController | perm: GUARDIAN_DELETE
 DELETE /invoices/:id/share/:tokenId | InvoicesController | perm: INVOICE_SEND
@@ -207,6 +208,8 @@ GET /exams/:examId/documents/merit-candidates | ExamDocumentsController | perm: 
 GET /exams/:examId/documents/tabulation | ExamDocumentsController | perm: DOCUMENT_PRINT
 GET /exams/:examId/marks | MarksController | perm: MARK_VIEW
 GET /exams/:examId/marks/progress | MarksController | perm: MARK_VIEW
+GET /exams/:examId/report-card-notes | ReportCardNotesController | perm: RESULT_PROCESS
+GET /exams/:examId/report-card-notes/missing | ReportCardNotesController | perm: RESULT_PROCESS
 GET /exams/:examId/results | ResultsController | perm: RESULT_READ | roles: ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
 GET /exams/:examId/results/:studentId | ResultsController | perm: RESULT_READ | roles: ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
 GET /exams/:examId/schedule | ExamSchedulesController | perm: EXAM_MANAGE
@@ -224,6 +227,13 @@ GET /fees/generations/:id/bills | FeeGenerationsController | perm: FEE_READ | ro
 GET /fees/schedules | RecurringSchedulesController | perm: FEE_READ | roles: ACCOUNTANT,ADMIN,EXECUTIVE
 GET /fees/schedules/:id | RecurringSchedulesController | perm: FEE_READ | roles: ACCOUNTANT,ADMIN,EXECUTIVE
 GET /fees/schedules/:id/preview | RecurringSchedulesController | perm: FEE_READ | roles: ACCOUNTANT,ADMIN,EXECUTIVE
+GET /final-results | FinalResultsController | perm: RESULT_READ | roles: ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
+GET /final-results/:finalResultId/documents/tabulation | FinalDocumentsController | perm: DOCUMENT_PRINT
+GET /final-results/:id | FinalResultsController | perm: RESULT_READ | roles: ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
+GET /final-results/:id/report-card-notes | ReportCardNotesController | perm: RESULT_PROCESS
+GET /final-results/:id/report-card-notes/missing | ReportCardNotesController | perm: RESULT_PROCESS
+GET /final-results/:id/rows | FinalResultsController | perm: RESULT_READ | roles: ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
+GET /final-results/:id/students/:studentId | FinalResultsController | perm: RESULT_READ | roles: ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
 GET /grading/scales | GradingController | perm: GRADING_SCALE_MANAGE
 GET /grading/scales/:id | GradingController | perm: GRADING_SCALE_MANAGE
 GET /guardians | StudentController | perm: GUARDIAN_READ
@@ -252,6 +262,8 @@ GET /lesson-deliveries | LessonDeliveriesController | perm: SYLLABUS_READ
 GET /me/push/public-key | PushSubscriptionsController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
 GET /me/push/subscriptions | PushSubscriptionsController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
 GET /my-class/sections | MyClassController | perm: MY_CLASS_VIEW
+GET /my-class/sections/:sectionId/report-card-notes | ReportCardNotesController | perm: MY_CLASS_VIEW
+GET /my-class/sections/:sectionId/report-card-notes/missing | ReportCardNotesController | perm: MY_CLASS_VIEW
 GET /notices | NoticesController | perm: NOTICE_POST
 GET /notices/:id | NoticesController | perm: NOTICE_POST
 GET /notices/:id/files/:fileId | NoticeFilesController | perm: NOTICE_READ
@@ -378,6 +390,7 @@ GET /students/:id/schedules | RecurringSchedulesController | perm: FEE_READ | ro
 GET /students/:id/wallet | WalletController | perm: FEE_READ
 GET /students/:studentId/exam-schedule | StudentExamScheduleController | perm: RESULT_READ
 GET /students/:studentId/exams/:examId/admit-card/assets/:assetId/file | FamilyAdmitCardController | perm: RESULT_READ
+GET /students/:studentId/final-result-card | TranscriptController | perm: RESULT_READ
 GET /students/:studentId/homework | HomeworkController | perm: HOMEWORK_READ | roles: PARENT,STUDENT
 GET /students/:studentId/lessons | FamilyStudyPlansController | perm: SYLLABUS_READ
 GET /students/:studentId/programs | StudentProgramsController | perm: PROGRAM_READ
@@ -440,6 +453,7 @@ PATCH /fee-structures/:id | FeeController | perm: FEE_STRUCTURE_UPDATE
 PATCH /fees/fine-rules/:id | FineRulesController | perm: FEE_STRUCTURE_UPDATE
 PATCH /fees/generations/:id | FeeGenerationsController | perm: FEE_GENERATE
 PATCH /fees/schedules/:id | RecurringSchedulesController | perm: SCHEDULE_MANAGE
+PATCH /final-results/:id | FinalResultsController | perm: RESULT_PROCESS
 PATCH /grading/scales/:id | GradingController | perm: GRADING_SCALE_MANAGE
 PATCH /guardians/:id | StudentController | perm: GUARDIAN_UPDATE
 PATCH /guardians/mine | StudentController | identity | roles: PARENT
@@ -597,6 +611,11 @@ POST /fees/schedules | RecurringSchedulesController | perm: SCHEDULE_MANAGE
 POST /fees/schedules/:id/clone | RecurringSchedulesController | perm: SCHEDULE_MANAGE
 POST /fees/schedules/:id/exclusions | RecurringSchedulesController | perm: SCHEDULE_MANAGE
 POST /fees/schedules/run-now | FeeController | perm: SCHEDULE_MANAGE | roles: ADMIN,SUPER_ADMIN
+POST /final-results | FinalResultsController | perm: RESULT_PROCESS
+POST /final-results/:id/build | FinalResultsController | perm: RESULT_PROCESS
+POST /final-results/:id/publish | FinalResultsController | perm: RESULT_PUBLISH
+POST /final-results/:id/reopen | FinalResultsController | perm: RESULT_PUBLISH | approval: results.reopen
+POST /final-results/:id/sms | FinalResultsController | perm: RESULT_PUBLISH
 POST /grading/scales | GradingController | perm: GRADING_SCALE_MANAGE
 POST /grading/scales/:id/bands/confirm | GradingController | perm: GRADING_SCALE_MANAGE | approval: grading_scale.manage
 POST /grading/scales/:id/bands/preview | GradingController | perm: GRADING_SCALE_MANAGE
@@ -734,8 +753,11 @@ POST /users/me/leave | UserController | identity | roles: ACCOUNTANT,ADMIN,COMMI
 PUT /acr/criteria | AcrCriteriaController | perm: ACR_WRITE
 PUT /attendance/sections/:sectionId/register | AttendanceController | perm: ATTENDANCE_MARK
 PUT /attendance/sections/:sectionId/register-matrix | AttendanceController | perm: ATTENDANCE_MARK
+PUT /exams/:examId/report-card-notes | ReportCardNotesController | perm: RESULT_PROCESS
+PUT /final-results/:id/report-card-notes | ReportCardNotesController | perm: RESULT_PROCESS
 PUT /leave/policies/:type | LeaveController | perm: LEAVE_APPROVE
 PUT /lesson-deliveries | LessonDeliveriesController | perm: SYLLABUS_MANAGE
+PUT /my-class/sections/:sectionId/report-card-notes | ReportCardNotesController | perm: MY_CLASS_VIEW
 PUT /platform/holiday-sets/:id/entries | PublicHolidaysController | identity | roles: SUPER_ADMIN
 PUT /portal/arrival-subscriptions/:studentId | PortalArrivalSubscriptionsController | identity | roles: PARENT
 PUT /programs/:id/milestones/order | ProgramsController | perm: PROGRAM_MANAGE

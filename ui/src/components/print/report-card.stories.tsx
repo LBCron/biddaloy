@@ -180,3 +180,94 @@ export const WithPrograms: Story = {
     labels: LABELS,
   },
 };
+
+const BLOCK_LABELS = {
+  workingDays: 'Working days',
+  daysPresent: 'Days present',
+  attendance: 'Attendance',
+  remark: "Class teacher's remark",
+  conduct: 'Conduct',
+  final: 'Final',
+  sectionPosition: 'Section position',
+  classTeacher: 'Class teacher',
+  guardian: 'Guardian',
+  headTeacher: 'Head teacher',
+};
+const BLOCK_LABELS_BN = {
+  workingDays: 'কর্মদিবস',
+  daysPresent: 'উপস্থিত দিন',
+  attendance: 'উপস্থিতি',
+  remark: 'শ্রেণিশিক্ষকের মন্তব্য',
+  conduct: 'আচরণ ও সহশিক্ষা',
+  final: 'চূড়ান্ত',
+  sectionPosition: 'সেকশনে স্থান',
+  classTeacher: 'শ্রেণিশিক্ষক',
+  guardian: 'অভিভাবক',
+  headTeacher: 'প্রধান শিক্ষক',
+};
+const CONDUCT8 = [
+  'Discipline',
+  'Sports',
+  'Punctuality',
+  'Cleanliness',
+  'Cultural',
+  'Scouting',
+  'Neatness',
+  'Teamwork',
+].map((label, i) => ({ label, grade: i === 5 ? null : 'A' }));
+const WITH_BLOCKS: ReportCardData = {
+  ...DATA,
+  attendance: { working_days: 200, present_days: 180 },
+  remark: 'Rahim works steadily and helps classmates. Keep it up.',
+  conduct: CONDUCT8.slice(0, 4),
+};
+
+export const PerExamWithBlocks: Story = {
+  args: { data: WITH_BLOCKS, issuer: ISSUER, labels: LABELS, blockLabels: BLOCK_LABELS },
+};
+
+export const PerExamWithBlocksBangla: Story = {
+  args: { data: WITH_BLOCKS, issuer: ISSUER, labels: LABELS, blockLabels: BLOCK_LABELS_BN },
+};
+
+export const LongRemarkAndEightConduct: Story = {
+  args: {
+    data: {
+      ...WITH_BLOCKS,
+      remark: 'Rahim works steadily and helps classmates. '.repeat(12).trim(),
+      conduct: CONDUCT8,
+    },
+    issuer: ISSUER,
+    labels: LABELS,
+    blockLabels: BLOCK_LABELS,
+  },
+};
+
+export const FinalCard: Story = {
+  args: {
+    data: {
+      ...WITH_BLOCKS,
+      exam_name: 'Final result 2026',
+      subjects: DATA.subjects.map((s, i) => ({
+        ...s,
+        components: [],
+        exam_cells: [
+          { exam_id: 'e1', value: i === 0 ? 70 : 80 },
+          { exam_id: 'e2', value: i === 0 ? null : 75 },
+        ],
+      })),
+      final: { label: 'Final result', section_position: 3 },
+      exam_columns: [
+        { id: 'e1', label: 'Half Yearly', share_label: '40%' },
+        { id: 'e2', label: 'Annual', share_label: '60%' },
+      ],
+    },
+    issuer: ISSUER,
+    labels: LABELS,
+    blockLabels: BLOCK_LABELS,
+  },
+};
+
+export const FinalCardBangla: Story = {
+  args: { ...FinalCard.args!, blockLabels: BLOCK_LABELS_BN },
+};

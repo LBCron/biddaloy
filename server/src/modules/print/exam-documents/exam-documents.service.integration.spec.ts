@@ -423,4 +423,99 @@ describe('ExamDocumentsService (integration)', () => {
       );
     });
   });
+
+  describe('finalTabulation [70.4.1]', () => {
+    const seedFinal = async () => {
+      const subj = await q(
+        `INSERT INTO subjects (tenant_id, name_en, name_bn, code) VALUES ($1, 'Bangla', 'বাংলা', $2) RETURNING id`,
+        [tenantId, `FT-${randomUUID().slice(0, 6)}`],
+      );
+      const s1 = await student('Final One', 1, sectionA);
+      const final = await q(
+        `INSERT INTO final_results (tenant_id, class_id, academic_year_id, status) VALUES ($1, $2, $3, 'PROCESSED') RETURNING id`,
+        [tenantId, cls, year],
+      );
+      // Two counted exams: examA 30%, examB 70%. examB has no result for the student (absent).
+      for (const [exam, share] of [
+        [examA, 30],
+        [examB, 70],
+      ] as const) {
+        await ds.query(
+          `INSERT INTO final_result_weights (tenant_id, final_result_id, exam_id, share_percent) VALUES ($1, $2, $3, $4)`,
+          [tenantId, final, exam, share],
+        );
+      }
+      const res = await q(
+        `INSERT INTO results (exam_id, student_id, total_marks, gpa, grade, position, section_id,
+           section_position, is_fail, grading_scale_id, grading_scale_revision, rule_version,
+           computed_at, tenant_id)
+         VALUES ($1, $2, 60, 4, 'A', 1, $3, 1, false, $4, 1, 'nctb-v1', NOW(), $5) RETURNING id`,
+        [examA, s1, sectionA, scale, tenantId],
+      );
+      await ds.query(
+        `INSERT INTO result_subjects (tenant_id, result_id, subject_id, obtained, grade, gpa, is_fail)
+         VALUES ($1, $2, $3, 60, 'A', 4, false)`,
+        [tenantId, res, subj],
+      );
+      const row = await q(
+        `INSERT INTO final_result_rows (tenant_id, final_result_id, student_id, total_marks, gpa, grade,
+           position, section_id, section_position, is_fail, grading_scale_id, grading_scale_revision,
+           rule_version, computed_at)
+         VALUES ($1, $2, $3, 18, 2.5, 'C', 1, $4, 1, false, $5, 1, 'final-v1', NOW()) RETURNING id`,
+        [tenantId, final, s1, sectionA, scale],
+      );
+      await ds.query(
+        `INSERT INTO final_result_subjects (tenant_id, final_result_row_id, subject_id, obtained, grade, gpa, is_fail)
+         VALUES ($1, $2, $3, 18, 'C', 2.5, false)`,
+        [tenantId, row, subj],
+      );
+      return { final, s1, subj };
+    };
+
+    it('lists the counted exams, then the final marks, per student', async () => {
+      const { final, s1, subj } = await seedFinal();
+      const res = await service.finalTabulation(tenantId, final, sectionA);
+      expect(res.exams.map((e) => e.share_percent).sort()).toEqual([30, 70]);
+      const row = res.rows.find((r) => r.student_id === s1)!;
+      // Exam A has the student's 60; exam B has no result, so it is null (absent), never 0.
+      expect(row.exam_totals).toEqual({ [examA]: 60, [examB]: null });
+      expect(row.cells[subj]).toEqual({
+        obtained: 18,
+        grade: 'C',
+        is_fail: false,
+        per_exam: { [examA]: 60, [examB]: null },
+      });
+      expect(row).toMatchObject({ total_marks: 18, gpa: 2.5, position: 1, section_position: 1 });
+    });
+
+    it('an ABS subject (every component absent) is null in that exam, never 0', async () => {
+      const { final, s1, subj } = await seedFinal();
+      const res = await q(
+        `INSERT INTO results (exam_id, student_id, total_marks, gpa, grade, position, section_id,
+           section_position, is_fail, grading_scale_id, grading_scale_revision, rule_version,
+           computed_at, tenant_id)
+         VALUES ($1, $2, 0, 0, 'F', NULL, $3, NULL, true, $4, 1, 'nctb-v1', NOW(), $5) RETURNING id`,
+        [examB, s1, sectionA, scale, tenantId],
+      );
+      await ds.query(
+        `INSERT INTO result_subjects (tenant_id, result_id, subject_id, obtained, grade, gpa, is_fail)
+         VALUES ($1, $2, $3, 0, 'ABS', 0, true)`,
+        [tenantId, res, subj],
+      );
+      const out = await service.finalTabulation(tenantId, final, sectionA);
+      const row = out.rows.find((r) => r.student_id === s1)!;
+      expect(row.cells[subj].per_exam).toEqual({ [examA]: 60, [examB]: null });
+    });
+
+    it('409 when the section has no final rows, 404 for another tenant', async () => {
+      const { final } = await seedFinal();
+      await expect(service.finalTabulation(tenantId, final, sectionB)).rejects.toMatchObject({
+        response: { details: { code: 'RESULTS_NOT_PROCESSED' } },
+      });
+      const other = await seedTenant();
+      await expect(service.finalTabulation(other.t, final, sectionA)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+  });
 });

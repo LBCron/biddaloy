@@ -43,6 +43,10 @@ import { slice as attendance } from './attendance';
 import { slice as extras } from './student-extras';
 import { slice as exams } from './exams';
 import { slice } from './applications';
+import { FinalResultsService } from '../../../modules/final-results/final-results.service';
+import { ReportCardNotesService } from '../../../modules/report-card-notes/report-card-notes.service';
+import { TeacherScopeService } from '../../../modules/classes/teacher-scope.service';
+import { AttendanceSummaryService } from '../../../modules/attendance/attendance-summary.service';
 import { ResultsService } from '../../../modules/exams/results.service';
 import { MarkGridService } from '../../../modules/exams/mark-grid.service';
 import { AttendanceComponentService } from '../../../modules/exams/attendance-component.service';
@@ -92,6 +96,15 @@ describe('applications slice (integration, 2 years, scale 0.1)', () => {
       },
       // exams slice (runs before applications, as in slices.ts)
       ResultsService,
+      FinalResultsService,
+      // The exams slice writes report-card notes through the real service (#3411).
+      ReportCardNotesService,
+      TeacherScopeService,
+      // Publish snapshots attendance per student; the seed has none in this slice-only run.
+      {
+        provide: AttendanceSummaryService,
+        useValue: { getSummariesForStudents: async () => new Map() },
+      },
       MarkGridService,
       SeatPlansService,
       TeacherBusyService,

@@ -125,6 +125,18 @@ const RESULT: FieldDef[] = [
   f('result.position', 'text', '3'),
 ];
 
+const FINAL_RESULT: FieldDef[] = [
+  f('final_result.year', 'text', '2026'),
+  f('final_result.total', 'text', '812'),
+  f('final_result.gpa', 'text', '5.00'),
+  f('final_result.grade', 'text', 'A+'),
+  f('final_result.position', 'text', '3'),
+  f('final_result.section_position', 'text', '2'),
+  f('attendance.working_days', 'text', '220'),
+  f('attendance.present_days', 'text', '205'),
+  f('report_card.remark', 'text', 'Good progress', 'A long remark about the student progress'),
+];
+
 export const FIELD_CATALOG: Record<DocumentKind, FieldDef[]> = {
   [DocumentKind.STUDENT_ID_CARD]: [
     ...SCHOOL,
@@ -224,11 +236,18 @@ export const FIELD_CATALOG: Record<DocumentKind, FieldDef[]> = {
     issue('issue.remark', 'First place', 200),
     ...CERT_TAIL,
   ],
-  [DocumentKind.RESULT_CERTIFICATE]: [...SCHOOL, ...STUDENT_DOC, ...RESULT, ...CERT_TAIL],
+  [DocumentKind.RESULT_CERTIFICATE]: [
+    ...SCHOOL,
+    ...STUDENT_DOC,
+    ...RESULT,
+    ...FINAL_RESULT,
+    ...CERT_TAIL,
+  ],
   [DocumentKind.MERIT_CERTIFICATE]: [
     ...SCHOOL,
     ...STUDENT_DOC,
     ...RESULT,
+    ...FINAL_RESULT,
     f('result.section_position', 'text', '2'),
     ...CERT_TAIL,
   ],

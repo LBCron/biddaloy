@@ -2,9 +2,46 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ConflictException, BadRequestException } from '@nestjs/common';
 import { GradingService } from './grading.service';
 
-function fakeManager(scaleRepo: any, bandRepo: any) {
+import { GradingScale } from './entities/grading-scale.entity';
+
+/**
+ * `assertNoLiveDependents` reads TypeORM metadata and counts with a query builder. This fake
+ * models one many-to-one child table: `liveChildren` rows point at the scale.
+ */
+function fakeManager(
+  scaleRepo: any,
+  bandRepo: any,
+  liveChildren: { table: string; n: number }[] = [],
+) {
   return {
     getRepository: vi.fn((entity: any) => (entity?.name === 'GradingBand' ? bandRepo : scaleRepo)),
+    connection: {
+      entityMetadatas: liveChildren.map((c) => ({
+        name: c.table,
+        tableName: c.table,
+        target: c.table,
+        manyToOneRelations: [
+          {
+            propertyName: 'grading_scale',
+            inverseEntityMetadata: { target: GradingScale },
+            joinColumns: [{ databaseName: 'grading_scale_id' }],
+          },
+        ],
+        liveCount: c.n,
+      })),
+    },
+    createQueryBuilder: (target: string) => ({
+      where() {
+        return this;
+      },
+      leftJoin() {
+        return this;
+      },
+      andWhere() {
+        return this;
+      },
+      getCount: async () => liveChildren.find((c) => c.table === target)?.n ?? 0,
+    }),
   };
 }
 
@@ -88,6 +125,20 @@ describe('GradingService', () => {
       resultRepo.count.mockResolvedValueOnce(3);
       await expect(service.remove('scale-1', TENANT, 'user-1')).rejects.toMatchObject({
         response: { details: { code: 'GRADING_SCALE_IN_USE', count: 3 } },
+      });
+      expect(scaleRepo.softDelete).not.toHaveBeenCalled();
+      expect(bandRepo.softDelete).not.toHaveBeenCalled();
+    });
+
+    it('refuses a scale a final result row uses [70.2.1] and deletes nothing', async () => {
+      dataSource.transaction = vi.fn(async (cb: any) =>
+        cb(fakeManager(scaleRepo, bandRepo, [{ table: 'final_result_rows', n: 2 }])),
+      );
+      await expect(service.remove('scale-1', TENANT, 'user-1')).rejects.toMatchObject({
+        response: {
+          message: 'Published or processed results use this grading scale. It cannot be deleted.',
+          details: { code: 'GRADING_SCALE_IN_USE', dependents: { final_result_rows: 2 } },
+        },
       });
       expect(scaleRepo.softDelete).not.toHaveBeenCalled();
       expect(bandRepo.softDelete).not.toHaveBeenCalled();

@@ -3,6 +3,7 @@ import {
   ExamComponentSource,
   ExamKind,
   ExamStatus,
+  FinalResultMode,
   MarkGridState,
   MarkStatus,
   SeatOrderMode,
@@ -19,6 +20,13 @@ import { SeatPlan } from '../../../modules/seat-plans/entities/seat-plan.entity'
 import { SeatPlanSchedule } from '../../../modules/seat-plans/entities/seat-plan-schedule.entity';
 import { SeatAllocation } from '../../../modules/seat-plans/entities/seat-allocation.entity';
 import { ResultsService, RULE_VERSION } from '../../../modules/exams/results.service';
+import { FinalResultsService } from '../../../modules/final-results/final-results.service';
+import { FinalResult } from '../../../modules/final-results/entities/final-result.entity';
+import { FinalResultWeight } from '../../../modules/final-results/entities/final-result-weight.entity';
+import { FinalResultRow } from '../../../modules/final-results/entities/final-result-row.entity';
+import { FinalResultSubject } from '../../../modules/final-results/entities/final-result-subject.entity';
+import { ReportCardNotesService } from '../../../modules/report-card-notes/report-card-notes.service';
+import { ReportCardNote } from '../../../modules/report-card-notes/entities/report-card-note.entity';
 import { SeatPlansService } from '../../../modules/seat-plans/seat-plans.service';
 import { sitsSubject } from '../../../modules/exams/exam-cohort';
 import {
@@ -35,6 +43,7 @@ import { insertChunked } from '../bulk';
 import { schoolDays } from '../dates';
 import { orgIds, type OrgYear } from './org';
 import { studentIds, type DemoStudent } from './students';
+import { staffByCardKey } from './staff';
 
 /** Three term exams a year, plus a Test exam for classes X and XII (D34). */
 const TERM_EXAMS = [
@@ -94,12 +103,19 @@ export const slice: DemoSlice = {
     SeatPlan,
     SeatPlanSchedule,
     SeatAllocation,
+    FinalResult,
+    FinalResultWeight,
+    FinalResultRow,
+    FinalResultSubject,
+    ReportCardNote,
   ],
   run: async (ctx) => {
     const org = orgIds(ctx);
     const { students } = studentIds(ctx);
     const results = ctx.app.get(ResultsService);
     const seatPlans = ctx.app.get(SeatPlansService);
+    const finals = ctx.app.get(FinalResultsService);
+    const notesService = ctx.app.get(ReportCardNotesService);
     const rng = ctx.rng;
     const uuid = () => rng.string.uuid();
     const u = () => rng.number.float();
@@ -117,6 +133,47 @@ export const slice: DemoSlice = {
     };
 
     let rows = 0;
+
+    // [70.3.4] Report-card notes (D7, D18, D30), through the real service. `share` of each
+    // section's students get a bn remark and all conduct grades; a stronger student leans to A.
+    const REMARKS = [
+      'নিয়মিত ও মনোযোগী। এভাবে চালিয়ে যাও।',
+      'পড়াশোনায় ভালো, তবে হাতের লেখায় আরও যত্ন দরকার।',
+      'ক্লাসে সক্রিয়, প্রশ্ন করতে ভালোবাসে।',
+      'গণিতে আরও অনুশীলন প্রয়োজন।',
+      'সহপাঠীদের সাহায্য করে, আচরণ চমৎকার।',
+      'উপস্থিতি বাড়াতে হবে, সম্ভাবনা আছে।',
+      'বাড়ির কাজ সময়মতো জমা দেয়।',
+      'ইংরেজিতে উন্নতি করেছে, অভিনন্দন।',
+    ];
+    const seedNotes = async (
+      tenantId: string,
+      target: { exam_id?: string; final_result_id?: string },
+      sectionId: string,
+      share: number,
+    ): Promise<number> => {
+      const view = await notesService.get(tenantId, target, sectionId);
+      const notes = view.rows
+        .filter(() => u() < share)
+        .map((r) => {
+          const a = ability.get(r.student_id) ?? 0.7;
+          const grade = () => {
+            const x = a + 0.15 * gauss();
+            return x > 0.8 ? 'A' : x > 0.62 ? 'B' : x > 0.45 ? 'C' : 'D';
+          };
+          return {
+            student_id: r.student_id,
+            remark: REMARKS[Math.floor(u() * REMARKS.length)],
+            conduct: Object.fromEntries(view.conduct_items.map((i) => [i.key, grade()])),
+          };
+        });
+      if (notes.length === 0) return 0;
+      await notesService.save(tenantId, org.adminUserId, target, sectionId, notes, {
+        ip: null,
+        userAgent: null,
+      });
+      return notes.length;
+    };
     for (const tenant of org.tenants) {
       const mine = students.filter((s) => s.tenantId === tenant.id);
       // Who sat which class in which year (the newest year only counts students still ACTIVE).
@@ -525,6 +582,151 @@ export const slice: DemoSlice = {
           [tenant.id, examsToProcess],
         );
       }
+
+      // Final results (Epic 70, #3407), all through the real service. A past year: every class
+      // with published term results gets Half-Yearly 30 / Annual 70 and is published. In each past
+      // year one class also counts First Term (20/30/50), and one other uses best-of-2 (D23).
+      // The current year gets DRAFT finals only, as its Annual exam is not published yet.
+      const latestPast = tenant.years
+        .filter((y) => !y.isCurrent)
+        .reduce<OrgYear | null>((a, y) => (!a || y.start > a.start ? y : a), null);
+      for (const year of tenant.years) {
+        const withResults = await q<{ class_id: string }>(
+          `SELECT DISTINCT e.class_id FROM exams e
+             JOIN results r ON r.exam_id = e.id AND r.deleted_at IS NULL
+            WHERE e.tenant_id = $1 AND e.academic_year_id = $2 AND e.kind = 'TERM'
+              AND e.status = 'PUBLISHED' AND e.name = 'Annual Exam'`,
+          [tenant.id, year.id],
+        );
+        const classIds = year.isCurrent
+          ? year.classes.map((c) => c.id)
+          : year.classes
+              .map((c) => c.id)
+              .filter((id) => withResults.some((r) => r.class_id === id));
+        const threeWay = classIds.length ? classIds[Math.floor(u() * classIds.length)] : null;
+        const bestOf =
+          classIds.length > 1
+            ? classIds.filter((id) => id !== threeWay)[Math.floor(u() * (classIds.length - 1))]
+            : null;
+        for (const classId of classIds) {
+          const final = await finals.create(
+            { class_id: classId, academic_year_id: year.id },
+            tenant.id,
+            org.adminUserId,
+          );
+          rows += 1;
+          if (year.isCurrent) continue;
+          const examIds = new Map(
+            (
+              await q<{ id: string; name: string }>(
+                `SELECT id, name FROM exams WHERE tenant_id = $1 AND class_id = $2
+                    AND academic_year_id = $3 AND kind = 'TERM' AND status = 'PUBLISHED'`,
+                [tenant.id, classId, year.id],
+              )
+            ).map((e) => [e.name, e.id]),
+          );
+          const share = (name: string, percent: number) => ({
+            exam_id: examIds.get(name)!,
+            subject_id: null,
+            share_percent: percent,
+          });
+          if (classId === bestOf) {
+            await finals.update(
+              final.id,
+              { mode: FinalResultMode.BEST_OF, best_of_count: 2 },
+              tenant.id,
+              org.adminUserId,
+            );
+          } else {
+            await finals.update(
+              final.id,
+              {
+                weights:
+                  classId === threeWay
+                    ? [
+                        share('First Term Exam', 20),
+                        share('Half-Yearly Exam', 30),
+                        share('Annual Exam', 50),
+                      ]
+                    : [share('Half-Yearly Exam', 30), share('Annual Exam', 70)],
+              },
+              tenant.id,
+              org.adminUserId,
+            );
+          }
+          await finals.build(final.id, tenant.id, org.adminUserId);
+          // The latest past year's final card carries every student's notes. Saved before the
+          // publish: a published card's notes are locked.
+          if (year === latestPast) {
+            for (const sec of year.classes.find((c) => c.id === classId)!.sections) {
+              rows += await seedNotes(tenant.id, { final_result_id: final.id }, sec.id, 1);
+            }
+          }
+          await finals.publish(final.id, tenant.id, org.adminUserId);
+        }
+      }
+      // The current Half-Yearly (marks entry): one section per class about 80 % done, so the
+      // class teacher's grid and the office's "still missing" warning show real numbers (D18).
+      // The class-teacher demo card's homeroom is always the filled one in its class.
+      const card = staffByCardKey(ctx)?.get('class-teacher-8a');
+      const cardSections = new Set(
+        card?.tenantId === tenant.id
+          ? (
+              await q<{ section_id: string }>(
+                `SELECT tcs.section_id FROM teacher_class_sections tcs
+                   JOIN teachers t ON t.id = tcs.teacher_id
+                  WHERE tcs.tenant_id = $1 AND tcs.assignment_type = 'CLASS_TEACHER'
+                    AND t.user_id = $2`,
+                [tenant.id, card.userId],
+              )
+            ).map((r) => r.section_id)
+          : [],
+      );
+      const currentYear = tenant.years.find((y) => y.isCurrent)!;
+      for (const cls of currentYear.classes) {
+        const [halfYearly] = await q<{ id: string }>(
+          `SELECT id FROM exams WHERE tenant_id = $1 AND class_id = $2 AND academic_year_id = $3
+              AND name = 'Half-Yearly Exam' AND status <> 'PUBLISHED'`,
+          [tenant.id, cls.id, currentYear.id],
+        );
+        if (!halfYearly || cls.sections.length === 0) continue;
+        const picked = cls.sections[Math.floor(u() * cls.sections.length)];
+        const sec = cls.sections.find((x) => cardSections.has(x.id)) ?? picked;
+        rows += await seedNotes(tenant.id, { exam_id: halfYearly.id }, sec.id, 0.8);
+      }
+      // The latest past year's promotions ranked on its published final (#3410 merit source):
+      // point those runs at it. Their exam_ids are empty (CHK_promotion_runs_one_merit_source).
+      if (latestPast) {
+        await ctx.ds.query(
+          `UPDATE promotion_runs pr SET final_result_id = fr.id
+             FROM final_results fr
+            WHERE fr.tenant_id = pr.tenant_id AND fr.class_id = pr.source_class_id
+              AND fr.academic_year_id = pr.source_academic_year_id AND fr.status = 'PUBLISHED'
+              AND fr.deleted_at IS NULL AND cardinality(pr.exam_ids) = 0
+              AND pr.tenant_id = $1 AND pr.source_academic_year_id = $2`,
+          [tenant.id, latestPast.id],
+        );
+      }
+      // The service stamps the real clock; date each published final just after its Annual exam
+      // so the story matches the exam dates and reruns on one anchor give identical rows.
+      await ctx.ds.query(
+        `UPDATE final_results fr
+            SET published_at = e.published_at + interval '2 days',
+                created_at = e.published_at + interval '1 day',
+                updated_at = e.published_at + interval '2 days'
+           FROM exams e
+          WHERE e.tenant_id = fr.tenant_id AND e.class_id = fr.class_id
+            AND e.academic_year_id = fr.academic_year_id AND e.name = 'Annual Exam'
+            AND fr.tenant_id = $1 AND fr.status = 'PUBLISHED'`,
+        [tenant.id],
+      );
+      await ctx.ds.query(
+        `UPDATE final_result_rows r
+            SET computed_at = fr.published_at - interval '1 day', published_at = fr.published_at
+           FROM final_results fr
+          WHERE fr.id = r.final_result_id AND fr.tenant_id = $1 AND fr.status = 'PUBLISHED'`,
+        [tenant.id],
+      );
 
       // The next exam's seat plan, across the branch's rooms (D15).
       if (nextSchedules.length) {

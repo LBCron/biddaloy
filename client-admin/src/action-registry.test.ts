@@ -110,9 +110,11 @@ const NAV_PATH_TO_ROUTE_ID: Record<string, string> = {
   '/my-class': '/_staff/my-class/',
   '/my-class?then=attendance': '/_staff/my-class/',
   '/my-class?then=arrival': '/_staff/my-class/',
+  '/my-class?then=notes': '/_staff/my-class/',
   '/routines/substitutions': '/_staff/routines/substitutions',
   '/marks': '/_staff/marks/',
   '/results': '/_staff/results/',
+  '/results/final': '/_staff/results/final/',
   '/exams': '/_staff/exams/',
   '/admissions/applicants': '/_staff/admissions/applicants/',
   '/academics/homework/new': '/_staff/academics/homework/new',
@@ -197,6 +199,10 @@ const REGISTERED_ACTION_FILES: Record<string, string> = {
   'results.process': 'client-admin/src/routes/_staff/results/-process-dialog.tsx',
   'results.publish': 'client-admin/src/routes/_staff/results/-publish-dialog.tsx',
   'results.sendSms': 'client-admin/src/routes/_staff/results/-send-result-sms-dialog.tsx',
+  'final-result.open': `${R}_staff/results/final/index.tsx`,
+  'final-result.process': `${R}_staff/results/final/-build-dialog.tsx`,
+  'final-result.publish': `${R}_staff/results/final/-publish-dialog.tsx`,
+  'my-class.notes': `${R}_staff/my-class/$sectionId_.notes.tsx`,
   'exams.copyComponents': 'client-admin/src/routes/_staff/exams/-copy-components-dialog.tsx',
   'homework.assign': 'client-admin/src/routes/_staff/academics/homework/new.tsx',
   'homework.import': 'client-admin/src/routes/_staff/academics/homework/import.tsx',
@@ -351,6 +357,10 @@ describe('action-registry.ts', () => {
     'attendance.register.edit',
     // [84.3.6] ATTENDANCE_ARRIVAL_NOTICE_MANAGE is stricter than the MY_CLASS_VIEW route gate.
     'arrival-notice.requests',
+    // [70.5.5] Build (RESULT_PROCESS) and publish (RESULT_PUBLISH) are stricter than the
+    // final results list's RESULT_READ gate.
+    'final-result.process',
+    'final-result.publish',
     // E17: not a route, any role.
     'help.thisPage',
   ]);

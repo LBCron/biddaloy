@@ -367,6 +367,15 @@ export const STAFF_NAV_ITEMS = {
     permission: Permission.RESULT_PROCESS,
     label: { key: 'results' },
   },
+  // [70.5.5] D12: sits right under Results. `RESULT_READ`, the route's own gate:
+  // a teacher reads their own classes' finals; build and publish stay ADMIN-only.
+  'examsResults.finalResults': {
+    id: 'examsResults.finalResults',
+    to: '/results/final',
+    permission: Permission.RESULT_READ,
+    label: { key: 'finalResults' },
+    synonyms: ['final result', 'annual result', 'composition', 'বার্ষিক ফলাফল'],
+  },
   'academics.routineReview': {
     id: 'academics.routineReview',
     to: '/routines/review',
@@ -601,6 +610,7 @@ export const STAFF_NAV_GROUPS: readonly StaffNavGroupDef[] = [
       STAFF_NAV_ITEMS['examsResults.seatPlans'],
       STAFF_NAV_ITEMS['examsResults.gradingScales'],
       STAFF_NAV_ITEMS['examsResults.results'],
+      STAFF_NAV_ITEMS['examsResults.finalResults'],
       STAFF_NAV_ITEMS['examsResults.analysis'],
       STAFF_NAV_ITEMS['examsResults.promotion'],
     ],

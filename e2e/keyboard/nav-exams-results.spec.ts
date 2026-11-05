@@ -49,4 +49,9 @@ test.describe('Exams & Results (admin)', () => {
     await openFromSidebar(page, t('nav.items.results'));
     await expectReachableInMain(page);
   });
+
+  test('final results', async ({ page }) => {
+    await openFromSidebar(page, t('nav.items.finalResults'));
+    await expectReachableInMain(page);
+  });
 });

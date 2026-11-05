@@ -217,6 +217,8 @@ UPDATE payment_allocations SET notes = NULL;
 UPDATE payments SET remarks = NULL, reversal_reason = NULL, issuer_snapshot = NULL, transaction_reference = NULL;
 -- CHK_promotion_entries_override_note: an override needs a non-empty note.
 UPDATE promotion_entries SET override_note = CASE WHEN is_override THEN '[scrubbed]' END;
+-- conduct is NOT NULL: emptied to '{}' (no grade survives).
+UPDATE report_card_notes SET remark = NULL, conduct = '{}'::jsonb;
 UPDATE routine_change_requests SET note = '[scrubbed]', resolution_note = NULL;
 UPDATE routine_substitutions SET reason = NULL;
 UPDATE student_fees SET note = NULL;

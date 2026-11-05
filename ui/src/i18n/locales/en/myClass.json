@@ -20,7 +20,8 @@
     "homework": "Homework",
     "results": "Results",
     "roster": "Students",
-    "arrival": "Arrival notices"
+    "arrival": "Arrival notices",
+    "notes": "Remarks and conduct"
   },
   "flagGroups": {
     "ABSENT": "Absent 3 or more days in a row",
@@ -98,6 +99,35 @@
     "arrivalNotice": {
       "once": "Sends one message the next time the child arrives, then stops.",
       "everyDay": "Sends a message every school day when the child arrives."
-    }
+    },
+    "notes": "Give each student a remark (up to 300 characters) and a grade for each conduct line. They print on the report card. For example \"Discipline: A\"."
+  },
+  "notes": {
+    "title": "Remarks and conduct",
+    "documentTitle": "{{section}} · Remarks and conduct",
+    "back": "Back",
+    "forLabel": "For which result",
+    "forFinal": "Final result",
+    "roll": "Roll",
+    "remarkLabel": "Class teacher's remark",
+    "remarkPlaceholder": "Write a line or two about the student",
+    "charCount": "{{count}}/{{max}}",
+    "conductLabel": "Conduct",
+    "gradeOption": "Grade {{grade}}",
+    "gradePlaceholder": "Choose",
+    "locked": "The result is published, so this cannot be changed now. Ask the office to reopen it.",
+    "missing": "{{remark}} students still need a remark and {{conduct}} still need conduct grades.",
+    "save": "Save",
+    "saved": "Saved.",
+    "saveError": "Couldn't save. Try again.",
+    "loadError": "Couldn't load the students.",
+    "empty": "This section has no students.",
+    "cancel": "Cancel",
+    "cardSummary": "{{target}} — {{done}} given, {{left}} to do",
+    "cardNone": "No final result yet.",
+    "cardOpen": "Write remarks",
+    "cardView": "View",
+    "cardPublished": "Published — changes closed",
+    "lockedMark": "{{name}} (published)"
   }
 }

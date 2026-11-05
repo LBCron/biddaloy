@@ -29,7 +29,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@biddaloy/ui/components';
-import { useUpdateSchoolSettings, type OrganisationSettings } from '@biddaloy/ui/hooks';
+import {
+  useSchoolSettings,
+  useUpdateSchoolSettings,
+  type OrganisationSettings,
+} from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
 import { useWarnUnsavedChanges } from '@biddaloy/ui/shells';
 import { CircleMinusIcon, PencilIcon, PlusIcon, Undo2Icon } from 'lucide-react';
@@ -233,11 +237,163 @@ export function OrganisationSection({ schoolId, organisation }: OrganisationSect
   const refused = LIST_NAMES.some((list) => lists[list].rowError !== null);
 
   return (
+    <>
+      <SettingsSection
+        id="organisation-section"
+        title={t('organisation.legend')}
+        helpId="administration.settings.section.organisation"
+        description={t('organisation.description')}
+        onSubmit={(event) => {
+          event.preventDefault();
+          handleSave();
+        }}
+        saving={updateSettings.isPending}
+        footerStart={
+          <>
+            {updateSettings.isSuccess && <SettingsSaved />}
+            {updateSettings.isError && !refused && (
+              <SettingsMutationError error={updateSettings.error} />
+            )}
+          </>
+        }
+      >
+        <TooltipProvider delayDuration={300}>
+          <div className="mt-4 grid gap-6 md:grid-cols-3">
+            {LIST_NAMES.map((list) => (
+              <VocabularyList
+                key={list}
+                list={list}
+                state={lists[list]}
+                onAddValueChange={(value) =>
+                  updateList(list, (state) => ({ ...state, addValue: value }))
+                }
+                onAdd={() => handleAdd(list)}
+                onToggleRemove={(value) => handleToggleRemove(list, value)}
+                onStartRename={(value) => handleStartRename(list, value)}
+                onCancelRename={() => handleCancelRename(list)}
+                onRenameInputChange={(value) =>
+                  updateList(list, (state) => ({ ...state, renameInput: value }))
+                }
+                onConfirmRename={() => handleConfirmRename(list)}
+              />
+            ))}
+          </div>
+        </TooltipProvider>
+        {updateSettings.isError && refused && (
+          <p role="alert" className="mt-3 text-destructive">
+            {t('organisation.removeInUseSummary')}
+          </p>
+        )}
+      </SettingsSection>
+      <ConductItemsSection schoolId={schoolId} />
+    </>
+  );
+}
+
+/** [70.4.1] One conduct line on the report card. `key` is null until the first save. */
+interface ConductRow {
+  key: string | null;
+  name_bn: string;
+  name_en: string;
+}
+
+/** Same pattern and cap as the server's `ConductItemDto` / `CONDUCT_ITEMS_MAX`. */
+const CONDUCT_KEY_PATTERN = /^[a-z][a-z0-9_]{1,30}$/;
+const CONDUCT_ITEMS_MAX = 12;
+
+/** Key a new line is stored under: its English name as a lowercase slug. */
+function slugify(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+const rowKey = (row: ConductRow) => row.key ?? slugify(row.name_en);
+
+function toConductRows(items: { key: string; name_bn: string; name_en: string }[] | undefined) {
+  return (items ?? []).map((item): ConductRow => ({ ...item }));
+}
+
+/**
+ * [70.4.1] "Conduct and co-curricular lines" card: the lines a class teacher
+ * grades A to D on the report card. Clone of the list editors above, but each
+ * row has two names. A saved line keeps its key forever (renaming only changes
+ * the names); a new line's key is its English name, shown read-only. Read from
+ * the same settings query the page already loads, so no extra request.
+ */
+function ConductItemsSection({ schoolId }: { schoolId: string }) {
+  const { t } = useTranslation('settings');
+  const settings = useSchoolSettings(schoolId);
+  const updateSettings = useUpdateSchoolSettings(schoolId);
+  const saved = settings.data?.exams?.conductItems;
+  const [rows, setRows] = React.useState<ConductRow[]>(() => toConductRows(saved));
+  const [loadedFrom, setLoadedFrom] = React.useState(saved);
+  const [showErrors, setShowErrors] = React.useState(false);
+
+  const dirty = JSON.stringify(rows) !== JSON.stringify(toConductRows(saved));
+  const wasDirty = JSON.stringify(rows) !== JSON.stringify(toConductRows(loadedFrom));
+
+  // Settings can arrive after first render (or be refetched): adopt them, but
+  // never over unsaved typing and never mid-save.
+  if (saved !== loadedFrom && !updateSettings.isPending) {
+    setLoadedFrom(saved);
+    if (!wasDirty) setRows(toConductRows(saved));
+  }
+  useWarnUnsavedChanges(dirty);
+
+  const keys = rows.map(rowKey);
+  const rowProblem = (row: ConductRow, index: number): string | null => {
+    if (!row.name_bn.trim() || !row.name_en.trim()) return t('conductItems.nameRequired');
+    const key = keys[index]!;
+    if (!CONDUCT_KEY_PATTERN.test(key) || keys.indexOf(key) !== index) {
+      return t('conductItems.keyInvalid');
+    }
+    return null;
+  };
+  const listProblem =
+    rows.length === 0
+      ? t('conductItems.emptyList')
+      : rows.length > CONDUCT_ITEMS_MAX
+        ? t('conductItems.maxItems', { count: CONDUCT_ITEMS_MAX })
+        : null;
+
+  function edit(index: number, patch: Partial<ConductRow>) {
+    updateSettings.reset();
+    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  }
+
+  function handleSave() {
+    setShowErrors(true);
+    if (listProblem || rows.some((row, i) => rowProblem(row, i))) return;
+    updateSettings.mutate(
+      {
+        version: 1,
+        exams: {
+          conductItems: rows.map((row, i) => ({
+            key: keys[i]!,
+            name_bn: row.name_bn.trim(),
+            name_en: row.name_en.trim(),
+          })),
+        },
+      },
+      {
+        onSuccess: (next) => {
+          setShowErrors(false);
+          // Show what the server stored (new lines now carry their key).
+          setLoadedFrom(next.exams?.conductItems);
+          setRows(toConductRows(next.exams?.conductItems));
+        },
+      },
+    );
+  }
+
+  return (
     <SettingsSection
-      id="organisation-section"
-      title={t('organisation.legend')}
-      helpId="administration.settings.section.organisation"
-      description={t('organisation.description')}
+      id="conduct-items-section"
+      title={t('conductItems.legend')}
+      description={t('conductItems.description')}
       onSubmit={(event) => {
         event.preventDefault();
         handleSave();
@@ -246,39 +402,77 @@ export function OrganisationSection({ schoolId, organisation }: OrganisationSect
       footerStart={
         <>
           {updateSettings.isSuccess && <SettingsSaved />}
-          {updateSettings.isError && !refused && (
-            <SettingsMutationError error={updateSettings.error} />
-          )}
+          {updateSettings.isError && <SettingsMutationError error={updateSettings.error} />}
         </>
       }
     >
-      <TooltipProvider delayDuration={300}>
-        <div className="mt-4 grid gap-6 md:grid-cols-3">
-          {LIST_NAMES.map((list) => (
-            <VocabularyList
-              key={list}
-              list={list}
-              state={lists[list]}
-              onAddValueChange={(value) =>
-                updateList(list, (state) => ({ ...state, addValue: value }))
-              }
-              onAdd={() => handleAdd(list)}
-              onToggleRemove={(value) => handleToggleRemove(list, value)}
-              onStartRename={(value) => handleStartRename(list, value)}
-              onCancelRename={() => handleCancelRename(list)}
-              onRenameInputChange={(value) =>
-                updateList(list, (state) => ({ ...state, renameInput: value }))
-              }
-              onConfirmRename={() => handleConfirmRename(list)}
-            />
-          ))}
-        </div>
-      </TooltipProvider>
-      {updateSettings.isError && refused && (
-        <p role="alert" className="mt-3 text-destructive">
-          {t('organisation.removeInUseSummary')}
+      <p className="mt-2 text-text-secondary">{t('help.conductItems')}</p>
+      <ul className="mt-4 space-y-3" data-testid="conduct-items">
+        {rows.map((row, index) => {
+          const problem = showErrors ? rowProblem(row, index) : null;
+          return (
+            // Index key: rows have no stable id until saved and are only added or removed in place.
+            <li key={index}>
+              <div className="flex items-start gap-2">
+                <div className="grid min-w-0 flex-1 gap-2 md:grid-cols-2">
+                  <Input
+                    aria-label={t('conductItems.nameBn')}
+                    placeholder={t('conductItems.nameBn')}
+                    maxLength={60}
+                    value={row.name_bn}
+                    onChange={(event) => edit(index, { name_bn: event.target.value })}
+                  />
+                  <Input
+                    aria-label={t('conductItems.nameEn')}
+                    placeholder={t('conductItems.nameEn')}
+                    maxLength={60}
+                    value={row.name_en}
+                    onChange={(event) => edit(index, { name_en: event.target.value })}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`${t('conductItems.remove')}: ${row.name_en || row.name_bn || index + 1}`}
+                  onClick={() => {
+                    updateSettings.reset();
+                    setRows((prev) => prev.filter((_, i) => i !== index));
+                  }}
+                >
+                  <CircleMinusIcon aria-hidden="true" className="text-destructive" />
+                </Button>
+              </div>
+              <p className="mt-1 text-text-secondary">
+                {t('conductItems.keyHint', { key: keys[index] || '-' })}
+              </p>
+              {problem && (
+                <p role="alert" className="text-destructive">
+                  {problem}
+                </p>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {showErrors && listProblem && (
+        <p role="alert" className="mt-2 text-destructive">
+          {listProblem}
         </p>
       )}
+      <Button
+        type="button"
+        variant="outline"
+        className="mt-3 gap-2"
+        disabled={rows.length >= CONDUCT_ITEMS_MAX}
+        onClick={() => {
+          updateSettings.reset();
+          setRows((prev) => [...prev, { key: null, name_bn: '', name_en: '' }]);
+        }}
+      >
+        <PlusIcon aria-hidden="true" />
+        {t('conductItems.add')}
+      </Button>
     </SettingsSection>
   );
 }

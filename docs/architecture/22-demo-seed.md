@@ -84,6 +84,46 @@ The `billing` slice (Epic 49) gives each of the three branches one PAID seat ord
 anchor -6 months to +6 months) and one `OFFLINE_BANK` payment for the full amount (`seats * 12 * 1000` paisa).
 It leaves `schools.seat_limit` and `trial_ends_at` NULL, so the demo stays unlimited.
 
+The `exams` slice (Epic 70, #3407) also builds **final results** through `FinalResultsService`
+(`create`, `update`, `build`, `publish`), after the term exams are published:
+
+```mermaid
+flowchart LR
+  A[Past year, class with Annual results] --> B[create] --> C[update weights or mode] --> D[build] --> N[notes, latest past year] --> E[publish]
+  F[Current year, every class] --> G[create only: DRAFT]
+  E --> P[point that year's promotion runs at the final]
+```
+
+| Where                                        | Final result                                             |
+| -------------------------------------------- | -------------------------------------------------------- |
+| Past year, most classes                      | Half-Yearly 30 / Annual 70, PUBLISHED                    |
+| Past year, one class picked by `ctx.rng`     | First Term 20 / Half-Yearly 30 / Annual 50, PUBLISHED    |
+| Past year, another class picked by `ctx.rng` | BEST_OF 2 (equal shares), PUBLISHED                      |
+| Current year                                 | DRAFT only, because the Annual exam is not published yet |
+
+`published_at` is moved to two days after the class's Annual exam, so no date is a literal and a rerun on one
+anchor gives the same rows. `FinalResult`, `FinalResultWeight`, `FinalResultRow` and `FinalResultSubject` are in the
+slice's `covers`.
+
+**Report-card notes** (#3411, D7, D18, D30) go through `ReportCardNotesService.save`, also in the `exams` slice
+(`ReportCardNote` is in its `covers`):
+
+| Where                               | Notes                                                                                                                                                 |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Latest past year, final result card | every student: a Bangla remark from a small phrase bank plus all four conduct grades, picked with `ctx.rng` (a stronger student leans to A)           |
+| Current Half-Yearly (marks entry)   | one section per class (`ctx.rng`), about 80 % of its students, so the class teacher's grid and the office's "still missing" warning show real numbers |
+
+Things learned writing it:
+
+- **Save notes before `publish`.** A published card's notes are locked (409 `REPORT_CARD_NOTES_LOCKED`), so the past
+  final's notes sit between `build` and `publish`.
+- **The cohort comes from the service.** `ReportCardNotesService.get` gives each section's students (ACTIVE or
+  GRADUATED enrollment, the same cohort the final builds from, D25). The slice never lists students itself.
+- **A promotion run can rank on a final (#3410).** The `students` slice runs before `exams`, so its committed runs
+  rank on exams. After the latest past year's finals are published, the slice points those runs at their class's
+  final (`promotion_runs.final_result_id`). Their `exam_ids` are empty, as `CHK_promotion_runs_one_merit_source`
+  needs. Their entries keep the merit numbers the `students` slice gave them.
+
 ### The demo login cards (`DEMO_CARDS`)
 
 Nine cards, defined once in `server/src/modules/demo/demo-accounts.ts`. The seed creates exactly these users and the

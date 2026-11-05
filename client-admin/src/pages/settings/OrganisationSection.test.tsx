@@ -3,7 +3,7 @@ import '@biddaloy/ui/test';
 import { cleanupTestState, renderWithProviders, server } from '@biddaloy/ui/test';
 import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { OrganisationSection } from './OrganisationSection';
 
@@ -15,7 +15,25 @@ const ORGANISATION = {
   groups: [],
 };
 
+const CONDUCT = [
+  { key: 'discipline', name_bn: 'শৃঙ্খলা', name_en: 'Discipline' },
+  { key: 'neatness', name_bn: 'পরিচ্ছন্নতা', name_en: 'Neatness' },
+];
+
 describe('OrganisationSection', () => {
+  beforeEach(() => {
+    // The conduct card reads the saved settings itself.
+    server.use(
+      http.get('/api/v1/schools/:id/settings', () =>
+        HttpResponse.json({
+          version: 1,
+          organisation: ORGANISATION,
+          exams: { conductItems: CONDUCT },
+        }),
+      ),
+    );
+  });
+
   afterEach(async () => {
     await cleanupTestState();
   });
@@ -60,7 +78,7 @@ describe('OrganisationSection', () => {
     await user.type(groups.getByPlaceholderText('Add a value'), 'Science');
     await user.click(groups.getByRole('button', { name: 'Add' }));
 
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[0]!);
 
     await waitFor(() => expect(patchBody).toHaveBeenCalled());
     expect(patchBody.mock.calls[0]![0].organisation.groups).toEqual(['Science']);
@@ -92,7 +110,7 @@ describe('OrganisationSection', () => {
     const dayRow = shifts.getByText('Day').closest('li')!;
     await user.click(within(dayRow).getByRole('button', { name: 'Remove: Day' }));
 
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[0]!);
 
     // The row shows a translated line, never the server's own text.
     expect(
@@ -130,7 +148,7 @@ describe('OrganisationSection', () => {
     await user.type(renameInput, 'Prabhati');
     await user.click(within(morningRow).getByRole('button', { name: 'Save' }));
 
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[0]!);
 
     await waitFor(() => expect(patchBody).toHaveBeenCalled());
     const body = patchBody.mock.calls[0]![0];
@@ -197,7 +215,7 @@ describe('OrganisationSection', () => {
     await user.type(renameInput, 'Shokal');
     await user.click(within(row).getByRole('button', { name: 'Save' }));
 
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[0]!);
 
     await waitFor(() => expect(patchBody).toHaveBeenCalled());
     const body = patchBody.mock.calls[0]![0];
@@ -228,7 +246,7 @@ describe('OrganisationSection', () => {
     const groups = within(await screen.findByTestId('organisation-groups'));
     await user.type(groups.getByPlaceholderText('Add a value'), 'Science');
     await user.click(groups.getByRole('button', { name: 'Add' }));
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[0]!);
 
     expect((await screen.findByRole('alert')).textContent).toBe("Couldn't save. Try again.");
     expect(screen.queryByText('Something else went wrong.')).toBeNull();
@@ -249,5 +267,108 @@ describe('OrganisationSection', () => {
     await user.click(versions.getByRole('button', { name: 'Undo remove: Bangla' }));
 
     expect(versions.getByRole('button', { name: 'Remove: Bangla' })).toBeTruthy();
+  });
+
+  describe('conduct items card', () => {
+    const renderCard = () =>
+      renderWithProviders(
+        <OrganisationSection schoolId={SCHOOL_ID} organisation={ORGANISATION} />,
+        {
+          locale: 'en',
+          role: 'ADMIN',
+          tenantId: SCHOOL_ID,
+        },
+      );
+    const conductSave = () =>
+      within(screen.getByRole('heading', { name: 'Conduct' }).closest('form')!).getByRole('button', {
+        name: 'Save',
+      });
+
+    it('lists the saved lines with both names and the read-only key', async () => {
+      renderCard();
+      const list = within(await screen.findByTestId('conduct-items'));
+      await waitFor(() => expect(list.getAllByLabelText('English name')).toHaveLength(2));
+      expect((list.getAllByLabelText('English name')[0] as HTMLInputElement).value).toBe(
+        'Discipline',
+      );
+      expect((list.getAllByLabelText('Bangla name')[1] as HTMLInputElement).value).toBe(
+        'পরিচ্ছন্নতা',
+      );
+      expect(list.getByText('Saved as: neatness')).toBeTruthy();
+    });
+
+    it('adds a line and saves the whole list, keeping saved keys and slugging the new one', async () => {
+      const patchBody = vi.fn();
+      server.use(
+        http.patch('/api/v1/schools/:id/settings', async ({ request }) => {
+          patchBody(await request.json());
+          return HttpResponse.json({ version: 1, exams: { conductItems: CONDUCT } });
+        }),
+      );
+      const { user } = renderCard();
+      const list = within(await screen.findByTestId('conduct-items'));
+      await waitFor(() => expect(list.getAllByLabelText('English name')).toHaveLength(2));
+
+      await user.click(screen.getAllByRole('button', { name: 'Add' }).at(-1)!);
+      await user.type(list.getAllByLabelText('Bangla name')[2]!, 'খেলাধুলা');
+      await user.type(list.getAllByLabelText('English name')[2]!, 'Sports Day');
+      await user.click(conductSave());
+
+      await waitFor(() => expect(patchBody).toHaveBeenCalled());
+      expect(patchBody.mock.calls[0]![0]).toEqual({
+        version: 1,
+        exams: {
+          conductItems: [
+            ...CONDUCT,
+            { key: 'sports_day', name_bn: 'খেলাধুলা', name_en: 'Sports Day' },
+          ],
+        },
+      });
+    });
+
+    it('removes a line from the payload', async () => {
+      const patchBody = vi.fn();
+      server.use(
+        http.patch('/api/v1/schools/:id/settings', async ({ request }) => {
+          patchBody(await request.json());
+          return HttpResponse.json({ version: 1 });
+        }),
+      );
+      const { user } = renderCard();
+      await screen.findByTestId('conduct-items');
+      await user.click(await screen.findByRole('button', { name: 'Remove: Discipline' }));
+      await user.click(conductSave());
+
+      await waitFor(() => expect(patchBody).toHaveBeenCalled());
+      expect(patchBody.mock.calls[0]![0].exams.conductItems).toEqual([CONDUCT[1]]);
+    });
+
+    it('refuses an empty name and a duplicate key without sending', async () => {
+      const patchBody = vi.fn();
+      server.use(
+        http.patch('/api/v1/schools/:id/settings', async ({ request }) => {
+          patchBody(await request.json());
+          return HttpResponse.json({ version: 1 });
+        }),
+      );
+      const { user } = renderCard();
+      const list = within(await screen.findByTestId('conduct-items'));
+      await waitFor(() => expect(list.getAllByLabelText('English name')).toHaveLength(2));
+
+      await user.click(screen.getAllByRole('button', { name: 'Add' }).at(-1)!);
+      await user.click(conductSave());
+      expect(await screen.findByText('Write both the Bangla and the English name.')).toBeTruthy();
+
+      // A new line that slugs to an existing key.
+      await user.type(list.getAllByLabelText('Bangla name')[2]!, 'শৃঙ্খলা');
+      await user.type(list.getAllByLabelText('English name')[2]!, 'Discipline');
+      await user.click(conductSave());
+      expect(
+        await screen.findByText(
+          'The English name must start with a letter, be 2 to 31 letters or digits long, and differ from the other lines.',
+        ),
+      ).toBeTruthy();
+      expect(patchBody).not.toHaveBeenCalled();
+    });
   });
 });

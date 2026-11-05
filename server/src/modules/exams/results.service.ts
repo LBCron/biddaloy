@@ -27,7 +27,7 @@ import { MilestoneAchievement } from '../programs/entities/milestone-achievement
 import { buildIssuerSnapshot, type IssuerSnapshot } from '../schools/profile/issuer-snapshot';
 import { buildLogoUrl } from '../schools/profile/logo-key';
 import { GradingBand } from '../grading/entities/grading-band.entity';
-import { resolveScale, gradeFor } from '../grading/scale-lookup';
+import { resolveScale, gradeFor, gradeForGpa } from '../grading/scale-lookup';
 import {
   computeSubjectTotal,
   gradeSubjectTotal,
@@ -38,11 +38,23 @@ import {
   SubjectResult,
 } from './result-rules';
 import { loadExamCohort, sitsSubject } from './exam-cohort';
+import { lockExam } from './exam-lock';
 import { AttendanceComponentService } from './attendance-component.service';
+import { AttendanceSummaryService } from '../attendance/attendance-summary.service';
+import { AcademicTerm } from '../calendar/entities/academic-term.entity';
+import { todayInSchoolTz } from '../../common/time';
+import {
+  attendanceFrom,
+  loadCardNotes,
+  type CardAttendance,
+  type CardConduct,
+} from './report-card-extras';
 import { MarkGridService } from './mark-grid.service';
 import { attentionEvents } from '../attention/attention.constants';
 import { emitRecheck } from '../attention/engine/attention-events';
+import { ModuleRef } from '@nestjs/core';
 import { AuditService } from '../audit/audit.service';
+import { FinalResultsService } from '../final-results/final-results.service';
 import { RequestContext } from '../../common/request-context.util';
 import type { ApprovalContext } from '../auth/guards/approval.guard';
 
@@ -53,37 +65,12 @@ import type { ApprovalContext } from '../auth/guards/approval.guard';
  * changes, not for a comment or a refactor. */
 export const RULE_VERSION = 'nctb-v3';
 
-/**
- * [pr-fix #945] The exam-level lock every result-changing path shares.
- * `process`, `publish`, `reopen` and the mark-change recompute take it
- * FOR UPDATE and re-check `status` under it, so none of them can act on
- * a status another has just changed. Mark writes take it FOR SHARE
- * (`MarksService`): autosaves on different grids don't block each other,
- * but a publish can't commit while a mark write is mid-transaction.
- * Lock order is always exam, then grid (`lockGrid`).
- */
 /** [ACAD-05] The one 409 for "results are published, reopen first". */
 export function examPublished(): ConflictException {
   return new ConflictException({
     message: "This exam's results are published. Reopen the results first.",
     details: { code: 'EXAM_PUBLISHED' },
   });
-}
-
-export async function lockExam(
-  manager: EntityManager,
-  examId: string,
-  tenantId: string,
-  mode: 'pessimistic_write' | 'pessimistic_read' = 'pessimistic_write',
-): Promise<Exam> {
-  const exam = await manager.getRepository(Exam).findOne({
-    where: { id: examId, tenant_id: tenantId, deleted_at: IsNull() },
-    lock: { mode },
-  });
-  if (!exam) {
-    throw new NotFoundException('Exam not found');
-  }
-  return exam;
 }
 
 /** [34.2.4] One opted-in (D22) program row on a student's report card. */
@@ -222,6 +209,9 @@ export class ResultsService {
     private readonly attendanceComponentService: AttendanceComponentService,
     private readonly gridService: MarkGridService,
     private readonly auditService: AuditService,
+    // Lazy lookup of FinalResultsService: FinalResultsModule imports ExamsModule,
+    // so a constructor inject would be a module cycle.
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   private async findExam(examId: string, tenantId: string): Promise<Exam> {
@@ -242,15 +232,6 @@ export class ResultsService {
       gpa: band.gpa === null ? null : Number(band.gpa),
       is_fail: band.is_fail,
     };
-  }
-
-  /** The overall grade for a computed GPA is looked up against the same
-   * scale, keyed by GPA rather than percent (the certificate's grade
-   * always mirrors the GPA scale directly). */
-  private gradeForGpa(bands: Band[], gpa: number): Band | null {
-    const eligible = bands.filter((b) => b.gpa !== null && b.gpa <= gpa);
-    if (eligible.length === 0) return null;
-    return eligible.reduce((best, b) => ((b.gpa as number) > (best.gpa as number) ? b : best));
   }
 
   /**
@@ -457,7 +438,7 @@ export class ResultsService {
         });
       }
 
-      const overall = combineSubjects(subjectResults, (gpa) => this.gradeForGpa(bands, gpa));
+      const overall = combineSubjects(subjectResults, (gpa) => gradeForGpa(bands, gpa));
       computed.push({
         student_id: student.id,
         section_id: sectionByStudent.get(student.id) ?? null,
@@ -815,10 +796,40 @@ export class ResultsService {
     }
 
     await this.examRepo.manager.transaction(async (manager) => {
+      // Finals that count this exam. Locked (inside demoteToDraft) BEFORE the exam, the same
+      // order build/publish use, so a reopen cannot deadlock with them. A PUBLISHED final
+      // refuses the reopen (409 EXAM_IN_PUBLISHED_FINAL: reopen the final first); a PROCESSED one
+      // goes back to DRAFT because its rows would no longer match the exam (D24).
+      const handled = new Set<string>();
+      const demoteFinalsCountingExam = async () => {
+        const finals: Array<{ id: string }> = await manager.query(
+          `SELECT DISTINCT f.id
+             FROM final_results f
+             JOIN final_result_weights w ON w.final_result_id = f.id AND w.tenant_id = $1
+            WHERE f.tenant_id = $1 AND f.deleted_at IS NULL AND w.exam_id = $2
+            ORDER BY f.id`,
+          [tenantId, examId],
+        );
+        const late = finals.filter((f) => !handled.has(f.id));
+        if (late.length === 0) return;
+        const finalsService = this.moduleRef.get(FinalResultsService, { strict: false });
+        for (const f of late) {
+          await finalsService.demoteToDraft(manager, f.id, tenantId, userId, context, examId);
+          handled.add(f.id);
+        }
+      };
+      await demoteFinalsCountingExam();
       const locked = await lockExam(manager, examId, tenantId);
       if (locked.status !== ExamStatus.PUBLISHED) {
         throw new ConflictException(`This exam is not published (current: ${locked.status}).`);
       }
+      // Read again under the exam lock: a final built between the first read and the lock
+      // (it took the exam FOR SHARE and committed) was not in the first list. No final can be
+      // built or published on this exam after this point, so this list is complete.
+      // ponytail: a late final is locked exam-then-final; if its own publish holds it and waits
+      // on this exam, Postgres aborts one side (40P01, whole transaction rolled back). Rare; the
+      // filter maps 40P01 to a retryable 409 CONCURRENT_UPDATE (known-errors.ts), never a 500.
+      await demoteFinalsCountingExam();
       await manager
         .getRepository(Exam)
         .update(
@@ -1064,6 +1075,10 @@ export class ResultsService {
     }>;
     legend: Array<{ grade: string; gpa: number | null; comment: string | null }>;
     programs: ReportCardProgramRow[];
+    /** Live over the exam's term (D9/D27); per-exam cards are not snapshotted. Null: not published or no data. */
+    attendance: CardAttendance | null;
+    remark: string | null;
+    conduct: CardConduct;
     issuer: IssuerSnapshot;
     logo_url: string | null;
   } | null> {
@@ -1088,6 +1103,16 @@ export class ResultsService {
     if (!school) return null;
 
     const programs = await this.getReportCardPrograms(exam, studentId, tenantId);
+    const [attendance, notes] = await Promise.all([
+      this.examAttendance(exam, studentId, tenantId),
+      loadCardNotes(
+        this.examRepo.manager,
+        tenantId,
+        studentId,
+        { exam_id: examId },
+        school.settings,
+      ),
+    ]);
 
     return {
       exam_name: exam.name,
@@ -1100,9 +1125,58 @@ export class ResultsService {
         comment: b.comment,
       })),
       programs,
+      attendance,
+      remark: notes.remark,
+      conduct: notes.conduct,
       issuer: buildIssuerSnapshot(school),
       logo_url: buildLogoUrl(school.id, school.logo_key),
     };
+  }
+
+  /**
+   * Attendance printed on a PUBLISHED exam's card: the exam's term range, or with no term the
+   * year start to the exam's last sitting (year end when it has none) (D9), capped at today, from
+   * `AttendanceSummaryService` as is (D27).
+   */
+  private async examAttendance(
+    exam: Exam,
+    studentId: string,
+    tenantId: string,
+  ): Promise<CardAttendance | null> {
+    if (exam.status !== ExamStatus.PUBLISHED) return null;
+    const manager = this.examRepo.manager;
+    const range = exam.academic_term_id
+      ? // A term deleted after the exam still bounds that exam's attendance.
+        await manager.findOne(AcademicTerm, {
+          where: { id: exam.academic_term_id, tenant_id: tenantId },
+          withDeleted: true,
+        })
+      : await manager.findOne(AcademicYear, {
+          where: { id: exam.academic_year_id, tenant_id: tenantId },
+        });
+    if (!range) return null;
+    const from = String(range.start_date).slice(0, 10);
+    let end = String(range.end_date).slice(0, 10);
+    if (!exam.academic_term_id) {
+      const [last] = await manager.query(
+        `SELECT to_char(MAX(date), 'YYYY-MM-DD') AS d FROM exam_schedules
+          WHERE tenant_id = $1 AND exam_id = $2 AND deleted_at IS NULL`,
+        [tenantId, exam.id],
+      );
+      if (last?.d) end = last.d;
+    }
+    const to = [end, todayInSchoolTz()].sort()[0];
+    if (from > to) return null;
+    // Lazy like FinalResultsService: only a published card needs it.
+    const attendanceSummary = this.moduleRef.get(AttendanceSummaryService, { strict: false });
+    const summaries = await attendanceSummary.getSummariesForStudents({
+      tenantId,
+      studentIds: [studentId],
+      classId: exam.class_id,
+      from,
+      to,
+    });
+    return attendanceFrom(summaries.get(studentId));
   }
 
   /** [34.2.4] Opted-in (`show_on_report_card`, D22) programs to print

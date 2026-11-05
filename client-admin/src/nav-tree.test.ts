@@ -89,6 +89,7 @@ describe('nav-tree', () => {
       'examsResults.seatPlans',
       'examsResults.gradingScales',
       'examsResults.results',
+      'examsResults.finalResults',
       'examsResults.analysis',
       'examsResults.promotion',
     ]);

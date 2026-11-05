@@ -16,6 +16,12 @@ import { PromotionsService } from '../../../modules/promotions/promotions.servic
 import { EnrollmentService } from '../../../modules/enrollments/enrollments.service';
 import { StudentLifecycleService } from '../../../modules/students/student-lifecycle.service';
 import { ApprovalService } from '../../../modules/auth/guards/approval.guard';
+import { FinalResultsService } from '../../../modules/final-results/final-results.service';
+import { ReportCardNotesService } from '../../../modules/report-card-notes/report-card-notes.service';
+import { TeacherScopeService } from '../../../modules/classes/teacher-scope.service';
+import { SchoolsService } from '../../../modules/schools/schools.service';
+import { resolveTenantSettings } from '../../../modules/schools/settings/tenant-settings-resolver';
+import { AttendanceSummaryService } from '../../../modules/attendance/attendance-summary.service';
 import { ResultsService } from '../../../modules/exams/results.service';
 import { MarkGridService } from '../../../modules/exams/mark-grid.service';
 import { AttendanceComponentService } from '../../../modules/exams/attendance-component.service';
@@ -51,6 +57,19 @@ describe('exams slice (integration, 2 years, scale 0.05)', () => {
       EnrollmentService,
       StudentLifecycleService,
       ResultsService,
+      FinalResultsService,
+      // The exams slice writes report-card notes through the real service (#3411).
+      ReportCardNotesService,
+      TeacherScopeService,
+      {
+        provide: SchoolsService,
+        useValue: { getResolvedSettings: async () => resolveTenantSettings(null) },
+      },
+      // Publish snapshots attendance per student; the seed has none in this slice-only run.
+      {
+        provide: AttendanceSummaryService,
+        useValue: { getSummariesForStudents: async () => new Map() },
+      },
       MarkGridService,
       SeatPlansService,
       TeacherBusyService,
@@ -78,7 +97,23 @@ describe('exams slice (integration, 2 years, scale 0.05)', () => {
     await extras.run(ctx);
     facts.rows = await exams.run(ctx);
 
+    facts.finals = await q(
+      `SELECT fr.status, fr.mode, y.is_current,
+              (SELECT count(*)::int FROM final_result_rows r WHERE r.final_result_id = fr.id) AS rows
+         FROM final_results fr JOIN academic_years y ON y.id = fr.academic_year_id
+        WHERE fr.deleted_at IS NULL`,
+    );
     // Exams per class and year: names.
+    // [#3411] Notes per target: the final card (past year) and the current Half-Yearly.
+    facts.notes = await q(
+      `SELECT n.final_result_id IS NOT NULL AS on_final, n.remark,
+              (SELECT count(*)::int FROM jsonb_object_keys(n.conduct)) AS grades
+         FROM report_card_notes n`,
+    );
+    facts.finalRuns = await q(
+      `SELECT pr.final_result_id, fr.status, fr.class_id = pr.source_class_id AS same_class
+         FROM promotion_runs pr JOIN final_results fr ON fr.id = pr.final_result_id`,
+    );
     facts.examsPerClass = await q(
       `SELECT e.class_id, e.academic_year_id, c.numeric_grade, count(*)::int AS n,
               count(*) FILTER (WHERE e.name = 'Test Exam')::int AS tests
@@ -187,6 +222,37 @@ describe('exams slice (integration, 2 years, scale 0.05)', () => {
     }
     expect(facts.progress.some((e: any) => e.marks > 0)).toBe(true);
     expect(facts.progress.some((e: any) => e.grids < e.pairs)).toBe(true);
+  });
+
+  it('publishes past-year finals, with a best-of one, and leaves current-year finals as drafts', () => {
+    const past = facts.finals.filter((f: any) => !f.is_current);
+    expect(past.length).toBeGreaterThan(0);
+    // A class with no students in the small run publishes with no rows, so rows are checked on some.
+    for (const f of past) expect(f.status).toBe('PUBLISHED');
+    expect(past.some((f: any) => f.rows > 0)).toBe(true);
+    expect(past.some((f: any) => f.mode === 'BEST_OF' && f.rows > 0)).toBe(true);
+    const now = facts.finals.filter((f: any) => f.is_current);
+    expect(now.length).toBeGreaterThan(0);
+    for (const f of now) expect(f.status).toBe('DRAFT');
+  });
+
+  it('writes bn remarks and all four conduct grades on the past final card and the current Half-Yearly', () => {
+    const onFinal = facts.notes.filter((n: any) => n.on_final);
+    const onExam = facts.notes.filter((n: any) => !n.on_final);
+    expect(onFinal.length).toBeGreaterThan(0);
+    expect(onExam.length).toBeGreaterThan(0);
+    for (const n of facts.notes) {
+      expect(n.remark).toMatch(/[\u0980-\u09FF]/); // Bangla text
+      expect(n.grades).toBe(4); // DEFAULT_CONDUCT_ITEMS (D30)
+    }
+  });
+
+  it("points the past year's promotion runs at that class's published final result", () => {
+    expect(facts.finalRuns.length).toBeGreaterThan(0);
+    for (const r of facts.finalRuns) {
+      expect(r.status).toBe('PUBLISHED');
+      expect(r.same_class).toBe(true);
+    }
   });
 
   it('seats every active student exactly once in each sitting of the next exam', () => {
