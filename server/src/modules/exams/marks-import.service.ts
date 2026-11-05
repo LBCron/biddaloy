@@ -131,7 +131,9 @@ export class MarksImportService {
       subjectId: q.subject_id,
     });
     if (exam.status === ExamStatus.PUBLISHED) {
-      throw new ConflictException('This exam already published — marks can no longer be edited.');
+      throw new ConflictException(
+        'This exam is already published — its marks can no longer be edited.',
+      );
     }
     const grid = await this.gridService.getGrid(
       examId,

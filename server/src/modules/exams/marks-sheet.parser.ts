@@ -29,6 +29,10 @@ const MAX_DATA_ROWS = 2000;
 // The exact data-row count is checked after the loop. A csv byte cap is the service's job (#3472).
 const ROW_SCAN_SLACK = 10;
 
+// Full shape only: a component named `sheet: Written` is still a component.
+const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+const SHEET_ID_SHAPE = new RegExp(`^${SHEET_ID_PREFIX}${UUID}:${UUID}:${UUID}$`, 'i');
+
 const ABSENT_SET = new Set(ABSENT_CODES.map(canon));
 const EXEMPT_SET = new Set(EXEMPT_CODES.map(canon));
 
@@ -170,7 +174,7 @@ export async function parseMarksSheet(buffer: Buffer, filename: string): Promise
   const componentCols: Array<{ col: number; name: string; header: string }> = [];
   worksheet.getRow(1).eachCell({ includeEmpty: false }, (cell, col) => {
     const header = cellToString(cell.value);
-    if (header.startsWith(SHEET_ID_PREFIX)) {
+    if (SHEET_ID_SHAPE.test(header)) {
       sheetId = header.slice(SHEET_ID_PREFIX.length);
       return;
     }
