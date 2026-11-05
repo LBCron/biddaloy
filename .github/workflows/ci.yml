@@ -627,6 +627,18 @@ jobs:
 
       - uses: ./.github/actions/setup
 
+      # Postgres lock table = max_locks_per_transaction x max_connections (64 x 100 here; local
+      # compose runs max_connections=300). Each spec file's reset locks ~180 tables in one
+      # transaction and 4 workers do it at once, which ran out ("out of shared memory", 53200).
+      # Service containers take no flags, so set it and restart.
+      - name: Raise Postgres lock table
+        env:
+          PG: ${{ job.services.postgres.id }}
+        run: |
+          docker exec "$PG" psql -U postgres -c "ALTER SYSTEM SET max_locks_per_transaction = 256"
+          docker restart "$PG"
+          timeout 60 sh -c 'until docker exec "$PG" pg_isready -U postgres; do sleep 1; done'
+
       - name: Build shared package
         # test/setup.ts registers ts-node to load TypeORM entities/migrations
         # via its own glob, which resolves `@biddaloy/shared` through plain
