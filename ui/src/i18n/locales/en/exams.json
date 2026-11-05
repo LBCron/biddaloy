@@ -221,6 +221,10 @@
     "empty": "No marks lists for this exam yet — check back once components are set up.",
     "selectExamHint": "Select an exam to see its marks lists."
   },
+  "marksSheet": {
+    "download": "Download sheet",
+    "upload": "Upload sheet"
+  },
   "marksGrid": {
     "caption": "Marks list",
     "columnStudent": "Roll · Name",

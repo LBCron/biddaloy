@@ -126,7 +126,10 @@ function toExportParams(filters: object, format: ListExportFormat): Record<strin
   return params;
 }
 
-function filenameFromContentDisposition(header: string | undefined, fallback: string): string {
+export function filenameFromContentDisposition(
+  header: string | undefined,
+  fallback: string,
+): string {
   const match = header?.match(/filename="?([^";]+)"?/i);
   return match?.[1] ?? fallback;
 }
@@ -143,7 +146,7 @@ async function tooLargeFromBody(body: unknown): Promise<ExportTooLargeError | nu
   }
 }
 
-function saveBlob(blob: Blob, filename: string): void {
+export function saveBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;

@@ -5917,6 +5917,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exams/{examId}/marks/sheet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the pre-filled marks sheet (.xlsx) for one section-subject grid. */
+        get: operations["MarksController_getSheet_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/{examId}/marks/sheet/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read an uploaded marks sheet into a staged diff. Writes nothing. */
+        post: operations["MarksController_validateSheet_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/{examId}/marks/sheet/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Write the cells staged by sheet/validate. */
+        post: operations["MarksController_commitSheet_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exams/{examId}/results": {
         parameters: {
             query?: never;
@@ -15886,6 +15937,54 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        MarksSheetSummaryDto: {
+            rows: number;
+            new: number;
+            changed: number;
+            unchanged: number;
+            absent: number;
+            exempt: number;
+            errors: number;
+        };
+        MarksSheetChangeDto: {
+            row: number;
+            student_id: string;
+            roll: number;
+            student_name: string;
+            component_id: string;
+            component_name: string;
+            old: string | null;
+            /** @enum {string|null} */
+            old_status: "PRESENT" | "ABSENT" | "EXEMPT" | null;
+            new: string | null;
+            /** @enum {string} */
+            new_status: "PRESENT" | "ABSENT" | "EXEMPT";
+        };
+        MarksSheetErrorDto: {
+            row: number;
+            roll: number | null;
+            component_name: string | null;
+            /** @enum {string} */
+            code: "NOT_IN_SECTION" | "ABOVE_FULL_MARKS" | "INVALID_VALUE" | "UNKNOWN_COMPONENT" | "DERIVED_COMPONENT" | "DUPLICATE_ROW";
+        };
+        MarksSheetValidateResultDto: {
+            staging_id: string | null;
+            expires_at: string | null;
+            summary: components["schemas"]["MarksSheetSummaryDto"];
+            changes: components["schemas"]["MarksSheetChangeDto"][];
+            errors: components["schemas"]["MarksSheetErrorDto"][];
+        };
+        CommitMarksSheetDto: {
+            /** Format: uuid */
+            staging_id: string;
+            /** Format: uuid */
+            section_id: string;
+            /** Format: uuid */
+            subject_id: string;
+        };
+        MarksSheetCommitResultDto: {
+            saved: number;
         };
         ProcessExamDto: {
             force?: boolean;
@@ -34296,6 +34395,120 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MarksController_getSheet_v1: {
+        parameters: {
+            query: {
+                section_id: string;
+                subject_id: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                examId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MarksController_validateSheet_v1: {
+        parameters: {
+            query: {
+                section_id: string;
+                subject_id: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                examId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file?: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarksSheetValidateResultDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MarksController_commitSheet_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                examId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitMarksSheetDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarksSheetCommitResultDto"];
+                };
             };
             /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
             401: {

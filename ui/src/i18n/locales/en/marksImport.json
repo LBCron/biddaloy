@@ -1,0 +1,41 @@
+{
+  "title": "Fill marks in Excel",
+  "steps": {
+    "download": "1. Download the sheet",
+    "fill": "2. Fill in the marks",
+    "upload": "3. Upload the sheet"
+  },
+  "dropzone": {
+    "prompt": "Drop the sheet here, or choose a file",
+    "choose": "Choose file",
+    "hint": "An Excel (.xlsx) file, up to 5 MB",
+    "uploading": "Reading your sheet… {{percent}}%"
+  },
+  "summary": {
+    "title": "Review changes",
+    "new": "{{count}} new",
+    "changed": "{{count}} changed",
+    "unchanged": "{{count}} not changed",
+    "absent": "{{count}} absent",
+    "exempt": "{{count}} exempt",
+    "errors": "{{count}} errors",
+    "save": "Save",
+    "saved": "{{count}} marks saved"
+  },
+  "change": {
+    "oldToNew": "{{old}} → {{new}}",
+    "empty": "empty"
+  },
+  "errors": {
+    "NOT_IN_SECTION": "This student is not in this section",
+    "ABOVE_FULL_MARKS": "Above full marks",
+    "INVALID_VALUE": "This is not a valid mark",
+    "UNKNOWN_COMPONENT": "This column is not part of this exam",
+    "DERIVED_COMPONENT": "This column is worked out automatically and cannot be filled in",
+    "DUPLICATE_ROW": "This student appears more than once",
+    "WRONG_SHEET": "This sheet belongs to another exam or section",
+    "UNREADABLE": "We could not read this file. Download a fresh sheet and try again",
+    "TOO_LARGE": "This file is too big",
+    "TOO_MANY_ROWS": "This sheet has too many rows"
+  }
+}

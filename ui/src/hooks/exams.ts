@@ -27,8 +27,12 @@ import type { IssuerSnapshot } from '../components/print/issuer-header';
 import type { ReportCardProgramRow } from '../components/print/report-card';
 
 import { type ApprovedMutationResult, useApprovedMutation } from './approval';
+import { withHttpStatusShape } from './bulk-upload';
+import { useIdempotencyKey } from './idempotency-key';
 import { createEntityKeys } from './query-keys';
+import { filenameFromContentDisposition, saveBlob } from './reports';
 import { shouldRetryQuery } from './retry';
+import type { BulkImportError, PreviewResult } from './use-bulk-upload-preview';
 
 export type Exam = components['schemas']['Exam'];
 export type CreateExamInput = components['schemas']['CreateExamDto'];
@@ -1009,4 +1013,117 @@ export async function downloadAnalysisCsv(
   anchor.click();
   anchor.remove();
   setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+// --- Marks sheet import ([81.2.2]) ---
+
+type MarksSheetValidateResult = components['schemas']['MarksSheetValidateResultDto'];
+export type MarksSheetChange = components['schemas']['MarksSheetChangeDto'];
+export type MarksSheetSummary = components['schemas']['MarksSheetSummaryDto'];
+export type MarksSheetCommitResult = components['schemas']['MarksSheetCommitResultDto'];
+
+/** What the preview screen needs beyond the shared `PreviewResult`: the counts and the cell diff. */
+export interface MarksSheetPreviewSummary {
+  summary: MarksSheetSummary;
+  changes: MarksSheetChange[];
+}
+
+/** `GET /exams/:examId/marks/sheet` — the pre-filled .xlsx for one section-subject grid, saved to disk. */
+export function useDownloadMarksSheet(examId: string, sectionId: string, subjectId: string) {
+  return useMutation({
+    mutationFn: async (): Promise<void> => {
+      try {
+        const res = await apiClient.get<Blob>(`/exams/${examId}/marks/sheet`, {
+          params: { section_id: sectionId, subject_id: subjectId },
+          responseType: 'blob',
+        });
+        const filename = filenameFromContentDisposition(
+          res.headers['content-disposition'] as string | undefined,
+          'marks-sheet.xlsx',
+        );
+        saveBlob(res.data, filename);
+      } catch (error) {
+        throw withHttpStatusShape(error);
+      }
+    },
+    retry: false,
+  });
+}
+
+/** `POST /exams/:examId/marks/sheet/validate`, multipart field `file`. Writes nothing. */
+export function useValidateMarksSheet(examId: string, sectionId: string, subjectId: string) {
+  return useMutation({
+    mutationFn: async ({
+      file,
+      onProgress,
+    }: {
+      file: File;
+      onProgress?: (percent: number) => void;
+    }): Promise<PreviewResult<MarksSheetPreviewSummary>> => {
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const res = await apiClient.post<MarksSheetValidateResult>(
+          `/exams/${examId}/marks/sheet/validate`,
+          formData,
+          {
+            params: { section_id: sectionId, subject_id: subjectId },
+            onUploadProgress: (event) => {
+              if (onProgress && event.total) {
+                onProgress(Math.round((event.loaded / event.total) * 100));
+              }
+            },
+          },
+        );
+        const body = res.data;
+        // The server sends a code and a roll, never prose: the screen translates `code`.
+        const errors: BulkImportError[] = body.errors.map((e) => ({
+          row: e.row,
+          column: e.component_name,
+          message: e.code,
+          severity: 'error',
+          code: e.code,
+          ...(e.roll !== null ? { value: String(e.roll) } : {}),
+        }));
+        return {
+          // null when any row failed: nothing was staged, so there is nothing to commit.
+          staging_id: body.staging_id ?? '',
+          expires_at: body.expires_at ?? '',
+          errors,
+          hard_error_count: errors.length,
+          summary: { summary: body.summary, changes: body.changes },
+        };
+      } catch (error) {
+        throw withHttpStatusShape(error);
+      }
+    },
+    retry: false,
+  });
+}
+
+/** `POST /exams/:examId/marks/sheet/commit` — Rule 25: `retry: false`, one `Idempotency-Key` per attempt. */
+export function useCommitMarksSheet(examId: string, sectionId: string, subjectId: string) {
+  const queryClient = useQueryClient();
+  const { keyFor, rotate } = useIdempotencyKey();
+  return useMutation({
+    mutationFn: async (stagingId: string): Promise<MarksSheetCommitResult> => {
+      const body = { staging_id: stagingId, section_id: sectionId, subject_id: subjectId };
+      try {
+        const res = await apiClient.post<MarksSheetCommitResult>(
+          `/exams/${examId}/marks/sheet/commit`,
+          body,
+          { headers: { 'Idempotency-Key': keyFor(body) } },
+        );
+        return res.data;
+      } catch (error) {
+        throw withHttpStatusShape(error);
+      }
+    },
+    retry: false,
+    onSuccess: () => {
+      rotate();
+      void queryClient.invalidateQueries({ queryKey: markGridKey(examId, sectionId, subjectId) });
+      void queryClient.invalidateQueries({ queryKey: examProgressQueryOptions(examId).queryKey });
+    },
+  });
 }
