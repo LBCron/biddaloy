@@ -54,10 +54,17 @@ export function initSentry(): void {
     // `cors-origins.ts`'s `allowedHeaders` is what lets those two headers
     // survive a browser preflight to reach here at all.
     integrations: (defaults) => [...defaults, Sentry.httpIntegration()],
-    // Explicit even though it's Sentry's own default — see the same note
-    // in ui/src/api/sentry.ts. No request payload, headers, cookies, or
-    // user context is ever attached automatically.
-    sendDefaultPii: false,
+    // SDK v11 dropped `sendDefaultPii` and its `dataCollection` defaults
+    // collect everything, so each PII source is switched off explicitly.
+    // No request payload, headers, cookies, query string or user context is
+    // ever attached automatically.
+    dataCollection: {
+      userInfo: false,
+      cookies: false,
+      httpHeaders: false,
+      httpBodies: [],
+      urlQueryParams: false,
+    },
     beforeSend: (event) => scrubEvent(event),
     beforeBreadcrumb: (breadcrumb) => redactBreadcrumb(breadcrumb),
   });
