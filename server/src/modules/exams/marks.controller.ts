@@ -9,10 +9,16 @@ import {
   UseGuards,
   ParseUUIDPipe,
   Req,
+  Res,
+  StreamableFile,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
+import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Request, Response } from 'express';
 import { ContextGuard, RolesGuard } from '../auth/guards/context.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -21,7 +27,16 @@ import { CurrentTenant } from '../auth/decorators/current-tenant.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApiTenantAuth } from '../../common/decorators/api-tenant-auth.decorator';
 import { requestContext } from '../../common/request-context.util';
+import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.interceptor';
+import { FailClosedWithoutRedis } from '../../common/rate-limit/app-throttler.guard';
+import { STRICT_RATE_LIMIT } from '../../rate-limit';
 import { MarksService } from './marks.service';
+import { MARKS_SHEET_MAX_BYTES, MarksImportService } from './marks-import.service';
+import {
+  CommitMarksSheetDto,
+  MarksSheetCommitResultDto,
+  MarksSheetValidateResultDto,
+} from './dto/marks-sheet.dto';
 import { MarkGridService } from './mark-grid.service';
 import { BatchMarksDto, GridQueryDto, GridStateActionDto, QueryProgressDto } from './dto/marks.dto';
 import { Permission, UserRole, JwtPayload } from '@biddaloy/shared';
@@ -40,6 +55,7 @@ export class MarksController {
   constructor(
     private readonly marksService: MarksService,
     private readonly gridService: MarkGridService,
+    private readonly importService: MarksImportService,
   ) {}
 
   @Get()
@@ -140,5 +156,76 @@ export class MarksController {
       role: tenant.role,
       userId: user.sub,
     });
+  }
+
+  @Get('sheet')
+  @RequirePermissions(Permission.MARK_VIEW)
+  @ApiOperation({
+    summary: 'Download the pre-filled marks sheet (.xlsx) for one section-subject grid.',
+  })
+  async getSheet(
+    @Param('examId', ParseUUIDPipe) examId: string,
+    @Query() query: GridQueryDto,
+    @CurrentTenant() tenant: { id: string; role: string },
+    @CurrentUser() user: JwtPayload,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const { buffer, filename } = await this.importService.buildSheet(
+      examId,
+      query,
+      tenant.id,
+      tenant.role,
+      user.sub,
+    );
+    // `attachment` first (RFC 5987 filename*), then the explicit Content-Type.
+    res.attachment(filename);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    return new StreamableFile(buffer);
+  }
+
+  @Post('sheet/validate')
+  @RequirePermissions(Permission.MARK_ENTER)
+  @FailClosedWithoutRedis()
+  @Throttle({ default: STRICT_RATE_LIMIT })
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MARKS_SHEET_MAX_BYTES } }))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } },
+  })
+  @ApiOperation({ summary: 'Read an uploaded marks sheet into a staged diff. Writes nothing.' })
+  validateSheet(
+    @Param('examId', ParseUUIDPipe) examId: string,
+    @Query() query: GridQueryDto,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentTenant() tenant: { id: string; role: string },
+    @CurrentUser() user: JwtPayload,
+  ): Promise<MarksSheetValidateResultDto> {
+    return this.importService.validateFile(examId, query, file, tenant.id, tenant.role, user.sub);
+  }
+
+  @Post('sheet/commit')
+  @RequirePermissions(Permission.MARK_ENTER)
+  @FailClosedWithoutRedis()
+  @Throttle({ default: STRICT_RATE_LIMIT })
+  @UseInterceptors(IdempotencyInterceptor)
+  @ApiOperation({ summary: 'Write the cells staged by sheet/validate.' })
+  commitSheet(
+    @Param('examId', ParseUUIDPipe) examId: string,
+    @Body() dto: CommitMarksSheetDto,
+    @CurrentTenant() tenant: { id: string; role: string },
+    @CurrentUser() user: JwtPayload,
+    @Req() request: Request,
+  ): Promise<MarksSheetCommitResultDto> {
+    return this.importService.commit(
+      examId,
+      dto,
+      tenant.id,
+      tenant.role,
+      user.sub,
+      requestContext(request),
+    );
   }
 }

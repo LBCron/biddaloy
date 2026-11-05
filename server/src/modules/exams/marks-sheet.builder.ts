@@ -5,6 +5,7 @@ import {
   LEGEND,
   MARKS_TAB,
   SHEET_HEADERS,
+  SHEET_ID_PREFIX,
   SheetLang,
   howToLines,
   neutralise,
@@ -41,6 +42,7 @@ export async function buildMarksSheet(
   const lastComp = firstComp + components.length - 1;
   const totalCol = lastComp + 1;
   const keyCol = totalCol + 1;
+  const idCol = keyCol + 1;
 
   ws.addRow([
     SHEET_HEADERS.roll[lang],
@@ -48,6 +50,7 @@ export async function buildMarksSheet(
     ...components.map((c) => neutralise(`${c.name} /${c.full_marks}`)),
     SHEET_HEADERS.total[lang],
     SHEET_HEADERS.key[lang],
+    `${SHEET_ID_PREFIX}${grid.exam_id}:${grid.section_id}:${grid.subject_id}`,
   ]);
 
   const cellByKey = new Map(grid.cells.map((c) => [`${c.student_id}|${c.component_id}`, c]));
@@ -69,6 +72,7 @@ export async function buildMarksSheet(
   });
 
   ws.getColumn(keyCol).hidden = true;
+  ws.getColumn(idCol).hidden = true;
   ws.views = [{ state: 'frozen', ySplit: 1 }];
 
   // Cells are locked by default; unlock only the component cells.
@@ -79,7 +83,7 @@ export async function buildMarksSheet(
   }
   const header = ws.getRow(1);
   header.font = { bold: true };
-  for (let c = 1; c <= keyCol; c++) {
+  for (let c = 1; c <= idCol; c++) {
     if (c < firstComp || c > lastComp) header.getCell(c).fill = GREY;
   }
 

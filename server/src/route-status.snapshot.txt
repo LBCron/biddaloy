@@ -290,6 +290,9 @@ GET    /api/v1/exams/:examId/marks                                              
 PATCH  /api/v1/exams/:examId/marks                                               401 PASS PASS PASS 403 PASS 403 403 403 403 PASS 403
 GET    /api/v1/exams/:examId/marks/progress                                      401 PASS PASS PASS 403 PASS 403 403 PASS 403 PASS 403
 POST   /api/v1/exams/:examId/marks/reopen                                        401 PASS PASS PASS 403 403 403 403 403 403 403 403
+GET    /api/v1/exams/:examId/marks/sheet                                         401 PASS PASS PASS 403 PASS 403 403 PASS 403 PASS 403
+POST   /api/v1/exams/:examId/marks/sheet/commit                                  401 PASS PASS PASS 403 PASS 403 403 403 403 PASS 403
+POST   /api/v1/exams/:examId/marks/sheet/validate                                401 PASS PASS PASS 403 PASS 403 403 403 403 PASS 403
 POST   /api/v1/exams/:examId/marks/submit                                        401 PASS PASS PASS 403 PASS 403 403 403 403 PASS 403
 GET    /api/v1/exams/:examId/report-card-notes                                   401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
 PUT    /api/v1/exams/:examId/report-card-notes                                   401 PASS PASS PASS 403 403 403 403 403 403 PASS 403

@@ -15,6 +15,7 @@ import {
   ABSENT_CODES,
   EXEMPT_CODES,
   SHEET_HEADERS,
+  SHEET_ID_PREFIX,
   canon,
   unneutralise,
 } from './marks-sheet.constants';
@@ -32,13 +33,9 @@ const ABSENT_SET = new Set(ABSENT_CODES.map(canon));
 const EXEMPT_SET = new Set(EXEMPT_CODES.map(canon));
 
 /** A whole file the marks import cannot use as a marks sheet (D13). */
-export class MarksSheetFileError extends Error {
-  constructor(
-    readonly code: MarksSheetFileErrorCode,
-    message: string,
-  ) {
-    super(message);
-    this.name = 'MarksSheetFileError';
+export class MarksSheetFileError extends ImportFileError {
+  constructor(code: MarksSheetFileErrorCode, message: string) {
+    super(code, message);
   }
 }
 
@@ -59,6 +56,8 @@ export interface ParsedSheetRow {
 }
 
 export interface ParsedMarksSheet {
+  /** `<exam_id>:<section_id>:<subject_id>` from the hidden header cell; absent on a foreign file. */
+  sheetId?: string;
   components: Array<{ name: string; fullMarksHeader: string }>;
   rows: ParsedSheetRow[];
 }
@@ -166,10 +165,15 @@ export async function parseMarksSheet(buffer: Buffer, filename: string): Promise
 
   let rollCol = 0;
   let keyCol = 0;
+  let sheetId: string | undefined;
   let duplicateComponent = false;
   const componentCols: Array<{ col: number; name: string; header: string }> = [];
   worksheet.getRow(1).eachCell({ includeEmpty: false }, (cell, col) => {
     const header = cellToString(cell.value);
+    if (header.startsWith(SHEET_ID_PREFIX)) {
+      sheetId = header.slice(SHEET_ID_PREFIX.length);
+      return;
+    }
     if (matches(header, SHEET_HEADERS.roll)) rollCol = col;
     else if (matches(header, SHEET_HEADERS.key)) keyCol = col;
     else if (matches(header, SHEET_HEADERS.name) || matches(header, SHEET_HEADERS.total)) return;
@@ -244,6 +248,7 @@ export async function parseMarksSheet(buffer: Buffer, filename: string): Promise
   }
 
   return {
+    ...(sheetId !== undefined ? { sheetId } : {}),
     components: componentCols.map((c) => ({ name: c.name, fullMarksHeader: c.header })),
     rows,
   };
