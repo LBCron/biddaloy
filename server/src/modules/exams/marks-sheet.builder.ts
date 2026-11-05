@@ -7,6 +7,7 @@ import {
   SHEET_HEADERS,
   SheetLang,
   howToLines,
+  neutralise,
 } from './marks-sheet.constants';
 
 export interface MarksSheetMeta {
@@ -44,7 +45,7 @@ export async function buildMarksSheet(
   ws.addRow([
     SHEET_HEADERS.roll[lang],
     SHEET_HEADERS.name[lang],
-    ...components.map((c) => `${c.name} /${c.full_marks}`),
+    ...components.map((c) => neutralise(`${c.name} /${c.full_marks}`)),
     SHEET_HEADERS.total[lang],
     SHEET_HEADERS.key[lang],
   ]);
@@ -64,7 +65,7 @@ export async function buildMarksSheet(
     const first = `${ws.getColumn(firstComp).letter}${r}`;
     const last = `${ws.getColumn(lastComp).letter}${r}`;
     const total = components.length > 0 ? { formula: `SUM(${first}:${last})` } : null;
-    ws.addRow([s.roll_number, s.full_name, ...compCells, total, s.id]);
+    ws.addRow([s.roll_number, neutralise(s.full_name), ...compCells, total, neutralise(s.id)]);
   });
 
   ws.getColumn(keyCol).hidden = true;

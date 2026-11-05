@@ -40,3 +40,22 @@ const HOWTO = {
 export function howToLines(lang: SheetLang): readonly string[] {
   return HOWTO[lang];
 }
+
+/** One canonical form for cell codes: trimmed, NFD (so Bangla ড় typed as U+09DC and as
+ * U+09A1 U+09BC collapse to the same string), upper-cased. Apply to BOTH sides of a compare. */
+export function canon(s: string): string {
+  return s.trim().normalize('NFD').toUpperCase();
+}
+
+/** Cells starting with one of these are read as formulas by spreadsheet apps (CSV injection). */
+const FORMULA_TRIGGER = /^[=+\-@\t\r]/;
+
+/** Tenant text written into a cell: a leading `'` defuses a formula trigger (the visible quote is
+ * Excel's own text convention). The parser strips it from component headers with `unneutralise`. */
+export function neutralise(text: string): string {
+  return FORMULA_TRIGGER.test(text) ? `'${text}` : text;
+}
+
+export function unneutralise(text: string): string {
+  return text.startsWith("'") && FORMULA_TRIGGER.test(text.slice(1)) ? text.slice(1) : text;
+}

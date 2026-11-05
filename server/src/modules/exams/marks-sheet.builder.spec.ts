@@ -121,4 +121,14 @@ describe('buildMarksSheet', () => {
     expect(wb.worksheets[0].getCell(7, 1).value).toBe('A = absent');
     expect(wb.worksheets[1].rowCount).toBe(5);
   });
+
+  it('defuses formula triggers in student and component names', async () => {
+    const grid = makeGrid();
+    grid.students[0].full_name = '=HYPERLINK("x")';
+    grid.components[0].name = '@Practical';
+    const { buffer } = await buildMarksSheet(grid, meta);
+    const ws = (await reopen(buffer)).worksheets[0];
+    expect(ws.getCell(2, 2).value).toBe(`'=HYPERLINK("x")`);
+    expect(ws.getCell(1, 4).value).toBe("'@Practical /25");
+  });
 });

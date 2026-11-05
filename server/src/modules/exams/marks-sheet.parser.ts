@@ -11,13 +11,25 @@ import {
   XLSX_TOO_LARGE_MESSAGE,
   XlsxTooLargeError,
 } from '../../common/utils/xlsx-guard.util';
-import { ABSENT_CODES, EXEMPT_CODES, SHEET_HEADERS } from './marks-sheet.constants';
+import {
+  ABSENT_CODES,
+  EXEMPT_CODES,
+  SHEET_HEADERS,
+  canon,
+  unneutralise,
+} from './marks-sheet.constants';
 
 // Cloned from homework/homework-bulk-upload.parser.ts: same ExcelJS xlsx/csv
 // loading and limits, different schema. Pure: no DB, no request. Every
 // message is a fixed sentence; none echoes cell text (Rule 23).
 
 const MAX_DATA_ROWS = 2000;
+// Header + legend lines + a few blank rows sit around the data; this only bounds the loop.
+// The exact data-row count is checked after the loop. A csv byte cap is the service's job (#3472).
+const ROW_SCAN_SLACK = 10;
+
+const ABSENT_SET = new Set(ABSENT_CODES.map(canon));
+const EXEMPT_SET = new Set(EXEMPT_CODES.map(canon));
 
 /** A whole file the marks import cannot use as a marks sheet (D13). */
 export class MarksSheetFileError extends Error {
@@ -123,12 +135,23 @@ function cellToString(value: ExcelJS.CellValue): string {
   return String(value).trim();
 }
 
+/** A date or an error cell is a bad entry, not an empty one (D3: blank means unchanged). */
+function isBadCell(value: ExcelJS.CellValue): boolean {
+  if (value instanceof Date) return true;
+  if (value && typeof value === 'object') {
+    const obj = value as { error?: unknown; result?: unknown };
+    if ('error' in obj) return true;
+    if ('result' in obj) return isBadCell(obj.result as ExcelJS.CellValue);
+  }
+  return false;
+}
+
 function normaliseEntry(raw: string): RawEntry {
   const text = toLatinDigits(raw.trim());
   if (text === '') return { kind: 'blank' };
-  const upper = text.toUpperCase();
-  if ((ABSENT_CODES as readonly string[]).includes(upper)) return { kind: 'absent' };
-  if ((EXEMPT_CODES as readonly string[]).includes(upper)) return { kind: 'exempt' };
+  const code = canon(text);
+  if (ABSENT_SET.has(code)) return { kind: 'absent' };
+  if (EXEMPT_SET.has(code)) return { kind: 'exempt' };
   // Non-negative number, at most 2 decimals (D3).
   if (/^\d+(\.\d{1,2})?$/.test(text)) return { kind: 'value', value: text };
   return { kind: 'invalid' };
@@ -143,6 +166,7 @@ export async function parseMarksSheet(buffer: Buffer, filename: string): Promise
 
   let rollCol = 0;
   let keyCol = 0;
+  let duplicateComponent = false;
   const componentCols: Array<{ col: number; name: string; header: string }> = [];
   worksheet.getRow(1).eachCell({ includeEmpty: false }, (cell, col) => {
     const header = cellToString(cell.value);
@@ -151,7 +175,11 @@ export async function parseMarksSheet(buffer: Buffer, filename: string): Promise
     else if (matches(header, SHEET_HEADERS.name) || matches(header, SHEET_HEADERS.total)) return;
     else {
       const at = header.lastIndexOf(' /');
-      if (at > 0) componentCols.push({ col, name: header.slice(0, at).trim(), header });
+      if (at > 0) {
+        const name = unneutralise(header.slice(0, at).trim());
+        if (componentCols.some((c) => c.name === name)) duplicateComponent = true;
+        componentCols.push({ col, name, header });
+      }
     }
   });
   if (keyCol === 0) {
@@ -161,15 +189,32 @@ export async function parseMarksSheet(buffer: Buffer, filename: string): Promise
     );
   }
 
+  if (duplicateComponent) {
+    throw new MarksSheetFileError(
+      MarksSheetFileErrorCode.DUPLICATE_COMPONENT,
+      'Two columns have the same component name — download a fresh sheet',
+    );
+  }
+  if (worksheet.rowCount > MAX_DATA_ROWS + 1 + ROW_SCAN_SLACK) {
+    throw new ImportFileError(
+      ImportFileErrorCode.TOO_MANY_ROWS,
+      `File has too many rows (max ${MAX_DATA_ROWS})`,
+    );
+  }
+
   const rows: ParsedSheetRow[] = [];
   const seen = new Set<string>();
   for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
     if (row.cellCount === 0) continue;
     const studentKey = cellToString(row.getCell(keyCol).value);
-    const entries: Record<string, RawEntry> = {};
+    // Null prototype so a header like `__proto__` is a plain key, never dropped.
+    const entries: Record<string, RawEntry> = Object.create(null);
     for (const c of componentCols) {
-      entries[c.name] = normaliseEntry(cellToString(row.getCell(c.col).value));
+      const value = row.getCell(c.col).value;
+      entries[c.name] = isBadCell(value)
+        ? { kind: 'invalid' }
+        : normaliseEntry(cellToString(value));
     }
     const allBlank = Object.values(entries).every((e) => e.kind === 'blank');
     // Empty rows and the legend lines under the table carry no key and no marks.
