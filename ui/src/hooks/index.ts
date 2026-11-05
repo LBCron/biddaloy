@@ -472,6 +472,31 @@ export {
   type UpdateExamScheduleInput,
 } from './exams';
 export {
+  finalResultCardKey,
+  finalResultKeys,
+  finalResultQueryOptions,
+  finalResultRowsKey,
+  finalResultsQueryOptions,
+  useBuildFinalResult,
+  useCreateFinalResult,
+  useFinalResult,
+  useFinalResultRows,
+  useFinalResults,
+  useFinalResultStudentCard,
+  useFinalTabulation,
+  usePublishFinalResult,
+  useReopenFinalResult,
+  useSendFinalResultSms,
+  useStudentFinalCard,
+  type FinalCard,
+  useUpdateFinalResult,
+  type FinalResultListItem,
+  type FinalResultRowsPage,
+  type FinalResultSmsOutcome,
+  type FinalResultWeightInput,
+  type FinalTabulation,
+} from './final-results';
+export {
   promotionKeys,
   promotionRunQueryOptions,
   promotionRunsQueryOptions,
@@ -1730,3 +1755,13 @@ export {
   type CreateSeatOrderInput,
   type SeatOrderDto,
 } from './billing';
+export {
+  reportCardNotesKeys,
+  useReportCardNotes,
+  useReportCardNotesMissing,
+  useSaveReportCardNotes,
+  type ReportCardNotesMissing,
+  type ReportCardNotesRow,
+  type ReportCardNotesTarget,
+  type ReportCardNotesView,
+} from './report-card-notes';

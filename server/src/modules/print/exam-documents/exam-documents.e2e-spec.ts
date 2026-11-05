@@ -227,6 +227,61 @@ describe('Exam documents E2E (48.2.05)', () => {
       .expect(404);
   });
 
+  // [70.4.1] Final-result tabulation: same DOCUMENT_PRINT gate, same 409 / 404 / 400 / 401 answers.
+  async function seedFinal(): Promise<string> {
+    await ds.query(
+      `DELETE FROM final_results WHERE tenant_id = $1 AND class_id = $2 AND academic_year_id = $3`,
+      [SEED_TENANT_ID, SEED_CLASS_1_ID, SEED_ACADEMIC_YEAR_ID],
+    );
+    return (
+      await ds.query(
+        `INSERT INTO final_results (tenant_id, class_id, academic_year_id, status)
+         VALUES ($1, $2, $3, 'PROCESSED') RETURNING id`,
+        [SEED_TENANT_ID, SEED_CLASS_1_ID, SEED_ACADEMIC_YEAR_ID],
+      )
+    )[0].id as string;
+  }
+  const finalUrl = (id: string, section: string) =>
+    `${API}/final-results/${id}/documents/tabulation?section_id=${section}`;
+
+  for (const role of ALLOWED) {
+    it(`${role} reaches the final tabulation (409 RESULTS_NOT_PROCESSED, not 403)`, async () => {
+      const finalId = await seedFinal();
+      const section = await seedSection(SEED_TENANT_ID, SEED_CLASS_1_ID);
+      const res = await http().get(finalUrl(finalId, section)).set(asRole(role));
+      expect(res.status, JSON.stringify(res.body)).toBe(409);
+    });
+  }
+
+  for (const role of DENIED) {
+    it(`${role} is refused on the final tabulation (403)`, async () => {
+      await http().get(finalUrl(randomUUID(), randomUUID())).set(asRole(role)).expect(403);
+    });
+  }
+
+  it('final tabulation: non-UUID id and missing section_id are 400; unknown id is 404', async () => {
+    await http().get(finalUrl('not-a-uuid', randomUUID())).set(asRole('ADMIN')).expect(400);
+    const finalId = await seedFinal();
+    await http()
+      .get(`${API}/final-results/${finalId}/documents/tabulation`)
+      .set(asRole('ADMIN'))
+      .expect(400);
+    await http().get(finalUrl(randomUUID(), randomUUID())).set(asRole('ADMIN')).expect(404);
+  });
+
+  it("final tabulation: tenant 2's ADMIN gets 404 on tenant 1's final; no X-Tenant-ID is 401", async () => {
+    const finalId = await seedFinal();
+    const section = await seedSection(SEED_TENANT_ID, SEED_CLASS_1_ID);
+    await http()
+      .get(finalUrl(finalId, section))
+      .set({ Authorization: `Bearer ${otherTenantAdminToken}`, 'X-Tenant-ID': otherTenantId })
+      .expect(404);
+    await http()
+      .get(finalUrl(finalId, section))
+      .set({ Authorization: `Bearer ${tokens.get('ADMIN')}` })
+      .expect(401);
+  });
+
   it('a missing X-Tenant-ID is 401', async () => {
     for (const url of routes(examId)) {
       await http()

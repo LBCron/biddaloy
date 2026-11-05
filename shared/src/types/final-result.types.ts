@@ -67,6 +67,12 @@ export interface FinalResultStudentCard {
     per_exam: Array<{ exam_id: string; obtained: number | null }>;
   }>;
   legend: Array<{ grade: string; gpa: number | null; comment: string | null }>;
+  /**
+   * Snapshot taken at publish (null before, or when the school has no attendance). `working_days`
+   * holds the days the attendance percentage divides by: the marked days under the MARKED_DAYS
+   * policy, otherwise the working days; either way minus leave days when leave is not a working
+   * day. `present_days` is the numerator (late days count when late counts as present).
+   */
   attendance: { working_days: number | null; present_days: number | null };
   remark: string | null;
   conduct: Array<{ key: string; name_bn: string; name_en: string; grade: ConductGrade | null }>;

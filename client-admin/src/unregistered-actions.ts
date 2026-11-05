@@ -23,6 +23,13 @@ export interface UnregisteredAction {
   readonly note: string;
 }
 
+export interface PaletteAllowListEntry {
+  readonly file: string;
+  readonly reason: string;
+}
+
+const R = 'client-admin/src/routes/';
+
 /** Work owed to an open epic. */
 export const UNREGISTERED_ACTIONS: readonly UnregisteredAction[] = [
   {
@@ -32,14 +39,12 @@ export const UNREGISTERED_ACTIONS: readonly UnregisteredAction[] = [
   },
 ];
 
-export interface PaletteAllowListEntry {
-  readonly file: string;
-  readonly reason: string;
-}
-
-const R = 'client-admin/src/routes/';
-
 export const PALETTE_ALLOW_LIST: readonly PaletteAllowListEntry[] = [
+  {
+    file: `${R}_staff/results/final/-sms-dialog.tsx`,
+    reason:
+      'acts on one published final result, opened from its detail header; `final-result.open` lands on the list it is reached from',
+  },
   {
     file: `${R}_staff/communications/message-log/-row-detail.tsx`,
     reason:

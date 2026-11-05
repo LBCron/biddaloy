@@ -80,7 +80,7 @@ keywords:
   ]
 appVersion: 0.1.0 (e81ef857f)
 owner: tareq89
-lastVerified: 2026-10-24
+lastVerified: 2026-11-02
 knownIssues: []
 -->
 
@@ -233,28 +233,28 @@ Press a name in the list, or **View**, to open the profile.
 
 The tabs come in this order:
 
-| Tab                                                 | What it shows                                                                                                                               |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Overview**                                        | **Personal details**: date of birth, gender, Bangla name, blood group, address, preferred contact.                                          |
-| **Guardians**                                       | Linked guardians: name, relationship, phone, email, and who is the **Primary contact**.                                                     |
-| **Enrollment**                                      | **Enrolment history**: which class in which academic year. From here you can **Move class** ([see](#task-move)).                            |
-| **Attendance**                                      | Month by month: present, absent, late, leave, and the attendance rate.                                                                      |
-| **Results**                                         | Every exam result, published or not. Results not yet published are marked separately.                                                       |
-| **Homework**                                        | Total homework, how many are done, how many are overdue, and the completion rate.                                                           |
-| **Subject choices**                                 | Choosing one of the optional subjects the class has (for example the fourth subject).                                                       |
-| **Programs**                                        | The program the student is enrolled in, with progress and milestones.                                                                       |
-| **Performance**                                     | A summary built from marks. Only people who may see marks get this tab.                                                                     |
-| **Fees**                                            | Total billed, total paid, dues; **Open bills**, **Credit balance**, **History**, **Discounts** and **Statement**.                           |
-| [**Fines**](../finance/fines.md)                    | All of this student's [fines](../help/glossary.md#fine).                                                                                    |
-| **Automatic billing**                               | Which recurring bills the student is on, and which they are left out of.                                                                    |
-| [**Payments**](../finance/payments.md)              | All money received, with date and method.                                                                                                   |
-| [**Invoices**](../finance/invoices.md)              | Invoices issued; you can **Print** them.                                                                                                    |
-| **Communication**                                   | Messages and reminders sent to the guardian.                                                                                                |
-| **Notes**                                           | Staff-only notes ([see](#task-notes)). The tab is missing if you may not see notes.                                                         |
-| **Records**                                         | Family, health and public exam details ([see](#task-records)). Missing if you may not see records.                                          |
-| **Documents**                                       | Photo, ID card, certificates and the list of printed papers ([see](#task-documents)). Needs print, certificate or print-history permission. |
-| [**Applications**](../applications/applications.md) | Applications submitted for this student. Missing if you may not handle applications.                                                        |
-| **Activity**                                        | Who changed what in this student's details, and when.                                                                                       |
+| Tab                                                 | What it shows                                                                                                                                                                                                                            |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Overview**                                        | **Personal details**: date of birth, gender, Bangla name, blood group, address, preferred contact.                                                                                                                                       |
+| **Guardians**                                       | Linked guardians: name, relationship, phone, email, and who is the **Primary contact**.                                                                                                                                                  |
+| **Enrollment**                                      | **Enrolment history**: which class in which academic year. From here you can **Move class** ([see](#task-move)).                                                                                                                         |
+| **Attendance**                                      | Month by month: present, absent, late, leave, and the attendance rate.                                                                                                                                                                   |
+| **Results**                                         | Every exam result, published or not. Results not yet published are marked separately. If the class has a final result for the year, it comes first, with **Open the final result** ([Final results](../exams-results/final-results.md)). |
+| **Homework**                                        | Total homework, how many are done, how many are overdue, and the completion rate.                                                                                                                                                        |
+| **Subject choices**                                 | Choosing one of the optional subjects the class has (for example the fourth subject).                                                                                                                                                    |
+| **Programs**                                        | The program the student is enrolled in, with progress and milestones.                                                                                                                                                                    |
+| **Performance**                                     | A summary built from marks. Only people who may see marks get this tab.                                                                                                                                                                  |
+| **Fees**                                            | Total billed, total paid, dues; **Open bills**, **Credit balance**, **History**, **Discounts** and **Statement**.                                                                                                                        |
+| [**Fines**](../finance/fines.md)                    | All of this student's [fines](../help/glossary.md#fine).                                                                                                                                                                                 |
+| **Automatic billing**                               | Which recurring bills the student is on, and which they are left out of.                                                                                                                                                                 |
+| [**Payments**](../finance/payments.md)              | All money received, with date and method.                                                                                                                                                                                                |
+| [**Invoices**](../finance/invoices.md)              | Invoices issued; you can **Print** them.                                                                                                                                                                                                 |
+| **Communication**                                   | Messages and reminders sent to the guardian.                                                                                                                                                                                             |
+| **Notes**                                           | Staff-only notes ([see](#task-notes)). The tab is missing if you may not see notes.                                                                                                                                                      |
+| **Records**                                         | Family, health and public exam details ([see](#task-records)). Missing if you may not see records.                                                                                                                                       |
+| **Documents**                                       | Photo, ID card, certificates and the list of printed papers ([see](#task-documents)). Needs print, certificate or print-history permission.                                                                                              |
+| [**Applications**](../applications/applications.md) | Applications submitted for this student. Missing if you may not handle applications.                                                                                                                                                     |
+| **Activity**                                        | Who changed what in this student's details, and when.                                                                                                                                                                                    |
 
 ### Add a guardian <a href="#task-guardians" id="task-guardians"></a>
 

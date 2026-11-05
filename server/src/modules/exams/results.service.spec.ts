@@ -33,7 +33,14 @@ import { ProgramEnrollment } from '../programs/entities/program-enrollment.entit
 import { ProgramMilestone } from '../programs/entities/program-milestone.entity';
 import { MilestoneAchievement } from '../programs/entities/milestone-achievement.entity';
 import { AttendanceComponentService } from './attendance-component.service';
+import {
+  AttendanceSummaryService,
+  computeAttendancePercentage,
+  type AttendanceSummary,
+} from '../attendance/attendance-summary.service';
+import { ReportCardNote } from '../report-card-notes/entities/report-card-note.entity';
 import { MarkGridService } from './mark-grid.service';
+import { attendanceFrom } from './report-card-extras';
 import { AuditService } from '../audit/audit.service';
 import { ExamComponentKind, ExamComponentSource, ExamStatus, MarkStatus } from '@biddaloy/shared';
 
@@ -101,6 +108,13 @@ function makeRepos(overrides: Record<string, any> = {}) {
         }),
       ),
       getRepository: (entity: any) => (entity === Exam ? examRepo : resultRepo),
+      // [70.4.1] The card reads the report-card note and the exam's term / year range here.
+      findOne: vi.fn(async (entity: any) => {
+        if (entity === ReportCardNote) return overrides.note ?? null;
+        return { start_date: '2026-01-01', end_date: '2099-12-31' };
+      }),
+      // [70.4.1] An exam with no term ends at its last sitting (D9).
+      query: vi.fn(async () => [{ d: overrides.lastSitting ?? null }]),
     },
     update: vi.fn(async () => undefined),
   };
@@ -288,8 +302,12 @@ function makeRepos(overrides: Record<string, any> = {}) {
     progress: vi.fn(async () => ({ counts: {}, outstanding: overrides.outstanding ?? [] })),
   };
   const auditService = { record: vi.fn(async () => undefined) };
+  const attendanceSummary = {
+    getSummariesForStudents: vi.fn(async () => overrides.attendanceSummaries ?? new Map()),
+  };
 
   return {
+    attendanceSummary,
     exam,
     examRepo,
     resultRepo,
@@ -343,6 +361,7 @@ async function buildService(overrides: Record<string, any> = {}) {
         useValue: repos.milestoneAchievementRepo,
       },
       { provide: AttendanceComponentService, useValue: repos.attendanceComponentService },
+      { provide: AttendanceSummaryService, useValue: repos.attendanceSummary },
       { provide: MarkGridService, useValue: repos.gridService },
       { provide: AuditService, useValue: repos.auditService },
     ],
@@ -1140,5 +1159,198 @@ describe('ResultsService.process (stream subjects, 35.1.14)', () => {
     await service.process(EXAM_ID, TENANT_ID, 'u1');
     expect(resultSubjectRepo.save).not.toHaveBeenCalled();
     expect(resultRepo.save.mock.calls[0][0]).toMatchObject({ grade: '-', is_fail: false });
+  });
+});
+
+describe('ResultsService.getStudentResultCard — attendance, remark, conduct (70.4.1)', () => {
+  const RESULT = {
+    id: 'result-1',
+    student_id: 'stu-1',
+    total_marks: '85.00',
+    gpa: '5.00',
+    grade: 'A+',
+    position: 1,
+    is_fail: false,
+    grading_scale_id: SCALE_ID,
+  };
+  const summary = (
+    o: Partial<AttendanceSummary> = {},
+    policy: Partial<AttendanceSummary['policy']> = {},
+  ): AttendanceSummary => ({
+    student_id: 'stu-1',
+    from: '2026-01-01',
+    to: '2026-06-30',
+    working_days: 100,
+    marked_days: 100,
+    present_days: 80,
+    late_days: 5,
+    absent_days: 15,
+    leave_days: 0,
+    unmarked_days: 0,
+    attendance_percentage: 85,
+    ...o,
+    policy: {
+      late_counts_as_present: true,
+      leave_counts_as_working_day: true,
+      denominator: 'WORKING_DAYS',
+      ...policy,
+    },
+  });
+
+  it('carries attendance (late counts per policy), remark and conduct for a published exam', async () => {
+    const { service } = await buildService({
+      exam: { status: ExamStatus.PUBLISHED },
+      resultForStudent: RESULT,
+      attendanceSummaries: new Map([['stu-1', summary()]]),
+      note: { remark: 'Good progress', conduct: { discipline: 'A', sports: 'B' } },
+    });
+    const card = await service.getStudentResultCard(EXAM_ID, 'stu-1', TENANT_ID, true);
+    expect(card?.attendance).toEqual({ working_days: 100, present_days: 85 });
+    expect(card?.remark).toBe('Good progress');
+    // Every configured item is listed; an ungraded one is null, not dropped.
+    expect(card?.conduct.find((c) => c.key === 'discipline')?.grade).toBe('A');
+    expect(card?.conduct.find((c) => c.key === 'neatness')?.grade).toBeNull();
+  });
+
+  it('is null / empty when nothing was entered', async () => {
+    const { service } = await buildService({
+      exam: { status: ExamStatus.PUBLISHED },
+      resultForStudent: RESULT,
+    });
+    const card = await service.getStudentResultCard(EXAM_ID, 'stu-1', TENANT_ID, true);
+    expect(card).toMatchObject({ attendance: null, remark: null, conduct: [] });
+  });
+
+  it('does not read attendance for an exam that is not published', async () => {
+    const { service, attendanceSummary } = await buildService({
+      exam: { status: ExamStatus.PROCESSED },
+      resultForStudent: RESULT,
+      attendanceSummaries: new Map([['stu-1', summary()]]),
+    });
+    const card = await service.getStudentResultCard(EXAM_ID, 'stu-1', TENANT_ID, false);
+    expect(card?.attendance).toBeNull();
+    expect(attendanceSummary.getSummariesForStudents).not.toHaveBeenCalled();
+  });
+
+  it('caps present days at the working days', async () => {
+    const { service } = await buildService({
+      exam: { status: ExamStatus.PUBLISHED },
+      resultForStudent: RESULT,
+      attendanceSummaries: new Map([['stu-1', summary({ present_days: 98, late_days: 9 })]]),
+    });
+    const card = await service.getStudentResultCard(EXAM_ID, 'stu-1', TENANT_ID, true);
+    expect(card?.attendance).toEqual({ working_days: 100, present_days: 100 });
+  });
+
+  it('under MARKED_DAYS prints present / marked days, the summary percentage (D27)', async () => {
+    // 100 working, 90 marked, 80 present: the attendance pages say 88.89%, so the card must too.
+    const { service } = await buildService({
+      exam: { status: ExamStatus.PUBLISHED },
+      resultForStudent: RESULT,
+      attendanceSummaries: new Map([
+        [
+          'stu-1',
+          summary(
+            { marked_days: 90, late_days: 0, attendance_percentage: 88.89 },
+            { denominator: 'MARKED_DAYS' },
+          ),
+        ],
+      ]),
+    });
+    const card = await service.getStudentResultCard(EXAM_ID, 'stu-1', TENANT_ID, true);
+    expect(card?.attendance).toEqual({ working_days: 90, present_days: 80 });
+  });
+
+  it('leaves leave days out of the days when leave is not a working day', async () => {
+    const { service } = await buildService({
+      exam: { status: ExamStatus.PUBLISHED },
+      resultForStudent: RESULT,
+      attendanceSummaries: new Map([
+        ['stu-1', summary({ leave_days: 10 }, { leave_counts_as_working_day: false })],
+      ]),
+    });
+    const card = await service.getStudentResultCard(EXAM_ID, 'stu-1', TENANT_ID, true);
+    expect(card?.attendance).toEqual({ working_days: 90, present_days: 85 });
+  });
+
+  it('prints no attendance when there is nothing to divide by (summary percentage is null)', async () => {
+    const { service } = await buildService({
+      exam: { status: ExamStatus.PUBLISHED },
+      resultForStudent: RESULT,
+      attendanceSummaries: new Map([
+        [
+          'stu-1',
+          summary({ marked_days: 0, attendance_percentage: null }, { denominator: 'MARKED_DAYS' }),
+        ],
+      ]),
+    });
+    const card = await service.getStudentResultCard(EXAM_ID, 'stu-1', TENANT_ID, true);
+    expect(card?.attendance).toBeNull();
+  });
+
+  it('with no term, counts from the year start to the exam last sitting (D9)', async () => {
+    const { service, attendanceSummary } = await buildService({
+      exam: { status: ExamStatus.PUBLISHED, academic_term_id: null },
+      resultForStudent: RESULT,
+      lastSitting: '2026-03-15',
+    });
+    await service.getStudentResultCard(EXAM_ID, 'stu-1', TENANT_ID, true);
+    expect(attendanceSummary.getSummariesForStudents).toHaveBeenCalledWith(
+      expect.objectContaining({ from: '2026-01-01', to: '2026-03-15' }),
+    );
+  });
+});
+
+describe('attendanceFrom matches computeAttendancePercentage (D27)', () => {
+  // The card pair must divide to the same percentage the attendance pages show.
+  const counts = {
+    working_days: 100,
+    marked_days: 90,
+    present_days: 75,
+    late_days: 5,
+    absent_days: 5,
+    leave_days: 5,
+  };
+  const policies = [
+    {
+      percentageDenominator: 'WORKING_DAYS',
+      leaveCountsAsWorkingDay: true,
+      lateCountsAsPresent: true,
+    },
+    {
+      percentageDenominator: 'MARKED_DAYS',
+      leaveCountsAsWorkingDay: true,
+      lateCountsAsPresent: false,
+    },
+    {
+      percentageDenominator: 'MARKED_DAYS',
+      leaveCountsAsWorkingDay: false,
+      lateCountsAsPresent: true,
+    },
+    {
+      percentageDenominator: 'WORKING_DAYS',
+      leaveCountsAsWorkingDay: false,
+      lateCountsAsPresent: false,
+    },
+  ] as const;
+
+  it('for every policy combination the fraction equals the summary percentage', () => {
+    for (const p of policies) {
+      const pair = attendanceFrom({
+        student_id: 's',
+        from: '2026-01-01',
+        to: '2026-12-31',
+        ...counts,
+        unmarked_days: 10,
+        attendance_percentage: null,
+        policy: {
+          denominator: p.percentageDenominator,
+          leave_counts_as_working_day: p.leaveCountsAsWorkingDay,
+          late_counts_as_present: p.lateCountsAsPresent,
+        },
+      })!;
+      const pct = Math.round((pair.present_days / pair.working_days) * 100 * 100) / 100;
+      expect(pct, JSON.stringify(p)).toBe(computeAttendancePercentage(counts, p));
+    }
   });
 });

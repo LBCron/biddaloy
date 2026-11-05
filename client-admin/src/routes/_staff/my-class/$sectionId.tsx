@@ -27,6 +27,7 @@ import {
   DuesCard,
   FlagsCard,
   HomeworkCard,
+  NotesCard,
   ResultsCard,
   RosterCard,
   todayIso,
@@ -133,6 +134,7 @@ function MyClassSectionPage() {
         <DuesCard sectionId={sectionId} />
         <HomeworkCard sectionId={sectionId} />
         <ResultsCard sectionId={sectionId} classId={section.class_id} />
+        <NotesCard sectionId={sectionId} classId={section.class_id} />
         <RosterCard sectionId={sectionId} />
       </div>
     </PageContainer>

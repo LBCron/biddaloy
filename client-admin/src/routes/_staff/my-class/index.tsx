@@ -4,7 +4,7 @@
  *
  * - 0 sections: empty state (D14).
  * - 1 section: redirect straight to its page, or to the attendance register
- *   when the palette sent `?then=attendance` (D13).
+ *   when the palette sent `?then=attendance` (D13), or the remarks grid for `?then=notes`.
  * - 2+: one link card per section (role as plain text).
  *
  * The redirect lives in the loader so the picker never flashes.
@@ -28,7 +28,7 @@ import { z } from 'zod';
 import { loadRouteNamespaces, swallowUnlessOffline } from '../../../route-loaders';
 
 const searchSchema = z.object({
-  then: z.enum(['attendance', 'arrival']).optional().catch(undefined),
+  then: z.enum(['attendance', 'arrival', 'notes']).optional().catch(undefined),
 });
 
 // Local getters — `toISOString()` is UTC and would link to yesterday's
@@ -55,6 +55,14 @@ export const Route = createFileRoute('/_staff/my-class/')({
           to: '/attendance/$sectionId',
           params: { sectionId: only.section_id },
           search: { date: todayIso() },
+        });
+      }
+      if (deps.then === 'notes') {
+        // [70.5.5] The `my-class.notes` palette action lands on the remarks grid itself.
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw redirect({
+          to: '/my-class/$sectionId/notes',
+          params: { sectionId: only.section_id },
         });
       }
       // eslint-disable-next-line @typescript-eslint/only-throw-error
@@ -118,7 +126,7 @@ function MyClassPickerPage() {
           {sections.map((section) => (
             <li key={section.section_id} className="min-w-0">
               <Link
-                to="/my-class/$sectionId"
+                to={then === 'notes' ? '/my-class/$sectionId/notes' : '/my-class/$sectionId'}
                 params={{ sectionId: section.section_id }}
                 search={then === 'arrival' ? { then } : {}}
                 className="flex min-h-16 items-center gap-3 rounded-lg border border-border-subtle bg-surface p-4 no-underline shadow-e1 hover:bg-muted md:p-5"

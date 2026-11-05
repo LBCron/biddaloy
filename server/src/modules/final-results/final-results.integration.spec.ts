@@ -31,11 +31,15 @@ import { ClassSection } from '../academics/entities/class-section.entity';
 import { ClassSubject } from '../academics/entities/class-subject.entity';
 import { Subject } from '../academics/entities/subject.entity';
 import { Student } from '../students/entities/student.entity';
+import { ReportCardNote } from '../report-card-notes/entities/report-card-note.entity';
 import { Enrollment } from '../students/entities/enrollment.entity';
 import { GradingScale } from '../grading/entities/grading-scale.entity';
 import { GradingBand } from '../grading/entities/grading-band.entity';
 import { AuditService } from '../audit/audit.service';
-import { AttendanceSummaryService } from '../attendance/attendance-summary.service';
+import {
+  AttendanceSummaryService,
+  type AttendanceSummary,
+} from '../attendance/attendance-summary.service';
 
 /**
  * [70.2.1] FinalResultsService on a real database: build a 30/70 final over two published exams,
@@ -62,20 +66,36 @@ describe('FinalResultsService (integration)', () => {
   let ds: DataSource;
   let scale: GradingScale;
   let seq = 0;
+  // 200 working days, 180 present, for whoever is asked about. A test may swap the policy.
+  let attendancePolicy: AttendanceSummary['policy'];
+  beforeEach(() => {
+    attendancePolicy = {
+      late_counts_as_present: false,
+      leave_counts_as_working_day: true,
+      denominator: 'WORKING_DAYS',
+    };
+  });
 
   beforeAll(async () => {
     const audit = { record: async () => undefined, recordApproved: async () => undefined };
-    // 200 working days, 180 present, for whoever is asked about.
     const attendance = {
       getSummariesForStudents: async ({ studentIds }: { studentIds: string[] }) =>
         new Map(
-          studentIds.map((id) => [
+          studentIds.map((id): [string, AttendanceSummary] => [
             id,
             {
+              student_id: id,
+              from: '2026-01-01',
+              to: '2026-12-31',
               working_days: 200,
+              marked_days: 190,
               present_days: 180,
               late_days: 0,
-              policy: { late_counts_as_present: false },
+              absent_days: 10,
+              leave_days: 0,
+              unmarked_days: 10,
+              attendance_percentage: 90,
+              policy: attendancePolicy,
             },
           ]),
         ),
@@ -373,6 +393,63 @@ describe('FinalResultsService (integration)', () => {
     });
   });
 
+  it('the student card prints an all-absent subject (ABS, 0) as no mark, like the build', async () => {
+    const { s, e1, e2 } = await fiveStudentsTwoExams();
+    // Student 4 was absent in every component of exam 1: the stored subject is ABS with 0.
+    const absent = await ds
+      .getRepository(Result)
+      .findOneByOrFail({ exam_id: e1.id, student_id: s[3].id });
+    await ds
+      .getRepository(ResultSubject)
+      .update({ result_id: absent.id }, { grade: 'ABS', obtained: '0.00', gpa: '0.00' });
+    const final = await finalWith([
+      [e1, '30.00'],
+      [e2, '70.00'],
+    ]);
+    await service.build(final.id, TENANT_ID, 'user-1');
+
+    const card = await service.studentCard(final.id, s[3].id, TENANT_ID);
+    const perExam = card!.subjects[0].per_exam;
+    // null, never 0: a real 0 would read as "sat the paper and scored nothing".
+    expect(perExam.find((p) => p.exam_id === e1.id)?.obtained).toBeNull();
+    expect(perExam.find((p) => p.exam_id === e2.id)?.obtained).toBe(70);
+  });
+
+  it("the student card carries the final's remark and conduct note, like the family card", async () => {
+    const { s, e1, e2 } = await fiveStudentsTwoExams();
+    const final = await finalWith([
+      [e1, '30.00'],
+      [e2, '70.00'],
+    ]);
+    await service.build(final.id, TENANT_ID, 'user-1');
+    // A per-exam note for the same student must not leak onto the final card.
+    await ds.getRepository(ReportCardNote).save([
+      {
+        tenant_id: TENANT_ID,
+        student_id: s[0].id,
+        final_result_id: final.id,
+        exam_id: null,
+        remark: 'Diligent all year',
+        conduct: { discipline: 'A' },
+      },
+      {
+        tenant_id: TENANT_ID,
+        student_id: s[0].id,
+        final_result_id: null,
+        exam_id: e1.id,
+        remark: 'Half-yearly note',
+        conduct: {},
+      },
+    ]);
+
+    const card = await service.studentCard(final.id, s[0].id, TENANT_ID);
+    expect(card!.remark).toBe('Diligent all year');
+    expect(card!.conduct.find((c) => c.key === 'discipline')?.grade).toBe('A');
+    // A student with no note: no remark, no conduct block.
+    const bare = await service.studentCard(final.id, s[1].id, TENANT_ID);
+    expect(bare).toMatchObject({ remark: null, conduct: [] });
+  });
+
   it('rebuilding replaces the rows instead of piling up duplicates', async () => {
     const { e1, e2 } = await fiveStudentsTwoExams();
     const final = await finalWith([
@@ -539,6 +616,30 @@ describe('FinalResultsService (integration)', () => {
     expect(reopenedRows.every((r) => r.published_at === null)).toBe(true);
   });
 
+  it('publish snapshots marked days under a MARKED_DAYS school, matching the summary percentage (D27)', async () => {
+    attendancePolicy = {
+      late_counts_as_present: false,
+      leave_counts_as_working_day: true,
+      denominator: 'MARKED_DAYS',
+    };
+    const { e1, e2 } = await fiveStudentsTwoExams();
+    const final = await finalWith([
+      [e1, '30.00'],
+      [e2, '70.00'],
+    ]);
+    await service.build(final.id, TENANT_ID, 'user-1');
+    await service.publish(final.id, TENANT_ID, 'user-1');
+
+    const rows = await ds
+      .getRepository(FinalResultRow)
+      .find({ where: { final_result_id: final.id, deleted_at: IsNull() } });
+    for (const r of rows) {
+      // 180 / 190 marked = 94.74%, what the attendance pages show; 180 / 200 would print 90%.
+      expect(r.working_days).toBe(190);
+      expect(r.present_days).toBe(180);
+    }
+  });
+
   it('create pre-fills equal shares over the published TERM exams only', async () => {
     const s1 = await student(1);
     const t1 = await publishedExam('Term 1', ExamKind.TERM, [[s1, 90]]);
@@ -642,6 +743,125 @@ describe('FinalResultsService (integration)', () => {
       fail_if_any_exam_fails: true,
       weights: [],
     });
+  });
+
+  it("create pre-fills last year's whole-exam shares when every exam name matches (D17)", async () => {
+    const prev = await ds.getRepository(FinalResult).save({
+      tenant_id: TENANT_ID,
+      class_id: PREV_CLASS_ID,
+      academic_year_id: PREV_YEAR_ID,
+    } as Partial<FinalResult>);
+    const lastYearExam = (name: string) =>
+      ds.getRepository(Exam).save({
+        tenant_id: TENANT_ID,
+        academic_year_id: PREV_YEAR_ID,
+        class_id: PREV_CLASS_ID,
+        name,
+        kind: ExamKind.TERM,
+        status: ExamStatus.PUBLISHED,
+      } as Partial<Exam>);
+    const [h, a] = [await lastYearExam('Half-yearly'), await lastYearExam('Annual')];
+    await ds.getRepository(FinalResultWeight).save([
+      {
+        tenant_id: TENANT_ID,
+        final_result_id: prev.id,
+        exam_id: h.id,
+        subject_id: null,
+        share_percent: '40.00',
+      },
+      {
+        tenant_id: TENANT_ID,
+        final_result_id: prev.id,
+        exam_id: a.id,
+        subject_id: null,
+        share_percent: '60.00',
+      },
+    ]);
+    const s1 = await student(1);
+    // Same names in another case: still the same exams of the school's year plan.
+    const annual = await publishedExam('ANNUAL', ExamKind.TERM, [[s1, 80]]);
+    const half = await publishedExam('half-yearly', ExamKind.TERM, [[s1, 70]]);
+
+    const summary = await service.create(
+      { class_id: CLASS_ID, academic_year_id: YEAR_ID },
+      TENANT_ID,
+      'user-1',
+    );
+    const shareOf = (examId: string) =>
+      Number(summary.weights.find((w) => w.exam_id === examId)?.share_percent);
+    // 40/60 carried over, not the equal 50/50 default.
+    expect(shareOf(half.id)).toBe(40);
+    expect(shareOf(annual.id)).toBe(60);
+  });
+
+  it('create falls back to equal shares when an exam name has no share last year (D17)', async () => {
+    const prev = await ds.getRepository(FinalResult).save({
+      tenant_id: TENANT_ID,
+      class_id: PREV_CLASS_ID,
+      academic_year_id: PREV_YEAR_ID,
+    } as Partial<FinalResult>);
+    const old = await ds.getRepository(Exam).save({
+      tenant_id: TENANT_ID,
+      academic_year_id: PREV_YEAR_ID,
+      class_id: PREV_CLASS_ID,
+      name: 'Half-yearly 2025',
+      kind: ExamKind.TERM,
+      status: ExamStatus.PUBLISHED,
+    } as Partial<Exam>);
+    await ds.getRepository(FinalResultWeight).save({
+      tenant_id: TENANT_ID,
+      final_result_id: prev.id,
+      exam_id: old.id,
+      subject_id: null,
+      share_percent: '100.00',
+    });
+    const s1 = await student(1);
+    const t1 = await publishedExam('Half-yearly 2026', ExamKind.TERM, [[s1, 70]]);
+    const t2 = await publishedExam('Annual 2026', ExamKind.TERM, [[s1, 80]]);
+
+    const summary = await service.create(
+      { class_id: CLASS_ID, academic_year_id: YEAR_ID },
+      TENANT_ID,
+      'user-1',
+    );
+    expect(summary.weights.map((w) => [w.exam_id, Number(w.share_percent)])).toEqual(
+      expect.arrayContaining([
+        [t1.id, 50],
+        [t2.id, 50],
+      ]),
+    );
+  });
+
+  it("create never copies another version's final (Bangla vs English version of a class)", async () => {
+    // Last year has only an English-version "Class Nine"; this year's Class Nine has no version.
+    // Classes survive the per-test truncation: a unique name keeps later tests unaffected.
+    seq += 1;
+    const nineName = `Class Nine ${seq}`;
+    const prevEnglish = await ds.getRepository(Class).save({
+      name: nineName,
+      version: 'English',
+      academic_year_id: PREV_YEAR_ID,
+      tenant_id: TENANT_ID,
+    } as Partial<Class>);
+    await ds.getRepository(FinalResult).save({
+      tenant_id: TENANT_ID,
+      class_id: prevEnglish.id,
+      academic_year_id: PREV_YEAR_ID,
+      mode: FinalResultMode.BEST_OF,
+      best_of_count: 2,
+    } as Partial<FinalResult>);
+    const nine = await ds.getRepository(Class).save({
+      name: nineName,
+      academic_year_id: YEAR_ID,
+      tenant_id: TENANT_ID,
+    } as Partial<Class>);
+
+    const summary = await service.create(
+      { class_id: nine.id, academic_year_id: YEAR_ID },
+      TENANT_ID,
+      'user-1',
+    );
+    expect(summary).toMatchObject({ mode: 'WEIGHTED', best_of_count: null });
   });
 
   it('update replaces the shares as a set and refuses an exam of another class', async () => {

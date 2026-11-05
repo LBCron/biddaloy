@@ -510,10 +510,13 @@ function PromotionRunPage() {
       label: t('grid.facts.targetYear'),
       value: nameOr(yearNames.get(run.target_academic_year_id), yearsQuery.isLoading),
     },
-    {
-      label: t('grid.facts.exams'),
-      value: t('grid.facts.examCount', { n: fmt(run.exam_ids.length) }),
-    },
+    // A run ranks on exams or on a final result (D4), never both: say which.
+    run.final_result_id
+      ? { label: t('source.legend'), value: t('source.final') }
+      : {
+          label: t('grid.facts.exams'),
+          value: t('grid.facts.examCount', { n: fmt((run.exam_ids ?? []).length) }),
+        },
     { label: t('grid.facts.algorithm'), value: algorithmLabel },
     {
       label: t('grid.facts.students'),

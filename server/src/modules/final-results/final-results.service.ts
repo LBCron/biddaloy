@@ -38,6 +38,7 @@ import {
 import { AuditService } from '../audit/audit.service';
 import { ApprovalContext } from '../auth/guards/approval.guard';
 import { AttendanceSummaryService } from '../attendance/attendance-summary.service';
+import { attendanceFrom, loadCardNotes } from '../exams/report-card-extras';
 import { AcademicYear } from '../academics/entities/academic-year.entity';
 import { Class } from '../academics/entities/class.entity';
 import { ClassSection } from '../academics/entities/class-section.entity';
@@ -72,6 +73,7 @@ import { FinalResultSubject } from './entities/final-result-subject.entity';
 import { FinalResultWeight } from './entities/final-result-weight.entity';
 import {
   combineStudent,
+  examSubjectObtained,
   FINAL_RULE_VERSION,
   SharesNotHundred,
   type ExamSubjectMark,
@@ -89,6 +91,25 @@ export type FinalResultListItem = {
 
 const iso = (d: Date | string): string =>
   typeof d === 'string' ? d.slice(0, 10) : d.toISOString().slice(0, 10);
+
+const examNameKey = (name: string) => name.trim().toLowerCase();
+
+/**
+ * D17: last year's whole-exam shares mapped onto this year's exams by name, or null (equal shares)
+ * unless every exam matches a distinct share and they still sum to exactly 100.
+ * ponytail: matching is by exact exam name (trimmed, any case); a renamed exam ("Half-yearly 2025")
+ * falls back to equal shares. Map by exam kind or schedule order if schools ask for it.
+ */
+export function lastYearShares(
+  exams: Array<{ name: string }>,
+  sharesByName: Map<string, number>,
+): number[] | null {
+  if (exams.length === 0 || exams.length !== sharesByName.size) return null;
+  const keys = exams.map((e) => examNameKey(e.name));
+  if (new Set(keys).size !== keys.length || !keys.every((k) => sharesByName.has(k))) return null;
+  const shares = keys.map((k) => sharesByName.get(k)!);
+  return shares.reduce((sum, x) => sum + toPaisa(x), 0) === 10_000 ? shares : null;
+}
 
 /** Equal shares in whole hundredths that sum to exactly 100.00 (33.34 / 33.33 / 33.33). */
 export function equalShares(count: number): number[] {
@@ -407,6 +428,14 @@ export class FinalResultsService {
     const nameBySubject = new Map(subjects.map((s) => [s.id, s.name_en]));
     const resultByExam = new Map(examResults.map((r) => [r.exam_id, r]));
     const examName = new Map(exams.map((e) => [e.id, e.name]));
+    // Both card routes (here and the family transcript) print the same note.
+    const notes = await loadCardNotes(
+      this.manager,
+      tenantId,
+      studentId,
+      { final_result_id: id },
+      school.settings ?? null,
+    );
     return {
       final_result_id: id,
       academic_year_name: year?.name ?? '',
@@ -439,7 +468,8 @@ export class FinalResultsService {
           const rs = r
             ? resultSubjects.find((x) => x.result_id === r.id && x.subject_id === s.subject_id)
             : undefined;
-          return { exam_id: examId, obtained: rs ? Number(rs.obtained) : null };
+          // Same ABS rule as the build: an all-absent subject prints no mark, not 0.
+          return { exam_id: examId, obtained: rs ? examSubjectObtained(rs) : null };
         }),
       })),
       legend: bands.map((b) => ({
@@ -448,9 +478,8 @@ export class FinalResultsService {
         comment: b.comment,
       })),
       attendance: { working_days: row.working_days, present_days: row.present_days },
-      // Remarks and conduct belong to the report-card-notes tickets.
-      remark: null,
-      conduct: [],
+      remark: notes.remark,
+      conduct: notes.conduct,
       issuer: buildIssuerSnapshot(school) as unknown as Record<string, unknown>,
       logo_url: buildLogoUrl(school.id, school.logo_key),
     };
@@ -459,8 +488,9 @@ export class FinalResultsService {
   // ---- create / edit / delete -------------------------------------------------------------
 
   /**
-   * New DRAFT for (class, year). Switches copy last year's final of the same-named class; shares
-   * start equal over this year's PUBLISHED TERM exams of the class (D3, D17).
+   * New DRAFT for (class, year) over this year's PUBLISHED TERM exams of the class (D3). Last
+   * year's final of the same class (name, shift, version) pre-fills the switches and, when every
+   * exam's name matches one of its whole-exam shares, those shares too; else shares start equal (D17).
    */
   async create(
     dto: { class_id: string; academic_year_id: string },
@@ -492,7 +522,7 @@ export class FinalResultsService {
       // Two creates at once both pass this count; the unique index then refuses the second, and
       // known-errors.ts maps that to the same 409.
       if (existing > 0) throw finalAlreadyExists();
-      const switches = await this.lastYearSwitches(manager, cls, year, tenantId);
+      const { switches, sharesByName } = await this.lastYearFinal(manager, cls, year, tenantId);
       const exams = await manager.getRepository(Exam).find({
         where: {
           class_id: cls.id,
@@ -513,7 +543,7 @@ export class FinalResultsService {
           ...switches,
         }),
       );
-      const shares = equalShares(exams.length);
+      const shares = lastYearShares(exams, sharesByName) ?? equalShares(exams.length);
       if (exams.length > 0) {
         await manager.getRepository(FinalResultWeight).save(
           exams.map((e, i) =>
@@ -537,22 +567,29 @@ export class FinalResultsService {
     return this.get(id, tenantId);
   }
 
-  private async lastYearSwitches(
+  /** D17: last year's final of the same class: its switches and its whole-exam shares by exam name. */
+  private async lastYearFinal(
     manager: EntityManager,
     cls: Class,
     year: AcademicYear,
     tenantId: string,
   ): Promise<{
-    mode: FinalResultMode;
-    best_of_count: number | null;
-    rounding: FinalResultRounding;
-    fail_if_any_exam_fails: boolean;
+    switches: {
+      mode: FinalResultMode;
+      best_of_count: number | null;
+      rounding: FinalResultRounding;
+      fail_if_any_exam_fails: boolean;
+    };
+    sharesByName: Map<string, number>;
   }> {
     const defaults = {
-      mode: FinalResultMode.WEIGHTED,
-      best_of_count: null,
-      rounding: FinalResultRounding.WHOLE,
-      fail_if_any_exam_fails: false,
+      switches: {
+        mode: FinalResultMode.WEIGHTED,
+        best_of_count: null,
+        rounding: FinalResultRounding.WHOLE,
+        fail_if_any_exam_fails: false,
+      },
+      sharesByName: new Map<string, number>(),
     };
     const prevYear = await manager
       .getRepository(AcademicYear)
@@ -572,18 +609,33 @@ export class FinalResultsService {
         yearId: prevYear.id,
       })
       .andWhere('lower(c.name) = lower(:name)', { name: cls.name })
+      // Same identity as the class unique index (name, shift, version): a Bangla and an English
+      // version of one class are two classes, each with its own final.
       .andWhere('c.shift IS NOT DISTINCT FROM CAST(:shift AS varchar)', { shift: cls.shift })
+      .andWhere('c.version IS NOT DISTINCT FROM CAST(:version AS varchar)', {
+        version: cls.version,
+      })
       .getOne();
     if (!prevClass) return defaults;
     const prev = await manager.getRepository(FinalResult).findOne({
       where: { class_id: prevClass.id, tenant_id: tenantId, deleted_at: IsNull() },
     });
     if (!prev) return defaults;
+    const whole: Array<{ name: string; share_percent: string }> = await manager.query(
+      `SELECT e.name, w.share_percent
+         FROM final_result_weights w
+         JOIN exams e ON e.id = w.exam_id AND e.tenant_id = w.tenant_id
+        WHERE w.final_result_id = $1 AND w.tenant_id = $2 AND w.subject_id IS NULL`,
+      [prev.id, tenantId],
+    );
     return {
-      mode: prev.mode,
-      best_of_count: prev.best_of_count,
-      rounding: prev.rounding,
-      fail_if_any_exam_fails: prev.fail_if_any_exam_fails,
+      switches: {
+        mode: prev.mode,
+        best_of_count: prev.best_of_count,
+        rounding: prev.rounding,
+        fail_if_any_exam_fails: prev.fail_if_any_exam_fails,
+      },
+      sharesByName: new Map(whole.map((w) => [examNameKey(w.name), Number(w.share_percent)])),
     };
   }
 
@@ -1055,12 +1107,10 @@ export class FinalResultsService {
         const res = resultByKey.get(`${exam.id}:${student.id}`);
         if (res) {
           for (const rs of subjectsByResult.get(res.id) ?? []) {
-            // ABS with 0 = every component absent: no mark (null), not a real 0.
-            const absent = rs.grade === 'ABS' && Number(rs.obtained) === 0;
             marks.push({
               exam_id: exam.id,
               subject_id: rs.subject_id,
-              obtained: absent ? null : Number(rs.obtained),
+              obtained: examSubjectObtained(rs),
               full_marks: fullFor(exam.id, rs.subject_id, student.id),
               is_fail: rs.is_fail,
             });
@@ -1234,6 +1284,8 @@ export class FinalResultsService {
         where: { final_result_id: id, tenant_id: tenantId, deleted_at: IsNull() },
       });
       // Reopened, corrected and republished since the build: the rows hold the old numbers.
+      // No rows (empty cohort): Math.min() is Infinity, so nothing can be stale and an empty
+      // final publishes like an exam with no results does.
       const builtAt = Math.min(...rows.map((r) => r.computed_at.getTime()));
       if (sources.some((e) => (e.published_at?.getTime() ?? 0) > builtAt)) throw finalStale();
       const year = await manager
@@ -1255,16 +1307,9 @@ export class FinalResultsService {
 
       const now = new Date();
       const snapshot = rows.map((row) => {
-        const s = summaries.get(row.student_id);
-        const working = s ? s.working_days : null;
-        const present =
-          s && working !== null
-            ? Math.min(
-                working,
-                s.present_days + (s.policy.late_counts_as_present ? s.late_days : 0),
-              )
-            : null;
-        return { id: row.id, working, present };
+        // Same pair the per-exam card prints (D27), so present/days = the summary's percentage.
+        const a = attendanceFrom(summaries.get(row.student_id));
+        return { id: row.id, working: a?.working_days ?? null, present: a?.present_days ?? null };
       });
       // One statement for the whole class instead of one round trip per row.
       if (snapshot.length > 0) {

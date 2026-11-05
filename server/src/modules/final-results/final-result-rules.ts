@@ -52,6 +52,14 @@ export interface ExamSubjectMark {
   is_fail: boolean;
 }
 
+/** An exam's subject mark: ABS with 0 = every component absent, so no mark (null), not a real 0. */
+export function examSubjectObtained(rs: {
+  grade: string;
+  obtained: string | number;
+}): number | null {
+  return rs.grade === 'ABS' && Number(rs.obtained) === 0 ? null : Number(rs.obtained);
+}
+
 export interface CombinedSubject {
   obtained: number;
   full_marks: number;

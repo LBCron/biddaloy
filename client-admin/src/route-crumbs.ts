@@ -156,6 +156,13 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
   ],
   '/_staff/marks/': [{ label: { key: 'marksEntry' } }],
   '/_staff/results/': [{ label: { key: 'results' } }],
+  // [70.5.5] D12: Final results › <class> <year>. No "Results" crumb in front: it would link to
+  // /results, which is RESULT_PROCESS-only while this page is RESULT_READ.
+  '/_staff/results/final/': [{ label: { key: 'finalResults' } }],
+  '/_staff/results/final/$finalResultId': [
+    { label: { key: 'finalResults' } },
+    { label: { key: 'finalResultDetail' }, dynamic: 'entity' },
+  ],
   // [26.5.1] The tab (`?tab=`) isn't a route-tree segment — `ROUTE_CRUMBS`
   // only resolves path params via `dynamic: 'entity'`, not search state —
   // so the trail stops at "Analysis"; the route itself sets
@@ -193,6 +200,12 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
   '/_staff/my-class/$sectionId': [
     { label: { key: 'myClass' } },
     { label: { key: 'myClassSection' }, dynamic: 'entity' },
+  ],
+  // [70.5.5] D13: My class › <section> › Remarks and conduct (chromeless, so the trail is the tab title).
+  '/_staff/my-class/$sectionId_/notes': [
+    { label: { key: 'myClass' } },
+    { label: { key: 'myClassSection' }, dynamic: 'entity' },
+    { label: { key: 'myClassNotes' } },
   ],
   '/_staff/attendance/': [{ label: { key: 'attendance' } }],
   '/_staff/attendance/reports': [{ label: { key: 'attendanceReports' } }],

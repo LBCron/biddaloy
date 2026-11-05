@@ -145,6 +145,10 @@ export type FeesSettings = NonNullable<TenantSettingsInput['fees']>;
  * above. */
 export type OrganisationSettings = NonNullable<TenantSettingsInput['organisation']>;
 
+/** [70.4.1] Report-card conduct lines (`conductItems`), saved with the rest of the settings.
+ * Not secret data. */
+export type ExamsSettings = NonNullable<TenantSettingsInput['exams']>;
+
 export interface MaskedTenantSettings {
   version: 1;
   region: MaskedRegionSettings;
@@ -164,6 +168,8 @@ export interface MaskedTenantSettings {
   /** [TIME-11] Not secret data. */
   homework?: HomeworkSettings;
   organisation?: OrganisationSettings;
+  /** [70.4.1] Not secret data. */
+  exams?: ExamsSettings;
   /** [21.7.1] Not secret data, same reasoning as `attendance` above. */
   routine?: RoutineSettingsInput;
   /** [66.1.01] Not secret data. */

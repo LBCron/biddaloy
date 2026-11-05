@@ -366,6 +366,18 @@ export async function resolvePath(
     // for and no run is seeded, so this opens the real "we cannot find this file" screen.
     return route.path.replace('$runId', '00000000-0000-4000-8000-000000000000');
   }
+  if (route.path.includes('$finalResultId')) {
+    // [70.5.5] Any final result of the current year (the list's one-per-class rows).
+    const yearId = await currentAcademicYearId(request, session);
+    const rows = await get<{ final_result_id: string | null }[]>(
+      request,
+      session,
+      `/final-results?academic_year_id=${yearId}`,
+    );
+    const id = rows.find((r) => r.final_result_id)?.final_result_id;
+    if (!id) test.skip(true, 'no final result set up: needs a published term exam');
+    return route.path.replace('$finalResultId', id!);
+  }
   if (route.path.includes('$runId')) {
     const runs = await get<{ id: string }[]>(request, session, '/promotions');
     if (!runs[0]) test.skip(true, 'no promotion run seeded: needs published exam results');

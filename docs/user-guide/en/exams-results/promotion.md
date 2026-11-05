@@ -19,6 +19,7 @@ labels:
   [
     promotions:list.*,
     promotions:newRunForm.*,
+    promotions:source.*,
     promotions:blocking.*,
     promotions:grid.*,
     promotions:outcome.*,
@@ -45,7 +46,7 @@ keywords:
   [প্রমোশন, উত্তীর্ণ, পরের শ্রেণি, অপরিবর্তিত, গ্র্যাজুয়েট, শর্তসাপেক্ষে, শাখা বিন্যাস, রোল, নতুন শিক্ষাবর্ষ, promotion, promote, retain, graduate, roll, class promotion, next class, new academic year, finalise]
 appVersion: 0.1.0 (a25ab3344)
 owner: tareq89
-lastVerified: 2026-10-25
+lastVerified: 2026-11-02
 knownIssues: []
 -->
 
@@ -102,7 +103,11 @@ The work has two steps. First a **Draft** promotion list is made. Nothing change
 
 4. If you need to, change **Next academic year** or **Next class**.
 
-5. In **Exams to average**, check which exams will be counted. At first, every **published** exam of this class is ticked. Untick the one you do not want to count.
+5. In **Rank students by**, choose how the merit order is made.
+
+   → **Final result** ranks the students by their position in the class's published [final result](final-results.md). It is chosen at first when the class has one. If the class has none, the page says **This class's final result is not published yet.** with **Go to final results**. Publish the final result first, or choose **Average of chosen exams**. (This **Final result** is the year's result. It is not the **Finalise** button that closes the promotion list.)
+
+   If you choose **Average of chosen exams**, the **Exams to average** list appears. At first, every **published** exam of this class is ticked. Untick the one you do not want to count.
 
    → If none is ticked, you see **Select at least one exam.**
 
@@ -275,6 +280,7 @@ One list's page:
 | Current class                       | The class whose students you will move up.                                                                                                                   | Yes                     |
 | Next academic year                  | The year they go to. It must start after the current class's academic year. At first, the very next year is filled in.                                       | Yes                     |
 | Next class                          | Which class in the new year. At first, the next-level class of the same shift and version is filled in. If there is none, the whole class graduates.         | No, if one is suggested |
+| Rank students by                    | **Final result** (the position in the published final result) or **Average of chosen exams**. At first, **Final result** when the class has a published one. | Yes                     |
 | Exams to average                    | Which published exams count for pass/fail and rank. At first, all are ticked.                                                                                | At least one            |
 | How students are placed in sections | **Block** or **Snake**. At first, **Block**.                                                                                                                 | Yes                     |
 | Final decision                      | **Promote**, **Retain**, **Graduate**, **Promote on condition**. At first, the same as the suggestion.                                                       | Yes                     |
@@ -293,7 +299,7 @@ One list's page:
 
 - **Who is in the list:** the students whose enrolment in the current class is active when the list is made.
 - **Suggestion:** the student has a result in every chosen exam and failed none → **Promote**. If even one exam has no result for them → **Retain**.
-- **Rank:** the higher mean GPA of the chosen exams comes first; if equal, the higher total marks of all the exams comes first. If both are equal, a fixed internal order is used; no two students are given the same rank.
+- **Rank:** with **Final result**, students keep their position in the published final result. With **Average of chosen exams**, the higher mean GPA of the chosen exams comes first; if equal, the higher total marks of all the exams comes first. If both are equal, a fixed internal order is used; no two students are given the same rank.
 - **Choosing the section** (only for **Promote** and **Promote on condition**), in rank order:
   - **Block:** section A fills first, then B. Example: two sections A and B, 60 students, no capacity set → ranks 1–30 go to A, ranks 31–60 go to B.
   - **Snake:** they take turns like a snake: A, B, B, A, A, B… So every section gets a mix of strong and weak students, evenly.
@@ -333,6 +339,7 @@ One list's page:
 **Related pages**
 
 - [**Processing and publishing results**](results.md) — results must be published before the promotion.
+- [**Final results**](final-results.md) — the year's result that promotion can rank students by.
 - [**Merit list and result analysis**](analysis.md) — check who passed and who failed first.
 - [**Adding students and viewing their details**](../people/students.md) — after the promotion, see a student's new class and roll.
 - [**Creating and setting up exams**](exams.md) — creating and setting up exams

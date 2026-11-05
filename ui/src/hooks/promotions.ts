@@ -30,7 +30,9 @@ export interface PromotionRun {
   source_academic_year_id: string;
   target_academic_year_id: string;
   target_class_id: string | null;
-  exam_ids: string[];
+  exam_ids?: string[];
+  /** [70.4.1] Set when the run ranks on a final result instead of exams. */
+  final_result_id?: string | null;
   algorithm: PlacementAlgorithm;
   status: PromotionRunStatus;
   refreshed_at: string;
@@ -90,13 +92,16 @@ export interface TargetSuggestion {
   blocking_reason?: BlockingReason;
 }
 
-export interface CreatePromotionRunInput {
+interface CreatePromotionRunBase {
   source_class_id: string;
   target_academic_year_id: string;
   target_class_id?: string;
-  exam_ids: string[];
   algorithm: PlacementAlgorithm;
 }
+
+/** Exactly one source: `exam_ids` (an exam average) or `final_result_id` (D4). */
+export type CreatePromotionRunInput = CreatePromotionRunBase &
+  ({ exam_ids: string[]; final_result_id?: never } | { final_result_id: string; exam_ids?: never });
 
 export interface PatchPromotionEntryInput {
   student_id: string;

@@ -162,5 +162,14 @@
     "algorithm": "Yes",
     "finalOutcome": "Yes",
     "overrideNote": "Yes, when you change the suggestion"
+  },
+  "source": {
+    "legend": "Rank students by",
+    "exams": "Average of chosen exams",
+    "final": "Final result",
+    "finalHelp": "Students are ranked by their position in the published final result.",
+    "finalNone": "This class's final result is not published yet.",
+    "finalLink": "Go to final results",
+    "finalLoadError": "Couldn't load the final result. Please try again."
   }
 }
