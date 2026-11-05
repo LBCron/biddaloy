@@ -133,17 +133,17 @@ With more than one child, tap a name in the **Choose a student** row at the top.
 
 ## Troubleshooting <a href="#trouble" id="trouble"></a>
 
-| What you see                                             | What to do                                                                 | Who can help  |
-| -------------------------------------------------------- | -------------------------------------------------------------------------- | ------------- |
-| **No results yet**                                       | They appear once the school publishes them. Check again later.             | Class teacher |
-| The **Final result** card is not there                   | The school has not published the final result yet. Check again later.      | Class teacher |
-| The exam is over, but there is no card for it            | The result has not been published yet. Wait for the school's announcement. | Class teacher |
-| **Could not load your results.** …                       | Check your connection and tap **Try again**.                               | —             |
-| **Could not load this exam's breakdown.**                | Close the list and open it again.                                          | —             |
-| **Could not load this report card to print. Try again.** | Tap **Print** again.                                                       | —             |
-| A dash (—) under **Position**                            | A position is not given when the result is Fail.                           | Class teacher |
-| A subject's marks look wrong                             | Tell the class teacher or school office; it cannot be changed from here.   | Class teacher |
-| **No students linked to you yet**                        | Ask the school office to link your child, then tap **Check again**.        | School office |
+| What you see                                             | What to do                                                                                                                                                               | Who can help  |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- |
+| **No results yet**                                       | They appear once the school publishes them. Check again later.                                                                                                           | Class teacher |
+| The **Final result** card is not there                   | The school may not have published it yet, or the page could not load it. Check your connection and look again later. If the school says it is published, ask the school. | Class teacher |
+| The exam is over, but there is no card for it            | The result has not been published yet. Wait for the school's announcement.                                                                                               | Class teacher |
+| **Could not load your results.** …                       | Check your connection and tap **Try again**.                                                                                                                             | —             |
+| **Could not load this exam's breakdown.**                | Close the list and open it again.                                                                                                                                        | —             |
+| **Could not load this report card to print. Try again.** | Tap **Print** again.                                                                                                                                                     | —             |
+| A dash (—) under **Position**                            | A position is not given when the result is Fail.                                                                                                                         | Class teacher |
+| A subject's marks look wrong                             | Tell the class teacher or school office; it cannot be changed from here.                                                                                                 | Class teacher |
+| **No students linked to you yet**                        | Ask the school office to link your child, then tap **Check again**.                                                                                                      | School office |
 
 ---
 

@@ -104,8 +104,8 @@ describe('/results/final/$finalResultId', () => {
     const warning = await within(dialog).findByTestId('missing-notes');
     // Digits follow the school's region setting, so accept Latin or Bangla numerals.
     expect(warning.textContent).toMatch(/[3৩] students have no remark and [5৫] have no conduct/);
-    const link = within(warning).getByRole('link', { name: 'Go to section' });
-    expect(link.getAttribute('href')).toBe('/my-class/sec-a/notes?for=fr-1');
+    // The notes route needs MY_CLASS_VIEW (teachers only); an admin gets the warning, no dead link.
+    expect(within(warning).queryByRole('link', { name: 'Go to section' })).toBeNull();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Publish' }));
     await waitFor(() => expect(published).toBe(1));
   });

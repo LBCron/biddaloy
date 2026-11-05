@@ -6,6 +6,7 @@
  * D18: before publishing, each section that still has students without a remark or conduct
  * grade is listed with a link to the notes screen. It warns and never blocks.
  */
+import { Permission } from '@biddaloy/shared';
 import {
   Button,
   Dialog,
@@ -18,6 +19,7 @@ import {
 } from '@biddaloy/ui/components';
 import {
   useClassSections,
+  useHasPermission,
   usePublishFinalResult,
   useReopenFinalResult,
   useReportCardNotesMissing,
@@ -50,6 +52,8 @@ export function MissingNotes({
   const { t } = useTranslation('exams');
   const config = useRegionConfig();
   const router = useRouter();
+  // The notes route needs MY_CLASS_VIEW; without it the link would only lead to a 403.
+  const canOpenNotes = useHasPermission(Permission.MY_CLASS_VIEW);
   const missing = useReportCardNotesMissing(sectionId, { final_result_id: finalResultId });
   const data = missing.data;
   if (!data || (data.missing_remark === 0 && data.missing_conduct === 0)) return null;
@@ -67,18 +71,20 @@ export function MissingNotes({
           remark: formatNumber(data.missing_remark, config),
           conduct: formatNumber(data.missing_conduct, config),
         })}{' '}
-        <a
-          className="font-medium underline"
-          href={href}
-          onClick={(e) => {
-            // Plain click stays in the app; a modified click opens a tab as usual.
-            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-            e.preventDefault();
-            router.history.push(href);
-          }}
-        >
-          {t('finalResults.publishDialog.warningLink')}
-        </a>
+        {canOpenNotes && (
+          <a
+            className="font-medium underline"
+            href={href}
+            onClick={(e) => {
+              // Plain click stays in the app; a modified click opens a tab as usual.
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              router.history.push(href);
+            }}
+          >
+            {t('finalResults.publishDialog.warningLink')}
+          </a>
+        )}
       </span>
     </p>
   );

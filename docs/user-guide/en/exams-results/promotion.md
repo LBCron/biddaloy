@@ -299,7 +299,7 @@ One list's page:
 
 - **Who is in the list:** the students whose enrolment in the current class is active when the list is made.
 - **Suggestion:** the student has a result in every chosen exam and failed none → **Promote**. If even one exam has no result for them → **Retain**.
-- **Rank:** the higher mean GPA of the chosen exams comes first; if equal, the higher total marks of all the exams comes first. If both are equal, a fixed internal order is used; no two students are given the same rank.
+- **Rank:** with **Final result**, students keep their position in the published final result. With **Average of chosen exams**, the higher mean GPA of the chosen exams comes first; if equal, the higher total marks of all the exams comes first. If both are equal, a fixed internal order is used; no two students are given the same rank.
 - **Choosing the section** (only for **Promote** and **Promote on condition**), in rank order:
   - **Block:** section A fills first, then B. Example: two sections A and B, 60 students, no capacity set → ranks 1–30 go to A, ranks 31–60 go to B.
   - **Snake:** they take turns like a snake: A, B, B, A, A, B… So every section gets a mix of strong and weak students, evenly.

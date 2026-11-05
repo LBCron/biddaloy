@@ -178,7 +178,7 @@ In the **School** category, below **Shift, version & group**, there is a card ca
 1. Open **Administration → Settings** and press **School**. Scroll to the **Conduct** card.
 2. To add a line, press **Add** and write the **Bangla name** and the **English name**. Under the English name the app shows **Saved as: …**, which is the short name kept inside the system.
 3. To change a line, type over its names. Renaming keeps the grades already given.
-4. To take a line away, press **Remove**. Changed your mind? Press **Undo remove** before you save.
+4. To take a line away, press **Remove**. The line goes at once. Changed your mind? Do not press **Save**; reload the page and the unsaved changes are gone.
 5. Press **Save**.
 
    → **Saved.** appears. The class teachers see the new lines on the [Remarks and conduct](../academics/my-class.md#task-notes) page, and the report cards of [Final results](../exams-results/final-results.md) show them.

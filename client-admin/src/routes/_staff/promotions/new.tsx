@@ -158,7 +158,9 @@ function NewPromotionRunPage() {
   const publishedFinalId = finalsQuery.data?.find(
     (row) => row.class.id === sourceClass?.id && row.status === 'PUBLISHED',
   )?.final_result_id;
-  const sourceKind = sourceKindPick ?? (publishedFinalId ? 'final' : 'exams');
+  // A failed final-results load keeps 'final' (error shown, submit disabled) until the operator picks exams.
+  const sourceKind =
+    sourceKindPick ?? (publishedFinalId || finalsQuery.isError ? 'final' : 'exams');
   const selectedExamIds = published
     .filter((exam) => !deselectedExamIds.has(exam.id))
     .map((exam) => exam.id);

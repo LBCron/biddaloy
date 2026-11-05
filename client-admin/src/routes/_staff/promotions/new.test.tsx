@@ -421,6 +421,22 @@ describe('/promotions/new', () => {
         true,
       );
     });
+
+    it('a failed final-results load does not fall back to the exams source', async () => {
+      stubBase();
+      server.use(http.get('/api/v1/final-results', () => new HttpResponse(null, { status: 500 })));
+      renderForm();
+
+      expect(
+        await screen.findByText("Couldn't load the final result. Please try again."),
+      ).toBeTruthy();
+      expect(
+        screen.getByRole('radio', { name: /^Final result/ }).getAttribute('aria-checked'),
+      ).toBe('true');
+      expect(screen.getByRole('button', { name: 'Create list' }).hasAttribute('disabled')).toBe(
+        true,
+      );
+    });
   });
 
   it('is a full-page form: h1, Close, labelled placeholders, Create disabled until valid', async () => {

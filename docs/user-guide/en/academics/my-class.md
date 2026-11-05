@@ -181,7 +181,7 @@ The **Remarks and conduct** card on your section page is where you write each st
 
 1. On your section page, find the **Remarks and conduct** card. It says, for example, **Final result — 12 given, 28 to do**.
 
-   → If the office has not started the final result yet, the card says **No final result yet.** Then you can write for an exam, as in step 3.
+   → If the office has not started the final result yet, the card shows the summary of your class's exam instead, and the grid opens with that exam chosen. If there is no exam either, it says **No final result yet.** You can write for an exam, as in step 3.
 
 2. Press **Write remarks** on the card.
 

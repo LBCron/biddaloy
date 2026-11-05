@@ -85,7 +85,7 @@ function FinalResultsListPage() {
         classIds: new Set(all.items.filter((e) => e.status === 'PUBLISHED').map((e) => e.class_id)),
       };
     },
-    enabled: Boolean(yearId),
+    enabled: canStart && Boolean(yearId),
   });
   const create = useCreateFinalResult();
   const [startingId, setStartingId] = React.useState<string | null>(null);

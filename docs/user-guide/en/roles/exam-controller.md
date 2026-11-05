@@ -70,7 +70,7 @@ All your features, in the order of the left menu. The list is built automaticall
 - [Enter marks](../exams-results/marks-entry.md) — Pick an exam, open the marks list for your section and subject, type each student's marks or mark them absent or exempt, then submit the list.
 - [Seat plans](../exams-results/seat-plans.md) — Pick the subjects of an exam and the rooms to make who sits in which room and seat, change seats if needed, give rooms an invigilator, then publish.
 - [Results](../exams-results/results.md) — Build an exam's results from the submitted marks, check them and publish, send guardians an SMS, reopen when needed, and print each student's report card.
-- [Final results](../exams-results/final-results.md) — Put a class's published exams together into one final result for the year, choose how much each exam counts, build and check it, publish it for guardians, send the SMS, print the report cards and reopen it when needed.
+- [Final results](../exams-results/final-results.md) — See a class's final result for the year. Staff who may process results also put the published exams together, choose how much each counts, build and check it, publish it for guardians, send the SMS, print the report cards and reopen it.
 - [Result analysis](../exams-results/analysis.md) — See an exam's merit list, the students who failed or were absent and the pass/fail by subject, filter by section, print or download a CSV.
 
 **Reports**

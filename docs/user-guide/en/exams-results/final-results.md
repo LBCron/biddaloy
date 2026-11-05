@@ -1,7 +1,7 @@
 <!-- guide:meta
 feature: examsResults.finalResults
 title: Final results
-summary: Put a class's published exams together into one final result for the year, choose how much each exam counts, build and check it, publish it for guardians, send the SMS, print the report cards and reopen it when needed.
+summary: See a class's final result for the year. Staff who may process results also put the published exams together, choose how much each counts, build and check it, publish it for guardians, send the SMS, print the report cards and reopen it.
 roles: [ADMIN, EXAM_CONTROLLER, TEACHER, EXECUTIVE, OFFICE_STAFF]
 sources:
   - client-admin/src/routes/_staff/results/final/index.tsx
@@ -240,7 +240,7 @@ The student gets 0 for that exam's share, and the report card shows **Absent** i
 
 ### Working days and days present <a href="#task-attendance" id="task-attendance"></a>
 
-The report card shows **Working days** and **Days present** from the attendance records, the same numbers as in the attendance reports. For a final result they are counted from the first day of the academic year to the day you publish. For one exam's report card they are counted for that exam's term. If the exam has no term, they are counted from the first day of the year to the last day of the exam. The numbers are fixed at the moment you publish.
+The report card shows **Working days** and **Days present** from the attendance records, the same numbers as in the attendance reports. For a final result they are counted from the first day of the academic year to the day you publish, or to the last day of the academic year if you publish after it has ended. For one exam's report card they are counted for that exam's term. If the exam has no term, they are counted from the first day of the year to the last day of the exam. The numbers are fixed at the moment you publish.
 
 ### Who writes the remark and conduct <a href="#task-notes" id="task-notes"></a>
 
@@ -324,7 +324,7 @@ If the final result is only **Built**, you can reopen the exam. The final result
 <summary><strong>How a final result is worked out</strong> — steps and grades</summary>
 
 <figure>
-  <img src="diagrams/exams-results-final-results-overview.svg" alt="From Draft, pressing Build results makes it Built; pressing Publish makes it Published, when guardians see it and the SMS and printing are available; pressing Reopen makes it Built again after extra approval" width="720">
+  <img src="diagrams/exams-results-final-results-overview.svg" alt="From Draft, pressing Build results makes it Built; pressing Print on Built gives the report cards and tabulation sheet; pressing Publish makes it Published, when guardians see it and the SMS can be sent; pressing Reopen makes it Built again after extra approval" width="720">
   <figcaption><em>The steps of a final result</em></figcaption>
 </figure>
 

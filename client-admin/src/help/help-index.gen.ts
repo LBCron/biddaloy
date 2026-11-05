@@ -2377,8 +2377,8 @@ export const HELP_INDEX: HelpIndex = {
   'examsResults.finalResults': {
     title: { bn: 'চূড়ান্ত ফলাফল তৈরি ও প্রকাশ', en: 'Final results' },
     summary: {
-      bn: 'একটি শ্রেণির প্রকাশিত পরীক্ষাগুলো জুড়ে বছরের একটি চূড়ান্ত ফলাফল বানান, কোন পরীক্ষা কত শতাংশ গোনা হবে ঠিক করুন, ফল তৈরি করে দেখে নিন, অভিভাবকদের জন্য প্রকাশ করুন, এসএমএস পাঠান, রিপোর্ট কার্ড ছাপুন, আর দরকারে পুনরায় খুলুন।',
-      en: "Put a class's published exams together into one final result for the year, choose how much each exam counts, build and check it, publish it for guardians, send the SMS, print the report cards and reopen it when needed.",
+      bn: 'একটি শ্রেণির বছরের চূড়ান্ত ফলাফল দেখুন। যাঁরা ফলাফল প্রক্রিয়া করতে পারেন, তাঁরা প্রকাশিত পরীক্ষাগুলো জুড়ে ফল বানান, কোন পরীক্ষা কত শতাংশ গোনা হবে ঠিক করেন, ফল তৈরি করে দেখে নেন, অভিভাবকদের জন্য প্রকাশ করেন, এসএমএস পাঠান, রিপোর্ট কার্ড ছাপেন, আর দরকারে পুনরায় খুলেন।',
+      en: "See a class's final result for the year. Staff who may process results also put the published exams together, choose how much each counts, build and check it, publish it for guardians, send the SMS, print the report cards and reopen it.",
     },
     path: 'exams-results/final-results',
     anchor: '',

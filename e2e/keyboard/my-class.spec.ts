@@ -1,6 +1,6 @@
 import { ExamKind } from '@biddaloy/shared';
 
-import { adminApiSession, apiSession, del, get, post } from '../api';
+import { adminApiSession, del, get, post, teacherApiSession } from '../api';
 import { expect, loggedIn, test } from '../fixtures/test';
 import { makeT } from '../i18n';
 
@@ -74,7 +74,7 @@ test('[70.5.5] the palette action "Enter remarks and conduct" opens the notes gr
 }) => {
   // A fresh unpublished exam of the teacher's class: a published target is locked, and the
   // class's final (if another spec published one) would be the grid's default target.
-  const teacher = await apiSession(request, 'teacher');
+  const teacher = await teacherApiSession(request);
   const [section] = await get<{ section_id: string; class_id: string }[]>(
     request,
     teacher,
@@ -94,34 +94,37 @@ test('[70.5.5] the palette action "Enter remarks and conduct" opens the notes gr
     class_id: section.class_id,
   });
 
-  await page.goto('/dashboard');
-  await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
-  await page.keyboard.press('ControlOrMeta+k');
-  await expect(
-    page.getByRole('combobox', { name: t('nav.commandPalette.ariaLabel') }),
-  ).toBeFocused();
-  await page.keyboard.press('Control+3');
-  await page.keyboard.type(ENTER_NOTES);
-  await expect(page.getByRole('option', { name: ENTER_NOTES })).toBeVisible();
-  await page.keyboard.press('Enter');
-  // Single seeded section: the picker redirects straight to the grid.
-  await expect(page).toHaveURL(new RegExp(`/my-class/${section.section_id}/notes`));
-  await expect(
-    page.getByRole('heading', { level: 1, name: new RegExp(t('myClass.notes.title')) }),
-  ).toBeVisible();
+  try {
+    await page.goto('/dashboard');
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+    await page.keyboard.press('ControlOrMeta+k');
+    await expect(
+      page.getByRole('combobox', { name: t('nav.commandPalette.ariaLabel') }),
+    ).toBeFocused();
+    await page.keyboard.press('Control+3');
+    await page.keyboard.type(ENTER_NOTES);
+    await expect(page.getByRole('option', { name: ENTER_NOTES })).toBeVisible();
+    await page.keyboard.press('Enter');
+    // Single seeded section: the picker redirects straight to the grid.
+    await expect(page).toHaveURL(new RegExp(`/my-class/${section.section_id}/notes`));
+    await expect(
+      page.getByRole('heading', { level: 1, name: new RegExp(t('myClass.notes.title')) }),
+    ).toBeVisible();
 
-  await page.goto(`/my-class/${section.section_id}/notes?for=${exam.id}`);
-  const remark = page
-    .getByRole('textbox', { name: new RegExp(`^${t('myClass.notes.remarkLabel')}`) })
-    .first();
-  await tabToLocator(page, remark);
-  await page.keyboard.type('Attentive in class.');
-  const saved = page.waitForResponse(
-    (r) => r.request().method() === 'PUT' && r.url().includes('/report-card-notes'),
-  );
-  await tabToLocator(page, page.getByRole('button', { name: t('myClass.notes.save') }));
-  await page.keyboard.press('Enter');
-  expect((await saved).ok()).toBe(true);
-  // The draft exam would otherwise sort first in the teacher's class for every later spec.
-  await del(request, admin, `/exams/${exam.id}`);
+    await page.goto(`/my-class/${section.section_id}/notes?for=${exam.id}`);
+    const remark = page
+      .getByRole('textbox', { name: new RegExp(`^${t('myClass.notes.remarkLabel')}`) })
+      .first();
+    await tabToLocator(page, remark);
+    await page.keyboard.type('Attentive in class.');
+    const saved = page.waitForResponse(
+      (r) => r.request().method() === 'PUT' && r.url().includes('/report-card-notes'),
+    );
+    await tabToLocator(page, page.getByRole('button', { name: t('myClass.notes.save') }));
+    await page.keyboard.press('Enter');
+    expect((await saved).ok()).toBe(true);
+  } finally {
+    // The draft exam would otherwise sort first in the teacher's class for every later spec.
+    await del(request, admin, `/exams/${exam.id}`);
+  }
 });

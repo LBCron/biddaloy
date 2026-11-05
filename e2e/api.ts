@@ -97,6 +97,23 @@ export async function parentApiSession(request: APIRequestContext): Promise<ApiS
   return { token: body.access_token, tenantId: membership.tenantId };
 }
 
+/** Fresh login as the seeded TEACHER, so the API calls of a test whose browser is also the
+ * teacher do not rotate the browser's refresh cookie (the request context gets its own family). */
+export async function teacherApiSession(request: APIRequestContext): Promise<ApiSession> {
+  const password = process.env[SEED_PASSWORD_ENV];
+  if (!password) throw new Error(`${SEED_PASSWORD_ENV} is not set`);
+  const response = await request.post('/api/v1/auth/login', {
+    data: { email: SEED_ROLE_EMAILS.teacher, password },
+  });
+  if (!response.ok()) {
+    throw new Error(`teacher login failed: ${response.status()} ${await response.text()}`);
+  }
+  const body = (await response.json()) as RefreshResponse;
+  const membership = body.memberships.find((m) => m.role === 'TEACHER');
+  if (!membership) throw new Error('no TEACHER membership for seed teacher');
+  return { token: body.access_token, tenantId: membership.tenantId };
+}
+
 export async function apiSession(request: APIRequestContext, role: string): Promise<ApiSession> {
   const response = await request.post('/api/v1/auth/refresh');
   if (!response.ok()) {
