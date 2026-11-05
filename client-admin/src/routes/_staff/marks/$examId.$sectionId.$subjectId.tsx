@@ -100,7 +100,7 @@ function MarksEntryPage() {
   // Entering and submitting marks both need MARK_ENTER (the controller's own
   // gate for PATCH and POST submit), not EXAM_MANAGE — a TEACHER holds
   // MARK_ENTER for their own sections without holding EXAM_MANAGE. A
-  // MARK_VIEW-only role (EXAM_CONTROLLER, EXECUTIVE) sees the grid read-only.
+  // MARK_VIEW-only role (EXECUTIVE) sees the grid read-only.
   const canEnter = useHasPermission(Permission.MARK_ENTER);
 
   const gridQuery = useMarkGrid(examId, sectionId, subjectId);

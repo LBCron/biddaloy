@@ -719,7 +719,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
 
   // #1358 exam controller: runs exams, seat plans and results; reads marks
-  // but never enters them; prints documents but never edits templates.
+  // and (81 D5b) enters them as backup for an absent teacher; prints documents but never edits templates.
   [UserRole.EXAM_CONTROLLER]: [
     Permission.NOTICE_READ,
     Permission.STEP_UP_REQUEST,
@@ -728,6 +728,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.EXAM_MANAGE,
     Permission.SEAT_PLAN_MANAGE,
     Permission.MARK_VIEW,
+    Permission.MARK_ENTER, // [81.0.1] D5b — backup mark entry when a teacher is absent (reverses 19/24 D16)
     Permission.RESULT_PROCESS,
     Permission.RESULT_PUBLISH,
     Permission.RESULT_READ,

@@ -9,13 +9,13 @@ import {
 import { TeacherScopeService } from '../classes/teacher-scope.service';
 
 /** Tenant scope + MARK_ENTER may write marks for every section-subject
- * without going through `teacher_class_sections`. EXAM_CONTROLLER has no
- * MARK_ENTER (D16), so it stays out. SUPER_ADMIN: see `hasTenantDataScope` (#1362 D-N). */
+ * without going through `teacher_class_sections`. EXAM_CONTROLLER holds
+ * MARK_ENTER (81 D5b, backup for an absent teacher), so it is in. SUPER_ADMIN: see `hasTenantDataScope` (#1362 D-N). */
 const canWriteTenantWide = (role: string) =>
   hasTenantDataScope(role) && roleHasPermission(role, Permission.MARK_ENTER);
 
 /** Tenant scope + MARK_VIEW may *read* every section-subject's grid.
- * Wider than the write side: EXECUTIVE and EXAM_CONTROLLER hold MARK_VIEW
+ * Wider than the write side: EXECUTIVE holds MARK_VIEW
  * but never MARK_ENTER. COMMITTEE has no MARK_VIEW, so never reaches marks (D9).
  * SUPER_ADMIN is out of reads too, so the grid never looks editable and then 403s on save. */
 const canReadTenantWide = (role: string) =>

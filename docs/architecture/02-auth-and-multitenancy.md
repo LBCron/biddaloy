@@ -292,7 +292,7 @@ caller is acting as.
 | `ACCOUNTANT`      | Fees and payments                       | `TENANT`                  |
 | `EXECUTIVE`       | Principal / management, read-mostly     | `TENANT`                  |
 | `OFFICE_STAFF`    | Front-office clerk: admissions, records | `TENANT`                  |
-| `EXAM_CONTROLLER` | Runs exams, marks and results           | `TENANT`                  |
+| `EXAM_CONTROLLER` | Runs exams, marks and results; enters marks as backup for an absent teacher (81 D5b) | `TENANT`                  |
 | `COMMITTEE`       | Governing / admission committee member  | `TENANT`                  |
 | `TEACHER`         | Classroom teacher                       | `ASSIGNED_SECTIONS`       |
 | `PARENT`          | Guardian                                | `FAMILY`                  |

@@ -436,14 +436,14 @@ describe('/marks/$examId/$sectionId/$subjectId', () => {
     expect(screen.queryByRole('button', { name: 'Reopen' })).toBeNull();
   });
 
-  it('an exam controller (view only) sees an unsubmitted grid read-only with no submit', async () => {
+  it('an executive (view only) sees an unsubmitted grid read-only with no submit', async () => {
     const user = userEvent.setup();
     server.use(http.get(GRID_URL, () => HttpResponse.json(baseGrid)));
 
     renderWithRouter(routeTree, {
       initialEntries: ['/marks/exam-1/sec-1/subj-1'],
       tenantId: 'tenant-1',
-      role: 'EXAM_CONTROLLER',
+      role: 'EXECUTIVE',
       locale: 'en',
     });
 
