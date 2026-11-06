@@ -587,5 +587,14 @@
     "role": "Yes",
     "member": "Yes",
     "employeeId": "Yes"
+  },
+  "cardNo": {
+    "label": "Card number",
+    "help": "The number on the staff member's attendance card. No two people share one.",
+    "scan": "Scan card",
+    "duplicate": "This card number already belongs to another staff member."
+  },
+  "bulkUpload": {
+    "cardNoDuplicate": "Row {{row}}: this card number is already used — use a different number."
   }
 }
