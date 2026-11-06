@@ -26,4 +26,10 @@ ingress:
         audTag: ["{{ group[1] }}"]
 {% endfor %}
 {% endfor %}
+{# School websites (Epic 40, runbook part 17a). LAST on purpose: cloudflared takes the first rule that
+   matches, so every fixed host above (staging and ops carry the Access check) must win over the wildcard.
+   ROOT_DOMAIN falls back to LANDING_DOMAIN (the apex) until the owner adds the key to edge.enc.env.
+   nginx still answers 444 for a name it does not know (Rule 12). #}
+  - hostname: '*.{{ secret_env.edge.ROOT_DOMAIN | default(secret_env.edge.LANDING_DOMAIN) }}'
+    service: http://nginx:80
   - service: http_status:404

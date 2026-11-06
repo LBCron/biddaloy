@@ -36,6 +36,38 @@ Three rules hold the whole thing together:
   (`172.30.0.0/24`). nginx takes the visitor IP from `CF-Connecting-IP` only for
   peers in it, which in practice is `cloudflared` alone.
 
+## Wildcard subdomain Cloudflare SaaS
+
+School websites (Epic 40) live on `<school>.schoolmanagerp.com` and, later, on a school's own
+domain. Two lanes reach the same nginx. Owner steps: [28-platform-runbook, part 17](28-platform-runbook.md#part-17-school-websites).
+
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant CF as Cloudflare
+  participant T as cloudflared (tunnel)
+  participant N as nginx
+  participant S as site container
+  Note over B,S: Lane 1. rumsc.schoolmanagerp.com
+  B->>CF: HTTPS, wildcard cert (one label only)
+  CF->>T: proxied CNAME * to the tunnel
+  T->>N: last ingress rule *.schoolmanagerp.com, HTTP :80
+  N->>S: wildcard server{} (known shape; unknown gets 444)
+  Note over B,S: Lane 2. www.rumsc.edu (a custom domain)
+  B->>CF: HTTPS, Cloudflare for SaaS certificate
+  CF->>T: CNAME www.rumsc.edu to sites.schoolmanagerp.com
+  T->>N: same wildcard ingress (sites. is under it)
+  N->>S: matched by custom_domain
+```
+
+- **Lane 1** needs the `*` CNAME and the one wildcard ingress rule (done in `cloudflared-config.yml.j2`,
+  placed after the fixed hosts so their Access checks win). Free Universal certificate: one label only, so
+  `<sub>.staging.schoolmanagerp.com` is not supported (D5).
+- **Lane 2** uses Cloudflare for SaaS with `sites.schoolmanagerp.com` as the fallback origin. The school
+  adds a CNAME at its own DNS host. Lands in #3646 (40.4.08) / #3655 (40.5.07); nothing is set up for it yet (D23, D35).
+- nginx still answers `444` for every name it does not know (Rule 12). The wildcard only widens what
+  reaches nginx, not what nginx serves.
+
 ## Checklist
 
 "Applied" is filled by the owner, who has dashboard access. Every cell
