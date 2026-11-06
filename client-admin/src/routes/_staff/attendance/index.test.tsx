@@ -81,6 +81,25 @@ describe('/attendance', () => {
     section('s-empty', 'D', null, 0),
   ];
 
+  it('shows scanned-but-absent and without-status chips, hidden at 0, with a tooltip', async () => {
+    server.use(
+      http.get('/api/v1/attendance/my-sections', () =>
+        HttpResponse.json([
+          section('s-a', 'A', { ...FINALIZED, state: 'DRAFT', unmarked: 4, scanned_but_absent: 3 }),
+          section('s-b', 'B', { ...FINALIZED, state: 'DRAFT', unmarked: 0, scanned_but_absent: 0 }),
+        ]),
+      ),
+    );
+
+    renderList();
+
+    const links = await screen.findAllByRole('link', { name: /Class 5/ });
+    const chip = within(links[0]!).getByText('3 scanned but marked absent');
+    expect(chip.getAttribute('title')).toMatch(/card machine saw/);
+    expect(within(links[0]!).getByText('4 without a status')).toBeTruthy();
+    expect(within(links[1]!).queryByText(/scanned but marked absent|without a status/)).toBeNull();
+  });
+
   it('says how many sections are pending, leaving out zero-student sections', async () => {
     server.use(http.get('/api/v1/attendance/my-sections', () => HttpResponse.json(mixed)));
 
