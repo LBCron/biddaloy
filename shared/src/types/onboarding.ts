@@ -6,7 +6,8 @@ export type OnboardingItemId =
   | 'staff'
   | 'feeStructures'
   | 'guardianInvites'
-  | 'messageSettings';
+  | 'messageSettings'
+  | 'website';
 
 export type OnboardingSetupPath = 'guided' | 'excel' | 'later';
 

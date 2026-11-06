@@ -467,3 +467,82 @@ export enum SocialProvider {
   GOOGLE = 'google',
   FACEBOOK = 'facebook',
 }
+
+export enum SiteTheme {
+  BASIC = 'basic',
+  PRIMARY = 'primary',
+  HIGH_SCHOOL = 'high-school',
+  COLLEGE = 'college',
+  MADRASA = 'madrasa',
+  INTERNATIONAL = 'international',
+  PREMIUM = 'premium',
+}
+
+export enum SitePage {
+  HOME = 'home',
+  ABOUT = 'about',
+  ACADEMICS = 'academics',
+  ADMISSIONS = 'admissions',
+  NEWS = 'news',
+  NOTICES = 'notices',
+  BLOG = 'blog',
+  TEACHERS = 'teachers',
+  RESULTS = 'results',
+  CONTACT = 'contact',
+}
+
+export enum SiteSectionKey {
+  HERO = 'hero',
+  ABOUT = 'about',
+  ACADEMICS = 'academics',
+  ADMISSIONS = 'admissions',
+  TEACHERS = 'teachers',
+  NOTICES = 'notices',
+  EVENTS = 'events',
+  BLOG = 'blog',
+  DOWNLOADS = 'downloads',
+  COMMITTEE = 'committee',
+  ACHIEVEMENTS = 'achievements',
+  TESTIMONIALS = 'testimonials',
+  CAMPUSES = 'campuses',
+  FEES = 'fees',
+  ROUTINE = 'routine',
+  RESULTS = 'results',
+  CONTACT = 'contact',
+  CUSTOM = 'custom',
+}
+
+export enum SiteIslandKind {
+  NOTICES = 'notices',
+  EVENTS = 'events',
+  ROUTINE = 'routine',
+  RESULTS = 'results',
+  ENQUIRY = 'enquiry',
+}
+
+export enum SiteMediaSlot {
+  LOGO = 'logo',
+  HERO = 'hero',
+  ABOUT = 'about',
+  POST_COVER = 'post-cover',
+  POST_IMAGE = 'post-image',
+  PERSON = 'person',
+}
+
+export enum SiteCustomDomainStatus {
+  PENDING_DNS = 'PENDING_DNS',
+  PENDING_SSL = 'PENDING_SSL',
+  ACTIVE = 'ACTIVE',
+  FAILED = 'FAILED',
+}
+
+export enum SiteAnnouncementStyle {
+  MARQUEE = 'marquee',
+  STATIC = 'static',
+}
+
+export enum SiteMarqueeSpeed {
+  SLOW = 'SLOW',
+  NORMAL = 'NORMAL',
+  FAST = 'FAST',
+}

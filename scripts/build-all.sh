@@ -11,6 +11,9 @@ mkdir -p "$OUTPUT_DIR"
 echo "==> Building shared package..."
 yarn workspace @biddaloy/shared build
 
+echo "==> Building site-themes package..."
+yarn workspace @biddaloy/site-themes build
+
 echo "==> Type-checking ui package..."
 # ui has no build step of its own — it's consumed as source (see ui/README.md)
 # by every client, so this is the closest thing to "building" it: catch a

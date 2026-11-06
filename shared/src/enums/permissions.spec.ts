@@ -561,6 +561,15 @@ describe('[10.4] drift decisions', () => {
   });
 });
 
+describe('website grant [40.1.01]', () => {
+  it('gives WEBSITE_MANAGE to ADMIN and SUPER_ADMIN only', () => {
+    for (const role of Object.values(UserRole)) {
+      const held = ROLE_PERMISSIONS[role].includes(Permission.WEBSITE_MANAGE);
+      expect(held, role).toBe(role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN);
+    }
+  });
+});
+
 describe('roleHasPermission', () => {
   it('returns true when ADMIN holds USER_CREATE', () => {
     expect(roleHasPermission(UserRole.ADMIN, Permission.USER_CREATE)).toBe(true);

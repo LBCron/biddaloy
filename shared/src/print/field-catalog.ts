@@ -47,6 +47,8 @@ const SCHOOL: FieldDef[] = [
   f('school.phone', 'text', '01711-000000'),
   f('school.eiin', 'text', '108765'),
   f('school.logo', 'image', 'logo'),
+  f('school.website_url', 'text', 'https://school.example.com'),
+  f('school.website_qr', 'qr', 'https://school.example.com'),
 ];
 
 const COMMON_TAIL: FieldDef[] = [
