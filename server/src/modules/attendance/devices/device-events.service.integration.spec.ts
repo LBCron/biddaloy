@@ -263,6 +263,37 @@ describe('DeviceEventsService (integration)', () => {
     expect(updated.check_in_at).not.toBeNull(); // filled
   });
 
+  it('never overwrites an IMPORT-marked record either (same rule as TEACHER)', async () => {
+    const device = await createActiveDevice();
+    const session = await dataSource.getRepository(AttendanceSession).save({
+      tenant_id: TENANT_ID,
+      section_id: sectionId,
+      date: TODAY(),
+      period_no: null,
+      source: AttendanceSource.IMPORT,
+    });
+    const record = await dataSource.getRepository(AttendanceRecord).save({
+      tenant_id: TENANT_ID,
+      session_id: session.id,
+      student_id: studentId,
+      date: TODAY(),
+      status: AttendanceStatus.ABSENT,
+      source: AttendanceSource.IMPORT,
+      check_in_at: null,
+    });
+
+    const result = await service.ingest(device, [
+      inEvent({ student_id: studentId, occurred_at: `${TODAY()}T09:00:00Z` }),
+    ]);
+
+    expect(result.results[0].outcome).toBe('skipped_teacher_marked');
+    const updated = await dataSource.getRepository(AttendanceRecord).findOneOrFail({
+      where: { id: record.id },
+    });
+    expect(updated.status).toBe(AttendanceStatus.ABSENT); // an imported mark is not changed
+    expect(updated.source).toBe(AttendanceSource.IMPORT);
+  });
+
   describe('special timings (SENSE-09)', () => {
     const special = (from: string, to: string) => ({
       name: 'Ramadan',

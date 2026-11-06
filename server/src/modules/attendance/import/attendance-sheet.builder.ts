@@ -50,6 +50,8 @@ export async function buildAttendanceSheet(
   sheet.getRow(1).font = { bold: true };
   const codes = Object.values(ATTENDANCE_SHEET_STATUS_CODES).map((c) => c[lang === 'bn' ? 1 : 0]);
   for (const r of rows) {
+    // exceljs writes a JS string as a plain string cell, never a formula, so a student name
+    // starting with "=" is safe here; no cell sanitiser exists in the codebase (csv export has none).
     const row = sheet.addRow([r.date, r.className, r.sectionName, r.roll, r.name, null]);
     const status = row.getCell(6);
     status.protection = { locked: false };

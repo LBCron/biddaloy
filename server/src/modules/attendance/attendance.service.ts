@@ -1006,7 +1006,9 @@ export class AttendanceService {
       existing.minutes_late = minutesLate;
       existing.remarks = remarks;
       existing.recorded_by_user_id = userId;
-      if (ctx.importId) existing.source = source;
+      // The last writer owns the mark: a teacher correcting an imported (or device) mark makes
+      // it TEACHER, so the device rule "never changes a TEACHER / IMPORT mark" holds for it.
+      existing.source = source;
       await recordRepo.save(existing);
 
       recordAudits.push({
@@ -1082,6 +1084,7 @@ export class AttendanceService {
   }): Promise<MatrixSaveResponseDto> {
     const { sectionId, tenantId, role, userId, dto, ip, userAgent } = params;
     // D31: the month grid is class-teacher only, a first-period teacher is refused.
+    // (`monthGrid: true` skips the first-period branch, so this one gate covers every day.)
     const { section } = await this.attendanceAccessService.assertCanWriteDayRegister(
       role,
       userId,

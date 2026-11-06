@@ -530,7 +530,10 @@ export class DeviceEventsService {
       outcome = 'accepted';
       versionBumped = true;
       firstCheckIns.push({ studentId: student.id, status: record.status, occurredAt });
-    } else if (record.source === AttendanceSource.TEACHER) {
+    } else if (
+      record.source === AttendanceSource.TEACHER ||
+      record.source === AttendanceSource.IMPORT
+    ) {
       // Contract #4: teacher authority beats device authority. A device
       // may only fill fields the teacher left empty — never touch `status`.
       outcome = 'skipped_teacher_marked';
@@ -763,7 +766,10 @@ export class DeviceEventsService {
       );
       outcome = 'accepted';
       versionBumped = true;
-    } else if (record.source === AttendanceSource.TEACHER) {
+    } else if (
+      record.source === AttendanceSource.TEACHER ||
+      record.source === AttendanceSource.IMPORT
+    ) {
       // Manual-mark-wins (D3): a manually-marked staff record is never
       // overwritten by a device scan — only a blank check_in/check_out
       // gets filled in.

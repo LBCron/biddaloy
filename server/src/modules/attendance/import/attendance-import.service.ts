@@ -7,14 +7,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, IsNull, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, IsNull, Repository } from 'typeorm';
 import { randomUUID } from 'node:crypto';
 import {
   AttendanceImportHistoryRow,
   AttendanceImportRowCode,
   AttendanceImportRowOutcome,
   AttendanceStatus,
-  EnrollmentStatus,
   Permission,
   roleHasPermission,
   UserRole,
@@ -63,7 +62,8 @@ interface StagedImport {
   groups: {
     date: string;
     sectionId: string;
-    entries: { student_id: string; status: AttendanceStatus }[];
+    /** `before` is the mark validate saw; commit refuses the sheet if it changed since. */
+    entries: { student_id: string; status: AttendanceStatus; before: AttendanceStatus | null }[];
   }[];
   /** Every row, errors included, exactly as it goes into `attendance_imports.rows`. */
   history: AttendanceImportHistoryRow[];
@@ -129,6 +129,13 @@ export class AttendanceImportService {
     // One fixed answer for a missing section and a section the caller may not write
     // (Rule 23): a probe learns nothing.
     if (sections.length !== unique.length) throw new ForbiddenException(DENIED_TEMPLATE);
+    // Same scope as validate: only sections of the current academic year.
+    const currentYear = await this.yearRepo.findOne({
+      where: { tenant_id: tenantId, is_current: true, deleted_at: IsNull() },
+    });
+    if (!currentYear || sections.some((s) => s.class.academic_year_id !== currentYear.id)) {
+      throw new ForbiddenException(DENIED_TEMPLATE);
+    }
     for (const s of sections) {
       const state = await this.access.dayRegisterWriteState(role, userId, s.id, date, tenantId);
       if (!state.can_write) throw new ForbiddenException(DENIED_TEMPLATE);
@@ -140,15 +147,16 @@ export class AttendanceImportService {
     // Keep the caller's section order.
     for (const id of unique) {
       const section = sections.find((s) => s.id === id)!;
-      const students = await this.studentRepo.find({
-        where: {
-          tenant_id: tenantId,
-          class_section_id: id,
-          enrollment_status: EnrollmentStatus.ACTIVE,
-          deleted_at: IsNull(),
-        },
-        order: { roll_number: 'ASC' },
+      // Roster on that date by enrollment, exactly what validate matches rolls against
+      // (a promoted student is on the old section's past-date sheet, not the new one's).
+      const ids = await sectionRosterStudentIds(this.dataSource.manager, tenantId, id, {
+        onRollOn: date,
       });
+      const students = (
+        ids.length
+          ? await this.studentRepo.find({ where: { tenant_id: tenantId, id: In(ids) } })
+          : []
+      ).sort((x, y) => x.roll_number - y.roll_number);
       for (const st of students) {
         rows.push({
           date,
@@ -273,6 +281,7 @@ export class AttendanceImportService {
       else if (p.duplicate) code = 'DUPLICATE_ROW';
       else if (!section) code = 'SECTION_NOT_FOUND';
       else if (p.date === null || p.date < yearStart || p.date > yearEnd) {
+        // An unreadable date (e.g. DD/MM/YYYY) also lands here: shared/ has no BAD_DATE code.
         code = 'DATE_OUTSIDE_YEAR';
       } else {
         const date = p.date;
@@ -360,7 +369,7 @@ export class AttendanceImportService {
         if (outcome !== 'UNCHANGED') {
           const gk = `${section!.id}|${p.date}`;
           const g = groups.get(gk) ?? { date: p.date!, sectionId: section!.id, entries: [] };
-          g.entries.push({ student_id: student!.id, status: p.status });
+          g.entries.push({ student_id: student!.id, status: p.status, before });
           groups.set(gk, g);
         }
       }
@@ -413,17 +422,20 @@ export class AttendanceImportService {
     caller: ImportCaller,
   ): Promise<CommitAttendanceImportResultDto> {
     const { tenantId, userId, role } = caller;
+    // Check the superseded upload BEFORE consuming the stage: a bad or foreign id must not
+    // burn a validated sheet. Same scope as the history list (a teacher: own uploads only).
+    if (supersedesImportId) {
+      const prior = await this.importRepo.findOne({
+        where: { id: supersedesImportId, ...this.scope(caller) },
+        select: { id: true },
+      });
+      if (!prior) throw new NotFoundException('Upload not found');
+    }
     const staged = await this.staging.consume<StagedImport>(tenantId, userId, stagingId);
     if (!staged) {
       throw new NotFoundException(
         'No staged upload found for this id. It may have expired or already been saved.',
       );
-    }
-    if (supersedesImportId) {
-      const prior = await this.importRepo.findOne({
-        where: { id: supersedesImportId, tenant_id: tenantId },
-      });
-      if (!prior) throw new NotFoundException('Upload not found');
     }
 
     const importId = randomUUID();
@@ -431,6 +443,7 @@ export class AttendanceImportService {
       await this.dataSource.transaction(async (manager) => {
         const recordIds = new Map<string, string>(); // `${sectionId}|${date}|${studentId}`
         for (const g of staged.groups) {
+          await this.assertMarksUnchanged(manager, tenantId, g);
           const reg = await this.attendance.writeImportDay(manager, {
             sectionId: g.sectionId,
             date: g.date,
@@ -440,7 +453,7 @@ export class AttendanceImportService {
             importId,
             ip: caller.ip ?? null,
             userAgent: caller.userAgent ?? null,
-            entries: g.entries,
+            entries: g.entries.map(({ student_id, status }) => ({ student_id, status })),
           });
           for (const s of reg.students) {
             if (s.record_id) recordIds.set(`${g.sectionId}|${g.date}|${s.student_id}`, s.record_id);
@@ -466,6 +479,7 @@ export class AttendanceImportService {
         });
       });
     } catch (err) {
+      if (err instanceof ConflictException) throw err; // the stale-marks answer, already fixed text
       // Rule 23: one fixed sentence; the cause stays in the log.
       this.logger.error(
         `Attendance import commit failed: ${err instanceof Error ? err.message : String(err)}`,
@@ -476,6 +490,42 @@ export class AttendanceImportService {
       });
     }
     return { import_id: importId };
+  }
+
+  /**
+   * Inside the commit transaction: lock the group's session, then refuse the whole sheet if any
+   * staged student's mark is no longer what validate showed (a teacher saved in between).
+   * Fixed text, nothing echoed (Rule 23). A session that does not exist yet cannot be locked;
+   * a racing create hits the unique key and fails the commit the same way.
+   */
+  private async assertMarksUnchanged(
+    manager: EntityManager,
+    tenantId: string,
+    group: StagedImport['groups'][number],
+  ): Promise<void> {
+    const session = await manager.getRepository(AttendanceSession).findOne({
+      where: {
+        tenant_id: tenantId,
+        section_id: group.sectionId,
+        date: group.date,
+        period_no: IsNull(),
+      },
+      lock: { mode: 'pessimistic_write' },
+    });
+    const current = new Map<string, AttendanceStatus>();
+    if (session) {
+      const recs = await manager.getRepository(AttendanceRecord).find({
+        where: { tenant_id: tenantId, session_id: session.id },
+      });
+      for (const r of recs) current.set(r.student_id, r.status);
+    }
+    if (group.entries.some((e) => (current.get(e.student_id) ?? null) !== e.before)) {
+      throw new ConflictException({
+        message:
+          'The register changed after you checked the sheet. Nothing was saved. Upload it again.',
+        details: { code: 'ATTENDANCE_IMPORT_STALE' },
+      });
+    }
   }
 
   // ---------------------------------------------------------------------

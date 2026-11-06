@@ -19,6 +19,7 @@ import { SEED_ADMIN_USER_ID, SEED_TENANT_ID } from '@test/constants';
 import { AuthModule } from '../../auth/auth.module';
 import { BulkImportModule } from '../../bulk-import/bulk-import.module';
 import { AttendanceModule } from '../attendance.module';
+import { AttendanceService } from '../attendance.service';
 import { AttendanceImportModule } from './attendance-import.module';
 import { AttendanceImportService, ImportCaller } from './attendance-import.service';
 import { School } from '../../schools/entities/school.entity';
@@ -55,6 +56,7 @@ async function upload(rows: (string | number | null)[][]): Promise<Express.Multe
 
 describe('AttendanceImportService (integration)', () => {
   let service: AttendanceImportService;
+  let attendanceService: AttendanceService;
   let dataSource: DataSource;
   const TENANT = SEED_TENANT_ID;
   const OTHER_TENANT = '00000000-0000-4000-8000-000000000098';
@@ -98,6 +100,7 @@ describe('AttendanceImportService (integration)', () => {
       ],
     );
     service = module.get(AttendanceImportService);
+    attendanceService = module.get(AttendanceService);
     dataSource = module.get<DataSource>(getDataSourceToken());
 
     if (!(await dataSource.getRepository(School).findOne({ where: { id: OTHER_TENANT } }))) {
@@ -328,6 +331,73 @@ describe('AttendanceImportService (integration)', () => {
       expect(saved.count_changed).toBe(1);
     });
 
+    it('refuses with a fixed 409 and writes nothing when a teacher saved the register after validate', async () => {
+      const res = await validateOk([row(0, TODAY(), 1, 'P'), row(1, TODAY(), 1, 'P')]);
+      // A teacher marks student 1 of section 0 ABSENT between validate and commit.
+      await attendanceService.putRegister({
+        sectionId: sections[0].id,
+        tenantId: TENANT,
+        role: UserRole.ADMIN,
+        userId: SEED_ADMIN_USER_ID,
+        ip: null,
+        userAgent: null,
+        dto: {
+          date: TODAY(),
+          period_no: null,
+          base_version: 0,
+          client_request_id: randomUUID(),
+          entries: [{ student_id: sections[0].students[0].id, status: AttendanceStatus.ABSENT }],
+        } as never,
+      });
+      const err = await service.commit(res.staging_id!, undefined, admin).catch((e) => e);
+      expect(err.getStatus()).toBe(409);
+      expect(JSON.stringify(err.getResponse())).not.toContain(sections[0].students[0].id);
+      // Nothing from the sheet: only the teacher's one record, no import row, no section-1 session.
+      expect(await dataSource.getRepository(AttendanceRecord).count()).toBe(1);
+      expect(await dataSource.getRepository(AttendanceImport).count()).toBe(0);
+      expect(await dataSource.getRepository(AttendanceSession).count()).toBe(1);
+    });
+
+    it('a teacher correcting an imported mark makes it TEACHER-sourced', async () => {
+      const res = await validateOk([row(0, TODAY(), 1, 'P')]);
+      await service.commit(res.staging_id!, undefined, admin);
+      const rec = await dataSource.getRepository(AttendanceRecord).findOneByOrFail({
+        student_id: sections[0].students[0].id,
+      });
+      expect(rec.source).toBe(AttendanceSource.IMPORT);
+      await attendanceService.putRegister({
+        sectionId: sections[0].id,
+        tenantId: TENANT,
+        role: UserRole.ADMIN,
+        userId: SEED_ADMIN_USER_ID,
+        ip: null,
+        userAgent: null,
+        dto: {
+          date: TODAY(),
+          period_no: null,
+          base_version: 1,
+          client_request_id: randomUUID(),
+          entries: [{ student_id: rec.student_id, status: AttendanceStatus.ABSENT }],
+        } as never,
+      });
+      const after = await dataSource
+        .getRepository(AttendanceRecord)
+        .findOneByOrFail({ id: rec.id });
+      expect(after).toMatchObject({
+        status: AttendanceStatus.ABSENT,
+        source: AttendanceSource.TEACHER,
+      });
+    });
+
+    it('a foreign or unknown supersedes id is a 404 and does not burn the staged sheet', async () => {
+      const res = await validateOk([row(0, TODAY(), 1, 'P')]);
+      await expect(service.commit(res.staging_id!, randomUUID(), admin)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      // The stage is still usable.
+      await service.commit(res.staging_id!, undefined, admin);
+    });
+
     it('rolls the whole sheet back with one fixed 409 when a group cannot be written', async () => {
       const res = await validateOk([row(0, TODAY(), 1, 'P'), row(1, TODAY(), 1, 'P')]);
       // Between validate and commit the second section's day becomes a non-working day.
@@ -403,6 +473,43 @@ describe('AttendanceImportService (integration)', () => {
         admin,
       );
       expect(res.counts).toMatchObject({ new: 4, error: 0 });
+    });
+
+    it('lists the roster by enrollment on the date: an enrolled-elsewhere student is not on this section sheet', async () => {
+      const moved = await dataSource.getRepository(Student).save({
+        full_name: 'Moved Student',
+        registration_number: `IMP-MOVED-${randomUUID().slice(0, 6)}`,
+        roll_number: 9,
+        class_section_id: sections[0].id, // placed here...
+        tenant_id: TENANT,
+      });
+      await enrollStudent(dataSource, moved, sections[1].id); // ...but enrolled in section 1
+      const names = async (sectionIndex: number) => {
+        const { buffer } = await service.template([sections[sectionIndex].id], TODAY(), admin);
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.load(buffer as never);
+        return wb.worksheets[0].getColumn(5).values.map(String);
+      };
+      expect(await names(0)).not.toContain('Moved Student');
+      expect(await names(1)).toContain('Moved Student');
+    });
+
+    it('refuses a section outside the current academic year with the fixed 403', async () => {
+      const pastYear = await dataSource.getRepository(AcademicYear).save({
+        name: `Past ${randomUUID().slice(0, 6)}`,
+        start_date: '2001-01-01',
+        end_date: '2001-12-31',
+        tenant_id: TENANT,
+      });
+      const pastClass = await dataSource
+        .getRepository(Class)
+        .save({ name: 'PastClass', academic_year_id: pastYear.id, tenant_id: TENANT });
+      const pastSection = await dataSource
+        .getRepository(ClassSection)
+        .save({ section_name: 'P1', class_id: pastClass.id, tenant_id: TENANT });
+      await expect(service.template([pastSection.id], TODAY(), admin)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
     });
 
     it('refuses a foreign or unwritable section with one fixed 403', async () => {
