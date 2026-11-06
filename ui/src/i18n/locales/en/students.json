@@ -539,7 +539,8 @@
   "help": {
     "rollNumber": "A positive whole number. Leave it empty to use the next roll number in the section.",
     "bloodGroup": "Choose one from the list, or leave it Not set.",
-    "preferredCommunication": "SMS, WhatsApp, Email, Phone call or Messenger. It starts as SMS."
+    "preferredCommunication": "SMS, WhatsApp, Email, Phone call or Messenger. It starts as SMS.",
+    "cardNo": "The number on the student's attendance card. It must be different for every student."
   },
   "fields": {
     "rollNumber": "Roll number",

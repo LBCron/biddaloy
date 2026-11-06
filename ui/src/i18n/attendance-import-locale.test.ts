@@ -4,13 +4,13 @@ import { describe, expect, it } from 'vitest';
 
 import bnAttendance from './locales/bn/attendance.json';
 import bnImport from './locales/bn/attendanceImport.json';
-import bnCommon from './locales/bn/common.json';
+import bnNav from './locales/bn/nav.json';
 import bnSettings from './locales/bn/settings.json';
 import bnStaff from './locales/bn/staff.json';
 import bnStudents from './locales/bn/students.json';
 import enAttendance from './locales/en/attendance.json';
 import enImport from './locales/en/attendanceImport.json';
-import enCommon from './locales/en/common.json';
+import enNav from './locales/en/nav.json';
 import enSettings from './locales/en/settings.json';
 import enStaff from './locales/en/staff.json';
 import enStudents from './locales/en/students.json';
@@ -29,15 +29,10 @@ const SUBTREES: Array<[string, Tree, Tree, string[]]> = [
     bnAttendance,
     ['registerBanner', 'firstPeriod', 'markRestAbsent', 'scannedBadge', 'fromSheetBadge'],
   ],
-  ['settings', enSettings, bnSettings, ['attendance.dailySource']],
-  ['students', enStudents, bnStudents, ['cardNo', 'bulkUpload']],
-  ['staff', enStaff, bnStaff, ['cardNo', 'bulkUpload']],
-  [
-    'common',
-    enCommon,
-    bnCommon,
-    ['attendanceNav', 'help.attendance', 'help.students', 'help.devices', 'help.attention'],
-  ],
+  ['settings', enSettings, bnSettings, ['attendance.dailySource', 'help.dailySource', 'help.staffSmsFallback', 'help.deviceSecretKey']],
+  ['students', enStudents, bnStudents, ['cardNo', 'bulkUpload', 'help.cardNo']],
+  ['staff', enStaff, bnStaff, ['cardNo', 'bulkUpload', 'help.cardNo']],
+  ['nav', enNav, bnNav, ['items.upload', 'items.uploads', 'items.uploadDetail']],
 ];
 
 const leaves = (node: unknown, path = ''): Array<[string, string]> =>

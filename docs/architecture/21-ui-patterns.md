@@ -516,6 +516,12 @@ palette action navigates to.
 - **A list response must carry every relation its type declares (#3421).** `GET /exams` joined `class` but not `academic_year`, which the `Exam` schema lists; unit tests mocked the field, and the My class page crashed only on real data. Read a nested field with a real API response in at least one Playwright journey. -> no rule.
 - **One more heading on a shared page breaks loose locators (#3421).** The portal final card added a heading containing "ফলাফল", so `getByRole('heading', { name })` in `result-publish.spec.ts` matched two. Match page titles with `exact: true`. -> no rule.
 
+### Attendance sheet foundation learnings (Epic #2429, Wave 4, 2026-11-06)
+
+- **A field's help text lives in the field's own namespace.** `HelpHint` reads `<field.ns>:help.<key>`, so `help.cardNo` goes in `students.json` / `staff.json`, not in `common.json`. A key written to the wrong namespace shows as a raw key at runtime and `check:i18n` does not see it. -> no rule.
+- **Breadcrumb and nav labels resolve from `nav.json` `items.*`.** The i18n lane put them under `common.json`, so the routes lane's `{ key: 'uploads' }` had nothing to read. Lanes that share a label key must agree on the file in the ticket body. -> no rule.
+- **The UI-kit gap: none.** `ScanCardField` and `AttendanceMarkBadges` took props-only text, so no component needed a new token or shell.
+
 ### UX lint stragglers
 
 `ui/eslint-rules/ux-guards.mjs` holds four rules (`no-native-picker`,

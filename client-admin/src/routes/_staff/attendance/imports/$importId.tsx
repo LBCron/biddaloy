@@ -13,8 +13,9 @@ export const Route = createFileRoute('/_staff/attendance/imports/$importId')({
 
 function AttendanceImportDetailPage() {
   const { t } = useTranslation('attendanceImport');
+  const { importId } = Route.useParams();
   return (
-    <DetailShell name={t('detail.title')}>
+    <DetailShell name={t('detail.title', { when: importId })}>
       <div />
     </DetailShell>
   );

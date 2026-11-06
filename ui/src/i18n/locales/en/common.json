@@ -503,24 +503,5 @@
     "chosenEmptyTitle": "No one chosen yet",
     "chosenEmptyExplanation": "Add people from the list.",
     "remove": "Remove from chosen list"
-  },
-  "attendanceNav": {
-    "upload": "Upload sheet",
-    "uploads": "Uploaded sheets",
-    "uploadDetail": "Upload details"
-  },
-  "help": {
-    "attendance": {
-      "dailySource": "Decides who can save the daily register: any assigned teacher, the class teacher, the first-period teacher, or the attendance machine."
-    },
-    "students": {
-      "cardNo": "The number on the student's attendance card. It must be different for every student."
-    },
-    "devices": {
-      "secretKey": "The machine's secret key. It is shown once, so copy it now and keep it safe."
-    },
-    "attention": {
-      "staffSmsFallback": "If daily attendance is still not taken late in the day, send the admin a text message. Off by default."
-    }
   }
 }
