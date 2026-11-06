@@ -210,6 +210,8 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
   '/_staff/attendance/': [{ label: { key: 'attendance' } }],
   '/_staff/attendance/reports': [{ label: { key: 'attendanceReports' } }],
   '/_staff/attendance/register': [{ label: { key: 'attendanceRegister' } }],
+  '/_staff/attendance/import': [{ label: { key: 'attendance' } }, { label: { key: 'uploads' } }],
+  '/_staff/attendance/imports/': [{ label: { key: 'attendance' } }, { label: { key: 'uploads' } }],
   '/_staff/attendance/staff/': [{ label: { key: 'staffAttendance' } }],
   '/_staff/attendance/staff/leave': [
     { label: { key: 'staffAttendance' } },
@@ -358,6 +360,11 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
   '/_staff/attendance/$sectionId': [
     { label: { key: 'attendance' } },
     { label: { key: 'section' }, dynamic: 'entity' },
+  ],
+  '/_staff/attendance/imports/$importId': [
+    { label: { key: 'attendance' } },
+    { label: { key: 'uploads' } },
+    { label: { key: 'uploadDetail' }, dynamic: 'entity' },
   ],
   '/_staff/fees/schedules/$id': [
     { label: { key: 'recurringSchedules' } },
