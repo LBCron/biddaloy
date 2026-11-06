@@ -15,9 +15,9 @@ function AttendanceImportsPage() {
   const { t } = useTranslation('attendanceImport');
   return (
     <ListShell
-      title={t('imports.title')}
+      title={t('history.title')}
       tableId="attendance-imports"
-      caption={t('imports.title')}
+      caption={t('history.title')}
       columns={[]}
       data={[]}
       getRowId={(row: { id: string }) => row.id}
