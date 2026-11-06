@@ -26,7 +26,7 @@ export interface ScanCardFieldProps {
   scanHint: string;
   error?: string | undefined;
   /** Guide help id; renders the (?) beside the label. */
-  helpKey?: string | undefined;
+  helpId?: string | undefined;
   autoFocus?: boolean | undefined;
   disabled?: boolean | undefined;
   name?: string | undefined;
@@ -40,7 +40,7 @@ export function ScanCardField({
   scanLabel,
   scanHint,
   error,
-  helpKey,
+  helpId,
   autoFocus,
   disabled,
   name,
@@ -53,7 +53,7 @@ export function ScanCardField({
 
   return (
     <div className={cn('grid w-full min-w-0 gap-1.5', className)}>
-      <Label htmlFor={id} helpId={helpKey}>
+      <Label htmlFor={id} helpId={helpId}>
         {label}
       </Label>
       <div className="flex gap-2">

@@ -23,7 +23,7 @@ function Host({ error, onSubmit }: { error?: string; onSubmit?: () => void }) {
         scanLabel="Scan card"
         scanHint="Tap the card on the reader"
         error={error}
-        helpKey="students.cardNo"
+        helpId="students.cardNo"
       />
     </form>
   );

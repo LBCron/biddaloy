@@ -46,7 +46,7 @@ export function HrRecordCardSection({ userId }: { userId: string }) {
         label={t('cardNo.label')}
         scanLabel={t('cardNo.scan')}
         scanHint={t('cardNo.help')}
-        helpKey="people.staff.field.cardNo"
+        helpId="people.staff.field.cardNo"
         error={invalid ? t('cardNo.invalid') : duplicate ? t('cardNo.duplicate') : undefined}
       />
       {update.isError && !duplicate ? <MutationErrorMessage error={update.error} /> : null}
