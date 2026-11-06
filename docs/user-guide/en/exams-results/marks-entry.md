@@ -135,12 +135,32 @@ If you have many students, fill the marks in Excel and upload the file. The app 
 **When the teacher is away:** the Admin or Exam controller does not need to open the list first. In the **Enter marks** list each row has **Download sheet** and **Upload sheet** buttons. Press them there.
 
 1. Open the marks list ([steps 1–3 above](#task-main)) and press **Download sheet**. → An Excel file is saved on your computer. It has two tabs: **Marks** and **How to fill**.
+
+   ![Marks list with one mark typed: 1 · Download sheet button, next to Upload sheet and Submit](img/marks-sheet-01-download.png)
+
 2. Open the file and fill **only the white cells**. Grey columns are worked out by the app; do not touch them. Write **A** if the student was absent, **E** if exempt. A blank cell means "keep the mark as it is".
+
+   ![Fill marks in Excel page: 1 · step 2, Fill in the marks. You fill the file in Excel on your computer, so the app shows only this step](img/marks-sheet-02-fill.png)
+
 3. Go back to the app. In the marks list press **Upload sheet** and choose the file (or drop it on the box). The page shows three steps: **1. Download the sheet**, **2. Fill in the marks**, **3. Upload the sheet**. → The app reads the file.
+
+   ![Fill marks in Excel page before a file is chosen: 1 · step 3, Upload the sheet 2 · the Choose file box](img/marks-sheet-03-upload.png)
+
 4. Read the review. → It counts **new** marks, **changed** marks (for example `45 → 54`), **not changed**, **absent**, **exempt** and **errors**. Check the changed marks carefully.
+
+   ![Review after the upload: 1 · counts 1 new, 1 changed, 0 not changed, 1 errors 2 · a changed mark, Written: 45.00 → 54.00 3 · the error row, Above full marks; Save 2 at the bottom](img/marks-sheet-04-review.png)
+
 5. Press **Save**. → The button shows how many marks it will save. A message says how many marks were saved. If an error row exists, only the good rows are saved.
+
+   ![After pressing Save: 1 · the message 2 marks saved](img/marks-sheet-05-saved.png)
+
 6. Fix each error row in the grid: press **Close**, type the correct mark in that cell. Each error says what is wrong, for example "Above full marks" or "This student is not in this section".
+
+   ![Marks list after Close: 1 · the error row's cell with the correct mark typed 2 · the All changes saved line](img/marks-sheet-06-fix.png)
+
 7. When every cell is filled, press **Submit** as usual ([step 8 above](#task-main)).
+
+   ![Marks list with every cell filled: 1 · Submit button](img/marks-sheet-07-submit.png)
 
 | Write in the cell       | Meaning                                        |
 | ----------------------- | ---------------------------------------------- |
@@ -150,8 +170,6 @@ If you have many students, fill the marks in Excel and upload the file. The app 
 | blank                   | Keep the mark already in the app               |
 
 > **Remember:** if the list is **Submitted**, you cannot upload a sheet. The Admin must [reopen it](#task-reopen) first. If many people press upload at once or the service is busy, wait a few minutes and try again.
-
-<!-- screenshots pending: marks-sheet-01 .. marks-sheet-07, one per step (not shot yet; needs the guide:shoot demo environment) -->
 
 ---
 
