@@ -10,6 +10,8 @@
     "shared",
     "ui",
     "client-*",
+    "site-themes",
+    "site",
     "landing"
   ],
   "scripts": {
