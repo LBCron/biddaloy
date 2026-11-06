@@ -17,6 +17,7 @@ import { AttendanceSession } from '../src/modules/attendance/entities/attendance
 import { AttendanceRecord } from '../src/modules/attendance/entities/attendance-record.entity';
 import { AttendanceDevice } from '../src/modules/attendance/entities/attendance-device.entity';
 import { ArrivalNoticeSubscription } from '../src/modules/attendance/entities/arrival-notice-subscription.entity';
+import { AttendanceImport } from '../src/modules/attendance/entities/attendance-import.entity';
 import { AttendanceDeviceEvent } from '../src/modules/attendance/entities/attendance-device-event.entity';
 import { AuditLog } from '../src/modules/audit/entities/audit-log.entity';
 import { UserTenant } from '../src/modules/auth/entities/user-tenant.entity';
@@ -165,6 +166,7 @@ export const ALL_ENTITIES = [
   AttendanceDevice,
   ArrivalNoticeSubscription,
   AttendanceDeviceEvent,
+  AttendanceImport,
   AuditLog,
   UserTenant,
   AuthToken,

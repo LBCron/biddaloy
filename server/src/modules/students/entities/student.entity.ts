@@ -42,6 +42,10 @@ import { CommunicationMedium, EnrollmentStatus } from '@biddaloy/shared';
 })
 @Index('IDX_students_user_id', ['user_id'])
 @Index(['class_section_id', 'roll_number'], { unique: true })
+@Index('UQ_students_tenant_card_no', ['tenant_id', 'card_no'], {
+  unique: true,
+  where: '"card_no" IS NOT NULL AND "deleted_at" IS NULL',
+})
 @Index(['tenant_id', 'registration_number'], { unique: true })
 @Index('IDX_students_tenant_birth_reg_no', ['tenant_id', 'birth_reg_no'], {
   unique: true,
@@ -76,6 +80,10 @@ export class Student {
 
   @Column({ type: 'varchar', length: 50 })
   registration_number: string;
+
+  /** Attendance card / RFID number; unique among a school's live students (D9, D37). */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  card_no: string | null;
 
   @Column({ type: 'int' })
   roll_number: number;

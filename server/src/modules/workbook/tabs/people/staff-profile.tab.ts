@@ -35,6 +35,7 @@ export interface StaffProfileRow {
   user_id: string | null;
   employee_id: string;
   joining_date: string | null; // 'YYYY-MM-DD'
+  card_no: string | null;
   // The `users` tab's own natural key, kept alongside the resolved `user_id`
   // for parity with the row/entity branching pattern in other tabs.
   user_key: string;
@@ -56,6 +57,11 @@ const columns: readonly ColumnSpec[] = [
     label: { en: 'Employee ID', bn: 'কর্মচারী আইডি' },
   },
   {
+    key: 'card_no',
+    type: 'string',
+    label: { en: 'Card number', bn: 'কার্ড নম্বর' },
+  },
+  {
     key: 'joining_date',
     type: 'date',
     label: { en: 'Joining date', bn: 'যোগদানের তারিখ' },
@@ -74,6 +80,7 @@ const excluded: readonly string[] = [
 
 const MAX_LENGTHS: Record<string, number> = {
   employee_id: 50,
+  card_no: 64,
 };
 
 export const staffProfileTab: TabSpec<StaffProfile, StaffProfileRow> = {
@@ -94,6 +101,7 @@ export const staffProfileTab: TabSpec<StaffProfile, StaffProfileRow> = {
       id: entity.id,
       user: optionalKeyOf(ctx, 'users', entity.user_id),
       employee_id: entity.employee_id,
+      card_no: entity.card_no,
       joining_date: entity.joining_date,
     };
   },
@@ -152,6 +160,7 @@ export const staffProfileTab: TabSpec<StaffProfile, StaffProfileRow> = {
         id: values.id as string,
         user_id: userId ?? null,
         employee_id: values.employee_id as string,
+        card_no: (values.card_no as string | null) ?? null,
         joining_date: (values.joining_date as string | null) ?? null,
         user_key: userKey,
       },
@@ -166,6 +175,7 @@ export const staffProfileTab: TabSpec<StaffProfile, StaffProfileRow> = {
     const changed: string[] = [];
     if (row.user_id && row.user_id !== existing.user_id) changed.push('user_id');
     if (row.employee_id !== existing.employee_id) changed.push('employee_id');
+    if (row.card_no !== existing.card_no) changed.push('card_no');
     const rowJoiningDate = row.joining_date;
     const existingJoiningDate = existing.joining_date
       ? formatDateOnly(existing.joining_date)
@@ -214,6 +224,7 @@ export const staffProfileTab: TabSpec<StaffProfile, StaffProfileRow> = {
     staffProfile.tenant_id = tenantId;
     staffProfile.user_id = userId;
     staffProfile.employee_id = row.employee_id;
+    staffProfile.card_no = row.card_no;
     // `Date(row.joining_date)` would parse the ISO string as UTC midnight,
     // then TypeORM's Postgres driver formats a `Date` value via local
     // calendar getters for a `date` column — on a west-of-UTC server that
