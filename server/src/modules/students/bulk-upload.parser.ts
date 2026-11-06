@@ -24,6 +24,9 @@ export const REQUIRED_HEADERS = [
   'preferred_communication',
 ] as const;
 
+/** [76.2.06] Optional column: older files without it still import. */
+export const OPTIONAL_HEADERS = ['card_no'] as const;
+
 export type BulkUploadHeader = (typeof REQUIRED_HEADERS)[number];
 
 export class BulkUploadParseError extends ImportFileError {}
@@ -32,7 +35,7 @@ const MAX_DATA_ROWS = 2000;
 
 export interface ParsedRow {
   rowNumber: number;
-  values: Record<BulkUploadHeader, string>;
+  values: Record<BulkUploadHeader, string> & { card_no?: string };
 }
 
 function getExtension(filename: string): string {
@@ -132,11 +135,13 @@ export async function parseSpreadsheet(buffer: Buffer, filename: string): Promis
     const row = worksheet.getRow(rowNumber);
     if (row.cellCount === 0 || isRowBlank(row)) continue;
 
-    const values = {} as Record<BulkUploadHeader, string>;
+    const values = {} as ParsedRow['values'];
     for (const header of REQUIRED_HEADERS) {
       const colNumber = columnIndex.get(header) as number;
       values[header] = cellToString(row.getCell(colNumber).value);
     }
+    const cardCol = columnIndex.get('card_no');
+    if (cardCol !== undefined) values.card_no = cellToString(row.getCell(cardCol).value);
     rows.push({ rowNumber, values });
   }
 

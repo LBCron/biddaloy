@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { nextTenantSerial } from '../../common/utils/next-serial.util';
 import { InjectRepository } from '@nestjs/typeorm';
+import { cardNoTaken } from '../../common/filters/known-errors';
 import { Repository, IsNull, In, Brackets, EntityManager, QueryFailedError } from 'typeorm';
 import { Student } from './entities/student.entity';
 import { Guardian } from './entities/guardian.entity';
@@ -71,6 +72,7 @@ function rethrowStudentUniqueConflict(err: unknown): never {
     if (code === '23505' && constraint === BIRTH_REG_NO_INDEX) {
       throw new ConflictException('A student with this birth registration number already exists');
     }
+    if (code === '23505' && constraint === 'UQ_students_tenant_card_no') throw cardNoTaken();
     if (code === '23505' && constraint === ROLL_NUMBER_INDEX) {
       throw new ConflictException({
         message: 'This roll number is already taken in that section.',
@@ -208,6 +210,7 @@ export class StudentService {
         preferred_communication: dto.preferred_communication as CommunicationMedium,
         religion: dto.religion ?? null,
         birth_reg_no: dto.birth_reg_no ?? null,
+        card_no: dto.card_no?.trim() || null,
         health_notes: dto.health_notes ?? null,
         father_name: dto.father_name ?? null,
         mother_name: dto.mother_name ?? null,
@@ -591,6 +594,7 @@ export class StudentService {
     if (dto.guardian_ids !== undefined) {
       delete updateData.guardian_ids;
     }
+    if (typeof updateData.card_no === 'string') updateData.card_no = updateData.card_no.trim();
 
     // [#1020] `class_section_id` changing has to keep the student's
     // current-year `Enrollment` row in sync, or exam cohort resolution
@@ -640,7 +644,7 @@ export class StudentService {
       // Every write goes to the audit log (epic 39 invariant). Only fields that actually
       // changed; health_notes is recorded as changed but never copied into the log.
       const masked = (key: string, value: unknown) =>
-        key === 'health_notes' ? '[redacted]' : value;
+        key === 'health_notes' || key === 'card_no' ? '[redacted]' : value;
       // `date_of_birth` is a DATE column (read back as "YYYY-MM-DD") but `updateData` holds a
       // Date, so compare the date part only; otherwise every save that re-sends the same
       // birthday would log a change that did not happen.

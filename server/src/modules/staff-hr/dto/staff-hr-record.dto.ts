@@ -1,4 +1,13 @@
-import { IsDateString, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsDateString,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+  Matches,
+  MaxLength,
+} from 'class-validator';
+import { Transform } from 'class-transformer';
 import { SanitizeText } from '../../../common/decorators/sanitize-text.decorator';
 
 /** Request body for `POST /staff-hr-records`. 23.2.1. */
@@ -91,6 +100,14 @@ export class UpdateStaffHrRecordDto {
   @IsString()
   @MaxLength(50)
   religion?: string | null;
+
+  /** [76.2.06] Attendance card number on the linked staff profile; `null` clears it. */
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
+  @Length(1, 64)
+  @Matches(/^[A-Za-z0-9-]+$/, { message: 'card_no may only have letters, digits and dashes' })
+  card_no?: string | null;
 }
 
 /** Request body for `POST /staff-hr-records/:userId/promote`. 23.2.1. */

@@ -257,6 +257,79 @@ describe('Staff HR E2E (23.2.1)', () => {
     expect(patchRes.body.title_en).toBe('Lab Assistant');
   });
 
+  it('sets, clears and de-duplicates card_no on the linked staff profile [76.2.06]', async () => {
+    // Two staff members in tenant A, each with a staff_profiles row and an HR record.
+    for (const [uid, emp] of [
+      [STAFF_USER_ID, 'E2E-CARD-1'],
+      [TEACHER_USER_ID, 'E2E-CARD-2'],
+    ]) {
+      await dataSource.query(
+        `INSERT INTO staff_profiles (user_id, tenant_id, employee_id) VALUES ($1, $2, $3)
+         ON CONFLICT DO NOTHING`,
+        [uid, TENANT_A, emp],
+      );
+      await supertest(app.getHttpServer())
+        .post(`${API}/staff-hr-records`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set('X-Tenant-ID', TENANT_A)
+        .send({ user_id: uid })
+        .expect((r) => expect([201, 409]).toContain(r.status));
+    }
+    const idOf = async (uid: string) =>
+      (
+        await dataSource.query(
+          `SELECT id FROM staff_hr_records WHERE tenant_id = $1 AND user_id = $2`,
+          [TENANT_A, uid],
+        )
+      )[0].id as string;
+    const first = await idOf(STAFF_USER_ID);
+    const second = await idOf(TEACHER_USER_ID);
+    const patch = (
+      id: string,
+      body: object,
+      token = adminToken,
+      tenant: string | null = TENANT_A,
+    ) => {
+      const req = supertest(app.getHttpServer())
+        .patch(`${API}/staff-hr-records/${id}`)
+        .set('Authorization', `Bearer ${token}`);
+      return (tenant ? req.set('X-Tenant-ID', tenant) : req).send(body);
+    };
+    const cardOf = async (uid: string) =>
+      (
+        await dataSource.query(
+          `SELECT card_no FROM staff_profiles WHERE user_id = $1 AND tenant_id = $2`,
+          [uid, TENANT_A],
+        )
+      )[0].card_no;
+
+    await patch(first, { card_no: 'STAFF-77' }).expect(200);
+    expect(await cardOf(STAFF_USER_ID)).toBe('STAFF-77');
+
+    // A second person cannot take it; the 409 names nobody.
+    const dup = await patch(second, { card_no: 'STAFF-77' }).expect(409);
+    expect(JSON.stringify(dup.body)).toContain('This card number is already in use');
+
+    await patch(first, { card_no: 'bad card!' }).expect(400);
+    await patch(first, { card_no: null }).expect(200);
+    expect(await cardOf(STAFF_USER_ID)).toBeNull();
+
+    // The audit row never carries the value (Rule 13).
+    const logs = await dataSource.query(
+      `SELECT new_values FROM audit_logs WHERE entity_id = $1 AND action = 'UPDATE'`,
+      [first],
+    );
+    expect(JSON.stringify(logs)).not.toContain('STAFF-77');
+
+    // Missing tenant header -> 401; a non-admin (TEACHER) -> 403.
+    await patch(first, { card_no: 'X-1' }, adminToken, null).expect(401);
+    const teacherLogin = await supertest(app.getHttpServer())
+      .post(`${API}/auth/login`)
+      .send({ email: TEACHER_EMAIL, password: SEED_ADMIN_PASSWORD })
+      .expect(200);
+    await patch(first, { card_no: 'X-1' }, teacherLogin.body.access_token).expect(403);
+  });
+
   it('promotes a staff member: closes the current row, inserts a new one, and audits it', async () => {
     const designationRes = await supertest(app.getHttpServer())
       .post(`${API}/designations`)

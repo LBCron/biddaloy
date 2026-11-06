@@ -26,6 +26,7 @@ import { ExperienceController, ExperienceRowService } from './experience.control
 import { EducationController, EducationRowService } from './education.controller';
 import { TrainingController, TrainingRowService } from './training.controller';
 import { AchievementController, AchievementRowService } from './achievement.controller';
+import { StaffProfile } from '../staff-profiles/entities/staff-profile.entity';
 import { LanguageController, LanguageRowService } from './language.controller';
 
 /**
@@ -50,6 +51,7 @@ import { LanguageController, LanguageRowService } from './language.controller';
       StaffLanguage,
       StaffDocument,
       UserTenant,
+      StaffProfile,
     ]),
     AuditModule,
     StorageModule,

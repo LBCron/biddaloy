@@ -5,6 +5,7 @@ import { StaffHrService } from './staff-hr.service';
 import { StaffHrRecord } from './entities/staff-hr-record.entity';
 import { StaffDesignationHistory } from './entities/staff-designation-history.entity';
 import { Designation } from './entities/designation.entity';
+import { StaffProfile } from '../staff-profiles/entities/staff-profile.entity';
 import { UserTenant } from '../auth/entities/user-tenant.entity';
 import { AuditService } from '../audit/audit.service';
 import { StaffEmploymentStatus } from '@biddaloy/shared';
@@ -118,6 +119,7 @@ async function buildService(
       { provide: getRepositoryToken(StaffDesignationHistory), useValue: historyRepo },
       { provide: getRepositoryToken(Designation), useValue: designationRepo },
       { provide: getRepositoryToken(UserTenant), useValue: userTenantRepo },
+      { provide: getRepositoryToken(StaffProfile), useValue: {} },
       { provide: AuditService, useValue: auditService },
     ],
   }).compile();
