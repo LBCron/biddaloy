@@ -27,7 +27,6 @@ function makeSchool(overrides: Partial<School> = {}): School {
     id: SCHOOL_ID,
     name: 'Dhaka Model High School',
     slug: 'dhaka-model',
-    domain: null,
     address: '12 Green Road, Dhaka',
     phone: '01712345678',
     email: 'office@dhaka-model.test',

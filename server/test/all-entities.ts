@@ -145,7 +145,18 @@ import { SurveyTarget } from '../src/modules/surveys/entities/survey-target.enti
 import { SurveyResponse } from '../src/modules/surveys/entities/survey-response.entity';
 import { SurveyAnswer } from '../src/modules/surveys/entities/survey-answer.entity';
 
+import { SchoolSite } from '../src/modules/website/entities/school-site.entity';
+import { SiteEnquiry } from '../src/modules/website/entities/site-enquiry.entity';
+import { SiteMedia } from '../src/modules/website/entities/site-media.entity';
+import { SitePost } from '../src/modules/website/entities/site-post.entity';
+import { StaffWebProfile } from '../src/modules/website/entities/staff-web-profile.entity';
+
 export const ALL_ENTITIES = [
+  SchoolSite,
+  SiteEnquiry,
+  SiteMedia,
+  SitePost,
+  StaffWebProfile,
   AcademicYear,
   Class,
   ClassSection,

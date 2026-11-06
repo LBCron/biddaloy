@@ -26,7 +26,6 @@ import { SchoolStatus } from '@biddaloy/shared';
  */
 @Entity('schools')
 @Index(['slug'], { unique: true })
-@Index(['domain'], { unique: true, where: 'domain IS NOT NULL' })
 @Check('CHK_schools_seat_limit', '"seat_limit" >= 0')
 export class School {
   @PrimaryGeneratedColumn('uuid')
@@ -37,9 +36,6 @@ export class School {
 
   @Column({ type: 'varchar', length: 100, unique: true })
   slug: string;
-
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  domain: string | null;
 
   @Column({ type: 'text', nullable: true })
   address: string | null;

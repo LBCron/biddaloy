@@ -69,7 +69,6 @@ const BY_TABLE: Record<string, Partial<Record<ScrubHandling, string[]>>> = {
       'name',
       'name_bn',
       'slug',
-      'domain',
       'country_code',
       'registration_id',
       'logo_key',

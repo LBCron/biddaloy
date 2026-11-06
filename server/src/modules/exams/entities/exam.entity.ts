@@ -86,6 +86,13 @@ export class Exam {
   @Column({ type: 'timestamptz', nullable: true })
   published_at: Date | null;
 
+  // [40.1.03] public-website results; null = not published there
+  @Column({ type: 'timestamptz', nullable: true })
+  website_published_at: Date | null;
+
+  @Column({ type: 'boolean', default: true })
+  website_show_names: boolean;
+
   // (8.10.7 D40) last day for mark entry; null = not set
   @Column({ type: 'date', nullable: true })
   mark_entry_deadline: string | null;
