@@ -414,12 +414,14 @@ export function AttendanceSection({ schoolId, attendance }: AttendanceSectionPro
         }
       >
         <fieldset className="mt-4">
+          <legend className="text-label text-text-primary">
+            {t('attendance.dailySource.legend')}
+          </legend>
           <FormField
             control={form.control}
             name="dailySource"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('attendance.dailySource.legend')}</FormLabel>
                 <FormDescription>{t('help.dailySource')}</FormDescription>
                 <RadioGroup
                   value={field.value}

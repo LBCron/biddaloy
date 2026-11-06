@@ -426,7 +426,8 @@
       "classSectionRequired": "Select a class and section.",
       "rollNumberInvalid": "Roll number must be a positive whole number.",
       "fullNameBnTooLong": "The Bangla name must be 200 characters or fewer.",
-      "bloodGroupInvalid": "Choose a blood group from the list."
+      "bloodGroupInvalid": "Choose a blood group from the list.",
+      "cardNoInvalid": "Use 1 to 64 letters, numbers or dashes."
     },
     "draftAvailable": "You have an unsaved draft of this form.",
     "restoreDraftAction": "Restore draft",
@@ -545,7 +546,8 @@
   "fields": {
     "rollNumber": "Roll number",
     "bloodGroup": "Blood group",
-    "preferredCommunication": "Preferred contact"
+    "preferredCommunication": "Preferred contact",
+    "cardNo": "Card number"
   },
   "cardNo": {
     "label": "Card number",

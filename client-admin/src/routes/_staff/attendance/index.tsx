@@ -70,7 +70,7 @@ function CountChips({ section }: { section: MySection }) {
   const { t } = useTranslation('attendance');
   const today = section.today;
   if (!today) return null;
-  // D5, D28: hidden at 0. `defaultValue` keeps the page readable until the W4 keys land.
+  // D5, D28: hidden at 0.
   const chips = [
     {
       n: today.scanned_but_absent,

@@ -148,4 +148,45 @@ describe('HrRecordTab', () => {
       await screen.findByText('This card number already belongs to another staff member.'),
     ).toBeTruthy();
   });
+
+  it('[76.5.07] rejects a malformed card number before sending, and shows a fixed sentence on a 500', async () => {
+    let patches = 0;
+    let fail = false;
+    server.use(
+      http.get('/api/v1/staff-hr-records', () =>
+        HttpResponse.json([{ id: 'hr-1', user_id: 'user-1', card_no: null }]),
+      ),
+      http.patch('/api/v1/staff-hr-records/hr-1', () => {
+        patches += 1;
+        return fail
+          ? HttpResponse.json(apiErrorBody(500, 'raw db detail', '/api/v1/staff-hr-records/hr-1'), {
+              status: 500,
+            })
+          : HttpResponse.json({ id: 'hr-1', user_id: 'user-1', card_no: 'AB-1' });
+      }),
+      http.get('*/designation-history', () => HttpResponse.json([])),
+      http.get('/api/v1/designations', () => HttpResponse.json([])),
+      http.get('/api/v1/staff-documents/user-1', () => HttpResponse.json([])),
+      http.get('/api/v1/staff/user-1/:kind', () => HttpResponse.json([])),
+    );
+    renderWithProviders(<HrRecordTab userId="user-1" />, {
+      locale: 'en',
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+    });
+    const user = userEvent.setup();
+    const input = await screen.findByLabelText('Card number');
+    await user.type(input, 'bad card!');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('Use 1 to 64 letters, numbers or dashes.')).toBeTruthy();
+    expect(patches).toBe(0);
+
+    fail = true;
+    await user.clear(input);
+    await user.type(input, 'AB-1');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(patches).toBe(1));
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.queryByText(/raw db detail/)).toBeNull();
+  });
 });

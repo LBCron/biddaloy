@@ -525,7 +525,10 @@
     "printerScale": "Size",
     "printerGap": "Cutting gap between cards (mm)",
     "otpLoginEnabled": "Allow sign-in with a code sent to the phone",
-    "conductItems": "Conduct"
+    "conductItems": "Conduct",
+    "dailySource": "Who marks daily attendance",
+    "staffSmsFallback": "Text the admin if staff attendance is late",
+    "deviceSecretKey": "Machine secret key"
   },
   "help": {
     "schoolName": "The school's name. It shows on receipts, invoices and printouts. It cannot be left empty.",
@@ -642,5 +645,76 @@
     "save": "Save",
     "saved": "Saved.",
     "saveError": "Couldn't save. Try again."
+  },
+  "attendanceDevices": {
+    "title": "Attendance machines",
+    "explainer": "Fingerprint, face and card machines send attendance to the school.",
+    "listCaption": "Attendance machines",
+    "wholeSchool": "Whole school",
+    "never": "Never",
+    "loadError": "Could not load the machines.",
+    "columns": {
+      "name": "Name",
+      "kind": "Kind",
+      "section": "Section",
+      "lastSeen": "Last seen",
+      "status": "Status"
+    },
+    "status": {
+      "ACTIVE": "Active"
+    },
+    "kind": {
+      "BIOMETRIC": "Fingerprint",
+      "FACE": "Face",
+      "RFID": "Card (RFID)",
+      "OTHER": "Other"
+    },
+    "empty": {
+      "title": "No attendance machine yet",
+      "explanation": "Add one to let it fill the daily register."
+    },
+    "add": {
+      "button": "Add machine",
+      "title": "Add attendance machine"
+    },
+    "form": {
+      "name": "Name",
+      "nameError": "Enter a name for the machine.",
+      "kind": "Kind",
+      "section": "Section (optional)",
+      "roster": "Roster access",
+      "rosterHelp": "Lets the machine download the student list.",
+      "saveError": "Could not add the machine. Try again.",
+      "cancel": "Cancel",
+      "save": "Add machine"
+    },
+    "key": {
+      "title": "Copy the key now — it is shown once",
+      "explainer": "Put this key into the machine. It cannot be shown again.",
+      "label": "Secret key",
+      "copy": "Copy",
+      "copied": "Key copied",
+      "copyError": "Could not copy. Select the key and copy it by hand.",
+      "done": "Done",
+      "confirmTitle": "Did you copy the key?",
+      "confirmBody": "You will not see this key again.",
+      "confirmYes": "Yes, I copied it",
+      "confirmNo": "Go back"
+    },
+    "rotate": {
+      "action": "Make new key",
+      "title": "Make a new key?",
+      "body": "{{name}} stops working until you put the new key into it. The old key stops now.",
+      "confirm": "Make new key",
+      "error": "Could not make a new key. Try again."
+    },
+    "revoke": {
+      "action": "Revoke",
+      "title": "Revoke this machine?",
+      "body": "{{name}} will no longer send attendance. Past attendance stays.",
+      "confirm": "Revoke",
+      "done": "Machine revoked",
+      "error": "Could not revoke the machine. Try again."
+    }
   }
 }

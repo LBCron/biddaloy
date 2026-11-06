@@ -36,7 +36,7 @@ import { useSectionOptions } from '../../features/attention/use-section-options'
 export const DEVICE_KINDS = ['BIOMETRIC', 'FACE', 'RFID', 'OTHER'] as const;
 export type DeviceKind = (typeof DEVICE_KINDS)[number];
 
-/** English fallbacks are inline until the bn/en `settings:attendanceDevices.*` keys land. */
+/** English fallbacks, used only if a `settings:attendanceDevices.*` key is missing. */
 export const KIND_FALLBACK: Record<DeviceKind, string> = {
   BIOMETRIC: 'Fingerprint',
   FACE: 'Face',
@@ -158,7 +158,17 @@ export function AddDeviceDialog({
   }
 
   if (secret !== null) {
-    return open ? <KeyView secret={secret} onDone={() => onOpenChange(false)} /> : null;
+    return open ? (
+      <KeyView
+        secret={secret}
+        onDone={() => {
+          // Drop the key from state and the mutation cache once it has been copied.
+          setSecret(null);
+          create.reset();
+          onOpenChange(false);
+        }}
+      />
+    ) : null;
   }
 
   return (
@@ -259,7 +269,18 @@ export function RotateDeviceDialog({
   const rotate = useRotateAttendanceDeviceKey(device.id);
   const [secret, setSecret] = React.useState<string | null>(null);
 
-  if (secret !== null) return <KeyView secret={secret} onDone={onClose} />;
+  if (secret !== null) {
+    return (
+      <KeyView
+        secret={secret}
+        onDone={() => {
+          setSecret(null);
+          rotate.reset();
+          onClose();
+        }}
+      />
+    );
+  }
   return (
     <ConfirmDialog
       open
@@ -267,7 +288,8 @@ export function RotateDeviceDialog({
       title={d('rotate.title', 'Make a new key?')}
       description={d(
         'rotate.body',
-        `${device.name} stops working until you put the new key into it. The old key stops now.`,
+        '{{name}} stops working until you put the new key into it. The old key stops now.',
+        { name: device.name },
       )}
       confirmLabel={d('rotate.confirm', 'Make new key')}
       cancelLabel={d('form.cancel', 'Cancel')}
@@ -299,7 +321,8 @@ export function RevokeDeviceDialog({
       title={d('revoke.title', 'Revoke this machine?')}
       description={d(
         'revoke.body',
-        `${device.name} will no longer send attendance. Past attendance stays.`,
+        '{{name}} will no longer send attendance. Past attendance stays.',
+        { name: device.name },
       )}
       confirmLabel={d('revoke.confirm', 'Revoke')}
       cancelLabel={d('form.cancel', 'Cancel')}

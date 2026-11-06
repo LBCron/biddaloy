@@ -25,7 +25,8 @@
       "guardian2_phone": "Required when guardian 2 has a name. Same phone format as guardian 1.",
       "guardian2_email": "An email address for guardian 2. Leave empty to skip.",
       "home_address": "The student's home address. Leave empty to skip.",
-      "preferred_communication": "One of SMS, WHATSAPP, EMAIL, PHONE_CALL, MESSENGER. Leave empty to skip."
+      "preferred_communication": "One of SMS, WHATSAPP, EMAIL, PHONE_CALL, MESSENGER. Leave empty to skip.",
+      "card_no": "The number on the attendance card. Must be different for every student. Leave empty to skip."
     },
     "toggle": "What goes in each column",
     "count_one": "{{count}} column",
@@ -44,7 +45,8 @@
       "guardian2_phone": "Second guardian's phone",
       "guardian2_email": "Second guardian's email",
       "home_address": "Home address",
-      "preferred_communication": "Preferred contact"
+      "preferred_communication": "Preferred contact",
+      "card_no": "Card number"
     }
   },
   "upload": {

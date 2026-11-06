@@ -49,6 +49,7 @@ helpIds:
     people.staff.field.role,
     people.staff.field.employeeId,
     people.staff.field.designations,
+    people.staff.field.cardNo,
     people.staff.action.edit,
   ]
 devices: [desktop]
@@ -407,6 +408,7 @@ knownIssues: []
 | পদবি                    | শ্রেণি শিক্ষক, বিষয় শিক্ষক, প্রধান শিক্ষক, সহকারী শিক্ষক, অধ্যক্ষ, উপাধ্যক্ষ, সমন্বয়ক থেকে এক বা একাধিক।      | না                             |
 | বিষয়ের বিশেষত্ব        | যে বিষয়ে শিক্ষক দক্ষ, যেমন গণিত। মুক্ত লেখা।                                                                   | না                             |
 | যোগদানের তারিখ          | কবে স্কুলে যোগ দিয়েছেন।                                                                                        | না                             |
+| কার্ড নম্বর             | কর্মীর হাজিরা কার্ডে লেখা নম্বর। দুইজনের নম্বর এক হবে না।                                                       | না                             |
 
 <!-- /guide:generated -->
 

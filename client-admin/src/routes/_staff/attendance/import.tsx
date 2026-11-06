@@ -11,6 +11,7 @@ import {
   importFileErrorKey,
   useCommitAttendanceSheet,
   useDownloadAttendanceSheet,
+  useMySections,
   useValidateAttendanceSheet,
   type AttendanceSheetValidateResult,
 } from '@biddaloy/ui/hooks';
@@ -62,6 +63,15 @@ function AttendanceImportPage() {
   const [sectionIds, setSectionIds] = React.useState<string[]>(
     search.sectionId ? [search.sectionId] : [],
   );
+  // `?sectionId=` is user-editable: keep it only if it is a section this user may write.
+  const mySections = useMySections().data;
+  React.useEffect(() => {
+    if (!mySections) return;
+    setSectionIds((ids) => {
+      const allowed = ids.filter((id) => mySections.some((s) => s.section_id === id));
+      return allowed.length === ids.length ? ids : allowed;
+    });
+  }, [mySections]);
   const [date, setDate] = React.useState(() => tenantTodayIso(regionConfig));
   const [file, setFile] = React.useState<File | undefined>(undefined);
   const [result, setResult] = React.useState<AttendanceSheetValidateResult | undefined>(undefined);

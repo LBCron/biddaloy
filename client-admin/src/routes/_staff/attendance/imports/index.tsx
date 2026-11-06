@@ -4,8 +4,13 @@
  * another listed upload points at it through `supersedes_import_id`.
  * Teachers only get their own uploads — the server scopes the list.
  */
+import { Permission } from '@biddaloy/shared';
 import { StatusBadge, type DataTableColumn } from '@biddaloy/ui/components';
-import { useAttendanceImports, type AttendanceImportSummary } from '@biddaloy/ui/hooks';
+import {
+  useAttendanceImports,
+  useHasPermission,
+  type AttendanceImportSummary,
+} from '@biddaloy/ui/hooks';
 import { useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { ListShell } from '@biddaloy/ui/shells';
 import { formatDateTime, formatNumber } from '@biddaloy/ui/utils';
@@ -24,6 +29,8 @@ function AttendanceImportsPage() {
   const { t } = useTranslation('attendanceImport');
   const regionConfig = useTenantRegionConfig();
   const navigate = useNavigate();
+  // Uploading writes marks, so the buttons need ATTENDANCE_MARK; reading the list does not.
+  const canMark = useHasPermission(Permission.ATTENDANCE_MARK);
   const [page, setPage] = React.useState(1);
   const query = useAttendanceImports(page);
   const items = query.data?.items ?? [];
@@ -87,14 +94,18 @@ function AttendanceImportsPage() {
     <ListShell
       title={t('history.title')}
       subtitle={t('history.description')}
-      actions={[
-        {
-          id: 'upload',
-          label: t('history.uploadNew'),
-          priority: 'primary',
-          onClick: () => void navigate({ to: '/attendance/import' }),
-        },
-      ]}
+      actions={
+        canMark
+          ? [
+              {
+                id: 'upload',
+                label: t('history.uploadNew'),
+                priority: 'primary',
+                onClick: () => void navigate({ to: '/attendance/import' }),
+              },
+            ]
+          : []
+      }
       tableId="attendance-imports"
       caption={t('history.title')}
       columns={columns}
@@ -119,10 +130,14 @@ function AttendanceImportsPage() {
       emptyState={{
         title: t('history.emptyTitle'),
         explanation: t('history.emptyExplanation'),
-        action: {
-          label: t('history.emptyAction'),
-          onClick: () => void navigate({ to: '/attendance/import' }),
-        },
+        ...(canMark
+          ? {
+              action: {
+                label: t('history.emptyAction'),
+                onClick: () => void navigate({ to: '/attendance/import' }),
+              },
+            }
+          : {}),
       }}
     />
   );

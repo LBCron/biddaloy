@@ -31,6 +31,7 @@ const hrRecord: StaffHrRecord = {
   blood_group: null,
   name_bn: null,
   religion: null,
+  card_no: null,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
 };

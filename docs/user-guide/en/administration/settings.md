@@ -639,6 +639,9 @@ See: [**Roles & access**](roles.md).
 | Cutting gap between cards (mm)                  | Office printers only; 0 to 20 mm.                                                                                                                                                               | No          |
 | Allow sign-in with a code sent to the phone     | When off, everyone in this school must sign in with a password. If someone is in several schools, sign-in with a code is off for them as soon as it is off in any one of them. On at the start. | No          |
 | Conduct                                         | Each line gets a grade from A to D on the report card, for example Discipline or Neatness. Renaming a line keeps the grades already given.                                                      | No          |
+| Who marks daily attendance                      | Decides who can save the daily register: any assigned teacher, the class teacher, the first-period teacher, or the attendance machine.                                                          | No          |
+| Text the admin if staff attendance is late      | If daily attendance is still not taken late in the day, send the admin a text message. Off by default.                                                                                          | No          |
+| Machine secret key                              | The machine's secret key. It is shown once, so copy it now and keep it safe.                                                                                                                    | No          |
 
 <!-- /guide:generated -->
 

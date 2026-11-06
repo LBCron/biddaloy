@@ -49,6 +49,7 @@ helpIds:
     people.staff.field.role,
     people.staff.field.employeeId,
     people.staff.field.designations,
+    people.staff.field.cardNo,
     people.staff.action.edit,
   ]
 devices: [desktop]
@@ -407,6 +408,7 @@ Someone without permission who opens the page sees **You don't have access to th
 | Designations           | One or more of Class teacher, Subject teacher, Head teacher, Assistant teacher, Principal, Vice principal, Coordinator.              | No                               |
 | Subject specialization | The subject the teacher is strong in, for example Maths. Free text.                                                                  | No                               |
 | Joining date           | When they joined the school.                                                                                                         | No                               |
+| Card number            | The number on the staff member's attendance card. No two people share one.                                                           | No                               |
 
 <!-- /guide:generated -->
 

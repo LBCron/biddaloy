@@ -4,8 +4,9 @@
  * Title is "file · date". The breadcrumb's entity label is resolved by
  * `use-breadcrumbs.ts` (outside this lane) — it shows the generic noun until then.
  */
+import { Permission } from '@biddaloy/shared';
 import { ErrorState, Skeleton } from '@biddaloy/ui/components';
-import { useAttendanceImport, useAttendanceImports } from '@biddaloy/ui/hooks';
+import { useAttendanceImport, useAttendanceImports, useHasPermission } from '@biddaloy/ui/hooks';
 import { useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { DetailShell } from '@biddaloy/ui/shells';
 import { formatDateTime, formatNumber } from '@biddaloy/ui/utils';
@@ -26,6 +27,7 @@ function AttendanceImportDetailPage() {
   const { t } = useTranslation('attendanceImport');
   const regionConfig = useTenantRegionConfig();
   const { importId } = Route.useParams();
+  const canMark = useHasPermission(Permission.ATTENDANCE_MARK);
   const query = useAttendanceImport(importId);
   // The newer upload that corrects this one, if it is on the first page of the list.
   const newer = useAttendanceImports(1).data?.items.find(
@@ -61,13 +63,17 @@ function AttendanceImportDetailPage() {
         { label: t('history.columnErrors'), value: num(data.counts.error) },
       ]}
       actions={[
-        {
-          id: 'corrected',
-          label: t('detail.uploadCorrected'),
-          priority: 'primary',
-          to: '/attendance/import',
-          search: { supersedes: data.id },
-        },
+        ...(canMark
+          ? [
+              {
+                id: 'corrected',
+                label: t('detail.uploadCorrected'),
+                priority: 'primary' as const,
+                to: '/attendance/import',
+                search: { supersedes: data.id },
+              },
+            ]
+          : []),
         ...(newer
           ? [
               {

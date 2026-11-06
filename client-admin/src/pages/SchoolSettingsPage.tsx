@@ -23,7 +23,7 @@ import {
 } from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
 import { PageContainer } from '@biddaloy/ui/shells';
-import { Link, useLocation, useSearch } from '@tanstack/react-router';
+import { Link, useLocation, useNavigate, useSearch } from '@tanstack/react-router';
 import { ChevronLeftIcon } from 'lucide-react';
 import * as React from 'react';
 
@@ -123,6 +123,7 @@ export function SchoolSettingsPage({ backupJobId }: SchoolSettingsPageProps = {}
   const canManageBackup = useHasPermission(Permission.BACKUP_MANAGE);
 
   const { section, buy, order, payment, devices } = useSearch({ from: '/_staff/settings' });
+  const navigate = useNavigate();
   const hash = useLocation().hash;
   const categories = SETTINGS_CATEGORIES.filter(
     (c) =>
@@ -178,7 +179,16 @@ export function SchoolSettingsPage({ backupJobId }: SchoolSettingsPageProps = {}
             {loaded && (
               <>
                 <AttendanceSection schoolId={loaded.schoolId} attendance={loaded.data.attendance} />
-                <AttendanceDevicesSection openAdd={devices === 'new'} />
+                <AttendanceDevicesSection
+                  openAdd={devices === 'new'}
+                  onAddClosed={() =>
+                    void navigate({
+                      to: '/settings',
+                      search: (prev) => ({ ...prev, devices: undefined }),
+                      replace: true,
+                    })
+                  }
+                />
                 <EvaluationsSection
                   key={loaded.schoolId}
                   schoolId={loaded.schoolId}
