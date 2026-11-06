@@ -12,6 +12,7 @@ import {
   Max,
   IsDateString,
   IsNotEmpty,
+  Length,
   Matches,
   MaxLength,
   ValidateIf,
@@ -48,6 +49,18 @@ const trimmed = ({ value }: { value: unknown }) =>
 
 const ProfileText = (max: number) =>
   applyDecorators(IsOptional(), Transform(trimmed), IsString(), SanitizeText(), MaxLength(max));
+
+/** [76.2.06] Attendance card number: letters, digits, dashes. `null` on update clears it. */
+const CardNo = () =>
+  applyDecorators(
+    IsOptional(),
+    Transform(({ value }: { value: unknown }) =>
+      typeof value === 'string' ? value.trim() : value,
+    ),
+    IsString(),
+    Length(1, 64),
+    Matches(/^[A-Za-z0-9-]+$/, { message: 'card_no may only have letters, digits and dashes' }),
+  );
 
 /** Birth registration numbers are 10-17 digits (BD BRN is 17, older ones 10+). */
 const BirthRegNo = () =>
@@ -118,6 +131,9 @@ export class CreateStudentDto {
 
   @BirthRegNo()
   birth_reg_no?: string;
+
+  @CardNo()
+  card_no?: string;
 
   @ProfileText(200)
   religion?: string;
@@ -197,6 +213,9 @@ export class UpdateStudentDto {
 
   @BirthRegNo()
   birth_reg_no?: string | null;
+
+  @CardNo()
+  card_no?: string | null;
 
   @ProfileText(200)
   religion?: string | null;
@@ -570,6 +589,9 @@ export class BulkUploadRowDto {
   @IsString()
   @MaxLength(50)
   registration_number?: string;
+
+  @CardNo()
+  card_no?: string;
 
   @IsNotEmpty({ message: 'Missing required field: guardian1_name' })
   @SanitizeText()

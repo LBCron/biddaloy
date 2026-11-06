@@ -18,6 +18,7 @@ export function mapKnownError(exception: unknown): HttpException | null {
     mapBodyParserError(exception) ??
     mapHomeworkActiveUnique(exception) ??
     mapFinalResultUnique(exception) ??
+    mapCardNoUnique(exception) ??
     mapUniqueViolation(exception) ??
     mapStudentFeeCheckViolation(exception) ??
     mapInvalidDate(exception) ??
@@ -25,6 +26,24 @@ export function mapKnownError(exception: unknown): HttpException | null {
     mapMulterError(exception) ??
     mapImportFileError(exception)
   );
+}
+
+// [76.2.06] One card per person per school (students + staff). Fixed sentence: never names who
+// holds it (Rule 23). Services pre-check where they can; the partial unique indexes are the backstop.
+const CARD_NO_INDEXES = new Set(['UQ_students_tenant_card_no', 'UQ_staff_profiles_tenant_card_no']);
+export const CARD_NO_TAKEN_MESSAGE = 'This card number is already in use';
+
+export function cardNoTaken(): ConflictException {
+  return new ConflictException({
+    message: CARD_NO_TAKEN_MESSAGE,
+    details: { code: 'CARD_NO_TAKEN' },
+  });
+}
+
+function mapCardNoUnique(exception: unknown): HttpException | null {
+  if (!(exception instanceof QueryFailedError)) return null;
+  const { code, constraint } = exception.driverError as { code?: string; constraint?: string };
+  return code === '23505' && CARD_NO_INDEXES.has(constraint ?? '') ? cardNoTaken() : null;
 }
 
 // Keyed on the table, never the index name (brittle) and never `detail`

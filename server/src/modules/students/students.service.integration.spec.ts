@@ -1660,6 +1660,53 @@ describe('StudentService (integration)', () => {
     });
   });
 
+  describe('card_no [76.2.06]', () => {
+    const mk = (name: string, card_no?: string, section = SEED_SECTION_1_ID, tenant = TENANT_ID) =>
+      service.create({ full_name: name, class_section_id: section, card_no }, tenant);
+
+    it('sets, changes and clears a card; the audit names the key but not the value', async () => {
+      const s = await mk('Card One', 'C-100');
+      expect(s.card_no).toBe('C-100');
+
+      const changed = await service.update(s.id, { card_no: ' C-200 ' as string }, TENANT_ID);
+      expect(changed.card_no).toBe('C-200');
+
+      const cleared = await service.update(s.id, { card_no: null }, TENANT_ID);
+      expect(cleared.card_no).toBeNull();
+
+      const logs = await dataSource.query(
+        `SELECT new_values FROM audit_logs WHERE entity_id = $1 AND action = 'UPDATE'`,
+        [s.id],
+      );
+      expect(logs.length).toBe(2);
+      for (const l of logs) expect(JSON.stringify(l.new_values)).not.toContain('C-');
+      expect(JSON.stringify(logs[0].new_values)).toContain('card_no');
+    });
+
+    it('a duplicate card in the tenant is a fixed 409 that names nothing', async () => {
+      await mk('Holder', 'DUP-1');
+      const other = await mk('Other');
+      const err = await service.update(other.id, { card_no: 'DUP-1' }, TENANT_ID).catch((e) => e);
+      expect(err).toBeInstanceOf(ConflictException);
+      expect(JSON.stringify(err.getResponse())).toContain('This card number is already in use');
+      expect(JSON.stringify(err.getResponse())).not.toContain('Holder');
+      await expect(mk('Third', 'DUP-1')).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('the same card in another tenant is fine', async () => {
+      await mk('Mine', 'SHARED-1');
+      const theirs = await mk('Theirs', 'SHARED-1', OTHER_SECTION_ID, OTHER_TENANT);
+      expect(theirs.card_no).toBe('SHARED-1');
+    });
+
+    it('a card is free again after the student is soft deleted', async () => {
+      const gone = await mk('Gone', 'REUSE-1');
+      await service.remove(gone.id, TENANT_ID, null, NO_CTX);
+      const next = await mk('Next', 'REUSE-1');
+      expect(next.card_no).toBe('REUSE-1');
+    });
+  });
+
   describe('remove (soft delete)', () => {
     it('should soft delete a student', async () => {
       const created = await service.create(

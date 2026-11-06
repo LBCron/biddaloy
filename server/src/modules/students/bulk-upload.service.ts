@@ -83,6 +83,7 @@ interface ValidatedBulkUploadRow {
   section: string;
   roll?: string;
   registration_number?: string;
+  card_no?: string;
   guardian1_name: string;
   guardian1_phone: string;
   guardian1_email?: string;
@@ -291,6 +292,46 @@ export class StudentBulkUploadService {
       });
       staged = staged.filter((_, i) => !dropped.has(i));
       preview = preview.filter((_, i) => !dropped.has(i));
+    }
+
+    // [76.2.06] A supplied card number must be unique in the file and among the school's live
+    // students (the index ignores soft-deleted ones). Fixed texts, no value, no holder (D19).
+    if (staged.some((r) => r.card_no)) {
+      const held = new Set(
+        (
+          await this.classRepo.manager.find(Student, {
+            select: { card_no: true },
+            where: {
+              tenant_id: tenantId,
+              card_no: In(staged.flatMap((r) => r.card_no ?? [])),
+              deleted_at: IsNull(),
+            },
+          })
+        ).map((s) => s.card_no),
+      );
+      const seenCards = new Set<string>();
+      const droppedCards = new Set<number>();
+      staged.forEach((row, i) => {
+        const card = row.card_no;
+        if (!card) return;
+        const message = seenCards.has(card)
+          ? 'This card number appears more than once in this file.'
+          : held.has(card)
+            ? 'This card number is already in use.'
+            : undefined;
+        seenCards.add(card);
+        if (!message) return;
+        droppedCards.add(i);
+        errors.push({
+          row: row.rowNumber,
+          tab: undefined,
+          column: 'card_no',
+          severity: 'error',
+          message,
+        });
+      });
+      staged = staged.filter((_, i) => !droppedCards.has(i));
+      preview = preview.filter((_, i) => !droppedCards.has(i));
     }
 
     // [LIFE-09] Joining an existing family is allowed but visible: committing after
@@ -558,6 +599,7 @@ export class StudentBulkUploadService {
       section: dto.section,
       roll: dto.roll,
       registration_number: registrationNumber,
+      card_no: dto.card_no,
       guardian1_name: dto.guardian1_name,
       guardian1_phone: dto.guardian1_phone,
       guardian1_email: dto.guardian1_email,
@@ -624,6 +666,7 @@ export class StudentBulkUploadService {
             full_name: row.student_name,
             class_section_id: row.classSectionId,
             roll_number: row.rollNumber,
+            card_no: row.card_no,
             home_address: row.home_address,
             preferred_communication: row.preferred_communication as CommunicationMedium,
             guardian_ids: guardianIds,

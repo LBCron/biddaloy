@@ -73,7 +73,9 @@ async function buildXlsxFile(
   rows: string[][],
   filename = 'students.xlsx',
 ): Promise<Express.Multer.File> {
-  const headers = [...REQUIRED_HEADERS];
+  // [76.2.06] A row one cell longer than the schema carries the optional card_no column.
+  const headers: string[] = [...REQUIRED_HEADERS];
+  if (rows.some((r) => r.length > headers.length)) headers.push('card_no');
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Students');
   worksheet.addRow(headers);
@@ -673,6 +675,67 @@ describe('StudentBulkUploadService (integration)', () => {
 
     expect(result.success_count).toBe(0);
     expect(result.errors[0]).toMatchObject({ field: 'section', value: 'Section A' });
+  });
+
+  describe('[76.2.06] card_no column', () => {
+    const withCard = (name: string, phone: string, card: string) => [
+      ...rowValues(headers, { student_name: name, guardian1_phone: phone }),
+      card,
+    ];
+
+    it('is optional: a file without the column still imports', async () => {
+      const result = await runUpload(
+        await buildXlsxFile([
+          rowValues(headers, { student_name: 'No Card', guardian1_phone: '+8801700000401' }),
+        ]),
+        TENANT_ID,
+        SEED_ADMIN_USER_ID,
+      );
+      expect(result.success_count).toBe(1);
+    });
+
+    it('stores a supplied card', async () => {
+      const result = await runUpload(
+        await buildXlsxFile([withCard('Has Card', '+8801700000402', 'BULK-1')]),
+        TENANT_ID,
+        SEED_ADMIN_USER_ID,
+      );
+      const st = await studentRepo.findOneByOrFail({ id: result.created_student_ids[0] });
+      expect(st.card_no).toBe('BULK-1');
+    });
+
+    it('hard-errors invalid characters', async () => {
+      const v = await service.validate(
+        await buildXlsxFile([withCard('Bad Card', '+8801700000403', 'a b!')]),
+        TENANT_ID,
+        SEED_ADMIN_USER_ID,
+      );
+      expect(v.hard_error_count).toBe(1);
+      expect(v.errors[0].column).toBe('card_no');
+    });
+
+    it('hard-errors a card repeated in the file or held in the tenant, without echoing it', async () => {
+      await runUpload(
+        await buildXlsxFile([withCard('Holder', '+8801700000404', 'HELD-9')]),
+        TENANT_ID,
+        SEED_ADMIN_USER_ID,
+      );
+      const v = await service.validate(
+        await buildXlsxFile([
+          withCard('Rep A', '+8801700000405', 'REP-9'),
+          withCard('Rep B', '+8801700000406', 'REP-9'),
+          withCard('Clash', '+8801700000407', 'HELD-9'),
+        ]),
+        TENANT_ID,
+        SEED_ADMIN_USER_ID,
+      );
+      expect(v.hard_error_count).toBe(2);
+      expect(v.rows_to_create).toBe(1);
+      for (const e of v.errors) {
+        expect(e.column).toBe('card_no');
+        expect(e.message).not.toMatch(/REP-9|HELD-9/);
+      }
+    });
   });
 
   describe('[2607] registration_number column', () => {
