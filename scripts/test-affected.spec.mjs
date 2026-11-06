@@ -19,7 +19,7 @@ describe('resolveAffected', () => {
     expect(plan.runServerUnit).toBe(true);
   });
 
-  it('a shared change runs all five frontend projects and the server suite', () => {
+  it('a shared change runs all five frontend projects, site-themes and the server suite', () => {
     const plan = resolveAffected(['shared/src/enums/permissions.ts']);
     expect(plan.frontendProjects).toEqual([
       'ui:node',
@@ -27,6 +27,7 @@ describe('resolveAffected', () => {
       'client-admin:node',
       'client-admin:jsdom',
       'shared:node',
+      'site-themes:node',
     ]);
     expect(plan.runServerUnit).toBe(true);
   });

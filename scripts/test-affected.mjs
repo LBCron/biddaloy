@@ -91,7 +91,8 @@ function classify(file) {
     return { frontendProjects: ALL_PROJECTS, server: true };
   }
   if (file.startsWith('shared/')) {
-    return { frontendProjects: ALL_FRONTEND_FIVE, server: true };
+    // site-themes resolves @biddaloy/shared from shared/src, so a shared change re-runs it too.
+    return { frontendProjects: [...ALL_FRONTEND_FIVE, SITE_THEMES_PROJECT], server: true };
   }
   if (file.startsWith('ui/')) {
     return { frontendProjects: UI_PROJECTS, server: false };
