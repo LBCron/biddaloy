@@ -15,6 +15,19 @@ import { slice as billing } from './slices/billing';
 import { slice as reports } from './slices/reports';
 import { slice as attention } from './slices/attention';
 import { slice as notices } from './slices/notices';
+import { SchoolSite } from '../../modules/website/entities/school-site.entity';
+import { SiteEnquiry } from '../../modules/website/entities/site-enquiry.entity';
+import { SiteMedia } from '../../modules/website/entities/site-media.entity';
+import { SitePost } from '../../modules/website/entities/site-post.entity';
+import { StaffWebProfile } from '../../modules/website/entities/staff-web-profile.entity';
+
+/** [40.1.03] Epic 40 website tables: owed stub. #3621 (40.1.08) moves it to `slices/website.ts` and seeds it. */
+const website: DemoSlice = {
+  name: 'website',
+  covers: [SchoolSite, SiteMedia, SitePost, SiteEnquiry, StaffWebProfile],
+  owedBy: '#3621',
+  run: async () => {},
+};
 
 /** Run order matters: later slices read ids earlier ones publish. `attention` is always last. */
 export const SLICES: DemoSlice[] = [
@@ -33,6 +46,7 @@ export const SLICES: DemoSlice[] = [
   billing,
   reports,
   notices,
+  website,
   attention,
 ];
 

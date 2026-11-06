@@ -31,6 +31,13 @@ export const TRANSACTIONAL_TABLES_CHILD_FIRST = [
   // [67.1.02] attention engine; recipients FK alerts, so they clear first.
   'alert_recipients',
   'alerts',
+  // [40.1.03] school website; posts and staff profiles FK site_media (SET NULL), so
+  // they clear first. staff_web_profiles FK users, cleared once per file later.
+  'site_posts',
+  'staff_web_profiles',
+  'site_media',
+  'site_enquiries',
+  'school_sites',
   // [53.1.02] notice board; recipients and attachments RESTRICT-FK notices and
   // recipients FK students/guardians/users, so they clear before all of those.
   'notice_recipients',

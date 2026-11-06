@@ -42,6 +42,8 @@ export class SitePost {
   @Column({ type: 'uuid', nullable: true })
   cover_media_id: string | null;
 
+  // In the DB this FK is composite: (tenant_id, cover_media_id) -> site_media(tenant_id, id),
+  // ON DELETE SET NULL ("cover_media_id") (migration 1791900003400).
   @ManyToOne(() => SiteMedia, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'cover_media_id', foreignKeyConstraintName: 'FK_site_posts_cover_media_id' })
   cover_media: SiteMedia | null;

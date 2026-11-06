@@ -100,6 +100,18 @@ const BY_TABLE: Record<string, Partial<Record<ScrubHandling, string[]>>> = {
   print_assets: { fake: ['original_name'], 'kept-public': ['storage_key'] },
   notice_attachments: { fake: ['original_name'], 'kept-public': ['storage_key'] },
 
+  // --- [40.1.03] school website ---
+  // Enquiries come from the public form: a parent's name, phone and question.
+  site_enquiries: { fake: ['name', 'phone'], null: ['message'] },
+  // A teacher's card text can name family, past schools, degrees; subjects are subject names.
+  staff_web_profiles: { null: ['bio', 'credentials'], 'kept-public': ['subjects'] },
+  // Website copy written by the school to be published (theme, sections, announcements).
+  school_sites: { 'kept-public': ['draft', 'published'] },
+  // Posts are news about people, like notices: text goes (NOT NULL jsonb gets a placeholder).
+  site_posts: { null: ['title', 'body'] },
+  // Content hash of a picture (staff photos too); replaced by a value derived from the row id.
+  site_media: { fake: ['hash'] },
+
   // --- tokens, sessions, devices ---
   refresh_tokens: { 'delete-row': ['*'] },
   auth_tokens: { 'delete-row': ['*'] },

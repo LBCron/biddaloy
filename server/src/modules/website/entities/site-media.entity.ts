@@ -13,6 +13,8 @@ import { School } from '../../schools/entities/school.entity';
 /** [40.1.03] An uploaded website picture. Delete guards: see `school-site.entity.ts` header. */
 @Unique('UQ_site_media_storage_key', ['storage_key'])
 @Unique('UQ_site_media_tenant_hash', ['tenant_id', 'hash'])
+// Target of the composite picture FKs on site_posts / staff_web_profiles.
+@Unique('UQ_site_media_tenant_id', ['tenant_id', 'id'])
 @Check('CHK_site_media_bytes', `"bytes" > 0`)
 @Entity('site_media')
 export class SiteMedia {

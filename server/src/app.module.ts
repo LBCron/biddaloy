@@ -97,6 +97,11 @@ import { AlertRecipient } from './modules/attention/entities/alert-recipient.ent
 import { Notice } from './modules/notices/entities/notice.entity';
 import { NoticeAttachment } from './modules/notices/entities/notice-attachment.entity';
 import { NoticeRecipient } from './modules/notices/entities/notice-recipient.entity';
+import { SchoolSite } from './modules/website/entities/school-site.entity';
+import { SiteEnquiry } from './modules/website/entities/site-enquiry.entity';
+import { SiteMedia } from './modules/website/entities/site-media.entity';
+import { SitePost } from './modules/website/entities/site-post.entity';
+import { StaffWebProfile } from './modules/website/entities/staff-web-profile.entity';
 import { Survey } from './modules/surveys/entities/survey.entity';
 import { SurveyQuestion } from './modules/surveys/entities/survey-question.entity';
 import { SurveyTarget } from './modules/surveys/entities/survey-target.entity';
@@ -411,6 +416,12 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
             Notice,
             NoticeAttachment,
             NoticeRecipient,
+            // [40.1.03] Epic 40 school website; no module reads them until #3621 / Wave 2.
+            SchoolSite,
+            SiteEnquiry,
+            SiteMedia,
+            SitePost,
+            StaffWebProfile,
             PlatformAlert,
             SeatOrder,
             PlatformPayment,
