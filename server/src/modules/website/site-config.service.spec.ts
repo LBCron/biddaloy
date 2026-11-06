@@ -59,28 +59,68 @@ describe('changeTheme', () => {
   });
 });
 
-/** A one-row in-memory stand-in for the two repositories the service reads. */
+/**
+ * A one-row in-memory stand-in for the two repositories the service reads. `update` and the
+ * publish query builder honour their WHERE (version / draft_revision) and `() => 'col + 1'`
+ * values, so stale-token behaviour is real, not mocked.
+ */
 function setup(row: Record<string, unknown> | null) {
-  const state = { row };
-  const insert = {
-    insert: () => insert,
-    into: () => insert,
+  const state: { row: Record<string, unknown> | null } = { row };
+  const matches = (where: Record<string, unknown>) =>
+    !!state.row && Object.entries(where).every(([k, v]) => state.row?.[k] === v);
+  const apply = (set: Record<string, unknown>) => {
+    for (const [k, v] of Object.entries(set)) {
+      if (typeof v !== 'function') state.row![k] = v;
+      else if (v() === `${k} + 1`) state.row![k] = (state.row![k] as number) + 1;
+      else if (v() === 'draft') state.row![k] = structuredClone(state.row!.draft);
+      else state.row![k] = new Date();
+    }
+  };
+  const qb = {
+    insert: () => qb,
+    into: () => qb,
     values: (v: Record<string, unknown>) => {
-      insert.v = v;
-      return insert;
+      qb.v = v;
+      return qb;
     },
-    orIgnore: () => insert,
+    orIgnore: () => qb,
+    update: () => qb,
+    set: (set: Record<string, unknown>) => {
+      qb.s = set;
+      return qb;
+    },
+    where: (_sql: string, p: Record<string, unknown>) => {
+      qb.w = { tenant_id: p.tenantId, version: p.version, draft_revision: p.draftRevision };
+      return qb;
+    },
     execute: async () => {
-      state.row = { ...insert.v, version: 0, enabled: false, published: null, published_at: null };
+      if (qb.s) {
+        const hit = matches(qb.w);
+        if (hit) apply(qb.s);
+        qb.s = null;
+        return { affected: hit ? 1 : 0 };
+      }
+      state.row = {
+        ...qb.v,
+        version: 0,
+        draft_revision: 0,
+        enabled: false,
+        published: null,
+        published_at: null,
+      };
+      return { affected: 1 };
     },
     v: {} as Record<string, unknown>,
+    s: null as Record<string, unknown> | null,
+    w: {} as Record<string, unknown>,
   };
   const sites = {
     findOne: vi.fn(async () => state.row),
-    createQueryBuilder: () => insert,
-    update: vi.fn(async (_w: unknown, set: Record<string, unknown>) => {
-      Object.assign(state.row ?? {}, set);
-      return { affected: state.row ? 1 : 0 };
+    createQueryBuilder: () => qb,
+    update: vi.fn(async (where: Record<string, unknown>, set: Record<string, unknown>) => {
+      const hit = matches(where);
+      if (hit) apply(set);
+      return { affected: hit ? 1 : 0 };
     }),
   };
   const schools = { findOneOrFail: vi.fn(async () => ({ name: 'Test School' })) };
@@ -106,7 +146,7 @@ describe('SiteConfigService', () => {
     const { svc } = setup(null);
     const dto = await svc.get('t1');
     const config = { ...dto.draft, palette: 'leaky-value' };
-    const err = await svc.saveDraft('t1', { config, version: 0 }).catch((e) => e);
+    const err = await svc.saveDraft('t1', { config, draft_revision: 0 }).catch((e) => e);
     expect(err.getResponse()).toEqual({
       message: 'site.invalid',
       details: { errors: ['palette.unknown'] },
@@ -114,13 +154,40 @@ describe('SiteConfigService', () => {
     expect(JSON.stringify(err.getResponse())).not.toContain('leaky-value');
   });
 
-  it('saveDraft with a stale version is 409 site.stale', async () => {
-    const { svc, sites } = setup(null);
+  it('saveDraft bumps draft_revision; a save from an older revision is 409 site.stale', async () => {
+    const { svc } = setup(null);
     const dto = await svc.get('t1');
-    sites.update.mockResolvedValueOnce({ affected: 0 });
-    await expect(svc.saveDraft('t1', { config: dto.draft, version: 9 })).rejects.toThrow(
+    expect(dto.draft_revision).toBe(0);
+    const saved = await svc.saveDraft('t1', { config: dto.draft, draft_revision: 0 });
+    expect(saved.draft_revision).toBe(1);
+    // A second editor still holding revision 0 must not overwrite the first one's save.
+    await expect(svc.saveDraft('t1', { config: dto.draft, draft_revision: 0 })).rejects.toThrow(
       'site.stale',
     );
+  });
+
+  it('publish copies the draft, bumps version and clears the feeds', async () => {
+    const { svc, state, cache } = setup(null);
+    const dto = await svc.get('t1');
+    const config = structuredClone(dto.draft) as Record<string, unknown>;
+    config.palette = THEMES[SiteTheme.BASIC].palettes[1].id;
+    await svc.saveDraft('t1', { config, draft_revision: 0 });
+
+    const published = await svc.publish('t1', 0, 1);
+    expect(published.version).toBe(1);
+    expect(published.has_published).toBe(true);
+    expect((state.row?.published as SiteConfig).palette).toBe(config.palette);
+    expect(cache.invalidate).toHaveBeenCalledWith('t1');
+  });
+
+  // The lost update the draft token closes: publish(N) must not ship a draft its author never saw.
+  it('publish is 409 site.stale when the draft changed since the publisher read it', async () => {
+    const { svc } = setup(null);
+    const dto = await svc.get('t1');
+    await svc.saveDraft('t1', { config: dto.draft, draft_revision: 0 }); // someone else saves
+    await expect(svc.publish('t1', 0, 0)).rejects.toThrow('site.stale');
+    await expect(svc.publish('t1', 5, 1)).rejects.toThrow('site.stale');
+    await expect(svc.publish('t1', 0, 1)).resolves.toMatchObject({ version: 1 });
   });
 
   it('setEnabled(true) needs a published version', async () => {

@@ -9,6 +9,7 @@ import { UserRole } from '@biddaloy/shared';
 import { StorageService } from '../storage/storage.service';
 import { TENANT_STATUS_REDIS } from '../schools/tenant-status.service';
 import { AppModule } from '../../app.module';
+import { AllExceptionsFilter } from '../../common/filters/http-exception.filter';
 import { configureApiVersioning } from '@test/helpers/e2e-app.helper';
 import { buildValidationPipeOptions } from '../../validation-pipe';
 import {
@@ -53,6 +54,8 @@ describe('Website API E2E', () => {
     app = moduleFixture.createNestApplication();
     configureApiVersioning(app);
     app.useGlobalPipes(new ValidationPipe(buildValidationPipeOptions()));
+    // As main.ts does, so the 404 bodies checked below are the ones production sends.
+    app.useGlobalFilters(new AllExceptionsFilter());
     await app.init();
     ds = app.get(DataSource);
 
@@ -94,6 +97,7 @@ describe('Website API E2E', () => {
     await ds.query(`UPDATE schools SET logo_key = NULL WHERE id = $1`, [SEED_TENANT_ID]);
     await ds.query(`DELETE FROM schools WHERE id = $1`, [OTHER_TENANT]);
     await ds.query(`DELETE FROM user_tenants WHERE user_id = $1`, [teacherUserId]);
+    await ds.query(`DELETE FROM users WHERE id = $1`, [teacherUserId]);
     await app.close();
   });
 
@@ -117,22 +121,90 @@ describe('Website API E2E', () => {
       .expect(403);
   });
 
-  it('GET /website: missing or foreign X-Tenant-ID is 401', async () => {
+  // Mandatory per route: no X-Tenant-ID, a tenant the user is not in, and a non-UUID value.
+  it('GET /website: missing, foreign or malformed X-Tenant-ID is 401', async () => {
     await admin('get', '/website', { tenant: null }).expect(401);
     await admin('get', '/website', { tenant: BOGUS_TENANT }).expect(401);
+    await admin('get', '/website', { tenant: 'not-a-uuid' }).expect(401);
   });
+
+  it('GET /website/themes: missing, foreign or malformed X-Tenant-ID is 401', async () => {
+    await admin('get', '/website/themes', { tenant: null }).expect(401);
+    await admin('get', '/website/themes', { tenant: BOGUS_TENANT }).expect(401);
+    await admin('get', '/website/themes', { tenant: 'not-a-uuid' }).expect(401);
+  });
+
+  it('PUT /website/draft: missing, foreign or malformed X-Tenant-ID is 401', async () => {
+    const body = { config: {}, draft_revision: 0 };
+    await admin('put', '/website/draft', { tenant: null }).send(body).expect(401);
+    await admin('put', '/website/draft', { tenant: BOGUS_TENANT }).send(body).expect(401);
+    await admin('put', '/website/draft', { tenant: 'not-a-uuid' }).send(body).expect(401);
+  });
+
+  it('POST /website/publish: missing, foreign or malformed X-Tenant-ID is 401', async () => {
+    const body = { version: 0, draft_revision: 0 };
+    const post = (tenant: string | null) =>
+      admin('post', '/website/publish', { tenant }).set('Idempotency-Key', randomUUID()).send(body);
+    await post(null).expect(401);
+    await post(BOGUS_TENANT).expect(401);
+    await post('not-a-uuid').expect(401);
+  });
+
+  it('POST /website/enabled: missing, foreign or malformed X-Tenant-ID is 401', async () => {
+    const body = { enabled: false };
+    await admin('post', '/website/enabled', { tenant: null }).send(body).expect(401);
+    await admin('post', '/website/enabled', { tenant: BOGUS_TENANT }).send(body).expect(401);
+    await admin('post', '/website/enabled', { tenant: 'not-a-uuid' }).send(body).expect(401);
+  });
+  // test/setup.ts clears school_sites, site_media and notices before every test, so each test
+  // builds the site it needs through the real routes (`liveSite`) instead of relying on order.
   describe('editing and publishing', () => {
-    let host: string;
-    let version: number;
+    type Config = {
+      palette: string;
+      pages: { page: string; sections: { key: string; data: Record<string, unknown> }[] }[];
+    };
     const send = (method: 'put' | 'post', path: string, body: object) =>
       admin(method, path).send(body);
+    // Publish needs an Idempotency-Key (Rule 25); a fresh key per call so no replay hides a 409.
+    const publish = (body: object) =>
+      admin('post', '/website/publish').set('Idempotency-Key', randomUUID()).send(body);
+    const strip = (body: Record<string, unknown>) => {
+      const { requestId: _r, timestamp: _t, ...rest } = body;
+      return rest;
+    };
+    const by = (host: string, path: string) =>
+      api().get(`/api/v1/public/site/by-host/${host}${path}`);
+    const binary = (res: unknown, cb: (err: Error | null, body: Buffer) => void) => {
+      const chunks: Buffer[] = [];
+      (res as Readable).on('data', (c: Buffer) => chunks.push(c));
+      (res as Readable).on('end', () => cb(null, Buffer.concat(chunks)));
+    };
+
+    /** Saves a green draft (plus `edit`), publishes it and, unless told not to, switches it on. */
+    async function liveSite(o: { edit?: (c: Config) => void; enable?: boolean } = {}) {
+      const site = (await admin('get', '/website').expect(200)).body;
+      const config = JSON.parse(JSON.stringify(site.draft)) as Config;
+      config.palette = 'green';
+      o.edit?.(config);
+      const saved = (
+        await send('put', '/website/draft', { config, draft_revision: site.draft_revision }).expect(
+          200,
+        )
+      ).body;
+      const published = (
+        await publish({ version: saved.version, draft_revision: saved.draft_revision }).expect(200)
+      ).body;
+      if (o.enable !== false) await send('post', '/website/enabled', { enabled: true }).expect(200);
+      return { host: `${published.subdomain}.${ROOT}`, site: published };
+    }
 
     it('rejects an unknown palette with a fixed code and never echoes it (Rule 23)', async () => {
       const site = (await admin('get', '/website').expect(200)).body;
-      host = `${site.subdomain}.${ROOT}`;
-      version = site.version;
       const config = { ...site.draft, palette: 'secret-palette-xyz' };
-      const res = await send('put', '/website/draft', { config, version }).expect(400);
+      const res = await send('put', '/website/draft', {
+        config,
+        draft_revision: site.draft_revision,
+      }).expect(400);
       expect(res.body.message).toBe('site.invalid');
       expect(res.text).not.toContain('secret-palette-xyz');
     });
@@ -142,63 +214,86 @@ describe('Website API E2E', () => {
       expect(res.body.message).toBe('site.not_published');
     });
 
-    it('saves a draft, then publishes and bumps the version; a stale version is 409', async () => {
+    it('saves a draft, then publishes and bumps the version; a stale token is 409', async () => {
       const site = (await admin('get', '/website').expect(200)).body;
+      const { version, draft_revision: rev } = site;
       const config = JSON.parse(JSON.stringify(site.draft));
       config.palette = 'green';
-      await send('put', '/website/draft', { config, version }).expect(200);
-      const stale = await send('put', '/website/draft', { config, version: version + 5 }).expect(
+      const saved = await send('put', '/website/draft', { config, draft_revision: rev }).expect(
+        200,
+      );
+      expect(saved.body.draft_revision).toBe(rev + 1);
+      // A second editor still on the old revision cannot overwrite that save.
+      const stale = await send('put', '/website/draft', { config, draft_revision: rev }).expect(
         409,
       );
       expect(stale.body.message).toBe('site.stale');
 
-      const published = await send('post', '/website/publish', { version }).expect(200);
+      // Publishing a draft the publisher never saw (the old revision) is refused.
+      const unseen = await publish({ version, draft_revision: rev }).expect(409);
+      expect(unseen.body.message).toBe('site.stale');
+      const published = await publish({ version, draft_revision: rev + 1 }).expect(200);
       expect(published.body.version).toBe(version + 1);
       expect(published.body.has_published).toBe(true);
-      await send('post', '/website/publish', { version }).expect(409);
-      version += 1;
+      // Someone already published from this version.
+      await publish({ version, draft_revision: rev + 1 }).expect(409);
     });
 
-    it('a switched-off site and an unknown host answer byte-identical 404s', async () => {
-      const off = await api().get(`/api/v1/public/site/by-host/${host}/manifest`).expect(404);
-      const unknown = await api()
-        .get('/api/v1/public/site/by-host/nobody.sites.e2e.test/manifest')
-        .expect(404);
-      expect(off.text).toBe(unknown.text);
+    it('publish without an Idempotency-Key is 400 (Rule 25)', async () => {
+      const site = (await admin('get', '/website').expect(200)).body;
+      const res = await send('post', '/website/publish', {
+        version: site.version,
+        draft_revision: site.draft_revision,
+      }).expect(400);
+      expect(res.body.message).toMatch(/Idempotency-Key/);
+      // Nothing was published.
+      expect((await admin('get', '/website').expect(200)).body.has_published).toBe(false);
+    });
+
+    it('a switched-off site and an unknown host answer the same 404, never naming the host', async () => {
+      const { host } = await liveSite({ enable: false });
+      const off = await by(host, '/manifest').expect(404);
+      const unknown = await by('nobody.sites.e2e.test', '/manifest').expect(404);
+      // requestId and timestamp differ per request by design; everything else must match.
+      expect(strip(off.body)).toEqual(strip(unknown.body));
+      expect(off.body.message).toBe('site.not_found');
+      expect(off.text).not.toContain(host);
+      expect(unknown.text).not.toContain('nobody');
     });
 
     it('serves manifest and page in draft order once switched on', async () => {
-      await send('post', '/website/enabled', { enabled: true }).expect(200);
-      const manifest = await api().get(`/api/v1/public/site/by-host/${host}/manifest`).expect(200);
+      const { host, site } = await liveSite();
+      const manifest = await by(host, '/manifest').expect(200);
       expect(manifest.body.palette).toBe('green');
       expect(manifest.body.schoolName.en).toBe('Test School');
-      const site = (await admin('get', '/website').expect(200)).body;
       const home = site.draft.pages.find((p: { page: string }) => p.page === 'home');
-      const page = await api().get(`/api/v1/public/site/by-host/${host}/page/home`).expect(200);
+      const page = await by(host, '/page/home').expect(200);
       expect(page.body.sections.map((s: { key: string }) => s.key)).toEqual(
         home.sections
           .filter((s: { enabled: boolean }) => s.enabled)
           .map((s: { key: string }) => s.key),
       );
-      await api().get(`/api/v1/public/site/by-host/${host}/page/not-a-page`).expect(404);
+      await by(host, '/page/not-a-page').expect(404);
     });
 
     it('still serves page/home while Redis is down (fail open, D42)', async () => {
+      const { host } = await liveSite();
       const redis = app.get(TENANT_STATUS_REDIS);
       const down = () => Promise.reject(new Error('redis down'));
       const spies = [
         vi.spyOn(redis, 'get').mockImplementation(down as never),
         vi.spyOn(redis, 'set').mockImplementation(down as never),
-        vi.spyOn(redis, 'scan').mockImplementation(down as never),
+        vi.spyOn(redis, 'del').mockImplementation(down as never),
       ];
       try {
-        await api().get(`/api/v1/public/site/by-host/${host}/page/home`).expect(200);
+        await by(host, '/page/home').expect(200);
       } finally {
         spies.forEach((s) => s.mockRestore());
       }
     });
 
     it('notices island lists only public published notices', async () => {
+      const { host } = await liveSite();
       const ins = (title: string, isPublic: boolean) =>
         ds.query(
           `INSERT INTO notices (tenant_id, author_user_id, title, body, status, published_at, is_public)
@@ -209,28 +304,21 @@ describe('Website API E2E', () => {
       await ins(`site-${tag}-private`, false);
       const redis = app.get(TENANT_STATUS_REDIS);
       await redis.del(`site:${SEED_TENANT_ID}:feed:notices`);
-      const res = await api().get(`/api/v1/public/site/by-host/${host}/island/notices`).expect(200);
+      const res = await by(host, '/island/notices').expect(200);
       const titles = res.body.map((n: { title: string }) => n.title);
       expect(titles).toContain(`site-${tag}-public`);
       expect(titles).not.toContain(`site-${tag}-private`);
-      await api().get(`/api/v1/public/site/by-host/${host}/island/events`).expect(404);
+      await by(host, '/island/events').expect(404);
     });
 
     it('streams the school logo; another school’s picture is a 404', async () => {
+      const { host } = await liveSite();
       const storage = app.get(StorageService);
       const key = `tenants/${SEED_TENANT_ID}/website-logo-${tag}.webp`;
       const bytes = Buffer.from('RIFFfakewebp');
       await storage.put(key, bytes, 'image/webp');
       await ds.query(`UPDATE schools SET logo_key = $2 WHERE id = $1`, [SEED_TENANT_ID, key]);
-      const logo = await api()
-        .get(`/api/v1/public/site/by-host/${host}/media/logo`)
-        .buffer(true)
-        .parse((res, cb) => {
-          const chunks: Buffer[] = [];
-          (res as unknown as Readable).on('data', (c: Buffer) => chunks.push(c));
-          (res as unknown as Readable).on('end', () => cb(null, Buffer.concat(chunks)));
-        })
-        .expect(200);
+      const logo = await by(host, '/media/logo').buffer(true).parse(binary).expect(200);
       expect(logo.headers['content-type']).toContain('image/webp');
       expect((logo.body as Buffer).equals(bytes)).toBe(true);
       await storage.delete(key);
@@ -245,19 +333,95 @@ describe('Website API E2E', () => {
          VALUES ($1,'hero',$2,$3,10,10,5) RETURNING id`,
         [OTHER_TENANT, `tenants/${OTHER_TENANT}/m-${tag}.webp`, 'a'.repeat(64)],
       );
-      await api().get(`/api/v1/public/site/by-host/${host}/media/${id}`).expect(404);
+      await by(host, `/media/${id}`).expect(404);
+    });
+
+    it('serves only a picture the published site shows, with ETag and 304', async () => {
+      const storage = app.get(StorageService);
+      const key = `tenants/${SEED_TENANT_ID}/website-hero-${tag}.webp`;
+      const bytes = Buffer.from('RIFFherowebp');
+      await storage.put(key, bytes, 'image/webp');
+      const hash = 'b'.repeat(64);
+      const [{ id: shown }] = await ds.query(
+        `INSERT INTO site_media (tenant_id, slot, storage_key, hash, width, height, bytes)
+         VALUES ($1,'hero',$2,$3,10,10,12) RETURNING id`,
+        [SEED_TENANT_ID, key, hash],
+      );
+      // Same tenant, but not in the published config (e.g. a removed teacher photo).
+      const [{ id: hidden }] = await ds.query(
+        `INSERT INTO site_media (tenant_id, slot, storage_key, hash, width, height, bytes)
+         VALUES ($1,'person',$2,$3,10,10,12) RETURNING id`,
+        [SEED_TENANT_ID, key.replace('hero', 'person'), 'c'.repeat(64)],
+      );
+      const { host } = await liveSite({
+        edit: (c) => {
+          c.pages.find((p) => p.page === 'home')!.sections[0].data.images = [shown];
+        },
+      });
+
+      const ok = await by(host, `/media/${shown}`).buffer(true).parse(binary).expect(200);
+      expect(ok.headers.etag).toBe(`"${hash}"`);
+      expect((ok.body as Buffer).equals(bytes)).toBe(true);
+      await by(host, `/media/${shown}`).set('If-None-Match', `"${hash}"`).expect(304);
+      await by(host, `/media/${hidden}`).expect(404);
+      // An unreferenced row never answers 304 either: no hint that it exists.
+      await by(host, `/media/${hidden}`)
+        .set('If-None-Match', `"${'c'.repeat(64)}"`)
+        .expect(404);
+      await storage.delete(key);
+    });
+
+    it('a picture whose stored file fails mid-read answers the same JSON 404', async () => {
+      const [{ id: shown }] = await ds.query(
+        `INSERT INTO site_media (tenant_id, slot, storage_key, hash, width, height, bytes)
+         VALUES ($1,'hero',$2,$3,10,10,12) RETURNING id`,
+        [SEED_TENANT_ID, `tenants/${SEED_TENANT_ID}/broken-${tag}.webp`, 'd'.repeat(64)],
+      );
+      const { host } = await liveSite({
+        edit: (c) => {
+          c.pages.find((p) => p.page === 'home')!.sections[0].data.images = [shown];
+        },
+      });
+      const storage = app.get(StorageService);
+      const spy = vi.spyOn(storage, 'getForTenant').mockResolvedValue({
+        body: new Readable({
+          read() {
+            this.destroy(new Error('bucket gone'));
+          },
+        }),
+        contentType: 'image/webp',
+      });
+      try {
+        const res = await by(host, `/media/${shown}`).expect(404);
+        expect(res.headers['content-type']).toContain('application/json');
+        expect(res.headers.etag).toBeUndefined();
+        expect(res.body.message).toBe('site.not_found');
+        expect(res.text).not.toContain(host);
+      } finally {
+        spy.mockRestore();
+      }
     });
 
     it('an old subdomain inside its window answers 301 with the new address', async () => {
-      const site = (await admin('get', '/website').expect(200)).body;
+      const { site } = await liveSite();
       await ds.query(
         `UPDATE school_sites SET previous_subdomain = $2, previous_until = NOW() + interval '1 day' WHERE tenant_id = $1`,
         [SEED_TENANT_ID, `old-${tag}`],
       );
-      const res = await api()
-        .get(`/api/v1/public/site/by-host/old-${tag}.${ROOT}/manifest`)
-        .expect(301);
+      const res = await by(`old-${tag}.${ROOT}`, '/manifest').expect(301);
       expect(res.body.to).toBe(`${site.subdomain}.${ROOT}`);
+    });
+
+    // A switched-off school must not use its old address to reveal its new one.
+    it('a switched-off site’s old subdomain answers 404, not 301', async () => {
+      await liveSite({ enable: false });
+      await ds.query(
+        `UPDATE school_sites SET previous_subdomain = $2, previous_until = NOW() + interval '1 day' WHERE tenant_id = $1`,
+        [SEED_TENANT_ID, `old-${tag}`],
+      );
+      const res = await by(`old-${tag}.${ROOT}`, '/manifest').expect(404);
+      expect(res.body.message).toBe('site.not_found');
+      expect(res.body.to).toBeUndefined();
     });
   });
 });

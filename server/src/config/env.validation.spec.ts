@@ -62,6 +62,28 @@ describe('Turnstile keys (Epic 79)', () => {
   });
 });
 
+describe('SITE_ROOT_DOMAIN (Epic 40)', () => {
+  it('accepts a bare host, and unset or empty', () => {
+    expect(() =>
+      validate({ ...validConfig, SITE_ROOT_DOMAIN: 'schoolmanagerp.com' }),
+    ).not.toThrow();
+    expect(() => validate({ ...validConfig, SITE_ROOT_DOMAIN: 'sites.e2e.test' })).not.toThrow();
+    expect(() => validate({ ...validConfig, SITE_ROOT_DOMAIN: '' })).not.toThrow();
+    expect(() => validate({ ...validConfig, SITE_ROOT_DOMAIN: 'localhost' })).not.toThrow();
+    expect(() => validate(validConfig)).not.toThrow();
+  });
+
+  // Any of these would make every `<sub>.<root>` host fail to match, so all sites 404.
+  it('rejects a scheme, a port, a trailing dot or upper case', () => {
+    expect(() => validate({ ...validConfig, SITE_ROOT_DOMAIN: 'https://x.com' })).toThrow(
+      /SITE_ROOT_DOMAIN/,
+    );
+    expect(() => validate({ ...validConfig, SITE_ROOT_DOMAIN: 'x.com:443' })).toThrow();
+    expect(() => validate({ ...validConfig, SITE_ROOT_DOMAIN: 'x.com.' })).toThrow();
+    expect(() => validate({ ...validConfig, SITE_ROOT_DOMAIN: 'X.com' })).toThrow();
+  });
+});
+
 describe('assertProductionConfig (via validate)', () => {
   it('accepts a fully valid production env', () => {
     expect(() => validate(prodConfig)).not.toThrow();

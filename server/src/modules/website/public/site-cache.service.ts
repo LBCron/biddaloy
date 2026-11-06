@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type Redis from 'ioredis';
+import { SiteIslandKind } from '@biddaloy/shared';
 import { TENANT_STATUS_REDIS } from '../../schools/tenant-status.service';
 
 export const SITE_CACHE_TTL_SECONDS = 24 * 60 * 60;
@@ -10,7 +11,7 @@ const LOG_EVERY_MS = 60_000;
 /**
  * Published-site cache on the shared fail-fast Redis client. Content keys carry the site
  * `version`, so a publish makes the old keys unreachable (they expire on their own); feeds
- * change without a publish, so they live 60 s under their own key.
+ * change without a publish, so they live 60 s under their own key (one per `SiteIslandKind`).
  * Redis down (D32, D42): the loader runs and the page is still served. Never a 500.
  * Cached values must be JSON-safe.
  */
@@ -37,21 +38,14 @@ export class SiteCacheService {
     return this.through(this.feedKey(tenantId, kind), SITE_FEED_TTL_SECONDS, load);
   }
 
-  /** Deletes every `site:<tenant>:*` key (content and feeds) with SCAN, never KEYS. */
+  /**
+   * Drops the tenant's feed keys. Content keys need no delete: they carry `version`, so a
+   * publish already makes the old ones unreachable (they expire in 24 h). The feed names are
+   * a fixed enum, so this is one DEL, never a SCAN of the shared Redis.
+   */
   async invalidate(tenantId: string): Promise<void> {
     try {
-      let cursor = '0';
-      do {
-        const [next, keys] = await this.redis.scan(
-          cursor,
-          'MATCH',
-          `site:${tenantId}:*`,
-          'COUNT',
-          100,
-        );
-        cursor = next;
-        if (keys.length) await this.redis.del(...keys);
-      } while (cursor !== '0');
+      await this.redis.del(...Object.values(SiteIslandKind).map((k) => this.feedKey(tenantId, k)));
     } catch (error) {
       this.logOnce(`invalidate failed: ${String(error)}`);
     }

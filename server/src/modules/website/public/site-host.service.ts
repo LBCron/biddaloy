@@ -4,7 +4,9 @@ import { Repository } from 'typeorm';
 import { SiteCustomDomainStatus } from '@biddaloy/shared';
 import { SchoolSite } from '../entities/school-site.entity';
 
-export type ResolvedHost = { tenantId: string; site: SchoolSite } | { redirectTo: string } | null;
+/** A redirect carries its site too, so the caller can check the site is live before answering 301. */
+export type ResolvedHost =
+  { tenantId: string; site: SchoolSite } | { redirectTo: string; site: SchoolSite } | null;
 
 /** Lower-case, no port. Anything that is not a plausible host name is not looked up at all. */
 export function normalizeHost(raw: string): string | null {
@@ -38,7 +40,7 @@ export class SiteHostService {
       if (site) return { tenantId: site.tenant_id, site };
       const old = await this.sites.findOne({ where: { previous_subdomain: label } });
       if (old?.previous_until && old.previous_until > now) {
-        return { redirectTo: `${old.subdomain}.${root}` };
+        return { redirectTo: `${old.subdomain}.${root}`, site: old };
       }
       return null;
     }

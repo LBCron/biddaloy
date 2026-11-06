@@ -93,6 +93,7 @@ export function toSiteDto(site: SchoolSite): SiteDto {
     custom_domain: site.custom_domain,
     custom_domain_status: site.custom_domain_status,
     version: site.version,
+    draft_revision: site.draft_revision,
     published_at: site.published_at ? site.published_at.toISOString() : null,
     has_published: site.published !== null,
     draft: site.draft as unknown as Obj,
@@ -122,15 +123,23 @@ export class SiteConfigService {
     if (!checked.ok) throw this.invalid(checked.errors);
 
     const res = await this.sites.update(
-      { tenant_id: tenantId, version: dto.version },
-      { draft: checked.value as never, theme: target.id, palette: checked.value.palette },
+      { tenant_id: tenantId, draft_revision: dto.draft_revision },
+      {
+        draft: checked.value as never,
+        theme: target.id,
+        palette: checked.value.palette,
+        draft_revision: () => 'draft_revision + 1',
+      },
     );
     if (!res.affected) throw siteStale();
     return this.get(tenantId);
   }
 
-  /** Copies the draft to `published` and bumps `version`, only if the caller saw the current version. */
-  async publish(tenantId: string, version: number): Promise<SiteDto> {
+  /**
+   * Copies the draft to `published` and bumps `version`, only if the caller saw the current
+   * version AND the current draft: a draft someone else saved since is never published unseen.
+   */
+  async publish(tenantId: string, version: number, draftRevision: number): Promise<SiteDto> {
     await this.ensure(tenantId);
     const res = await this.sites
       .createQueryBuilder()
@@ -140,7 +149,11 @@ export class SiteConfigService {
         version: () => 'version + 1',
         published_at: () => 'now()',
       })
-      .where('tenant_id = :tenantId AND version = :version', { tenantId, version })
+      .where('tenant_id = :tenantId AND version = :version AND draft_revision = :draftRevision', {
+        tenantId,
+        version,
+        draftRevision,
+      })
       .execute();
     if (!res.affected) throw siteStale();
     await this.cache.invalidate(tenantId);

@@ -1,9 +1,9 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { NoticeStatus, SiteIslandKind } from '@biddaloy/shared';
+import { NoticeStatus } from '@biddaloy/shared';
 import { Notice } from '../../../notices/entities/notice.entity';
-import { registerFeed } from './feed-registry';
+import { SchoolsService } from '../../../schools/schools.service';
 
 export interface WebsiteNoticeItem {
   id: string;
@@ -18,14 +18,15 @@ export interface WebsiteNoticeItem {
  * that are not withdrawn or expired; pinned-on-website first, newest 20. No body, no files.
  */
 @Injectable()
-export class NoticesFeed implements OnModuleInit {
-  constructor(@InjectRepository(Notice) private readonly notices: Repository<Notice>) {}
-
-  onModuleInit(): void {
-    registerFeed(SiteIslandKind.NOTICES, (tenantId) => this.load(tenantId));
-  }
+export class NoticesFeed {
+  constructor(
+    @InjectRepository(Notice) private readonly notices: Repository<Notice>,
+    private readonly schools: SchoolsService,
+  ) {}
 
   async load(tenantId: string): Promise<WebsiteNoticeItem[]> {
+    // The school's own date, not the database's UTC day (same as the rest of notices).
+    const today = await this.schools.todayFor(tenantId);
     const rows = await this.notices
       .createQueryBuilder('n')
       .select(['n.id', 'n.title', 'n.published_at'])
@@ -33,7 +34,7 @@ export class NoticesFeed implements OnModuleInit {
       .andWhere('n.is_public = true')
       .andWhere('n.status = :status', { status: NoticeStatus.PUBLISHED })
       .andWhere('n.withdrawn_at IS NULL')
-      .andWhere('(n.expires_on IS NULL OR n.expires_on >= CURRENT_DATE)')
+      .andWhere('(n.expires_on IS NULL OR n.expires_on >= :today)', { today })
       .orderBy('n.pinned_on_website', 'DESC')
       .addOrderBy('n.published_at', 'DESC')
       .limit(20)

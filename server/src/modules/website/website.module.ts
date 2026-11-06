@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { School } from '../schools/entities/school.entity';
 import { Notice } from '../notices/entities/notice.entity';
 import { StorageModule } from '../storage/storage.module';
+import { SchoolsModule } from '../schools/schools.module';
 import { SchoolSite } from './entities/school-site.entity';
 import { SiteMedia } from './entities/site-media.entity';
 import { SiteConfigController } from './site-config.controller';
@@ -18,7 +19,11 @@ import { NoticesFeed } from './public/feeds/notices.feed';
  * site container uses (`/public/site/by-host/:host/*`). `TENANT_STATUS_REDIS` is global.
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([SchoolSite, SiteMedia, School, Notice]), StorageModule],
+  imports: [
+    TypeOrmModule.forFeature([SchoolSite, SiteMedia, School, Notice]),
+    StorageModule,
+    SchoolsModule,
+  ],
   controllers: [SiteConfigController, PublicSiteController],
   providers: [SiteConfigService, PublicSiteService, SiteHostService, SiteCacheService, NoticesFeed],
   exports: [SiteCacheService],

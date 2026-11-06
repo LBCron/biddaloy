@@ -10,6 +10,16 @@ interface RequestWithTenant extends Request {
   currentTenant?: { id: string };
 }
 
+/**
+ * The `path` an error body shows: the matched route pattern (`/api/v1/students/:id`), not the
+ * URL, so a body never echoes a host name, an id or a query string the caller sent (Rule 23).
+ * An unmatched route has no pattern and keeps the URL (Nest's own 404 text names it anyway).
+ */
+export function errorPath(request: Request): string {
+  const pattern: unknown = request.route?.path;
+  return typeof pattern === 'string' ? pattern : request.url;
+}
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
@@ -26,7 +36,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const mapped = mapKnownError(exception) ?? exception;
     const status = resolveStatus(mapped);
     const body = buildErrorResponseBody(mapped, {
-      path: request.url,
+      path: errorPath(request),
       requestId,
       nodeEnv: this.nodeEnv,
     });

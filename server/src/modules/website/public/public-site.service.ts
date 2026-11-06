@@ -17,7 +17,7 @@ import {
   buildPage,
   withAnnouncementWindow,
 } from './page-read-model';
-import { hasFeed, loadFeed } from './feeds/feed-registry';
+import { NoticesFeed } from './feeds/notices.feed';
 
 /** One 404 for an unknown host, an off site, a missing page and a missing picture (Rule 23). */
 export const siteNotFound = () => new NotFoundException('site.not_found');
@@ -41,17 +41,22 @@ export class PublicSiteService {
     private readonly storage: StorageService,
     @InjectRepository(School) private readonly schools: Repository<School>,
     @InjectRepository(SiteMedia) private readonly media: Repository<SiteMedia>,
+    private readonly notices: NoticesFeed,
   ) {}
 
-  /** Site must be switched on, published, and its school active (not soft-deleted or suspended). */
+  /**
+   * Site must be switched on, published, and its school active (not soft-deleted or suspended).
+   * Checked before a renamed subdomain's 301 too: an off or suspended site's old address must
+   * answer the same 404, never reveal the new one.
+   */
   private async live(host: string): Promise<{ redirectTo: string } | LiveSite> {
     const found = await this.hosts.resolve(host);
     if (!found) throw siteNotFound();
-    if ('redirectTo' in found) return found;
     const { site } = found;
     if (!site.enabled || !site.published) throw siteNotFound();
     const school = await this.schools.findOne({ where: { id: site.tenant_id } });
     if (!school || school.status !== SchoolStatus.ACTIVE) throw siteNotFound();
+    if ('redirectTo' in found) return { redirectTo: found.redirectTo };
     return { site, published: site.published, school };
   }
 
@@ -61,7 +66,8 @@ export class PublicSiteService {
     const m = await this.cache.getOrLoad(
       l.site.tenant_id,
       l.site.version,
-      `manifest:${l.school.updated_at.getTime()}`,
+      // Everything the manifest reads that is not the published config is in the key.
+      `manifest:${l.school.updated_at.getTime()}:${l.site.noindex ? 1 : 0}`,
       async () => buildManifest(l.published, l.site.noindex, l.school),
     );
     return { data: withAnnouncementWindow(m, new Date()) };
@@ -85,11 +91,12 @@ export class PublicSiteService {
   async island(host: string, kind: string): Promise<HostAnswer<unknown>> {
     const l = await this.live(host);
     if ('redirectTo' in l) return l;
-    if (!(Object.values(SiteIslandKind) as string[]).includes(kind) || !hasFeed(kind)) {
-      throw siteNotFound();
-    }
+    // ponytail: one feed, so a plain check; a map of feeds when events/results land.
+    if (kind !== SiteIslandKind.NOTICES) throw siteNotFound();
     const tenantId = l.site.tenant_id;
-    return { data: await this.cache.getOrLoadFeed(tenantId, kind, () => loadFeed(kind, tenantId)) };
+    return {
+      data: await this.cache.getOrLoadFeed(tenantId, kind, () => this.notices.load(tenantId)),
+    };
   }
 
   /** `key` is `logo` or a `site_media` id. Returns null on `If-None-Match` hit (304). */
@@ -110,7 +117,12 @@ export class PublicSiteService {
       if (!l.school.logo_key) throw siteNotFound();
       return this.stream(() => this.storage.getForTenant(l.school.logo_key as string, tenantId));
     }
-    if (!UUID_RE.test(key)) throw siteNotFound();
+    // Only a picture the published site shows, never any row of the tenant (a removed photo, an
+    // unpublished draft's picture). Checked before the row lookup and the 304, so neither tells.
+    // ponytail: config-only; the teachers/blog feed tickets add the photo/cover ids they show.
+    if (!UUID_RE.test(key) || !JSON.stringify(l.published).includes(`"${key}"`)) {
+      throw siteNotFound();
+    }
     const row = await this.media.findOne({ where: { id: key, tenant_id: tenantId } });
     if (!row) throw siteNotFound();
     const etag = `"${row.hash}"`;

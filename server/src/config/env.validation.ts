@@ -54,6 +54,17 @@ class EnvironmentVariables {
   @IsString()
   ENV_NAME?: string;
 
+  // Epic 40: school sites live at `<subdomain>.<SITE_ROOT_DOMAIN>` (site-host.service.ts).
+  // A bare lower-case host: no scheme, port, path or trailing dot. Unset: no subdomain resolves.
+  @ValidateIf((o: EnvironmentVariables) => !!o.SITE_ROOT_DOMAIN)
+  @Matches(
+    /^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/,
+    {
+      message: 'SITE_ROOT_DOMAIN must be a bare lower-case host name, e.g. schoolmanagerp.com',
+    },
+  )
+  SITE_ROOT_DOMAIN?: string;
+
   // Test inbox (Epic 87). `mailpit` sends every message to the Mailpit sink; prod leaves it unset.
   @ValidateIf((o: EnvironmentVariables) => !!o.MESSAGE_SINK)
   @IsIn(['mailpit', 'real'])

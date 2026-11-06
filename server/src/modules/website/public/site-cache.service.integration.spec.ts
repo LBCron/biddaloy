@@ -15,7 +15,13 @@ describe('SiteCacheService (real Redis)', () => {
   });
   afterEach(async () => {
     vi.restoreAllMocks();
-    await service.invalidate(tenant);
+    // invalidate() leaves content keys to the version bump, so tests clear their own.
+    await redis.del(
+      service.contentKey(tenant, 1, 'manifest'),
+      service.contentKey(tenant, 2, 'manifest'),
+      service.contentKey(tenant, 1, 'page:home'),
+      service.feedKey(tenant, 'notices'),
+    );
   });
   afterAll(async () => {
     await redis.quit();
@@ -36,23 +42,27 @@ describe('SiteCacheService (real Redis)', () => {
     expect(await redis.exists(service.contentKey(tenant, 0, 'notices'))).toBe(0);
   });
 
-  it('invalidate removes the content and feed keys of one tenant only', async () => {
+  it('invalidate drops the feeds of one tenant only and leaves content keys to the version', async () => {
     const other = `it-${randomUUID().slice(0, 8)}`;
+    const scan = vi.spyOn(redis, 'scan');
     await service.getOrLoad(tenant, 1, 'manifest', async () => 'x');
     await service.getOrLoadFeed(tenant, 'notices', async () => [1]);
-    await service.getOrLoad(other, 1, 'manifest', async () => 'y');
+    await service.getOrLoadFeed(other, 'notices', async () => [2]);
     await service.invalidate(tenant);
-    expect(await redis.exists(service.contentKey(tenant, 1, 'manifest'))).toBe(0);
     expect(await redis.exists(service.feedKey(tenant, 'notices'))).toBe(0);
-    expect(await redis.exists(service.contentKey(other, 1, 'manifest'))).toBe(1);
-    await service.invalidate(other);
+    expect(await redis.exists(service.feedKey(other, 'notices'))).toBe(1);
+    // Unreachable after a publish (the next read asks for version 2), so no delete is needed.
+    expect(await redis.exists(service.contentKey(tenant, 1, 'manifest'))).toBe(1);
+    // Never walks the shared keyspace.
+    expect(scan).not.toHaveBeenCalled();
+    await redis.del(service.feedKey(other, 'notices'));
   });
 
   it('Redis down: the loader still runs and nothing throws', async () => {
     const down = () => Promise.reject(new Error('redis down'));
     vi.spyOn(redis, 'get').mockImplementation(down as never);
     vi.spyOn(redis, 'set').mockImplementation(down as never);
-    vi.spyOn(redis, 'scan').mockImplementation(down as never);
+    vi.spyOn(redis, 'del').mockImplementation(down as never);
     const load = vi.fn().mockResolvedValue('page');
     await expect(service.getOrLoad(tenant, 1, 'page:home', load)).resolves.toBe('page');
     expect(load).toHaveBeenCalledTimes(1);
