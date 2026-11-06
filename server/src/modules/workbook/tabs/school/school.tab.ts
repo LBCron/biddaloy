@@ -68,7 +68,6 @@ const columns: readonly ColumnSpec[] = [
  */
 const excluded: readonly string[] = [
   'slug', // identity of the tenant itself; restoring it would rename the destination school
-  'domain', // tied to DNS and the destination's own hosting, not to the backed-up data
   'logo_key', // the image lives in the storage bucket; a workbook cannot carry it
   'status', // lifecycle state of the destination tenant, not profile data
   'status_reason', // see `status`
