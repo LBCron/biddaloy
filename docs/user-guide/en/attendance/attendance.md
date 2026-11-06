@@ -282,7 +282,7 @@ It is worth a word with that person about the listed students before you decide.
 | Headmaster / principal                    | All           | No                  | No                                 | Yes, when very late |
 | Accountant, office staff, exam controller | All           | No                  | No                                 | No                  |
 
-For those who cannot take attendance, the register has no **All present** and no **Submit attendance** button.
+For those who cannot take attendance, the register has no **All present** and no **Submit attendance** button. Instead it says **You can see this register, but your role cannot mark attendance.**
 
 ---
 
