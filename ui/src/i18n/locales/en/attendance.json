@@ -61,7 +61,7 @@
     "reset": "Reset",
     "undo": "Undo",
     "undoToast": "Attendance reset",
-    "shortcutHint": "Shortcuts: P present · A absent · L late · V leave · Space toggle · Shift+P all present · Ctrl/Cmd+Enter submit",
+    "shortcutHint": "Shortcuts: P present · A absent · L late · V leave · Space toggle · Shift+P all present · Shift+A rest absent · Ctrl/Cmd+Enter submit",
     "submitOnline": "Submit attendance",
     "submitOffline": "Save on device",
     "submitting": "Submitting…",

@@ -253,7 +253,7 @@ export const ACTIONS: readonly PaletteAction[] = [
   // [76.4.03] Attendance sheet import (D15). `sectionId` rides along only when the page has one.
   {
     id: 'attendance.import',
-    label: { en: 'Import attendance', bn: 'উপস্থিতি আমদানি করুন' },
+    label: { en: 'Upload attendance sheet', bn: 'হাজিরা শীট আপলোড করুন' },
     permission: Permission.ATTENDANCE_MARK,
     kind: 'navigate',
     group: 'attendance',
@@ -943,7 +943,7 @@ export const ACTIONS: readonly PaletteAction[] = [
   // (#3570 declares it). Without a student in context, the list is the honest fallback.
   {
     id: 'students.assignCard',
-    label: { en: 'Assign ID card', bn: 'আইডি কার্ড নির্ধারণ করুন' },
+    label: { en: 'Add card number', bn: 'কার্ড নম্বর দিন' },
     permission: Permission.STUDENT_UPDATE,
     kind: 'navigate',
     group: 'people',

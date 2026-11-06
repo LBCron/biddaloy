@@ -129,7 +129,13 @@ export function RosterMarker({
   }
 
   function handleListKeyDown(event: React.KeyboardEvent<HTMLUListElement>) {
+    // A read-only register takes no shortcut at all: badges and row actions stay focusable
+    // inside this list, so hiding the buttons is not enough (review, PR #3661).
+    if (disabled) return;
     if (isTypingTarget(event.target)) return;
+    // Only a row button carries `focusedIndex`'s student; a key on a badge or row action
+    // must not change some other row.
+    if (!rowRefs.current.includes(event.target as HTMLButtonElement)) return;
 
     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
       event.preventDefault();

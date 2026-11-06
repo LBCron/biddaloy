@@ -87,4 +87,44 @@ describe('/attendance/imports/$importId', () => {
     expect(screen.queryByRole('button', { name: /Changed later/ })).toBeNull();
     expect(within(document.body).getAllByText(/not understood/).length).toBeGreaterThan(0);
   });
+
+  // [review] Detail rows carry no section name; unmatched/duplicate rows share date/section/roll.
+  it('uses a section-free sentence, a fallback for unknown codes, and no register link for blank rows', async () => {
+    const blank = {
+      date: '',
+      section_id: '',
+      roll: 7,
+      before: null,
+      after: null,
+      outcome: 'ERROR',
+      record_id: null,
+      current: null,
+    };
+    server.use(
+      http.get(`*/attendance/imports/${ID}`, () =>
+        HttpResponse.json({
+          ...detail,
+          rows: [
+            { ...blank, code: 'ROLL_NOT_IN_SECTION' },
+            { ...blank, code: 'SOMETHING_NEW' },
+          ],
+        }),
+      ),
+    );
+    renderWithRouter(routeTree, {
+      initialEntries: [`/attendance/imports/${ID}`],
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+      locale: 'en',
+    });
+    await screen.findByRole('heading', { name: /week1\.xlsx/ });
+    expect(
+      screen.getAllByText('This roll is not in that section — check the roll.').length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText('This row could not be used — check it in the sheet.').length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText(/rowError\./)).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Open register' })).toBeNull();
+  });
 });

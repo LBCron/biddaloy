@@ -286,6 +286,18 @@ describe('action-registry.ts', () => {
     },
   );
 
+  // [76, D17] Epic 76's palette labels use the plain words: no "import", "device", "RFID", "ID card".
+  it.each(
+    ACTIONS.filter(
+      (a) =>
+        ['attendance.import', 'attendance.imports', 'students.assignCard'].includes(a.id) ||
+        a.id.startsWith('settings.attendanceDevices'),
+    ).map((action) => [action.id, action] as const),
+  )('%s: English label has no never-say word', (_id, action) => {
+    expect(action.label.en).not.toMatch(/\b(import\w*|device|rfid|biometric|id card)\b/i);
+    expect(action.label.bn).not.toMatch(/আমদানি|আইডি/);
+  });
+
   it.each(ACTIONS.map((action) => [action.id, action] as const))(
     '%s: kind is one of modal | navigate | inline',
     (_id, action) => {

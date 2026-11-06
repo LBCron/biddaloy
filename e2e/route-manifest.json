@@ -844,8 +844,7 @@
     {
       "path": "/attendance/import",
       "role": "admin",
-      "archetype": "wizard",
-      "overlays": ["upload-step", "review-step", "done-step"]
+      "archetype": "wizard"
     },
 
     {

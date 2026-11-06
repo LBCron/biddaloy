@@ -13,7 +13,7 @@ import {
   type DataTableColumn,
 } from '@biddaloy/ui/components';
 import { useAttendanceDevices, useHasPermission, type AttendanceDevice } from '@biddaloy/ui/hooks';
-import { useRegionConfig } from '@biddaloy/ui/i18n';
+import { useTenantRegionConfig } from '@biddaloy/ui/i18n';
 import { formatDateTime } from '@biddaloy/ui/utils';
 import { PlusIcon } from 'lucide-react';
 import * as React from 'react';
@@ -44,7 +44,7 @@ export function AttendanceDevicesSection(props: AttendanceDevicesSectionProps) {
 
 function AttendanceDevicesPanel({ openAdd = false, onAddClosed }: AttendanceDevicesSectionProps) {
   const d = useDeviceText();
-  const regionConfig = useRegionConfig();
+  const regionConfig = useTenantRegionConfig();
   const query = useAttendanceDevices();
   const sectionOptions = useSectionOptions();
 

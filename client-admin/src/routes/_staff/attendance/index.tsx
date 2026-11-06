@@ -98,12 +98,15 @@ function CountChips({ section }: { section: MySection }) {
   return (
     <span className="mt-1 flex flex-wrap gap-1.5">
       {chips.map((c) => (
+        // The hint is read with the chip (screen readers, touch); `title` stays for mouse hover.
+        // No tooltip trigger here: the chip sits inside the row's link.
         <span
           key={c.label}
           title={c.hint}
           className="rounded-full bg-muted px-2 py-0.5 text-text-secondary"
         >
           {c.label}
+          <span className="sr-only">. {c.hint}</span>
         </span>
       ))}
     </span>

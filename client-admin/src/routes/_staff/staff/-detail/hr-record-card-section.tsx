@@ -42,10 +42,13 @@ export function HrRecordCardSection({ userId }: { userId: string }) {
     >
       <ScanCardField
         value={value}
-        onChange={setValue}
+        onChange={(next) => {
+          if (update.isError) update.reset();
+          setValue(next);
+        }}
         label={t('cardNo.label')}
         scanLabel={t('cardNo.scan')}
-        scanHint={t('cardNo.help')}
+        scanHint={t('cardNo.scanHint')}
         helpId="people.staff.field.cardNo"
         error={invalid ? t('cardNo.invalid') : duplicate ? t('cardNo.duplicate') : undefined}
       />

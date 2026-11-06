@@ -48,6 +48,19 @@ export function SectionDatePicker({
         <p className="text-caption text-text-secondary">
           {t('pick.sectionsLimit', { max: MAX_SHEET_SECTIONS })}
         </p>
+        {sections.isPending && (
+          <p role="status" className="text-text-secondary">
+            {t('pick.sectionsLoading')}
+          </p>
+        )}
+        {sections.isError && (
+          <div role="alert" className="flex flex-wrap items-center gap-2">
+            <p className="text-destructive">{t('pick.sectionsFailed')}</p>
+            <Button type="button" variant="outline" onClick={() => void sections.refetch()}>
+              {t('history.retry')}
+            </Button>
+          </div>
+        )}
         {(sections.data ?? []).map((section) => {
           const checked = sectionIds.includes(section.section_id);
           const id = `sheet-section-${section.section_id}`;
@@ -81,7 +94,9 @@ export function SectionDatePicker({
         </div>
       </div>
 
-      {sectionIds.length === 0 && <p className="text-text-secondary">{t('pick.noSection')}</p>}
+      {sectionIds.length === 0 && sections.isSuccess && (
+        <p className="text-text-secondary">{t('pick.noSection')}</p>
+      )}
       {error && (
         <p role="alert" className="text-destructive">
           {error}
