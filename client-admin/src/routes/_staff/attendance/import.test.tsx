@@ -100,7 +100,8 @@ describe('/attendance/import', () => {
     expect(screen.getByText('1 recorded marks will change.')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Save 2 changes' }));
 
-    await screen.findAllByText(`Upload on ${IMPORT_ID}`, {}, { timeout: 5000 });
+    // The detail route opened (its fetch is unmocked here, so it shows the load error).
+    await screen.findByText('Could not load this upload.', {}, { timeout: 5000 });
     expect(key).toBeTruthy();
     expect(body).toEqual({ staging_id: STAGING_ID });
   });
@@ -162,7 +163,8 @@ describe('/attendance/import', () => {
 
     await user.click(screen.getByRole('button', { name: 'Save 2 changes' }));
 
-    await screen.findAllByText(`Upload on ${IMPORT_ID}`, {}, { timeout: 5000 });
+    // The detail route opened (its fetch is unmocked here, so it shows the load error).
+    await screen.findByText('Could not load this upload.', {}, { timeout: 5000 });
     expect(body).toEqual({ staging_id: STAGING_ID, supersedes_import_id: IMPORT_ID });
   });
 
@@ -211,7 +213,8 @@ describe('/attendance/import', () => {
     expect(save.hasAttribute('disabled')).toBe(false);
     await user.click(save);
 
-    await screen.findAllByText(`Upload on ${IMPORT_ID}`, {}, { timeout: 5000 });
+    // The detail route opened (its fetch is unmocked here, so it shows the load error).
+    await screen.findByText('Could not load this upload.', {}, { timeout: 5000 });
     expect(body).toEqual({ staging_id: STAGING_ID });
   });
 

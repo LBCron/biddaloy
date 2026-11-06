@@ -1,6 +1,7 @@
 import { TooltipProvider } from '@biddaloy/ui/components';
 import { cleanupTestState, renderWithProviders, server } from '@biddaloy/ui/test';
 import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -109,5 +110,24 @@ describe('RosterMarker mark badges [76.5.03]', () => {
     expect(row('Rahim Uddin').textContent).toMatch(/Scanned/);
     expect(row('Karim Ali').textContent).toMatch(/From sheet/);
     expect(row('Salma Khatun').textContent).not.toMatch(/Scanned|From sheet/);
+  });
+
+  it('Shift+A calls onRestAbsent, Shift+P calls onAllPresent', async () => {
+    const onRestAbsent = vi.fn();
+    const onAllPresent = vi.fn();
+    renderWithProviders(
+      <TooltipProvider>
+        <RosterMarker {...base} onAllPresent={onAllPresent} onRestAbsent={onRestAbsent} />
+      </TooltipProvider>,
+      { tenantId: 'tenant-1', locale: 'en' },
+    );
+    const user = userEvent.setup();
+    const rows = await screen.findAllByRole('button', { name: /Rahim Uddin/ });
+    await user.click(rows[0]!);
+    await user.keyboard('{Shift>}a{/Shift}');
+    expect(onRestAbsent).toHaveBeenCalledTimes(1);
+    expect(onAllPresent).not.toHaveBeenCalled();
+    await user.keyboard('{Shift>}p{/Shift}');
+    expect(onAllPresent).toHaveBeenCalledTimes(1);
   });
 });

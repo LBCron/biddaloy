@@ -522,6 +522,14 @@ palette action navigates to.
 - **Breadcrumb and nav labels resolve from `nav.json` `items.*`.** The i18n lane put them under `common.json`, so the routes lane's `{ key: 'uploads' }` had nothing to read. Lanes that share a label key must agree on the file in the ticket body. -> no rule.
 - **The UI-kit gap: none.** `ScanCardField` and `AttendanceMarkBadges` took props-only text, so no component needed a new token or shell.
 
+### Attendance sheet and source learnings (Epic #2429, Wave 5, 2026-11-06)
+
+- **A key used with `defaultValue` still counts as missing.** Three W5 lanes shipped `t('x', { defaultValue })` while the i18n keys were pending, and nothing failed. `check:i18n` only flags plain `t('key')` calls, so those keys stayed absent until the close ticket. Land the en + bn keys in the same PR as the call. -> no rule.
+- **Dynamic keys are invisible to `check:i18n`.** A key built as `reference.labels.<header>` on the student import page needs a `card_no` label and column text, and the checker cannot see that. Add the key when you add a column to the template. -> no rule.
+- **A permission gate belongs above the data hook.** `if (!canManage) return null` placed after `useAttendanceDevices()` still sends the request, and the user gets a 403. Split into an outer gate and an inner component that owns the queries. -> no rule.
+- **`ScanCardField` already strips characters outside `A-Z a-z 0-9 -`.** A client-side pattern check on its value can only fail for a value loaded from the server, so test the failure path with a 500, not a bad string.
+- **Breadcrumb entity names come from `ENTITY_RESOLVERS`, keyed by the crumb's own label key** (`uploadDetail`), reading the query cache the page already filled.
+
 ### UX lint stragglers
 
 `ui/eslint-rules/ux-guards.mjs` holds four rules (`no-native-picker`,

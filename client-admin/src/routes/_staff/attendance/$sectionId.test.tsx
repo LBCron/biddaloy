@@ -1,6 +1,6 @@
 import { toast } from '@biddaloy/ui/components';
 import { cleanupTestState, renderWithRouter, server } from '@biddaloy/ui/test';
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -291,6 +291,32 @@ describe('/attendance/$sectionId', () => {
       await waitFor(() => expect(body).not.toBeNull());
       const byId = Object.fromEntries(body!.entries!.map((r) => [r.student_id, r.status]));
       expect(byId).toEqual({ 'student-1': 'PRESENT', 'student-2': 'ABSENT' });
+    });
+
+    it('"Mark the rest absent" toasts the count with Undo, and Undo restores the draft', async () => {
+      const success = vi.spyOn(toast, 'success').mockImplementation(() => '');
+      mount({});
+      const user = userEvent.setup();
+      await user.click(await screen.findByText('Rafi Ahmed')); // PRESENT
+      await user.click(screen.getByRole('button', { name: 'Mark the rest absent' }));
+      expect(success).toHaveBeenCalledTimes(1);
+      expect(success.mock.calls[0]![0]).toBe('1 student marked absent');
+      const options = success.mock.calls[0]![1] as unknown as {
+        action: { onClick: () => void };
+      };
+      expect(screen.getByLabelText(/currently Absent/)).toBeTruthy();
+      act(() => options.action.onClick());
+      expect(screen.queryByLabelText(/currently Absent/)).toBeNull();
+    });
+
+    it('"Mark the rest absent" with nothing unmarked shows no toast', async () => {
+      const success = vi.spyOn(toast, 'success').mockImplementation(() => '');
+      mount({});
+      const user = userEvent.setup();
+      await user.click(await screen.findByText('Rafi Ahmed'));
+      await user.click(screen.getByText('Nusrat Jahan'));
+      await user.click(screen.getByRole('button', { name: 'Mark the rest absent' }));
+      expect(success).not.toHaveBeenCalled();
     });
   });
 
