@@ -51,6 +51,12 @@ describe('alert rule catalogue', () => {
     }
   });
 
+  it('staff SMS fallback only on attendance.not_taken', () => {
+    expect(ALERT_RULES.filter((r) => r.staffSmsFallback).map((r) => r.key)).toEqual([
+      'attendance.not_taken',
+    ]);
+  });
+
   it('guardian SMS fallback only on child.absent_today and fees.overdue_family (D29, D42)', () => {
     expect(ALERT_RULES.filter((r) => r.guardianSmsFallback).map((r) => r.key)).toEqual([
       'child.absent_today',

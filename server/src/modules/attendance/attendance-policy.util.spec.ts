@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { AttendanceStatus } from '@biddaloy/shared';
 import type { AttendancePolicySettings, TenantSettings } from '@biddaloy/shared';
+import { resolveTenantSettings } from '../schools/settings/tenant-settings-resolver';
 import {
   classifyCheckIn,
   policyForShift,
@@ -27,6 +28,12 @@ const POLICY: AttendancePolicySettings = {
 };
 
 describe('resolveAttendancePolicy', () => {
+  it('carries dailySource: ANY for an unset school, the stored value otherwise', () => {
+    expect(resolveAttendancePolicy(resolveTenantSettings(null)).dailySource).toBe('ANY');
+    const set = resolveTenantSettings({ attendance: { dailySource: 'DEVICE' } });
+    expect(policyForShift(resolveAttendancePolicy(set), null).dailySource).toBe('DEVICE');
+  });
+
   it('returns the resolved attendance settings', () => {
     const settings: TenantSettings = { version: 1, attendance: POLICY };
     expect(resolveAttendancePolicy(settings)).toBe(POLICY);

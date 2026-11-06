@@ -475,6 +475,20 @@ interface RoleNarrowing {
 
 export const ROLE_NARROWINGS: RoleNarrowing[] = [
   {
+    controller: 'AttendanceImportController',
+    method: 'GET',
+    path: '/attendance/imports',
+    reason:
+      "[76.2] D39: parent/student hold ATTENDANCE_READ for their own child's view; the upload history is a staff-only list",
+  },
+  {
+    controller: 'AttendanceImportController',
+    method: 'GET',
+    path: '/attendance/imports/:id',
+    reason:
+      "[76.2] D39: parent/student hold ATTENDANCE_READ for their own child's view; the upload history is a staff-only list",
+  },
+  {
     controller: 'ApplicationsController',
     method: 'GET',
     path: '/applications/tag-options',

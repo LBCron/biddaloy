@@ -249,6 +249,21 @@ export enum AttendanceSource {
   SYSTEM = 'SYSTEM',
 }
 
+/** Who may write the daily attendance register (D1, D36). A write gate only (D2). */
+export enum DailyAttendanceSource {
+  ANY = 'ANY',
+  CLASS_TEACHER = 'CLASS_TEACHER',
+  FIRST_PERIOD = 'FIRST_PERIOD',
+  DEVICE = 'DEVICE',
+}
+
+/** Why a daily-register write was refused under the school's `dailySource` (D36). */
+export enum DailyRegisterWriteReason {
+  CLASS_TEACHER_ONLY = 'CLASS_TEACHER_ONLY',
+  FIRST_PERIOD_ONLY = 'FIRST_PERIOD_ONLY',
+  DEVICE_SCHOOL = 'DEVICE_SCHOOL',
+}
+
 export enum ArrivalNoticeStatus {
   REQUESTED = 'REQUESTED',
   ACTIVE = 'ACTIVE',

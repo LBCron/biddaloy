@@ -150,6 +150,18 @@ The coordinator's "attendance not taken" alerts are not written by hand: the att
 runs the real rule, which adds class coordinators at level 1 (83.2.4). So whenever a section of a coordinated class
 has no register at 10:30 on the anchor day, the 8-A card login gets that alert as its coordinator.
 
+#### Attendance source (Epic 76, #3556)
+
+| Table / column                            | What the demo has                                                                                                                                                                                                                                                                                 | Slice        |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| `students.card_no`                        | 10-digit card from `ctx.rng` for every student of Class 8 (else the last class) in each branch, unique per tenant                                                                                                                                                                                 | `students`   |
+| `staff_profiles.card_no`                  | the first 5 teachers of each branch carry a card                                                                                                                                                                                                                                                  | `staff`      |
+| `schools.settings.attendance.dailySource` | `bmsc-high` = `DEVICE`, `bmsc-primary` = `CLASS_TEACHER`, `bmsc-college` untouched (`ANY`); `staffSmsFallback` stays false                                                                                                                                                                        | `org`        |
+| `attendance_records` (scanned but absent) | High Class 8-A draft today: 3 scanned students (`device_id` + `check_in_at`) carry a `TEACHER` mark `ABSENT`, so the mismatch badge reads 3                                                                                                                                                       | `attendance` |
+| `attendance_imports`                      | one sheet in `bmsc-primary`, its first section, 40 rows ending 3 school days back: 2 `CHANGED`, 1 `ERROR` (`ROLL_NOT_IN_SECTION`), 37 `NEW`; the 39 records carry `source = IMPORT` and their ids. Early in the year: fewer rows from the days there are; none before the year's first school day | `attendance` |
+
+`AttendanceImport` is no longer in `EXEMPT`; the `attendance` slice covers it.
+
 #### Deep links
 
 `/login?role=<Card key>` on a demo host signs in as that card, once, then drops the param from the URL

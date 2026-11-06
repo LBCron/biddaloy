@@ -432,4 +432,41 @@ describe('attendance entities (integration)', () => {
       expect(found).toBeNull();
     });
   });
+
+  describe('Student card_no (D9, D37)', () => {
+    const repo = () => dataSource.getRepository(Student);
+    const newStudent = (tenantId: string, secId: string, n: number, card: string | null) =>
+      repo().save({
+        full_name: `Card ${n}`,
+        registration_number: `CARD-${tenantId.slice(-4)}-${n}`,
+        roll_number: 10 + n,
+        class_section_id: secId,
+        tenant_id: tenantId,
+        enrollment_status: EnrollmentStatus.ACTIVE,
+        card_no: card,
+      });
+
+    it('rejects the same card on two live students of one school', async () => {
+      await newStudent(TENANT_ID, sectionId, 1, 'C-1');
+      await expect(newStudent(TENANT_ID, sectionId, 2, 'C-1')).rejects.toBeInstanceOf(
+        QueryFailedError,
+      );
+    });
+
+    it('allows the same card in another school', async () => {
+      await newStudent(TENANT_ID, sectionId, 1, 'C-1');
+      await expect(newStudent(OTHER_TENANT, otherSectionId, 1, 'C-1')).resolves.toBeDefined();
+    });
+
+    it('allows many students with no card', async () => {
+      await newStudent(TENANT_ID, sectionId, 1, null);
+      await expect(newStudent(TENANT_ID, sectionId, 2, null)).resolves.toBeDefined();
+    });
+
+    it('lets a card be reused once its student is soft-deleted', async () => {
+      const first = await newStudent(TENANT_ID, sectionId, 1, 'C-1');
+      await repo().update({ id: first.id }, { deleted_at: new Date() });
+      await expect(newStudent(TENANT_ID, sectionId, 2, 'C-1')).resolves.toBeDefined();
+    });
+  });
 });

@@ -68,6 +68,11 @@ POST   /api/v1/attendance/devices/:id/rotate                                    
 POST   /api/v1/attendance/devices/me/heartbeat                                   401 401 401 401 401 401 401 401 401 401 401 401
 GET    /api/v1/attendance/devices/me/roster                                      401 401 401 401 401 401 401 401 401 401 401 401
 GET    /api/v1/attendance/flags/low                                              401 PASS PASS PASS PASS 403 403 403 PASS PASS PASS 403
+POST   /api/v1/attendance/import/commit                                          401 PASS PASS PASS 403 PASS 403 403 403 403 403 403
+GET    /api/v1/attendance/import/template                                        401 PASS PASS PASS 403 PASS 403 403 403 403 403 403
+POST   /api/v1/attendance/import/validate                                        401 PASS PASS PASS 403 PASS 403 403 403 403 403 403
+GET    /api/v1/attendance/imports                                                401 PASS PASS PASS PASS PASS 403 403 PASS PASS PASS 403
+GET    /api/v1/attendance/imports/:id                                            401 PASS PASS PASS PASS PASS 403 403 PASS PASS PASS 403
 GET    /api/v1/attendance/my-sections                                            401 PASS PASS PASS PASS PASS 403 403 PASS PASS PASS 403
 PATCH  /api/v1/attendance/records/:recordId                                      401 PASS PASS PASS 403 PASS 403 403 403 403 403 403
 GET    /api/v1/attendance/records/:recordId/history                              401 PASS PASS PASS PASS PASS 403 403 PASS PASS PASS 403

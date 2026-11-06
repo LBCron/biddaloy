@@ -30,6 +30,8 @@ export interface AttentionSettings {
   quietHours: { start: string; end: string };
   /** Guardian SMS fallback on/off. Default false (D29). */
   guardianSmsFallback: boolean;
+  /** Staff SMS fallback on/off. Default false (D29). */
+  staffSmsFallback?: boolean;
   /** Max fallback SMS per guardian per day. Default 2 (D29). */
   guardianSmsDailyCap: number;
   /** SMS credits below this raise `comms.sms_credit_low`. Default 200 (D34). */

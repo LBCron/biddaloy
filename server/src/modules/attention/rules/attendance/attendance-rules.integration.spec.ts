@@ -307,9 +307,13 @@ describe('AttendanceNotTakenRule (integration)', () => {
   });
 
   it('does not fire: finalized register, class-scoped holiday, non-working day', async () => {
-    await q(
-      `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'FINALIZED')`,
+    const [{ id: sid }] = await q(
+      `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'FINALIZED') RETURNING id`,
       [A.id, A.sectionId, DAY],
+    );
+    await q(
+      `INSERT INTO attendance_records (tenant_id, session_id, student_id, date, status) VALUES ($1, $2, $3, $4, 'PRESENT')`,
+      [A.id, sid, A.studentId, DAY],
     );
     expect(await rule.evaluate(ctx(A, '08:20'))).toEqual([]);
 
@@ -330,6 +334,94 @@ describe('AttendanceNotTakenRule (integration)', () => {
     expect(await rule.evaluate(ctx(B, '08:20'))).toEqual([]);
 
     expect(await rule.evaluate({ ...ctx(B, '08:20'), isWorkingDay: false })).toEqual([]);
+  });
+
+  it('[76.2.05] device school: 3 scanned + 20 unmarked fires; SYSTEM absences for the 20 resolve it', async () => {
+    await q(
+      `UPDATE schools SET settings = jsonb_set(settings, '{attendance,dailySource}', '"DEVICE"') WHERE id = $1`,
+      [A.id],
+    );
+    const [{ id: sid }] = await q(
+      `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'DRAFT') RETURNING id`,
+      [A.id, A.sectionId, DAY],
+    );
+    const ids: string[] = [A.studentId];
+    for (let i = 0; i < 22; i++) {
+      const [{ id }] = await q(
+        `INSERT INTO students (full_name, registration_number, roll_number, class_section_id, tenant_id, enrollment_status)
+         VALUES ('Kid', $1, $2, $3, $4, 'ACTIVE') RETURNING id`,
+        [`AR-${rand()}`, i + 2, A.sectionId, A.id],
+      );
+      await q(
+        `INSERT INTO enrollments (student_id, class_id, section_id, academic_year_id, enrollment_status, tenant_id)
+         VALUES ($1, $2, $3, $4, 'ACTIVE', $5)`,
+        [id, A.classId, A.sectionId, A.yearId, A.id],
+      );
+      ids.push(id);
+    }
+    const mark = (sidIds: string[], status: string, source: string) =>
+      Promise.all(
+        sidIds.map((student) =>
+          q(
+            `INSERT INTO attendance_records (tenant_id, session_id, student_id, date, status, source) VALUES ($1, $2, $3, $4, $5, $6)`,
+            [A.id, sid, student, DAY, status, source],
+          ),
+        ),
+      );
+    await mark(ids.slice(0, 3), 'PRESENT', 'DEVICE');
+    const [f] = await rule.evaluate(ctx(A, '08:20'));
+    expect(f.dedupeKey).toBe(`section:${A.sectionId}:${DAY}`);
+    expect(f.params.title_en).toMatch(/^Attendance incomplete: .* — 20 without status$/);
+    await mark(ids.slice(3), 'ABSENT', 'SYSTEM');
+    // PR #3609 review #4: ingest and the sweep leave a device register DRAFT (D27); with every
+    // student marked the alert resolves without anyone submitting it.
+    expect(await rule.evaluate(ctx(A, '08:20'))).toEqual([]);
+  });
+
+  it('[76.2.05] a non-device school still needs the register submitted, even with everyone marked', async () => {
+    const [{ id: sid }] = await q(
+      `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'DRAFT') RETURNING id`,
+      [A.id, A.sectionId, DAY],
+    );
+    await q(
+      `INSERT INTO attendance_records (tenant_id, session_id, student_id, date, status) VALUES ($1, $2, $3, $4, 'PRESENT')`,
+      [A.id, sid, A.studentId, DAY],
+    );
+    const [f] = await rule.evaluate(ctx(A, '08:20'));
+    expect(f.dedupeKey).toBe(`section:${A.sectionId}:${DAY}`);
+  });
+
+  it('[76.2.05] a FINALIZED session with unmarked students still fires', async () => {
+    await q(
+      `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'FINALIZED')`,
+      [A.id, A.sectionId, DAY],
+    );
+    const [f] = await rule.evaluate(ctx(A, '08:20'));
+    expect(f.params.title_en).toMatch(/1 without status$/);
+  });
+
+  it('[76.2.05] PR #3609 review: an inactive enrollment with no leaving event is not counted unmarked', async () => {
+    const [{ id: sid }] = await q(
+      `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'FINALIZED') RETURNING id`,
+      [A.id, A.sectionId, DAY],
+    );
+    await q(
+      `INSERT INTO attendance_records (tenant_id, session_id, student_id, date, status) VALUES ($1, $2, $3, $4, 'PRESENT')`,
+      [A.id, sid, A.studentId, DAY],
+    );
+    // An ACTIVE student whose enrollment here ended with no leaving event: off the register
+    // roster (and the device sweep's), so it must not keep the alert open either.
+    const [{ id: gone }] = await q(
+      `INSERT INTO students (full_name, registration_number, roll_number, class_section_id, tenant_id, enrollment_status)
+       VALUES ('Gone', $1, 2, $2, $3, 'ACTIVE') RETURNING id`,
+      [`AR-${rand()}`, A.sectionId, A.id],
+    );
+    await q(
+      `INSERT INTO enrollments (student_id, class_id, section_id, academic_year_id, enrollment_status, tenant_id)
+       VALUES ($1, $2, $3, $4, 'INACTIVE', $5)`,
+      [gone, A.classId, A.sectionId, A.yearId, A.id],
+    );
+    expect(await rule.evaluate(ctx(A, '08:20'))).toEqual([]);
   });
 
   it("tenant isolation: B's unfinalized section never shows up in A's findings", async () => {

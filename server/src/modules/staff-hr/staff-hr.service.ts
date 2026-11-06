@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
+import { StaffProfile } from '../staff-profiles/entities/staff-profile.entity';
+import { cardNoTaken } from '../../common/filters/known-errors';
 import { AuditAction, StaffEmploymentStatus } from '@biddaloy/shared';
 import { StaffHrRecord } from './entities/staff-hr-record.entity';
 import { StaffDesignationHistory } from './entities/staff-designation-history.entity';
@@ -50,6 +52,8 @@ export class StaffHrService {
     private readonly historyRepo: Repository<StaffDesignationHistory>,
     @InjectRepository(Designation)
     private readonly designationRepo: Repository<Designation>,
+    @InjectRepository(StaffProfile)
+    private readonly staffProfileRepo: Repository<StaffProfile>,
     @InjectRepository(UserTenant)
     private readonly userTenantRepo: Repository<UserTenant>,
     private readonly auditService: AuditService,
@@ -142,16 +146,45 @@ export class StaffHrService {
     actorUserId: string,
   ): Promise<StaffHrRecord> {
     const existing = await this.findOne(id, tenantId);
+    // [76.2.06] card_no lives on the linked staff_profiles row, not on the HR record.
+    const { card_no: cardNo, ...hrFields } = dto;
     if (Object.keys(dto).length === 0) return existing;
-    await this.hrRecordRepo.update({ id, tenant_id: tenantId }, dto);
-    await this.auditService.record({
-      action: AuditAction.UPDATE,
-      entity_type: 'StaffHrRecord',
-      entity_id: id,
-      tenant_id: tenantId,
-      performed_by_user_id: actorUserId,
-      old_values: { ...existing },
-      new_values: { ...dto },
+    // 404 before any write; then card, HR fields and audit commit or roll back together.
+    let profileId: string | undefined;
+    if (cardNo !== undefined) {
+      const profile = await this.staffProfileRepo.findOne({
+        where: { user_id: existing.user_id, tenant_id: tenantId },
+      });
+      if (!profile) throw new NotFoundException('Staff profile not found');
+      profileId = profile.id;
+    }
+    await this.hrRecordRepo.manager.transaction(async (manager) => {
+      if (profileId) {
+        try {
+          await manager
+            .getRepository(StaffProfile)
+            .update({ id: profileId, tenant_id: tenantId }, { card_no: cardNo?.trim() || null });
+        } catch (err) {
+          if (isUniqueViolation(err)) throw cardNoTaken();
+          throw err;
+        }
+      }
+      if (Object.keys(hrFields).length > 0) {
+        await manager.getRepository(StaffHrRecord).update({ id, tenant_id: tenantId }, hrFields);
+      }
+      await this.auditService.record(
+        {
+          action: AuditAction.UPDATE,
+          entity_type: 'StaffHrRecord',
+          entity_id: id,
+          tenant_id: tenantId,
+          performed_by_user_id: actorUserId,
+          old_values: { ...existing },
+          // card_no changes are recorded as a key only, never the value (Rule 13).
+          new_values: { ...hrFields, ...(cardNo !== undefined ? { card_no: '[redacted]' } : {}) },
+        },
+        manager,
+      );
     });
     return this.findOne(id, tenantId);
   }

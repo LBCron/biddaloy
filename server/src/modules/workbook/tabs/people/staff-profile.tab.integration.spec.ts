@@ -65,12 +65,23 @@ describe('staffProfileTab (integration)', () => {
     user_id: '',
     employee_id: 'STF-1',
     joining_date: null,
+    card_no: null,
     user_key: '',
     ...overrides,
   });
 
   const upsert = (row: StaffProfileRow, existing: StaffProfile | null = null) =>
     staffProfileTab.upsert(row, existing, TENANT_A, dataSource.manager);
+
+  it('stores card_no and keeps a null card null', async () => {
+    const user = await makeUser('carded');
+    const withCard = await upsert(rowFor({ user_id: user.id, card_no: 'C-7' }));
+    expect((await profileRepo.findOneByOrFail({ id: withCard.id })).card_no).toBe('C-7');
+
+    const other = await makeUser('nocard');
+    const none = await upsert(rowFor({ user_id: other.id, employee_id: 'STF-2' }));
+    expect((await profileRepo.findOneByOrFail({ id: none.id })).card_no).toBeNull();
+  });
 
   it("takes over the user's own profile when no profile has the employee id (edited after export)", async () => {
     const user = await makeUser('renamed');

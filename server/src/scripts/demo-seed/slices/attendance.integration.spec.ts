@@ -38,7 +38,7 @@ import { slice as org } from './org';
 import { slice as staff } from './staff';
 import { slice as students } from './students';
 import { slice as routine } from './routine';
-import { slice } from './attendance';
+import { importDays, slice } from './attendance';
 
 const ANCHOR = '2026-10-10'; // a Saturday: a school day
 const SCHOOL_DAY = ANCHOR;
@@ -223,13 +223,62 @@ describe('attendance slice (integration, 3 years, scale 0.15)', () => {
       `SELECT DISTINCT s.slug FROM attendance_device_events e JOIN schools s ON s.id = e.tenant_id`,
     );
     expect(events).toEqual([{ slug: 'bmsc-high' }]);
-    // Only a student who came in has a device row and a check-in time: an absent or on-leave
-    // student in the device-filled draft never "scanned in".
+    // Only the 3 scanned-but-absent students (D5) are absent with a scan; none is a DEVICE mark.
     const [{ n: ghostScans }] = await q(
       `SELECT count(*)::int AS n FROM attendance_records
-        WHERE (source = 'DEVICE' OR check_in_at IS NOT NULL) AND status IN ('ABSENT', 'LEAVE')`,
+        WHERE (source = 'DEVICE' AND status IN ('ABSENT', 'LEAVE'))
+           OR (check_in_at IS NOT NULL AND status IN ('ABSENT', 'LEAVE') AND source <> 'TEACHER')`,
     );
     expect(ghostScans).toBe(0);
+    const [{ n: mismatches, t: mismatchTenants }] = await q(
+      `SELECT count(*)::int AS n, array_agg(DISTINCT s.slug) AS t FROM attendance_records r
+         JOIN schools s ON s.id = r.tenant_id
+        WHERE r.check_in_at IS NOT NULL AND r.status IN ('ABSENT', 'LEAVE')`,
+    );
+    expect(mismatches).toBe(3);
+    expect(mismatchTenants).toEqual(['bmsc-high']);
+
+    // The upload history: one sheet, 40 rows, and every row's record exists with source IMPORT.
+    const imports = await q(
+      `SELECT i.*, s.slug FROM attendance_imports i JOIN schools s ON s.id = i.tenant_id`,
+    );
+    expect(imports).toHaveLength(1);
+    const [imp] = imports;
+    expect(imp.slug).toBe('bmsc-primary');
+    expect(imp.rows).toHaveLength(40);
+    expect([imp.count_new, imp.count_changed, imp.count_error]).toEqual([37, 2, 1]);
+    const err = imp.rows.filter((r: any) => r.outcome === 'ERROR');
+    expect(err).toHaveLength(1);
+    expect(err[0].code).toBe('ROLL_NOT_IN_SECTION');
+    const ids = imp.rows.filter((r: any) => r.recordId).map((r: any) => r.recordId);
+    const [{ n: imported }] = await q(
+      `SELECT count(*)::int AS n FROM attendance_records WHERE id = ANY($1) AND source = 'IMPORT'`,
+      [ids],
+    );
+    expect(imported).toBe(39);
+
+    // PR #3609 review S2: the uploader can really make this sheet (ADMIN holds ATTENDANCE_CORRECT
+    // for the finalized past days), so the demo never shows rows the app would refuse.
+    const [{ role: uploaderRole }] = await q(
+      `SELECT m.role FROM user_tenants m
+        WHERE m.user_id = $1 AND m.tenant_id = $2 AND m.deleted_at IS NULL`,
+      [imp.uploaded_by_user_id, imp.tenant_id],
+    );
+    expect(uploaderRole).toBe('ADMIN');
+    // S1: each saved row's roll is that student's real roll; the ERROR row's roll is nobody's.
+    const [{ n: wrongRolls }] = await q(
+      `SELECT count(*)::int AS n FROM jsonb_array_elements($1::jsonb) h
+         JOIN attendance_records r ON r.id = (h->>'recordId')::uuid
+         JOIN students st ON st.id = r.student_id
+        WHERE st.roll_number <> (h->>'roll')::int`,
+      [JSON.stringify(imp.rows)],
+    );
+    expect(wrongRolls).toBe(0);
+    const [{ n: takenErrorRoll }] = await q(
+      `SELECT count(*)::int AS n FROM students WHERE class_section_id = $1 AND roll_number = $2`,
+      [err[0].sectionId, err[0].roll],
+    );
+    expect(takenErrorRoll).toBe(0);
     const [{ n: deviceRows }] = await q(
       `SELECT count(*)::int AS n FROM attendance_records WHERE source = 'DEVICE'`,
     );
@@ -378,4 +427,22 @@ describe('attendance slice (integration, 3 years, scale 0.15)', () => {
     expect(credit.every((c) => c.available === c.ledger)).toBe(true);
     expect(credit.some((c) => c.available < 1000)).toBe(true);
   }, 120_000);
+});
+
+// PR #3609 review: the sheet's days on a short year (early-year anchor), no database needed.
+describe('importDays', () => {
+  const days = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6'];
+
+  it('enough history: the `need` days ending 3 school days back', () => {
+    expect(importDays(days, 3)).toEqual(['d2', 'd3', 'd4']);
+  });
+
+  it('short history: the latest days the year has, so the sheet is not dropped', () => {
+    expect(importDays(['d1', 'd2'], 3)).toEqual(['d1', 'd2']);
+    expect(importDays(['d1'], 20)).toEqual(['d1']);
+  });
+
+  it("the year's first school day (nothing before it): no days, no sheet", () => {
+    expect(importDays([], 3)).toEqual([]);
+  });
 });

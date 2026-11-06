@@ -150,6 +150,7 @@ export class DeviceEventBatchResponseDto {
 export class DeviceRosterEntryDto {
   @ApiProperty() student_id: string;
   @ApiProperty() registration_number: string;
+  @ApiProperty({ type: String, nullable: true }) card_no: string | null;
   @ApiProperty() roll_number: number;
   @ApiProperty() full_name: string;
   @ApiProperty() section_id: string;

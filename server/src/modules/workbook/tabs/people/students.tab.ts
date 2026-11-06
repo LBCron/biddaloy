@@ -72,6 +72,7 @@ export interface StudentRow {
   home_address: string | null;
   religion: string | null;
   birth_reg_no: string | null;
+  card_no: string | null;
   health_notes: string | null;
   father_name: string | null;
   mother_name: string | null;
@@ -175,6 +176,11 @@ const columns: readonly ColumnSpec[] = [
     label: { en: 'Birth registration no.', bn: 'জন্মনিবন্ধন নম্বর' },
   },
   {
+    key: 'card_no',
+    type: 'string',
+    label: { en: 'Card number', bn: 'কার্ড নম্বর' },
+  },
+  {
     key: 'health_notes',
     type: 'string',
     label: { en: 'Health notes', bn: 'স্বাস্থ্য সংক্রান্ত তথ্য' },
@@ -238,6 +244,7 @@ const excluded: readonly string[] = [
 
 const MAX_LENGTHS: Record<string, number> = {
   registration_number: 50,
+  card_no: 64,
   full_name: 100,
   full_name_bn: 200,
   photo_key: 255,
@@ -321,6 +328,7 @@ export const studentsTab: TabSpec<Student, StudentRow> = {
       home_address: entity.home_address,
       religion: entity.religion,
       birth_reg_no: entity.birth_reg_no,
+      card_no: entity.card_no,
       health_notes: entity.health_notes,
       father_name: entity.father_name,
       mother_name: entity.mother_name,
@@ -491,6 +499,7 @@ export const studentsTab: TabSpec<Student, StudentRow> = {
         home_address: (values.home_address as string | null) ?? null,
         religion: (values.religion as string | null) ?? null,
         birth_reg_no: (values.birth_reg_no as string | null) ?? null,
+        card_no: (values.card_no as string | null) ?? null,
         health_notes: (values.health_notes as string | null) ?? null,
         father_name: (values.father_name as string | null) ?? null,
         mother_name: (values.mother_name as string | null) ?? null,
@@ -530,6 +539,7 @@ export const studentsTab: TabSpec<Student, StudentRow> = {
       'home_address',
       'religion',
       'birth_reg_no',
+      'card_no',
       'health_notes',
       'father_name',
       'mother_name',
@@ -640,6 +650,7 @@ export const studentsTab: TabSpec<Student, StudentRow> = {
     student.home_address = row.home_address;
     student.religion = row.religion;
     student.birth_reg_no = row.birth_reg_no;
+    student.card_no = row.card_no;
     student.health_notes = row.health_notes;
     student.father_name = row.father_name;
     student.mother_name = row.mother_name;

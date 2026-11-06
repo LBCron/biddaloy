@@ -71,7 +71,7 @@ export class DeviceEventsService {
   /**
    * 403 unless `device.roster_access` is true. When the device is bound to
    * a section, that is the only section it may read. Response is exactly
-   * these five fields — built by explicitly listing them, never by
+   * these six fields — built by explicitly listing them, never by
    * returning the entity and deleting keys, which would leak whatever
    * field gets added to `Student` next year.
    */
@@ -101,6 +101,7 @@ export class DeviceEventsService {
     return students.map((s) => ({
       student_id: s.id,
       registration_number: s.registration_number,
+      card_no: s.card_no ?? null,
       roll_number: s.roll_number,
       full_name: s.full_name,
       section_id: effectiveSectionId,
@@ -382,13 +383,17 @@ export class DeviceEventsService {
       });
     }
     if (event.external_ref) {
-      return studentRepo.findOne({
-        where: {
-          registration_number: event.external_ref,
-          tenant_id: tenantId,
-          deleted_at: IsNull(),
-        },
+      // One query, both columns (D9): the ref is a registration number or a card number.
+      // If two rows match (one's reg number is another's card), the registration number wins.
+      const ref = event.external_ref;
+      const rows = await studentRepo.find({
+        where: [
+          { registration_number: ref, tenant_id: tenantId, deleted_at: IsNull() },
+          { card_no: ref, tenant_id: tenantId, deleted_at: IsNull() },
+        ],
+        take: 2,
       });
+      return rows.find((r) => r.registration_number === ref) ?? rows[0] ?? null;
     }
     return null;
   }
@@ -525,7 +530,10 @@ export class DeviceEventsService {
       outcome = 'accepted';
       versionBumped = true;
       firstCheckIns.push({ studentId: student.id, status: record.status, occurredAt });
-    } else if (record.source === AttendanceSource.TEACHER) {
+    } else if (
+      record.source === AttendanceSource.TEACHER ||
+      record.source === AttendanceSource.IMPORT
+    ) {
       // Contract #4: teacher authority beats device authority. A device
       // may only fill fields the teacher left empty — never touch `status`.
       outcome = 'skipped_teacher_marked';
@@ -645,9 +653,16 @@ export class DeviceEventsService {
       });
     }
     if (event.external_ref) {
-      return staffProfileRepo.findOne({
-        where: { employee_id: event.external_ref, tenant_id: tenantId },
+      // Staff namespace is separate (D37): only staff cards resolve here, never a student's.
+      const ref = event.external_ref;
+      const rows = await staffProfileRepo.find({
+        where: [
+          { employee_id: ref, tenant_id: tenantId },
+          { card_no: ref, tenant_id: tenantId },
+        ],
+        take: 2,
       });
+      return rows.find((r) => r.employee_id === ref) ?? rows[0] ?? null;
     }
     return null;
   }
@@ -751,7 +766,10 @@ export class DeviceEventsService {
       );
       outcome = 'accepted';
       versionBumped = true;
-    } else if (record.source === AttendanceSource.TEACHER) {
+    } else if (
+      record.source === AttendanceSource.TEACHER ||
+      record.source === AttendanceSource.IMPORT
+    ) {
       // Manual-mark-wins (D3): a manually-marked staff record is never
       // overwritten by a device scan — only a blank check_in/check_out
       // gets filled in.

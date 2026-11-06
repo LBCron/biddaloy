@@ -28,6 +28,10 @@ import { School } from '../../schools/entities/school.entity';
 @Index('IDX_staff_profiles_user_id', ['user_id'])
 @Index(['tenant_id'])
 @Index(['tenant_id', 'employee_id'], { unique: true })
+@Index('UQ_staff_profiles_tenant_card_no', ['tenant_id', 'card_no'], {
+  unique: true,
+  where: '"card_no" IS NOT NULL',
+})
 export class StaffProfile {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -48,6 +52,10 @@ export class StaffProfile {
 
   @Column({ type: 'varchar', length: 50 })
   employee_id: string;
+
+  /** Attendance card number; unique per school when set (D9). */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  card_no: string | null;
 
   @Column({ type: 'date', nullable: true })
   joining_date: Date | null;

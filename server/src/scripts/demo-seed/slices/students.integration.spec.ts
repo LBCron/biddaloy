@@ -85,6 +85,11 @@ describe('students slice (integration, 4 years, scale 0.1)', () => {
     facts.ids = studentIds(ctx);
     facts.anchor = ctx.anchor;
     const D = `s.slug LIKE 'bmsc-%'`;
+    facts.cards = await q(
+      `SELECT tenant_id, count(*)::int AS n, count(DISTINCT card_no)::int AS d,
+              bool_and(card_no ~ '^[0-9]{10}$') AS ok
+         FROM students WHERE card_no IS NOT NULL GROUP BY tenant_id`,
+    );
     facts.twoEnrollmentsInOneYear = await q(
       `SELECT e.student_id FROM enrollments e JOIN schools s ON s.id = e.tenant_id
         WHERE ${D} GROUP BY e.student_id, e.academic_year_id HAVING count(*) > 1`,
@@ -259,6 +264,16 @@ describe('students slice (integration, 4 years, scale 0.1)', () => {
     expect(facts.card9b[0].section_name).toBe('B');
     expect(facts.card9b[0].enrollment_status).toBe('ACTIVE');
     expect(facts.hashes).toHaveLength(1);
+  });
+
+  it('one class per branch has 10-digit student card numbers, unique per tenant (76.2.8)', async () => {
+    const rows = facts.cards;
+    expect(rows).toHaveLength(3);
+    for (const r of rows) {
+      expect(r.n).toBeGreaterThan(0);
+      expect(r.d).toBe(r.n);
+      expect(r.ok).toBe(true);
+    }
   });
 
   it('every Guardian has a child, and some siblings share one Guardian row', () => {

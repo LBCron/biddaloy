@@ -7,6 +7,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import {
   Between,
@@ -74,10 +75,11 @@ interface RegisterCounts {
   absent: number;
   late: number;
   leave: number;
+  scanned_but_absent: number;
 }
 
 function emptyCounts(): RegisterCounts {
-  return { present: 0, absent: 0, late: 0, leave: 0 };
+  return { present: 0, absent: 0, late: 0, leave: 0, scanned_but_absent: 0 };
 }
 
 function tallyStatus(counts: RegisterCounts, status: AttendanceStatus): void {
@@ -187,15 +189,26 @@ export class AttendanceService {
         .select('r.session_id', 'session_id')
         .addSelect('r.status', 'status')
         .addSelect('COUNT(*)', 'count')
+        // check_in_at, not device_id: a scan after a teacher's mark fills only check_in_at.
+        .addSelect('COUNT(*) FILTER (WHERE r.check_in_at IS NOT NULL)', 'scanned')
         .where('r.tenant_id = :tenantId', { tenantId })
         .andWhere('r.session_id IN (:...sessionIds)', { sessionIds })
         .groupBy('r.session_id')
         .addGroupBy('r.status')
-        .getRawMany<{ session_id: string; status: AttendanceStatus; count: string }>();
+        .getRawMany<{
+          session_id: string;
+          status: AttendanceStatus;
+          count: string;
+          scanned: string;
+        }>();
 
       for (const row of rows) {
         const entry = countsBySessionId.get(row.session_id) ?? emptyCounts();
         const n = Number(row.count);
+        // [76.2.1] D5: a card scan on a student marked absent / on leave.
+        if (row.status === AttendanceStatus.ABSENT || row.status === AttendanceStatus.LEAVE) {
+          entry.scanned_but_absent += Number(row.scanned);
+        }
         if (row.status === AttendanceStatus.PRESENT) entry.present += n;
         else if (row.status === AttendanceStatus.ABSENT) entry.absent += n;
         else if (row.status === AttendanceStatus.LATE) entry.late += n;
@@ -252,6 +265,7 @@ export class AttendanceService {
           late: counts.late,
           leave: counts.leave,
           unmarked: Math.max(studentCount - marked, 0),
+          scanned_but_absent: counts.scanned_but_absent,
           marked_at: session.marked_at ? session.marked_at.toISOString() : null,
         };
       }
@@ -286,13 +300,79 @@ export class AttendanceService {
     await this.assertRegisterAccess(role, userId, sectionId, tenantId, date, periodNo, {
       includeCoordinated: true,
     });
-    return this.loadRegister(this.dataSource.manager, {
+    const register = await this.loadRegister(this.dataSource.manager, {
       sectionId,
       date,
       periodNo,
       tenantId,
       role,
     });
+    // [76.2.1] D2: the whole-day gate. A period register keeps today's rule (mark permission +
+    // period access, no coordinator reach); dailySource never applies to it.
+    const state =
+      periodNo === null
+        ? await this.attendanceAccessService.dayRegisterWriteState(
+            role,
+            userId,
+            sectionId,
+            date,
+            tenantId,
+          )
+        : {
+            can_write: await this.attendanceAccessService.canWritePeriodRegister(
+              role,
+              userId,
+              sectionId,
+              tenantId,
+              date,
+              periodNo,
+            ),
+            write_reason: null,
+            first_period_today: false,
+          };
+    return { ...register, ...state };
+  }
+
+  /**
+   * [76.2.2] One (date, section) group of an attendance sheet, written inside the caller's
+   * transaction (so a whole sheet commits or rolls back together). Same checks and write as a
+   * teacher save, plus the whole-day gate again (the caller's role may have changed since
+   * validate). Never finalizes. `entries` carry only the sheet's rows; other students keep
+   * their marks. `matrix: true` keeps stored minutes / remarks and skips the replay shortcut.
+   */
+  async writeImportDay(
+    manager: EntityManager,
+    params: {
+      sectionId: string;
+      date: string;
+      tenantId: string;
+      role: string;
+      userId: string;
+      importId: string;
+      ip: string | null;
+      userAgent: string | null;
+      entries: { student_id: string; status: AttendanceStatus }[];
+    },
+  ): Promise<RegisterResponseDto> {
+    const { sectionId, date, tenantId, role, userId, importId, ip, userAgent, entries } = params;
+    await this.attendanceAccessService.assertCanWriteDayRegister(
+      role,
+      userId,
+      sectionId,
+      date,
+      tenantId,
+    );
+    return this.writeRegisterDay(
+      manager,
+      { sectionId, tenantId, role, userId, ip, userAgent, matrix: true, importId },
+      {
+        date,
+        base_version: 0,
+        client_request_id: randomUUID(),
+        reason: 'Attendance sheet import',
+        entries,
+      } as PutRegisterDto,
+    );
   }
 
   // ---------------------------------------------------------------------
@@ -313,7 +393,9 @@ export class AttendanceService {
     const periodNo = dto.period_no ?? null;
 
     // 1. Object-level access (and the period switch, for a period register).
-    await this.assertRegisterAccess(role, userId, sectionId, tenantId, dto.date, periodNo);
+    await this.assertRegisterAccess(role, userId, sectionId, tenantId, dto.date, periodNo, {
+      write: true,
+    });
 
     // 3. Date sanity.
     if (!DATE_ONLY.test(dto.date)) {
@@ -633,10 +715,16 @@ export class AttendanceService {
       ip: string | null;
       userAgent: string | null;
       matrix: boolean;
+      /** [76.2.2] A sheet import: marks the session / record `source` as IMPORT and carries
+       * `import_id` on the audit rows. Absent for a teacher save. An import skips the
+       * `base_version` check: its stale-ness guard is the 30-minute staged diff. */
+      importId?: string;
     },
     dto: PutRegisterDto,
   ): Promise<RegisterResponseDto> {
     const { sectionId, tenantId, role, userId, ip, userAgent } = ctx;
+    const source = ctx.importId ? AttendanceSource.IMPORT : AttendanceSource.TEACHER;
+    const importAudit = ctx.importId ? { import_id: ctx.importId } : {};
     const periodNo = dto.period_no ?? null;
     const studentIds = dto.entries.map((e) => e.student_id);
     const sessionRepo = manager.getRepository(AttendanceSession);
@@ -797,7 +885,7 @@ export class AttendanceService {
     // 7. Version — a mismatch carries the full current register, which is
     // the payload [8.12.5]'s conflict dialog renders.
     const currentVersion = session?.version ?? 0;
-    if (dto.base_version !== currentVersion) {
+    if (!ctx.importId && dto.base_version !== currentVersion) {
       const currentRegister = await this.loadRegister(manager, {
         sectionId,
         date: dto.date,
@@ -848,7 +936,7 @@ export class AttendanceService {
         period_no: periodNo,
         // Snapshot, never updated afterwards (D21).
         subject_id: periodSubjectId,
-        source: AttendanceSource.TEACHER,
+        source,
         state: AttendanceSessionState.DRAFT,
       });
     }
@@ -891,7 +979,7 @@ export class AttendanceService {
             status: entry.status,
             minutes_late: minutesLate,
             remarks,
-            source: AttendanceSource.TEACHER,
+            source,
             recorded_by_user_id: userId,
           }),
         );
@@ -908,6 +996,7 @@ export class AttendanceService {
             status: created.status,
             minutes_late: created.minutes_late,
             remarks: created.remarks,
+            ...importAudit,
           },
         });
         continue;
@@ -930,6 +1019,9 @@ export class AttendanceService {
       existing.minutes_late = minutesLate;
       existing.remarks = remarks;
       existing.recorded_by_user_id = userId;
+      // The last writer owns the mark: a teacher correcting an imported (or device) mark makes
+      // it TEACHER, so the device rule "never changes a TEACHER / IMPORT mark" holds for it.
+      existing.source = source;
       await recordRepo.save(existing);
 
       recordAudits.push({
@@ -946,6 +1038,7 @@ export class AttendanceService {
           minutes_late: existing.minutes_late,
           remarks: existing.remarks,
           reason: dto.reason ?? null,
+          ...importAudit,
         },
       });
     }
@@ -966,6 +1059,7 @@ export class AttendanceService {
           state: session.state,
           version: session.version,
           counts,
+          ...importAudit,
         },
       },
       manager,
@@ -1002,11 +1096,15 @@ export class AttendanceService {
     userAgent: string | null;
   }): Promise<MatrixSaveResponseDto> {
     const { sectionId, tenantId, role, userId, dto, ip, userAgent } = params;
-    const section = await this.attendanceAccessService.assertCanAccessSection(
+    // D31: the month grid is class-teacher only, a first-period teacher is refused.
+    // (`monthGrid: true` skips the first-period branch, so this one gate covers every day.)
+    const { section } = await this.attendanceAccessService.assertCanWriteDayRegister(
       role,
       userId,
       sectionId,
+      dto.days[0]?.date ?? '',
       tenantId,
+      { monthGrid: true },
     );
 
     const dates = dto.days.map((d) => d.date);
@@ -1193,7 +1291,9 @@ export class AttendanceService {
     userAgent: string | null;
   }): Promise<RegisterResponseDto> {
     const { sectionId, tenantId, role, userId, date, periodNo, ip, userAgent } = params;
-    await this.assertRegisterAccess(role, userId, sectionId, tenantId, date, periodNo);
+    await this.assertRegisterAccess(role, userId, sectionId, tenantId, date, periodNo, {
+      write: true,
+    });
 
     const result = await this.dataSource.transaction(async (manager) => {
       const sessionRepo = manager.getRepository(AttendanceSession);
@@ -1293,6 +1393,7 @@ export class AttendanceService {
         tenantId,
         session.date,
         session.period_no,
+        { write: true },
       ).catch((e: unknown) => {
         throw e instanceof NotFoundException
           ? new NotFoundException('Attendance record not found')
@@ -1529,9 +1630,20 @@ export class AttendanceService {
     date: string,
     periodNo: number | null,
     /** [83.3.1] D4 — true only for reads (register view, record history). */
-    opts: { includeCoordinated?: boolean } = {},
+    opts: { includeCoordinated?: boolean; write?: boolean } = {},
   ): Promise<void> {
     if (periodNo === null) {
+      // [76.2.1] D32: every whole-day write goes through the `dailySource` gate.
+      if (opts.write) {
+        await this.attendanceAccessService.assertCanWriteDayRegister(
+          role,
+          userId,
+          sectionId,
+          date,
+          tenantId,
+        );
+        return;
+      }
       await this.attendanceAccessService.assertCanAccessSection(
         role,
         userId,
@@ -1752,8 +1864,16 @@ export class AttendanceService {
           source: record?.source ?? null,
           correction_count: record ? (correctionCounts.get(record.id) ?? 0) : 0,
           suggested_status: suggestedByStudentId.get(s.id) ?? null,
+          // D5: scan time only where the scan contradicts the mark. Keyed on check_in_at (only a
+          // card scan sets it), so a scan that came after the teacher's mark counts too.
+          scanned_at:
+            record?.check_in_at &&
+            (record.status === AttendanceStatus.ABSENT || record.status === AttendanceStatus.LEAVE)
+              ? (record.check_in_at?.toISOString() ?? null)
+              : null,
         };
       }),
+      period_attendance_enabled: policy.periodAttendance?.enabled === true,
     };
   }
 }

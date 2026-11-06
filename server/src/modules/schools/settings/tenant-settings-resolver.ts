@@ -16,6 +16,7 @@ import {
 import {
   alertRuleMeta,
   ApprovalMode,
+  DailyAttendanceSource,
   isAlertRuleKey,
   SERIAL_PREFIX_PATTERN,
 } from '@biddaloy/shared';
@@ -81,6 +82,8 @@ function overlayAttentionSettings(stored: unknown): AttentionSettings {
       isHhMm(q.start) && isHhMm(q.end) ? { start: q.start, end: q.end } : { ...d.quietHours },
     guardianSmsFallback:
       typeof s.guardianSmsFallback === 'boolean' ? s.guardianSmsFallback : d.guardianSmsFallback,
+    staffSmsFallback:
+      typeof s.staffSmsFallback === 'boolean' ? s.staffSmsFallback : d.staffSmsFallback,
     guardianSmsDailyCap: intIn(s.guardianSmsDailyCap, 0, 10)
       ? s.guardianSmsDailyCap
       : d.guardianSmsDailyCap,
@@ -256,7 +259,14 @@ const FEES_APPROVAL_MODES: readonly ApprovalMode[] = Object.values(ApprovalMode)
  */
 export function resolveTenantSettings(stored: Record<string, unknown> | null): TenantSettings {
   const region = overlayOnDefaults(DEFAULT_REGION_SETTINGS, stored?.region);
-  const attendance = overlayOnDefaults(DEFAULT_ATTENDANCE_SETTINGS, stored?.attendance);
+  let attendance = overlayOnDefaults(DEFAULT_ATTENDANCE_SETTINGS, stored?.attendance);
+  // overlayOnDefaults only checks the type; an unknown source falls back to ANY.
+  if (
+    !Object.values(DailyAttendanceSource).includes(attendance.dailySource as DailyAttendanceSource)
+  ) {
+    // New object: `attendance` may be the shared default, never mutate it.
+    attendance = { ...attendance, dailySource: DEFAULT_ATTENDANCE_SETTINGS.dailySource };
+  }
   const organisation = overlayOnDefaults(DEFAULT_ORGANISATION_SETTINGS, stored?.organisation);
   const auth = overlayOnDefaults(DEFAULT_AUTH_SETTINGS, stored?.auth);
   // Not `overlayOnDefaults`: it only copies a stored key that also exists

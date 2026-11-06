@@ -5,6 +5,7 @@ import { CommunicationProviderRegistryService } from '../../communications/provi
 import {
   GuardianSmsFallbackService,
   fallbackReferenceKey,
+  staffSmsText,
   toldAboutStudent,
 } from './guardian-sms-fallback.service';
 
@@ -108,6 +109,115 @@ describe('GuardianSmsFallbackService gates', () => {
       .mockRejectedValueOnce(new Error('db down'));
     const { service } = build(query);
     await expect(service.run(new Date())).resolves.toBeUndefined();
+  });
+});
+
+describe('staff SMS fallback (76.2.05)', () => {
+  const settings = (staff: boolean, quiet = { start: '00:00', end: '00:00' }) => ({
+    id: 't1',
+    name: 'S',
+    name_bn: null,
+    settings: {
+      communications: { sms: { provider: 'x' } },
+      attention: { staffSmsFallback: staff, guardianSmsFallback: false, quietHours: quiet },
+    },
+  });
+  const row = (over = {}) => ({
+    id: 'a1',
+    rule_key: 'attendance.not_taken',
+    params: { title_bn: 'T' },
+    user_id: 'u1',
+    phone: '01700000000',
+    full_name: 'Admin',
+    sent: false,
+    ...over,
+  });
+  const build = (rows: unknown[]) => {
+    const query = vi.fn().mockResolvedValue(rows);
+    const add = vi.fn();
+    const save = vi.fn(async (x) => ({ ...x, id: 'log1', metadata: {} }));
+    const service = new GuardianSmsFallbackService(
+      { query, getRepository: () => ({ create: (x: any) => x, save }) } as any,
+      { add } as any,
+      { isMetered: vi.fn().mockResolvedValue(false) } as any,
+      {
+        get: vi
+          .fn()
+          .mockReturnValue({ messages: { bn: { title: '{title_bn}', why: '', steps: [] } } }),
+      } as any,
+    );
+    return { service, query, add, save };
+  };
+  const noon = new Date('2026-10-10T06:00:00Z');
+
+  it('opt-in off: nothing, no query', async () => {
+    const { service, query } = build([row()]);
+    expect(await service.runTenant(settings(false), noon)).toBe(0);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('opt-in on: one admin SMS, keyed per alert and user, never a guardian log', async () => {
+    const { service, add, save } = build([row(), row({ user_id: 'u2', phone: '01800000000' })]);
+    expect(await service.runTenant(settings(true), noon)).toBe(2);
+    expect(add).toHaveBeenCalledTimes(2);
+    expect(save.mock.calls.map((c) => c[0].reference_key)).toEqual([
+      'attention-staff:a1:u1',
+      'attention-staff:a1:u2',
+    ]);
+    expect(save.mock.calls.every((c) => c[0].guardian_id === undefined)).toBe(true);
+  });
+
+  it('WARNING alerts are never selected: the query asks for CRITICAL only', async () => {
+    const { service, query } = build([]);
+    await service.runTenant(settings(true), noon);
+    const [sql, params] = query.mock.calls[0];
+    expect(sql).toContain('a.severity = $4');
+    expect(params).toContain('CRITICAL');
+    expect(params).not.toContain('WARNING');
+  });
+
+  it('staff pass never queries guardians', async () => {
+    const { service, query } = build([row()]);
+    await service.runTenant(settings(true), noon);
+    expect(query.mock.calls.every((c) => !/guardians|student_guardians/.test(c[0]))).toBe(true);
+  });
+
+  it('fixed D29 wording by school language', () => {
+    expect(staffSmsText('en', '7-B')).toBe(
+      "Some students' attendance is not updating — 7-B. Please check.",
+    );
+    expect(staffSmsText('bn', '7-B')).toBe('কিছু ছাত্রের হাজিরার অবস্থা বদলাচ্ছে না — ৭-B। দেখুন।');
+  });
+
+  it('en school gets the en text', async () => {
+    const { service, save } = build([row({ params: { sectionLabel: '7-B' } })]);
+    const sch = settings(true);
+    (sch.settings as any).region = { locale: 'en-BD', timezone: 'Asia/Dhaka' };
+    await service.runTenant(sch, noon);
+    expect(save.mock.calls[0][0].message_body).toBe(
+      "Some students' attendance is not updating — 7-B. Please check.",
+    );
+  });
+
+  it('guardian-only school: the staff pass is off and runs no query of its own', async () => {
+    const { service, query } = build([]);
+    const sch = settings(false);
+    (sch.settings as any).attention.guardianSmsFallback = true;
+    await service.runTenant(sch, noon);
+    // every query came from the guardian pass (alerts of guardian rules), none from the staff pass
+    expect(query.mock.calls.every((c) => !String(c[0]).includes('attention-staff'))).toBe(true);
+  });
+
+  it('replay (already logged) sends nothing', async () => {
+    const { service, add } = build([row({ sent: true })]);
+    expect(await service.runTenant(settings(true), noon)).toBe(0);
+    expect(add).not.toHaveBeenCalled();
+  });
+
+  it('quiet hours skip', async () => {
+    const { service, query } = build([row()]);
+    expect(await service.runTenant(settings(true, { start: '00:00', end: '23:59' }), noon)).toBe(0);
+    expect(query).not.toHaveBeenCalled();
   });
 });
 

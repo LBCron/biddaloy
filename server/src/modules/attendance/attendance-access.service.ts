@@ -1,10 +1,20 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { Permission, UserRole, hasTenantDataScope, roleHasPermission } from '@biddaloy/shared';
+import {
+  DailyAttendanceSource,
+  DailyRegisterWriteReason,
+  Permission,
+  TeacherAssignmentType,
+  UserRole,
+  hasTenantDataScope,
+  roleHasPermission,
+} from '@biddaloy/shared';
+import { SchoolsService } from '../schools/schools.service';
+import { resolveAttendancePolicy } from './attendance-policy.util';
 import { ClassSection } from '../academics/entities/class-section.entity';
 import { Teacher } from '../academics/entities/teacher.entity';
-import { teacherSectionIds } from '../classes/teacher-scope.service';
+import { teacherAssignments, teacherSectionIds } from '../classes/teacher-scope.service';
 import { PeriodSlot } from '../routines/entities/period-slot.entity';
 import { ResolveRoutineService } from '../routines/resolve-routine.service';
 import { ResolvedPeriod, toPeriods } from './attendance-periods.util';
@@ -41,6 +51,7 @@ export class AttendanceAccessService {
     @InjectRepository(PeriodSlot)
     private readonly periodSlotRepo: Repository<PeriodSlot>,
     private readonly resolveRoutineService: ResolveRoutineService,
+    private readonly schoolsService: SchoolsService,
   ) {}
 
   /**
@@ -133,6 +144,119 @@ export class AttendanceAccessService {
   }
 
   /**
+   * [76.2.1] D2 / D31 / D32 - may the caller change the WHOLE-DAY register? Section access first
+   * (no coordinators, D4), then the school's `dailySource`. Tenant-wide roles always pass; under
+   * `CLASS_TEACHER` / `DEVICE` only the section's class or assistant class teacher; under
+   * `FIRST_PERIOD` also whoever covers that date's first period. `monthGrid` refuses the
+   * first-period teacher (D31). Period registers never come here. 403 `details.reason` is a
+   * `DailyRegisterWriteReason` and the message names nobody (Rule 23).
+   */
+  async assertCanWriteDayRegister(
+    role: string,
+    userId: string,
+    sectionId: string,
+    date: string,
+    tenantId: string,
+    opts: { monthGrid?: boolean } = {},
+  ): Promise<{ section: ClassSection; firstPeriodToday: boolean }> {
+    const section = await this.assertCanAccessSection(role, userId, sectionId, tenantId);
+    const r = await this.evaluateDayWrite(role, userId, sectionId, date, tenantId, opts);
+    if (!r.canWrite) {
+      throw new ForbiddenException({
+        message: 'You cannot change this day register under the school attendance setting',
+        details: { reason: r.reason },
+      });
+    }
+    return { section, firstPeriodToday: r.firstPeriodToday };
+  }
+
+  /** Same decision as `assertCanWriteDayRegister`, never throws. For read views that already
+   * passed their own access check. A caller who cannot write at all (a read-only coordinator,
+   * or a role without ATTENDANCE_MARK such as ACCOUNTANT) gets `can_write: false` with
+   * `write_reason: null`. */
+  async dayRegisterWriteState(
+    role: string,
+    userId: string,
+    sectionId: string,
+    date: string,
+    tenantId: string,
+    opts: { monthGrid?: boolean } = {},
+  ): Promise<{
+    can_write: boolean;
+    write_reason: DailyRegisterWriteReason | null;
+    first_period_today: boolean;
+  }> {
+    // Same permission the PUT / finalize routes require (PermissionsGuard uses this check).
+    if (!roleHasPermission(role, Permission.ATTENDANCE_MARK)) {
+      return { can_write: false, write_reason: null, first_period_today: false };
+    }
+    if (!canAccessTenantWide(role)) {
+      try {
+        await this.assertCanAccessSection(role, userId, sectionId, tenantId);
+      } catch (err) {
+        if (!isAccessMiss(err)) throw err;
+        return { can_write: false, write_reason: null, first_period_today: false };
+      }
+    }
+    const r = await this.evaluateDayWrite(role, userId, sectionId, date, tenantId, opts);
+    return {
+      can_write: r.canWrite,
+      write_reason: r.reason,
+      first_period_today: r.firstPeriodToday,
+    };
+  }
+
+  private async evaluateDayWrite(
+    role: string,
+    userId: string,
+    sectionId: string,
+    date: string,
+    tenantId: string,
+    opts: { monthGrid?: boolean },
+  ): Promise<{
+    canWrite: boolean;
+    reason: DailyRegisterWriteReason | null;
+    firstPeriodToday: boolean;
+  }> {
+    const settings = await this.schoolsService.getResolvedSettings(tenantId);
+    const source = resolveAttendancePolicy(settings).dailySource;
+    const pass = (firstPeriodToday = false) => ({ canWrite: true, reason: null, firstPeriodToday });
+    if (source === DailyAttendanceSource.ANY || canAccessTenantWide(role)) return pass();
+
+    // Only a TEACHER gets here (assertCanAccessSection fails closed for anyone else).
+    const rows = await teacherAssignments(this.sectionRepo.manager, { userId, tenantId });
+    const isClassTeacher = rows.some(
+      (r) =>
+        r.section_id === sectionId &&
+        (r.assignment_type === TeacherAssignmentType.CLASS_TEACHER ||
+          r.assignment_type === TeacherAssignmentType.ASSISTANT_CLASS_TEACHER),
+    );
+    if (isClassTeacher) return pass();
+
+    if (source === DailyAttendanceSource.FIRST_PERIOD && !opts.monthGrid) {
+      const teacher = await this.teacherRepo.findOne({
+        where: { user_id: userId, tenant_id: tenantId },
+      });
+      const first = teacher ? (await this.resolvePeriods(tenantId, sectionId, date))[0] : undefined;
+      // A substitute replaces the planned teacher for that period.
+      const covers =
+        teacher && first
+          ? first.substitute_teacher_id
+            ? first.substitute_teacher_id === teacher.id
+            : first.teacher_ids.includes(teacher.id)
+          : false;
+      if (covers) return pass(true);
+    }
+    const reason =
+      source === DailyAttendanceSource.DEVICE
+        ? DailyRegisterWriteReason.DEVICE_SCHOOL
+        : source === DailyAttendanceSource.FIRST_PERIOD && !opts.monthGrid
+          ? DailyRegisterWriteReason.FIRST_PERIOD_ONLY
+          : DailyRegisterWriteReason.CLASS_TEACHER_ONLY;
+    return { canWrite: false, reason, firstPeriodToday: false };
+  }
+
+  /**
    * The periods attendance can be taken for in a section on a date — the
    * routine resolver's slots for that date, cancelled ones dropped, each
    * numbered by its period slot's sequence (D21). No published routine → [].
@@ -197,6 +321,26 @@ export class AttendanceAccessService {
       if (!isAccessMiss(err) || periodNo === null) throw err;
       const mine = await this.substitutePeriods(role, userId, sectionId, tenantId, date);
       if (!mine.some((p) => p.period_no === periodNo)) throw err;
+    }
+  }
+
+  /** May the caller write this period register? ATTENDANCE_MARK plus the period gate without
+   * coordinator reach (a coordinator reads, never writes, D4). Never throws on a miss. */
+  async canWritePeriodRegister(
+    role: string,
+    userId: string,
+    sectionId: string,
+    tenantId: string,
+    date: string,
+    periodNo: number,
+  ): Promise<boolean> {
+    if (!roleHasPermission(role, Permission.ATTENDANCE_MARK)) return false;
+    try {
+      await this.assertCanAccessPeriod(role, userId, sectionId, tenantId, date, periodNo);
+      return true;
+    } catch (err) {
+      if (isAccessMiss(err)) return false;
+      throw err;
     }
   }
 

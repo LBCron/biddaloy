@@ -8,6 +8,10 @@ import {
   sectionCutoff,
   toMinutes,
 } from './attendance-not-taken.rule';
+import { sectionRosterIdsBySection } from '../../../enrollments/section-roster';
+
+// The unmarked count reads the dated roster (same helper as the register); stubbed per build().
+vi.mock('../../../enrollments/section-roster', () => ({ sectionRosterIdsBySection: vi.fn() }));
 
 describe('toMinutes', () => {
   it('reads HH:mm and Postgres time', () => {
@@ -110,8 +114,13 @@ interface Fx {
   sessions?: unknown[];
   slots?: unknown[];
   coordinators?: unknown[];
+  unmarked?: number;
 }
 function build(f: Fx = {}) {
+  // `unmarked` students on S1's roster, none of them marked (the marked-records query returns []).
+  vi.mocked(sectionRosterIdsBySection).mockResolvedValue(
+    new Map([['S1', Array.from({ length: f.unmarked ?? 0 }, (_, i) => `st-${i}`)]]),
+  );
   const query = vi.fn(async (sql: string) => {
     // [83.2.4] Before the user_tenants route: the coordinator query has one in an EXISTS.
     if (sql.includes('FROM coordinator_assignments')) return f.coordinators ?? [];
@@ -210,6 +219,33 @@ describe('AttendanceNotTakenRule', () => {
     expect(finding.severity).toBe(AlertSeverity.CRITICAL);
     expect(finding.escalationLevel).toBe(2);
     expect(finding.recipients.map((r) => r.userId).sort()).toEqual(['head', 'u-CT']);
+  });
+
+  describe('unmarked students (76.2.05)', () => {
+    const finalized = [{ section_id: 'S1', period_no: null, state: 'FINALIZED' }];
+    const open = [{ section_id: 'S1', period_no: null, state: 'DRAFT' }];
+
+    it('12 unmarked after grace on an open register: WARNING with the incomplete title', async () => {
+      const { rule } = build({ sessions: open, unmarked: 12 });
+      const [f] = await rule.evaluate(ctx());
+      expect(f.severity).toBe(AlertSeverity.WARNING);
+      expect(f.dedupeKey).toBe('section:S1:2026-10-10');
+      expect(f.params.title_en).toBe('Attendance incomplete: 7-B — 12 without status');
+      expect(f.params.title_bn).toBe('হাজিরা অসম্পূর্ণ: 7-B — 12 জনের অবস্থা নেই');
+    });
+
+    it('finalized register with unmarked students still fires; 0 unmarked does not', async () => {
+      const [f] = await build({ sessions: finalized, unmarked: 3 }).rule.evaluate(ctx());
+      expect(f.params.title_en).toContain('incomplete');
+      expect(await build({ sessions: finalized, unmarked: 0 }).rule.evaluate(ctx())).toEqual([]);
+    });
+
+    it('no session: the old title, ladder unchanged (CRITICAL after cutoff)', async () => {
+      const { rule } = build({ unmarked: 30 });
+      const [f] = await rule.evaluate(ctx({ localTime: '10:05' }));
+      expect(f.params.title_en).toBe('Attendance not taken: 7-B');
+      expect(f.severity).toBe(AlertSeverity.CRITICAL);
+    });
   });
 
   // [83.2.4] D7: a class coordinator of the section's class joins at level 1, not before;

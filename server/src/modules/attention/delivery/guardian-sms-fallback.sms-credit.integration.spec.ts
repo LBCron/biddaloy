@@ -452,4 +452,30 @@ describe('GuardianSmsFallbackService metered SMS credit (integration, 67.5.02)',
     expect(await service.runTenant(autoOn, new Date())).toBe(0);
     expect(await service.runTenant(school(), new Date())).toBe(1);
   });
+
+  // PR #3609 review #5: the staff SMS is a fallback for an app alert nobody read. An admin who
+  // already saw it in the app (alert_recipients.seen_at set) is not texted.
+  it('staff SMS: skips an admin who already saw the CRITICAL alert in the app', async () => {
+    metered = false;
+    const seen = await mkUser('staff-seen');
+    const unseen = await mkUser('staff-unseen');
+    await ds.query(
+      `UPDATE users SET phone = '+8801711' || right(id::text, 6) WHERE id = ANY($1::uuid[])`,
+      [[seen, unseen]],
+    );
+    const alertId = await mkAlert(null, {
+      rule: 'attendance.not_taken',
+      severity: 'CRITICAL',
+      params: { sectionLabel: '7-B' },
+    });
+    await ds.query(
+      `INSERT INTO alert_recipients (tenant_id, alert_id, user_id, role, seen_at)
+       VALUES ($1, $2, $3, 'ADMIN', now()), ($1, $2, $4, 'ADMIN', NULL)`,
+      [TENANT_ID, alertId, seen, unseen],
+    );
+    const staffOnly = school({ guardianSmsFallback: false, staffSmsFallback: true });
+    expect(await service.runTenant(staffOnly, new Date())).toBe(1);
+    const mine = (await logs()).filter((l) => l.reference_key?.includes(alertId));
+    expect(mine.map((l) => l.reference_key)).toEqual([`attention-staff:${alertId}:${unseen}`]);
+  });
 });

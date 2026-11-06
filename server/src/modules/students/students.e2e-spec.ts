@@ -503,6 +503,71 @@ describe('Students E2E', () => {
       });
     });
 
+    describe('[76.2.06] card_no', () => {
+      const mk = async (name: string) =>
+        (
+          await supertest(app.getHttpServer())
+            .post('/api/v1/students')
+            .set('Authorization', `Bearer ${adminToken}`)
+            .set('X-Tenant-ID', TENANT_ID)
+            .send({ full_name: name, class_section_id: SEED_SECTION_1_ID })
+            .expect(201)
+        ).body.id as string;
+      const patch = (id: string, body: object) =>
+        supertest(app.getHttpServer())
+          .patch(`/api/v1/students/${id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .set('X-Tenant-ID', TENANT_ID)
+          .send(body);
+
+      it('ADMIN sets, clears, and a duplicate is a fixed 409', async () => {
+        const a = await mk('Card A');
+        const b = await mk('Card B');
+        const set = await patch(a, { card_no: 'E2E-CARD-1' }).expect(200);
+        expect(set.body.card_no).toBe('E2E-CARD-1');
+        const dup = await patch(b, { card_no: 'E2E-CARD-1' }).expect(409);
+        expect(JSON.stringify(dup.body)).toContain('This card number is already in use');
+        await patch(b, { card_no: 'no spaces!' }).expect(400);
+        const cleared = await patch(a, { card_no: null }).expect(200);
+        expect(cleared.body.card_no).toBeNull();
+      });
+
+      it('missing X-Tenant-ID is 401, an unknown tenant is refused', async () => {
+        const id = await mk('Card C');
+        await supertest(app.getHttpServer())
+          .patch(`/api/v1/students/${id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ card_no: 'E2E-CARD-2' })
+          .expect(401);
+        const res = await supertest(app.getHttpServer())
+          .patch(`/api/v1/students/${id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .set('X-Tenant-ID', '00000000-0000-4000-8000-0000000000ff')
+          .send({ card_no: 'E2E-CARD-2' });
+        expect([401, 403, 404]).toContain(res.status);
+      });
+
+      it('a TEACHER cannot PATCH card_no (403)', async () => {
+        const id = await mk('Card D');
+        await dataSource.query(
+          `INSERT INTO user_tenants (user_id, tenant_id, role, created_at, updated_at)
+           VALUES ($1, $2, $3, NOW(), NOW()) ON CONFLICT DO NOTHING`,
+          [SEED_ADMIN_USER_ID, TENANT_ID, UserRole.TEACHER],
+        );
+        const login = await supertest(app.getHttpServer())
+          .post('/api/v1/auth/login')
+          .send({ email: SEED_ADMIN_EMAIL, password: SEED_ADMIN_PASSWORD })
+          .expect(200);
+        await supertest(app.getHttpServer())
+          .patch(`/api/v1/students/${id}`)
+          .set('Authorization', `Bearer ${login.body.access_token}`)
+          .set('X-Tenant-ID', TENANT_ID)
+          .set('X-Role', UserRole.TEACHER)
+          .send({ card_no: 'E2E-CARD-3' })
+          .expect(403);
+      });
+    });
+
     it('should update a student', async () => {
       const createRes = await supertest(app.getHttpServer())
         .post('/api/v1/students')

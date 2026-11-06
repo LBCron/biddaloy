@@ -75,6 +75,14 @@ export const staffArea: SubjectAreaDef = {
       { en: 'Employee ID', bn: 'কর্মচারী আইডি' },
       { sensitivity: FieldSensitivity.PERSONAL, groupable: false },
     ),
+    field(
+      'card_no',
+      T.TEXT,
+      'sp.card_no',
+      'sp',
+      { en: 'Card number', bn: 'কার্ড নম্বর' },
+      { sensitivity: FieldSensitivity.PERSONAL, groupable: false },
+    ),
     field('designation', T.TEXT, 'd.title_en', 'd', { en: 'Designation', bn: 'পদবি' }),
     field('designation_bn', T.TEXT, 'd.title_bn', 'd', {
       en: 'Designation (Bangla)',

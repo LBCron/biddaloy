@@ -6,6 +6,7 @@ import { Queue } from 'bullmq';
 import { DataSource } from 'typeorm';
 import {
   ALERT_RULES,
+  AlertSeverity,
   CommunicationMedium,
   CommunicationStatus,
   CommunicationTrigger,
@@ -23,16 +24,21 @@ import { ATTENTION_RULE_LOCK_NAMESPACE } from '../engine/alert-writer.service';
 import { RuleRegistryService } from '../rules/rule-registry.service';
 import { localDateTimeToUtc, localTimeHHmm } from '../rules/rule-context.service';
 import { localDate } from '../../attendance/attendance-policy.util';
-import { render } from '../rules/messages';
+import { render, resolveLocale, toBanglaDigits } from '../rules/messages';
 import { isInQuietHours } from './alert-delivery.service';
 
 const FALLBACK_RULES = ALERT_RULES.filter((r) => r.guardianSmsFallback).map((r) => r.key);
+const STAFF_FALLBACK_RULES = ALERT_RULES.filter((r) => r.staffSmsFallback).map((r) => r.key);
 const ABSENT_RULE = 'child.absent_today';
 const PG_UNIQUE_VIOLATION = '23505';
 
 /** Idempotency key of one fallback SMS: replays hit the (tenant_id, reference_key) unique index. */
 export const fallbackReferenceKey = (alertId: string, guardianId: string) =>
   `attention:${alertId}:${guardianId}`;
+
+/** [76.2.05] Idempotency key of one staff fallback SMS (a different prefix keeps the guardian daily cap clean). */
+export const staffFallbackReferenceKey = (alertId: string, userId: string) =>
+  `attention-staff:${alertId}:${userId}`;
 
 /** Did an AUTOMATED absence-notice log from today already tell this guardian about this student? */
 export function toldAboutStudent(
@@ -46,6 +52,13 @@ export function toldAboutStudent(
       (l.student_id === studentId ||
         (Array.isArray(l.metadata?.student_ids) && l.metadata.student_ids.includes(studentId))),
   );
+}
+
+/** [76.2.05] D29 fixed wording; digits in the label follow `render`'s bn convention. */
+export function staffSmsText(locale: 'bn' | 'en', sectionLabel: string): string {
+  return locale === 'bn'
+    ? `কিছু ছাত্রের হাজিরার অবস্থা বদলাচ্ছে না — ${toBanglaDigits(sectionLabel)}। দেখুন।`
+    : `Some students' attendance is not updating — ${sectionLabel}. Please check.`;
 }
 
 interface SchoolRow {
@@ -106,7 +119,9 @@ export class GuardianSmsFallbackService implements OnModuleInit, OnModuleDestroy
     // The setting defaults to off, so the raw JSON check is correct.
     const schools: SchoolRow[] = await this.dataSource.query(
       `SELECT id, name, name_bn, settings FROM schools
-        WHERE status = 'ACTIVE' AND settings->'attention'->>'guardianSmsFallback' = 'true'`,
+        WHERE status = 'ACTIVE'
+          AND (settings->'attention'->>'guardianSmsFallback' = 'true'
+            OR settings->'attention'->>'staffSmsFallback' = 'true')`,
     );
     for (const school of schools) {
       try {
@@ -141,8 +156,139 @@ export class GuardianSmsFallbackService implements OnModuleInit, OnModuleDestroy
   }
 
   async runTenant(school: SchoolRow, now: Date): Promise<number> {
-    const tenantId = school.id;
     const settings = resolveTenantSettings(school.settings as any);
+    return (
+      (await this.runGuardians(school, settings, now)) +
+      (await this.runStaff(school, settings, now))
+    );
+  }
+
+  /** [76.2.05] D29: one SMS per CRITICAL staff-fallback alert to each ADMIN/EXECUTIVE recipient with a
+   * phone who has not seen it in the app yet (`seen_at IS NULL`). Never guardians. */
+  private async runStaff(
+    school: SchoolRow,
+    settings: ReturnType<typeof resolveTenantSettings>,
+    now: Date,
+  ): Promise<number> {
+    const tenantId = school.id;
+    const attention = settings.attention;
+    if (!attention?.staffSmsFallback) return 0;
+    if (!settings.communications?.sms?.provider) return 0;
+    const tz = settings.region!.timezone;
+    if (isInQuietHours(localTimeHHmm(now, tz), attention.quietHours)) return 0;
+    const midnight = localDateTimeToUtc(localDate(now, tz), '00:00', tz);
+    const rows: {
+      id: string;
+      rule_key: string;
+      params: Record<string, string | number>;
+      user_id: string;
+      phone: string;
+      full_name: string;
+      sent: boolean;
+    }[] = await this.dataSource.query(
+      `SELECT a.id, a.rule_key, a.params, u.id AS user_id, u.phone, u.full_name,
+              EXISTS (SELECT 1 FROM communication_logs l WHERE l.tenant_id = a.tenant_id
+                 AND l.reference_key = 'attention-staff:' || a.id || ':' || u.id) AS sent
+         FROM alerts a
+         JOIN alert_recipients r ON r.alert_id = a.id AND r.tenant_id = a.tenant_id
+              AND r.role IN ('ADMIN','EXECUTIVE') AND r.seen_at IS NULL
+         JOIN users u ON u.id = r.user_id AND u.deleted_at IS NULL AND u.status = 'ACTIVE'
+              AND NULLIF(btrim(u.phone), '') IS NOT NULL
+        WHERE a.tenant_id = $1 AND a.status = 'ACTIVE' AND a.source = 'RULE'
+          AND a.severity = $4 AND a.raised_at >= $2
+          AND a.rule_key = ANY($3::text[])
+        ORDER BY a.raised_at, a.id, u.id`,
+      [tenantId, midnight, STAFF_FALLBACK_RULES, AlertSeverity.CRITICAL],
+    );
+    const todo = rows.filter((r) => !r.sent);
+    if (!todo.length) return 0;
+    const metered = await this.credits.isMetered(tenantId);
+    const locale = resolveLocale(settings.region?.locale);
+    let queued = 0;
+    // D14: "today" = raised since local midnight; the key is per alert and user, so one SMS per alert at most.
+    for (const r of todo) {
+      const text = staffSmsText(locale, String(r.params.sectionLabel ?? ''));
+      const segments = countSmsSegments(text).segments;
+      const ref = randomUUID();
+      const batchId = `attention:${r.id}:${ref}`;
+      if (metered) {
+        const reserved = await this.credits.reserve(tenantId, segments, `batch:${batchId}`, {
+          type: 'batch',
+          id: ref,
+        });
+        if (!reserved.ok) {
+          this.logger.warn(
+            `Not enough SMS credit for staff fallback of alert ${r.id} (${tenantId})`,
+          );
+          continue;
+        }
+      }
+      try {
+        if (await this.sendStaff(tenantId, r, text, metered ? { batchId, segments } : null))
+          queued++;
+      } catch (e) {
+        this.logger.warn(`staff fallback sms failed for user ${r.user_id}: ${String(e)}`);
+      }
+    }
+    return queued;
+  }
+
+  private async sendStaff(
+    tenantId: string,
+    r: { id: string; rule_key: string; user_id: string; phone: string; full_name: string },
+    text: string,
+    credit: { batchId: string; segments: number } | null,
+  ): Promise<boolean> {
+    const referenceKey = staffFallbackReferenceKey(r.id, r.user_id);
+    const release = (partKey: string) =>
+      credit
+        ? this.credits
+            .settlePart(tenantId, `batch:${credit.batchId}`, partKey, credit.segments, 'RELEASE')
+            .catch((e) => this.logger.error(`sms credit release failed (${partKey}): ${String(e)}`))
+        : undefined;
+    const repo = this.dataSource.getRepository(CommunicationLog);
+    let log: CommunicationLog;
+    try {
+      log = await repo.save(
+        repo.create({
+          tenant_id: tenantId,
+          medium: CommunicationMedium.SMS,
+          recipient_address: r.phone.trim(),
+          recipient_name: r.full_name,
+          message_body: text,
+          subject: 'Alert',
+          sent_by_user_id: null,
+          status: CommunicationStatus.QUEUED,
+          trigger: CommunicationTrigger.AUTOMATED,
+          reference_key: referenceKey,
+          metadata: { alert_id: r.id, rule_key: r.rule_key, staff_user_id: r.user_id },
+        }),
+      );
+    } catch (e) {
+      await release(`${referenceKey}:no-log`);
+      if ((e as { driverError?: { code?: string } }).driverError?.code === PG_UNIQUE_VIOLATION)
+        return false;
+      throw e;
+    }
+    try {
+      await this.queue.add('send', { logId: log.id, ...(credit ?? {}) });
+    } catch (e) {
+      await release(`log:${log.id}`);
+      log.status = CommunicationStatus.FAILED;
+      log.reference_key = null;
+      log.metadata = { ...log.metadata, error: 'Failed to enqueue for delivery' };
+      await repo.save(log);
+      throw e;
+    }
+    return true;
+  }
+
+  private async runGuardians(
+    school: SchoolRow,
+    settings: ReturnType<typeof resolveTenantSettings>,
+    now: Date,
+  ): Promise<number> {
+    const tenantId = school.id;
     const attention = settings.attention;
     if (!attention?.guardianSmsFallback) return 0;
     if (!settings.communications?.sms?.provider) return 0;

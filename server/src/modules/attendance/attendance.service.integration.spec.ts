@@ -36,7 +36,11 @@ import { CalendarEventClass } from '../calendar/entities/calendar-event-class.en
 import { Shift } from '../routines/entities/shift.entity';
 import { RoutineSlot } from '../routines/entities/routine-slot.entity';
 import { Routine } from '../routines/entities/routine.entity';
+import { AttendanceDevice } from './entities/attendance-device.entity';
+import { Subject } from '../academics/entities/subject.entity';
+import { User } from '../users/entities/user.entity';
 import {
+  AttendanceDeviceKind,
   AttendanceSessionState,
   AttendanceStatus,
   EnrollmentStatus,
@@ -933,6 +937,168 @@ describe('AttendanceService (integration)', () => {
       expect(result.session.version).toBe(0);
       expect(result.students.every((s) => s.status === null)).toBe(true);
     });
+
+    // [76.2.1] write gate fields, scan time, and the daily-source gate on every whole-day write.
+    describe('daily source gate (76.2.1)', () => {
+      const asTeacher = () => ({ role: UserRole.TEACHER, userId: teacherUserId });
+      const get = (who: { role: string; userId: string }, periodNo: number | null = null) =>
+        service.getRegister({
+          sectionId,
+          date: TODAY(),
+          periodNo,
+          tenantId: TENANT_ID,
+          ...who,
+        });
+
+      /** A teacher mapped to the section as a SUBJECT teacher (never the class teacher). */
+      async function subjectTeacher() {
+        const user = await dataSource.getRepository(User).save({
+          email: `att-subj-${randomUUID()}@test.com`,
+          full_name: 'Subject Teacher',
+        });
+        const teacher = await dataSource.getRepository(Teacher).save({
+          user_id: user.id,
+          employee_id: `ATT-SUBJ-${randomUUID().slice(0, 8)}`,
+          tenant_id: TENANT_ID,
+          designations: [],
+        });
+        const code = randomUUID().slice(0, 6).toUpperCase();
+        const subject = await dataSource
+          .getRepository(Subject)
+          .save({ tenant_id: TENANT_ID, name_en: `Subj ${code}`, code });
+        await dataSource.getRepository(TeacherClassSection).save({
+          teacher_id: teacher.id,
+          section_id: sectionId,
+          tenant_id: TENANT_ID,
+          assignment_type: TeacherAssignmentType.SUBJECT_TEACHER,
+          subject_id: subject.id,
+        });
+        return { role: UserRole.TEACHER, userId: user.id };
+      }
+
+      it('reports can_write per writer under CLASS_TEACHER', async () => {
+        await setTenantSettings(TENANT_ID, { weeklyOffDays: [], dailySource: 'CLASS_TEACHER' });
+        const subj = await subjectTeacher();
+        const klass = await get(asTeacher());
+        expect(klass).toMatchObject({ can_write: true, write_reason: null });
+        const other = await get(subj);
+        expect(other).toMatchObject({ can_write: false, write_reason: 'CLASS_TEACHER_ONLY' });
+        const admin = await get({ role: UserRole.ADMIN, userId: ADMIN_USER_ID });
+        expect(admin).toMatchObject({ can_write: true, write_reason: null });
+        expect(typeof admin.period_attendance_enabled).toBe('boolean');
+      });
+
+      it('refuses putRegister, finalize and correctRecord to a subject teacher; period writes are untouched', async () => {
+        const subj = await subjectTeacher();
+        // Mark as admin while the school is still on ANY, then close the gate.
+        const saved = await service.putRegister(putParams({ dto: basePutDto() }));
+        await setTenantSettings(TENANT_ID, { weeklyOffDays: [], dailySource: 'CLASS_TEACHER' });
+        const refused = { response: { details: { reason: 'CLASS_TEACHER_ONLY' } } };
+        await expect(
+          service.putRegister(putParams({ ...subj, dto: basePutDto({ base_version: 1 }) })),
+        ).rejects.toMatchObject(refused);
+        await expect(
+          service.finalize({
+            sectionId,
+            tenantId: TENANT_ID,
+            ...subj,
+            date: TODAY(),
+            periodNo: null,
+            ip: null,
+            userAgent: null,
+          }),
+        ).rejects.toMatchObject(refused);
+        await expect(
+          service.correctRecord({
+            recordId: saved.students[0].record_id!,
+            tenantId: TENANT_ID,
+            ...subj,
+            dto: { status: AttendanceStatus.LATE, reason: 'fixing it' } as any,
+            ip: null,
+            userAgent: null,
+          }),
+        ).rejects.toMatchObject(refused);
+        // The class teacher still writes.
+        await expect(
+          service.putRegister(putParams({ ...asTeacher(), dto: basePutDto({ base_version: 1 }) })),
+        ).resolves.toBeDefined();
+      });
+
+      it('leaves period registers alone under every source (period write needs the period switch, not dailySource)', async () => {
+        const subj = await subjectTeacher();
+        await setTenantSettings(TENANT_ID, { weeklyOffDays: [], dailySource: 'DEVICE' });
+        // Period attendance is off here, so the period gate answers (not the day gate's reason).
+        await expect(
+          service.putRegister(putParams({ ...subj, dto: basePutDto({ period_no: 1 }) })),
+        ).rejects.toMatchObject({ response: { details: { code: 'ATTENDANCE_PERIOD_DISABLED' } } });
+      });
+
+      it('sets scanned_at only on ABSENT/LEAVE rows that came from a device', async () => {
+        const device = await dataSource.getRepository(AttendanceDevice).save({
+          tenant_id: TENANT_ID,
+          name: 'Gate reader',
+          kind: AttendanceDeviceKind.RFID,
+          token_hash: randomUUID().replace(/-/g, '').padEnd(64, '0'),
+          token_last4: 'abcd',
+        });
+        const saved = await service.putRegister(putParams({ dto: basePutDto() }));
+        const [r1, r2] = saved.students.map((s) => s.record_id!);
+        const scanTime = new Date('2026-03-04T03:00:00Z');
+        const recordRepo = dataSource.getRepository(AttendanceRecord);
+        // Student 1 is marked ABSENT with a scan; student 2 is PRESENT with a scan.
+        await recordRepo.update(
+          { id: r1 },
+          { device_id: device.id, check_in_at: scanTime, status: AttendanceStatus.ABSENT },
+        );
+        await recordRepo.update(
+          { id: r2 },
+          { device_id: device.id, check_in_at: scanTime, status: AttendanceStatus.PRESENT },
+        );
+        const reg = await get({ role: UserRole.ADMIN, userId: ADMIN_USER_ID });
+        const byId = new Map(reg.students.map((s) => [s.record_id, s]));
+        expect(byId.get(r1)!.scanned_at).toBe(scanTime.toISOString());
+        expect(byId.get(r2)!.scanned_at).toBeNull();
+        // Same grouped query feeds the check-list count.
+        const sections = await service.listMySections({
+          role: UserRole.ADMIN,
+          userId: ADMIN_USER_ID,
+          tenantId: TENANT_ID,
+        });
+        const mine = sections.find((s) => s.section_id === sectionId)!;
+        expect(mine.today!.scanned_but_absent).toBe(1);
+      });
+
+      // PR #3609 review #1: teacher marks ABSENT first, the card scan comes later. Device
+      // ingest (TEACHER branch) fills only check_in_at and leaves device_id null; the scan
+      // must still show.
+      it('counts a scan that came after the teacher marked the student absent', async () => {
+        const saved = await service.putRegister(putParams({ dto: basePutDto() }));
+        const r1 = saved.students[0].record_id!;
+        const scanTime = new Date('2026-03-04T03:20:00Z');
+        await dataSource
+          .getRepository(AttendanceRecord)
+          .update(
+            { id: r1 },
+            { status: AttendanceStatus.ABSENT, check_in_at: scanTime, device_id: null },
+          );
+        const reg = await get({ role: UserRole.ADMIN, userId: ADMIN_USER_ID });
+        expect(reg.students.find((s) => s.record_id === r1)!.scanned_at).toBe(
+          scanTime.toISOString(),
+        );
+        const sections = await service.listMySections({
+          role: UserRole.ADMIN,
+          userId: ADMIN_USER_ID,
+          tenantId: TENANT_ID,
+        });
+        expect(sections.find((s) => s.section_id === sectionId)!.today!.scanned_but_absent).toBe(1);
+      });
+
+      // PR #3609 review #3: ACCOUNTANT can read the register but PUT is 403 for it.
+      it('tells a read-only role it cannot write the day register', async () => {
+        const reg = await get({ role: UserRole.ACCOUNTANT, userId: ADMIN_USER_ID });
+        expect(reg).toMatchObject({ can_write: false, write_reason: null });
+      });
+    });
   });
 
   describe('finalize', () => {
@@ -1459,6 +1625,61 @@ describe('AttendanceService (integration)', () => {
           putParams({ ...asSub, dto: basePutDto({ date: PDATE, period_no: 2 }) }),
         ),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    // PR #3609 review #2: a period register's can_write is the period's real write rule
+    // (ATTENDANCE_MARK + period access), not a constant true. The dailySource gate never applies.
+    it('reports can_write on a period register from the period rule', async () => {
+      const r = await routine();
+      await setTenantSettings(TENANT_ID, {
+        weeklyOffDays: [],
+        correctionWindowDays: 2,
+        allowFutureDates: false,
+        periodAttendance: { enabled: true },
+        dailySource: 'DEVICE',
+      });
+      const subUserId = await makeSubstitute(r);
+      const read = (role: UserRole, userId: string) =>
+        service.getRegister({
+          sectionId,
+          date: PDATE,
+          periodNo: 1,
+          tenantId: TENANT_ID,
+          role,
+          userId,
+        });
+      expect(await read(UserRole.ADMIN, ADMIN_USER_ID)).toMatchObject({
+        can_write: true,
+        write_reason: null,
+      });
+      expect(await read(UserRole.ACCOUNTANT, ADMIN_USER_ID)).toMatchObject({
+        can_write: false,
+        write_reason: null,
+      });
+      expect(await read(UserRole.TEACHER, subUserId)).toMatchObject({
+        can_write: true,
+        write_reason: null,
+      });
+      // PR #3609 review: a coordinator of the class (no teaching row, no substitution) may open
+      // the period register read-only (83.3.1 D4), so can_write is false there.
+      const coordUser = await dataSource.getRepository(User).save({
+        email: `att-coord-${randomUUID()}@test.com`,
+        full_name: 'Coordinator Teacher',
+      });
+      const coord = await dataSource.getRepository(Teacher).save({
+        user_id: coordUser.id,
+        employee_id: `ATT-CO-${randomUUID().slice(0, 8)}`,
+        tenant_id: TENANT_ID,
+        designations: [],
+      });
+      await dataSource.query(
+        `INSERT INTO coordinator_assignments (tenant_id, teacher_id, class_id) VALUES ($1, $2, $3)`,
+        [TENANT_ID, coord.id, classId],
+      );
+      expect(await read(UserRole.TEACHER, coordUser.id)).toMatchObject({
+        can_write: false,
+        write_reason: null,
+      });
     });
 
     const notScheduled = { response: { details: { code: 'ATTENDANCE_PERIOD_NOT_SCHEDULED' } } };

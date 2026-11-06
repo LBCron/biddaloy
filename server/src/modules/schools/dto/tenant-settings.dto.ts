@@ -1,6 +1,7 @@
 import {
   ArrayMaxSize,
   ArrayUnique,
+  IsEnum,
   IsIn,
   IsUUID,
   IsInt,
@@ -34,6 +35,7 @@ import { UniqueLabelListConstraint } from '../settings/unique-labels.validator';
 import {
   ApprovalMode,
   CommunicationMedium,
+  DailyAttendanceSource,
   DiscountKind,
   FeeType,
   SERIAL_PREFIX_PATTERN,
@@ -395,6 +397,14 @@ export class AttendancePolicyDto {
   @NestedSettings(() => PeriodAttendanceDto)
   periodAttendance?: PeriodAttendanceDto;
 
+  @ApiPropertyOptional({
+    enum: DailyAttendanceSource,
+    description: 'Who marks daily attendance. Default ANY. Only limits who may write.',
+  })
+  @OptionalSetting()
+  @IsEnum(DailyAttendanceSource)
+  dailySource?: DailyAttendanceSource;
+
   @OptionalSetting()
   @NestedSettings(() => ArrivalNoticeDto)
   arrivalNotice?: ArrivalNoticeDto;
@@ -743,6 +753,11 @@ export class AttentionSettingsDto {
   @IsOptional()
   @IsBoolean()
   guardianSmsFallback?: boolean;
+
+  @ApiPropertyOptional({ description: 'Text staff when an app alert is not read. Default off.' })
+  @OptionalSetting()
+  @IsBoolean()
+  staffSmsFallback?: boolean;
 
   @ApiPropertyOptional({ example: 2 })
   @IsOptional()
