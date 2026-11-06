@@ -35,6 +35,7 @@ Why the setup looks like this: [30-deployment-target.md](30-deployment-target.md
 - [Part 14. Switch to direct mode (BDIX)](#part-14-switch-to-direct-mode-bdix-no-cloudflare)
 - [Part 15. Move ops to its own VM](#part-15-move-ops-to-its-own-vm)
 - [Part 16. Rotate a secret, lose a key](#part-16-rotate-a-secret-lose-a-key)
+- [Part 17. School websites](#part-17-school-websites)
 - [Known gaps](#known-gaps)
 
 ## Part 0. The picture and the order
@@ -1972,6 +1973,112 @@ remove the old host public key from `.sops.yaml` and `updatekeys` again.
 
 You can no longer read **old** backups. Make a new pair (part 9), update prod's public key,
 staging's private key, redeploy. New backups use the new key. Keep two offline copies next time.
+
+## Part 17. School websites
+
+Epic 40 gives every school a public website at `<school>.schoolmanagerp.com`, and
+later a school's own domain (for example `www.rumsc.edu`). This part is the Cloudflare
+and tunnel groundwork. It is owner-run and **UNVERIFIED on a real VM**. Nothing here
+deploys site code; it only makes the names reach nginx, so later waves can serve them.
+
+> Numbering note: the epic text calls this "Part 8". Part 8 is already Secrets, so this
+> part is 17 and its sections are 17a to 17d. Anchors of Parts 1 to 16 do not move.
+
+```mermaid
+flowchart LR
+  B["Browser<br/>rumsc.schoolmanagerp.com"] -->|"wildcard cert"| CF["Cloudflare<br/>CNAME * (proxied)"]
+  CF -->|tunnel| CD["cloudflared<br/>last ingress rule: *.schoolmanagerp.com"]
+  CD --> N["nginx<br/>known shape, else 444"]
+  N -.->|"written in #3655 (40.5.07)"| S["site container"]
+```
+
+### 17a. Wildcard host
+
+1. Dashboard > your zone > **DNS > Records > Add record**.
+2. Type `CNAME`, name `*`, target `<CLOUDFLARE_TUNNEL_ID>.cfargotunnel.com` (the same
+   target as in [4c](#4c-dns-one-cname-per-hostname)), **Proxied** on. Save.
+3. Add `ROOT_DOMAIN=schoolmanagerp.com` (no scheme, the apex) to `infra/secrets/edge.enc.env`
+   with `sops infra/secrets/edge.enc.env`, next to `APP_DOMAIN`. The cloudflared template
+   reads it. Until you add it, the template falls back to `LANDING_DOMAIN`, which holds the
+   same apex, so a deploy does not break either way.
+4. Deploy the edge (part 12). The rendered `config.yml` now ends with one wildcard rule,
+   after every fixed host:
+
+   ```yaml
+   - hostname: '*.schoolmanagerp.com'
+     service: http://nginx:80
+   - service: http_status:404
+   ```
+
+   The order matters: cloudflared uses the first rule that matches, so `staging.`, `kuma.`
+   and the other fixed hosts keep their own rules (and their Access check) and never fall
+   into the wildcard.
+
+Why one label only: Cloudflare's free Universal certificate covers `*.schoolmanagerp.com`
+and nothing deeper. `rumsc.schoolmanagerp.com` works; `rumsc.staging.schoolmanagerp.com`
+fails TLS. This is the same reason given for the single-level inbox names in
+[4d](#4d-zero-trust-the-access-login-staging-and-ops) (D5).
+
+**Check.** Until the site ships in wave 1, a made-up name reaches nginx, which does not
+know it:
+
+```bash
+curl -sI https://anything.schoolmanagerp.com
+# HTTP/2 520   <- nginx's empty 444 reply (Rule 12), which Cloudflare shows as 520.
+```
+
+A Cloudflare 1033 page (tunnel not found) or a TLS error instead means the tunnel did not pick up the wildcard rule:
+re-check step 4 (rendered `config.yml`) and that cloudflared restarted.
+
+**Rollback.** Delete the `*` DNS record. Redeploy the edge from the previous commit to drop the
+ingress rule. Fixed hosts are untouched.
+
+### 17b. Reserved names and the test host
+
+1. Reserved names. School subdomains must not collide with platform names. The code
+   side (`RESERVED_SUBDOMAINS`, which also blocks `app`, `demo`, `staging`, `kuma`,
+   `beszel`, `logs`, `www`, `sites`, `site-test`) lands in #3615. Nothing to do here but know the list.
+2. `sites.schoolmanagerp.com` is held now for later: it will be the Cloudflare for SaaS fallback origin
+   that custom domains CNAME to (#3646, 40.4.08). Add a **proxied** CNAME `sites` to the tunnel target,
+   exactly as in 17a step 2. Until #3646 it ends in nginx's 444.
+3. `site-test.schoolmanagerp.com` is the staging test host. Add a **proxied** CNAME `site-test` to the
+   tunnel target. The staging demo school gets this name as its `custom_domain` in the staging seed
+   (#3621, 40.1.08 reads it from `SITE_TEST_HOST`). Set `SITE_TEST_HOST=site-test.schoolmanagerp.com`
+   in `staging.enc.env` once #3621 lands; the key is not read before then.
+4. Put `site-test` behind the `Staging` Access app only if you want it closed to the public
+   ([4d](#4d-zero-trust-the-access-login-staging-and-ops) step 3: add it to the hostnames). It is a
+   single-level name, so the free certificate covers it.
+
+**Check.**
+
+```bash
+dig +short sites.schoolmanagerp.com site-test.schoolmanagerp.com   # Cloudflare IPs
+curl -sI https://sites.schoolmanagerp.com                           # 520 (nginx 444) until #3646
+```
+
+**Rollback.** Delete the two CNAME records.
+
+### 17c. Turnstile on school sites
+
+School sites carry public write forms (Rule 22), so the widget must render on every subdomain.
+
+1. Dashboard > **Turnstile**, open the widget that holds `app.schoolmanagerp.com`
+   (widget 1 in [4e](#4e-turnstile-the-captcha-on-public-forms)).
+2. Add the hostname `schoolmanagerp.com` and tick **include subdomains** (or add `*.schoolmanagerp.com`
+   if your dashboard shows no such tick). Save.
+3. No new keys. The server reads the same two env names it reads today in
+   `server/src/modules/registration/turnstile.service.ts`: `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`.
+   Needed by #3628 (40.3.01) and #3649 (40.5.01).
+
+**Check.** Dashboard > Turnstile > the widget lists `schoolmanagerp.com` with subdomains. The widget
+test itself waits for #3628.
+
+**Rollback.** Remove the added hostname. The app and demo widgets keep working.
+
+### 17d. Site container (DevOps-2)
+
+Written in #3655 (40.5.07): the site container, its nginx `server{}` for the wildcard, custom
+domains through Cloudflare for SaaS, health checks.
 
 ## Known gaps
 
