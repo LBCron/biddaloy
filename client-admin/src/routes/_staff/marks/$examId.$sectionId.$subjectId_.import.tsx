@@ -5,6 +5,7 @@ import {
   Card,
   ConfirmDialog,
   RoutePending,
+  toast,
   type BulkUploadPreviewController,
 } from '@biddaloy/ui/components';
 import {
@@ -199,7 +200,11 @@ function MarksSheetImportContent() {
                   type="button"
                   variant="outline"
                   loading={download.isPending}
-                  onClick={() => download.mutate()}
+                  onClick={() =>
+                    download.mutate(undefined, {
+                      onError: () => toast.error(tCommon('errors.generic')),
+                    })
+                  }
                 >
                   <DownloadIcon aria-hidden="true" />
                   {t('steps.download')}

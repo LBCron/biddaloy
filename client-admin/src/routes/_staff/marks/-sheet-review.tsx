@@ -10,7 +10,8 @@ import type {
   MarksSheetPreviewSummary,
   PreviewResult,
 } from '@biddaloy/ui/hooks';
-import { useTranslation } from '@biddaloy/ui/i18n';
+import { useRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
+import { renderDigits } from '@biddaloy/ui/utils';
 import * as React from 'react';
 
 const PAGE_SIZE = 10;
@@ -35,6 +36,7 @@ export function translateSheetErrors(
 export function SheetReview({ result }: { result: PreviewResult<MarksSheetPreviewSummary> }) {
   const { t } = useTranslation('marksImport');
   const { t: te } = useTranslation('exams');
+  const { numerals } = useRegionConfig();
   const { summary, changes } = result.summary;
   const [page, setPage] = React.useState(1);
 
@@ -45,13 +47,15 @@ export function SheetReview({ result }: { result: PreviewResult<MarksSheetPrevie
       ? te('marksGrid.absentShort')
       : status === 'EXEMPT'
         ? te('marksGrid.exemptShort')
-        : (value ?? empty);
+        : value === null
+          ? empty
+          : renderDigits(value, numerals);
 
   const columns: DataTableColumn<MarksSheetChange>[] = [
     {
       id: 'student',
       header: te('marksGrid.columnStudent'),
-      accessorFn: (c) => `${c.roll} · ${c.student_name}`,
+      accessorFn: (c) => `${renderDigits(String(c.roll), numerals)} · ${c.student_name}`,
     },
     {
       id: 'change',

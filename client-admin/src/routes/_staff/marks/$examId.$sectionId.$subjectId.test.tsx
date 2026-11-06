@@ -772,5 +772,27 @@ describe('/marks/$examId/$sectionId/$subjectId', () => {
       await user.click(await screen.findByRole('button', { name: 'Download sheet' }));
       await waitFor(() => expect(hit).toHaveBeenCalledTimes(1));
     });
+
+    it('saves staged marks first and downloads nothing when the save fails', async () => {
+      const user = userEvent.setup();
+      const hit = vi.fn();
+      let patched = 0;
+      server.use(
+        http.get(GRID_URL, () => HttpResponse.json(baseGrid)),
+        http.patch(GRID_URL, () => {
+          patched += 1;
+          return HttpResponse.json({ message: 'boom' }, { status: 500 });
+        }),
+        http.get(SHEET_URL, () => {
+          hit();
+          return new HttpResponse(new Uint8Array([1]));
+        }),
+      );
+      open('TEACHER');
+      await user.type(await screen.findByLabelText('Rafi Ahmed — Written'), '90');
+      await user.click(screen.getByRole('button', { name: 'Download sheet' }));
+      await waitFor(() => expect(patched).toBeGreaterThan(0));
+      expect(hit).not.toHaveBeenCalled();
+    });
   });
 });

@@ -1,5 +1,6 @@
 import { File as NodeFile } from 'node:buffer';
 
+import { toast } from '@biddaloy/ui/components';
 import { cleanupTestState, renderWithRouter, server } from '@biddaloy/ui/test';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -425,5 +426,24 @@ describe('/marks/$examId/$sectionId/$subjectId/import', () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: '1. Download the sheet' }));
     await waitFor(() => expect(hit).toHaveBeenCalledTimes(1));
+  });
+
+  it('shows an error toast when the sheet download fails', async () => {
+    const toastSpy = vi.spyOn(toast, 'error').mockImplementation(() => '');
+    try {
+      server.use(
+        http.get(`${GRID_URL}/sheet`, () =>
+          HttpResponse.json({ message: 'boom' }, { status: 500 }),
+        ),
+      );
+      renderPage();
+      const user = userEvent.setup();
+      await user.click(await screen.findByRole('button', { name: '1. Download the sheet' }));
+      await waitFor(() =>
+        expect(toastSpy).toHaveBeenCalledWith('Something went wrong. Please try again.'),
+      );
+    } finally {
+      toastSpy.mockRestore();
+    }
   });
 });

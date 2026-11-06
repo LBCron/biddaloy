@@ -22,6 +22,7 @@ import {
   Skeleton,
   StatusBadge,
   TableCount,
+  toast,
 } from '@biddaloy/ui/components';
 import {
   useActiveRole,
@@ -88,6 +89,7 @@ function MarksEntryPage() {
   const { examId, sectionId, subjectId } = Route.useParams();
   const { t } = useTranslation('exams');
   const { t: tg, i18n } = useTranslation('grading');
+  const { t: tCommon } = useTranslation('common');
   const config = useRegionConfig();
   const isMobile = useIsMobile();
   // Context for the subtitle. Both reads are allowed for a teacher (the exam
@@ -136,6 +138,15 @@ function MarksEntryPage() {
     },
     [autosaveStage],
   );
+
+  // The sheet is built from what the server has, so save staged marks first;
+  // if that fails the save-state line shows why and nothing is downloaded.
+  async function downloadAfterSave() {
+    if (!(await autosave.flush())) return;
+    downloadSheet.mutate(undefined, {
+      onError: () => toast.error(tCommon('errors.generic')),
+    });
+  }
 
   // Submit locks the grid server-side, so any mark still staged (in the
   // debounce window, in flight, or failed) would be rejected afterwards and
@@ -293,7 +304,7 @@ function MarksEntryPage() {
                 type="button"
                 variant="outline"
                 loading={downloadSheet.isPending}
-                onClick={() => downloadSheet.mutate()}
+                onClick={() => void downloadAfterSave()}
               >
                 <DownloadIcon aria-hidden="true" />
                 {t('marksSheet.download')}
