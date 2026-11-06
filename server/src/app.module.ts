@@ -417,7 +417,7 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
             Notice,
             NoticeAttachment,
             NoticeRecipient,
-            // [40.1.03] Epic 40 school website; no module reads them until #3621 / Wave 2.
+            // [40.1.03] Epic 40 school website (WebsiteModule, workbook tabs, demo seed).
             SchoolSite,
             SiteEnquiry,
             SiteMedia,

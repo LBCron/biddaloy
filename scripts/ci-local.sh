@@ -19,7 +19,8 @@
 #                 the coverage variant — faster, but NOT CI-equivalent (CI
 #                 always collects coverage in the frontend job)
 # --only a,b:     [18.4.3] run only the named section(s) — one of verify,
-#                 frontend, storybook, integration, e2e, audit, lighthouse —
+#                 frontend, storybook, landing, site, integration, e2e, audit,
+#                 lighthouse, infra —
 #                 instead of the default set / the flags above. Lets one CI
 #                 job be replayed on its own.
 # --affected:     [18.4.3] skip a section whose area (per the globs below,
@@ -53,10 +54,10 @@ AFFECTED=0
 
 usage() {
   echo "usage: $(basename "$0") [--integration] [--e2e] [--lighthouse] [--storybook] [--full] [--no-coverage] [--only <job,job,...>] [--affected]" >&2
-  echo "  --only accepts: verify, frontend, storybook, landing, integration, e2e, audit, lighthouse, infra" >&2
+  echo "  --only accepts: verify, frontend, storybook, landing, site, integration, e2e, audit, lighthouse, infra" >&2
 }
 
-VALID_JOBS="verify frontend storybook landing integration e2e audit lighthouse infra"
+VALID_JOBS="verify frontend storybook landing site integration e2e audit lighthouse infra"
 
 args=("$@")
 i=0
@@ -161,6 +162,15 @@ CI_PATHS_LANDING=(
   'package.json'
   '.github/workflows/ci.yml'
 )
+# Mirror of ci.yml's `changes` job "site" filter (Epic 40) — keep in sync.
+CI_PATHS_SITE=(
+  'site/**'
+  'site-themes/**'
+  'shared/src/**'
+  'yarn.lock'
+  'package.json'
+  '.github/workflows/ci.yml'
+)
 # Mirror of ci.yml's `changes` job "api-surface" filter — keep in sync.
 CI_PATHS_API_SURFACE=(
   'server/src/**'
@@ -175,6 +185,8 @@ CI_PATHS_INFRA=(
   'scripts/backup/**'
   'scripts/demo/**'
   'docker-compose.build.yml'
+  'site/public/maintenance.html'
+  'infra/ansible/templates/cloudflared-config.yml.j2'
   '**/*.infra.test.sh'
   '.github/workflows/ci.yml'
 )
@@ -226,6 +238,7 @@ area_touched() {
     ui) patterns=("${CI_PATHS_UI[@]}") ;;
     infra) patterns=("${CI_PATHS_INFRA[@]}") ;;
     landing) patterns=("${CI_PATHS_LANDING[@]}") ;;
+    site) patterns=("${CI_PATHS_SITE[@]}") ;;
     api-surface) patterns=("${CI_PATHS_API_SURFACE[@]}") ;;
   esac
   # `set -u` treats an empty array's "${arr[@]}" as unbound on this
@@ -253,7 +266,7 @@ should_run() {
     [ "$found" = 1 ] || return 1
   else
     case "$name" in
-      verify | frontend | audit | infra | landing) : ;;
+      verify | frontend | audit | infra | landing | site) : ;;
       storybook) [ "$RUN_STORYBOOK" = 1 ] || return 1 ;;
       integration) [ "$RUN_INTEGRATION" = 1 ] || return 1 ;;
       e2e) [ "$RUN_E2E" = 1 ] || return 1 ;;
@@ -281,6 +294,9 @@ should_run() {
         ;;
       landing)
         area_touched landing || return 1
+        ;;
+      site)
+        area_touched site || return 1
         ;;
       # verify, audit, lighthouse: no ci.yml area gating to mirror.
     esac
@@ -384,6 +400,15 @@ if should_run "landing"; then
   yarn workspace @biddaloy/landing build
   node landing/scripts/check-tokens.mjs
   section_done "landing"
+fi
+
+if should_run "site"; then
+  section "site"
+  yarn build:shared
+  yarn build:site-themes
+  yarn workspace @biddaloy/site build
+  yarn workspace @biddaloy/site test
+  section_done "site"
 fi
 
 if should_run "storybook"; then

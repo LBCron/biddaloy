@@ -1,10 +1,10 @@
 name: Publish images
 
-# [1766 D10] Every merge to main publishes the three images to GHCR, tagged
+# [1766 D10] Every merge to main publishes the images to GHCR, tagged
 # with the commit SHA and `main`, so the production VM only ever pulls.
 # GITHUB_TOKEN pushes; SENTRY_AUTH_TOKEN (optional) uploads source maps.
 # The app image is built, checked for SPA source maps, and only then pushed.
-# [Epic 79 #2794] Four images: app, backup, demo-reset, landing. [Epic 40 #3620] + site.
+# [Epic 79 #2794, Epic 40 #3620] Five images: app, backup, demo-reset, landing, site.
 # A manual run (workflow_dispatch) on any other branch publishes only the
 # `<sha>` tags, so a branch can be deployed to a test VM before it merges.
 # `:main` is written only by main.

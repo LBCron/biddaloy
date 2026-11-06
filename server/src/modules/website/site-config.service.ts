@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { randomBytes } from 'node:crypto';
 import { RESERVED_SUBDOMAINS, SiteTheme } from '@biddaloy/shared';
 import type { SiteConfig } from '@biddaloy/shared';
@@ -31,6 +31,37 @@ export function slugFor(name: string, rand: () => string = () => randomBytes(2).
     .replace(/-+$/, '');
   if (base.length < 3 || RESERVED_SUBDOMAINS.includes(base)) base = 'school';
   return `${base}-${rand()}`;
+}
+
+/**
+ * Makes the school's one site row under a fresh `slugFor` subdomain. A concurrent first call or a
+ * taken subdomain makes the insert a no-op (ON CONFLICT DO NOTHING, so a surrounding transaction
+ * is not aborted): re-read, retry with a new slug. Used by `SiteConfigService` and the workbook
+ * restore (`school_site` tab).
+ */
+export async function createSiteRow(
+  m: EntityManager,
+  tenantId: string,
+  schoolName: string,
+  values: Pick<SchoolSite, 'theme' | 'palette' | 'draft'>,
+): Promise<SchoolSite> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    await m
+      .createQueryBuilder()
+      .insert()
+      .into(SchoolSite)
+      .values({
+        ...values,
+        draft: values.draft as never,
+        tenant_id: tenantId,
+        subdomain: slugFor(schoolName),
+      })
+      .orIgnore()
+      .execute();
+    const row = await m.findOne(SchoolSite, { where: { tenant_id: tenantId } });
+    if (row) return row;
+  }
+  throw new ConflictException('site.unavailable');
 }
 
 /**
@@ -181,24 +212,10 @@ export class SiteConfigService {
     if (found) return found;
     const school = await this.schools.findOneOrFail({ where: { id: tenantId } });
     const draft = defaultConfigFor(SiteTheme.BASIC);
-    // A concurrent first call or a taken subdomain makes the insert a no-op: re-read, retry a new slug.
-    for (let attempt = 0; attempt < 5; attempt++) {
-      await this.sites
-        .createQueryBuilder()
-        .insert()
-        .into(SchoolSite)
-        .values({
-          tenant_id: tenantId,
-          subdomain: slugFor(school.name),
-          theme: SiteTheme.BASIC,
-          palette: draft.palette,
-          draft: draft as never,
-        })
-        .orIgnore()
-        .execute();
-      const row = await this.sites.findOne({ where: { tenant_id: tenantId } });
-      if (row) return row;
-    }
-    throw new ConflictException('site.unavailable');
+    return createSiteRow(this.sites.manager, tenantId, school.name, {
+      theme: SiteTheme.BASIC,
+      palette: draft.palette,
+      draft: draft as never,
+    });
   }
 }

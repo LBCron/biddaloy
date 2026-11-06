@@ -101,7 +101,8 @@ x-app: &app
     DEMO_MODE: ${DEMO_MODE:-false}
     DEMO_PASSWORD: ${DEMO_PASSWORD:-}
     # School websites (Epic 40): the apex <school>.ROOT_DOMAIN hangs under. Read by the public
-    # site API; production enforcement belongs to #3621 or a follow-up.
+    # site API. Required on every stack: the `:?` below aborts compose without it, and the deploy
+    # preflight (infra/ansible/tasks/preflight.yml) and config:check refuse a secrets file without it.
     SITE_ROOT_DOMAIN: ${ROOT_DOMAIN:?ROOT_DOMAIN must be set}
   volumes:
     - ${PG_TLS_DIR:?PG_TLS_DIR must be set}:/etc/postgresql/tls:ro
@@ -185,6 +186,9 @@ services:
     image: ghcr.io/tareq89/biddaloy-site:${APP_VERSION:?APP_VERSION must be set}
     restart: unless-stopped
     environment:
+      # Only `app`, not app2: while the prod rolling restart recreates `app` (D25), pages that are
+      # not in the nginx cache answer the site 503 page (cached ones are served stale). Known gap,
+      # docs/architecture/07-deployment.md "Rolling restart".
       SITE_API_BASE: http://${ENV_NAME:?ENV_NAME must be set}-app:3000/api/v1
       SITE_ROOT_DOMAIN: ${ROOT_DOMAIN:?ROOT_DOMAIN must be set}
     expose:
