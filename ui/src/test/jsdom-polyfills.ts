@@ -155,15 +155,19 @@ if (typeof window !== 'undefined' && typeof Blob !== 'undefined') {
 
     // `FormData.append/set` store a *copy* of a Blob/File (a fresh wrapper this
     // module never constructed), so copy the recorded bytes onto the stored one.
+    const proto = FormData.prototype as unknown as Record<
+      'append' | 'set',
+      (this: FormData, ...args: unknown[]) => void
+    >;
     for (const method of ['append', 'set'] as const) {
-      const original = FormData.prototype[method] as (...args: unknown[]) => void;
-      FormData.prototype[method] = function patched(this: FormData, ...args: unknown[]) {
+      const original = proto[method];
+      proto[method] = function patched(this: FormData, ...args: unknown[]) {
         original.apply(this, args);
         const [name, value] = args as [string, unknown];
         const recorded = value instanceof BlobBase ? bytesOf.get(value) : undefined;
         const stored = recorded ? this.getAll(name).at(-1) : undefined;
         if (stored && typeof stored !== 'string') bytesOf.set(stored, recorded as Uint8Array);
-      } as FormData['append'];
+      };
     }
 
     // Vitest reads `blob[undefined]._buffer`, i.e. the property named 'undefined'.
