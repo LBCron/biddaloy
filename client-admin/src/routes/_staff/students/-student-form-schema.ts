@@ -45,6 +45,7 @@ export interface StudentFormMessages {
   rollNumberInvalid: string;
   fullNameBnTooLong: string;
   bloodGroupInvalid: string;
+  cardNoInvalid: string;
 }
 
 /** Every field name this schema can produce a `ZodIssue` for — the
@@ -57,6 +58,7 @@ export const STUDENT_FORM_SERVER_FIELDS = [
   'blood_group',
   'class_section_id',
   'roll_number',
+  'card_no',
   'date_of_birth',
   'gender',
   'home_address',
@@ -64,6 +66,8 @@ export const STUDENT_FORM_SERVER_FIELDS = [
 ] as const;
 
 export const GENDER_VALUES = ['MALE', 'FEMALE', 'OTHER'] as const;
+
+const CARD_NO_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
 
 export function buildStudentFormSchema(messages: StudentFormMessages) {
   return z.object({
@@ -85,6 +89,8 @@ export function buildStudentFormSchema(messages: StudentFormMessages) {
         message: messages.rollNumberInvalid,
       }),
     date_of_birth: z.date().optional(),
+    // [76.5.07] Optional attendance card; empty means "no card" (absent on create, null on update).
+    card_no: z.string().trim().regex(CARD_NO_PATTERN, messages.cardNoInvalid).or(z.literal('')),
     gender: z.string().trim(),
     home_address: z.string().trim(),
     preferred_communication: z.enum(PREFERRED_COMMUNICATION_VALUES),
@@ -103,6 +109,7 @@ export function defaultStudentFormValues(): StudentFormValues {
     classId: '',
     class_section_id: '',
     roll_number: '',
+    card_no: '',
     date_of_birth: undefined,
     gender: '',
     home_address: '',
@@ -126,6 +133,7 @@ export function studentToFormValues(student: Student): StudentFormValues {
     classId: student.class_section.class_id,
     class_section_id: student.class_section_id,
     roll_number: String(student.roll_number),
+    card_no: student.card_no ?? '',
     date_of_birth: student.date_of_birth ? new Date(student.date_of_birth) : undefined,
     gender: student.gender ?? '',
     home_address: student.home_address ?? '',
@@ -180,11 +188,13 @@ export function buildCreatePayload(values: StudentFormValues): CreateStudentInpu
   const gender = toOptional(values.gender);
   const homeAddress = toOptional(values.home_address);
   const nameBn = toOptional(values.full_name_bn);
+  const cardNo = toOptional(values.card_no ?? '');
   return {
     ...toBasePayload(values),
     ...(nameBn !== undefined ? { full_name_bn: nameBn } : {}),
     ...(values.blood_group !== '' ? { blood_group: values.blood_group } : {}),
     ...(values.date_of_birth ? { date_of_birth: toLocalDateString(values.date_of_birth) } : {}),
+    ...(cardNo !== undefined ? { card_no: cardNo } : {}),
     ...(gender !== undefined ? { gender } : {}),
     ...(homeAddress !== undefined ? { home_address: homeAddress } : {}),
   };
@@ -204,6 +214,7 @@ function buildFullUpdatePayload(values: StudentFormValues): UpdateStudentInput {
     date_of_birth: values.date_of_birth ? toLocalDateString(values.date_of_birth) : null,
     gender: toOptional(values.gender) ?? null,
     home_address: toOptional(values.home_address) ?? null,
+    card_no: toOptional(values.card_no ?? '') ?? null,
   };
 }
 

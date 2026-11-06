@@ -261,4 +261,37 @@ describe('/students/$studentId/edit', () => {
     await screen.findByDisplayValue(student.full_name);
     await expect(container).toHaveNoViolations();
   });
+
+  it('[76.5.07] ?focus=card focuses the card field; a 409 shows the fixed sentence under it', async () => {
+    const student = studentFactory({ id: 'student-1', card_no: null, guardians: [] });
+    let patchBody: unknown;
+    server.use(
+      http.get('/api/v1/students/:id', () => HttpResponse.json(student)),
+      http.patch('/api/v1/students/:id', async ({ request }) => {
+        patchBody = await request.json();
+        return HttpResponse.json(
+          {
+            ...apiErrorBody(409, 'x', '/api/v1/students/student-1'),
+            details: { code: 'CARD_NO_TAKEN' },
+          },
+          { status: 409 },
+        );
+      }),
+    );
+    renderWithRouter(routeTree, {
+      initialEntries: ['/students/student-1/edit?focus=card'],
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+      locale: 'en',
+    });
+    const input = await screen.findByLabelText('Card number');
+    await waitFor(() => expect(document.activeElement).toBe(input));
+    const user = userEvent.setup();
+    await user.type(input, 'AB-7');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(
+      (await screen.findAllByText('This card number already belongs to another student.')).length,
+    ).toBeGreaterThan(0);
+    expect(patchBody).toEqual({ card_no: 'AB-7' });
+  });
 });

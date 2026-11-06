@@ -26,6 +26,7 @@ import {
   FormLabel,
   FormMessage,
   Input,
+  ScanCardField,
   Select,
   SelectContent,
   SelectItem,
@@ -82,6 +83,8 @@ export interface StudentFormProps<TInput> {
   onSuccess: (student: Student) => void;
   /** [2603] Edit mode: an unchanged form would send an empty PATCH, so Save stays disabled. */
   disableSubmitWhenClean?: boolean;
+  /** [76.5.07] `?focus=card` deep link (palette action): focus the card field on open. */
+  focusCard?: boolean;
 }
 
 function fieldId(field: string): string {
@@ -98,6 +101,7 @@ export function StudentForm<TInput>({
   mutation,
   buildPayload,
   disableSubmitWhenClean,
+  focusCard,
   onSuccess,
 }: StudentFormProps<TInput>) {
   const { t } = useTranslation('students');
@@ -112,6 +116,7 @@ export function StudentForm<TInput>({
         rollNumberInvalid: t('form.errors.rollNumberInvalid'),
         fullNameBnTooLong: t('form.errors.fullNameBnTooLong'),
         bloodGroupInvalid: t('form.errors.bloodGroupInvalid'),
+        cardNoInvalid: t('form.errors.cardNoInvalid'),
       }),
     [t],
   );
@@ -180,6 +185,11 @@ export function StudentForm<TInput>({
       },
       onError: (error) => {
         if (error instanceof ApiError) {
+          // [76.5.07] Fixed sentence under the field; the server's text and the typed value stay out (Rule 23).
+          if (error.statusCode === 409 && error.details?.code === 'CARD_NO_TAKEN') {
+            form.setError('card_no', { type: 'server', message: t('cardNo.duplicate') });
+            return;
+          }
           const fieldErrors = parseValidationFieldErrors(
             error.messages,
             STUDENT_FORM_SERVER_FIELDS,
@@ -500,6 +510,27 @@ export function StudentForm<TInput>({
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="card_no"
+              render={({ field, fieldState }) => (
+                <FormItem>
+                  <ScanCardField
+                    name={field.name}
+                    value={field.value}
+                    onChange={field.onChange}
+                    label={t('cardNo.label')}
+                    scanLabel={t('cardNo.scan')}
+                    scanHint={t('cardNo.scanHint')}
+                    helpKey="people.students.field.cardNo"
+                    // `?focus=card` deep link asked for it.
+                    // eslint-disable-next-line jsx-a11y/no-autofocus
+                    autoFocus={focusCard}
+                    error={fieldState.error?.message}
+                  />
+                </FormItem>
+              )}
+            />
           </FormSection>
 
           <FormSection legend={t('form.sections.guardians')}>
@@ -572,7 +603,9 @@ export function StudentForm<TInput>({
             />
           </FormSection>
 
-          {mutation.isError && <MutationErrorMessage error={mutation.error} />}
+          {mutation.isError && !form.formState.errors.card_no && (
+            <MutationErrorMessage error={mutation.error} />
+          )}
         </FormShell>
       </FullPageShell>
     </Form>

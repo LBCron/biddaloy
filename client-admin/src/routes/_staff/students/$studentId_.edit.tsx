@@ -23,6 +23,9 @@ import { buildUpdatePayload, studentToFormValues } from './-student-form-schema'
  */
 export const Route = createFileRoute('/_staff/students/$studentId_/edit')({
   staticData: { chromeless: true },
+  // [76.5.07] `?focus=card` (the "Assign card" palette action) opens with the card field focused.
+  validateSearch: (search: Record<string, unknown>): { focus?: 'card' } =>
+    search.focus === 'card' ? { focus: 'card' } : {},
   loader: ({ context: { queryClient }, params }) =>
     Promise.all([
       // [8.14.5]: swallowed — see `academic-years/$academicYearId.tsx`'s
@@ -38,6 +41,7 @@ export const Route = createFileRoute('/_staff/students/$studentId_/edit')({
 
 function EditStudentPage() {
   const { studentId } = Route.useParams();
+  const { focus } = Route.useSearch();
   const { t } = useTranslation('students');
   const navigate = useNavigate();
   const config = useTenantRegionConfig();
@@ -93,6 +97,7 @@ function EditStudentPage() {
           mutation={mutation}
           buildPayload={(values) => buildUpdatePayload(values, initialValues)}
           disableSubmitWhenClean
+          focusCard={focus === 'card'}
           onSuccess={toDetail}
         />
       ) : null}
