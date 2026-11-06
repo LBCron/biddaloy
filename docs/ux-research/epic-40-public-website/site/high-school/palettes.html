@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Palettes · রামপুরা মডেল উচ্চ বিদ্যালয়</title>
+<style>
+body{margin:0;font:16px/1.5 system-ui,-apple-system,"Noto Sans Bengali",sans-serif;background:#f1f2f4;color:#16181d}
+h1{font-size:20px;margin:0;padding:16px;background:#16181d;color:#fff}
+h1 small{display:block;font-weight:400;font-size:14px;opacity:.8;margin-top:2px}
+.pal{margin:0 0 28px;background:#fff;border-bottom:1px solid #d7dae0}
+.pal iframe{display:block;width:100%;height:1000px;border:0}
+.pal figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:14px 16px}
+.pal figcaption b{font-size:17px}
+.sw{display:flex;gap:6px}
+.sw i{width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.25)}
+</style></head><body>
+<h1>রামপুরা মডেল উচ্চ বিদ্যালয়<small>Three predefined palettes. Each frame is the live home page (bar, hero and the next sections) with that palette applied.</small></h1>
+<figure class="pal"><iframe src="home.html?crop=1&amp;palette=0" title="রামপুরা মডেল উচ্চ বিদ্যালয়, palette 1" scrolling="no"></iframe>
+<figcaption><b>সবুজ ও সোনালি</b><span>Green and gold</span><span class="sw" aria-hidden="true"><i style="background:#0F4D3A" title="primary"></i><i style="background:#C9A227" title="secondary"></i><i style="background:#A2321F" title="accent"></i><i style="background:#F7F5EF" title="surface"></i><i style="background:#15211C" title="ink"></i></span><span>#0F4D3A #C9A227 #A2321F #F7F5EF #15211C</span></figcaption></figure><figure class="pal"><iframe src="home.html?crop=1&amp;palette=1" title="রামপুরা মডেল উচ্চ বিদ্যালয়, palette 2" scrolling="no"></iframe>
+<figcaption><b>নীল ও সোনালি</b><span>Blue and gold</span><span class="sw" aria-hidden="true"><i style="background:#1B3F77" title="primary"></i><i style="background:#C9A227" title="secondary"></i><i style="background:#A2321F" title="accent"></i><i style="background:#F6F6F2" title="surface"></i><i style="background:#141C2B" title="ink"></i></span><span>#1B3F77 #C9A227 #A2321F #F6F6F2 #141C2B</span></figcaption></figure><figure class="pal"><iframe src="home.html?crop=1&amp;palette=2" title="রামপুরা মডেল উচ্চ বিদ্যালয়, palette 3" scrolling="no"></iframe>
+<figcaption><b>মেরুন ও সোনালি</b><span>Maroon and gold</span><span class="sw" aria-hidden="true"><i style="background:#6B1F2E" title="primary"></i><i style="background:#C9A227" title="secondary"></i><i style="background:#1F5F4A" title="accent"></i><i style="background:#F8F4EE" title="surface"></i><i style="background:#2A1A1E" title="ink"></i></span><span>#6B1F2E #C9A227 #1F5F4A #F8F4EE #2A1A1E</span></figcaption></figure>
+<script>
+addEventListener('message',function(e){if(!e.data||!e.data.h)return;
+  document.querySelectorAll('iframe').forEach(function(f){if(f.contentWindow===e.source)f.style.height=e.data.h+'px';});});
+</script>
+</body></html>
