@@ -162,6 +162,7 @@ export const noticesTab: TabSpec<Notice, Rec> = {
     'alert_id', // D28: derived attention alert, left off on restore
     'sms_task_alert_id', // D28: derived attention alert, left off on restore
     'updated_at', // set by the database on write
+    'pinned_on_website', // [40.1.03] #3621 (40.1.08) turns it into a tab column
     'tenant_id', // implicit: every row is scoped to the workbook's own tenant
   ],
   dependsOn: ['users'],

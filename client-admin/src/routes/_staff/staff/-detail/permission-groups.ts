@@ -184,6 +184,7 @@ export const PERMISSION_GROUPS: readonly { id: string; permissions: readonly Per
       Permission.SETTINGS_MANAGE,
       Permission.BACKUP_MANAGE,
       Permission.STEP_UP_REQUEST,
+      Permission.WEBSITE_MANAGE,
     ],
   },
 ];

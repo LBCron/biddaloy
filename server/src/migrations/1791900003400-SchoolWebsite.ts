@@ -4,6 +4,11 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * [40.1.03] Epic 40 public school website: five new tables, website columns on `exams` and
  * `notices`, and the unused `schools.domain` column is dropped (`down()` re-adds it, nullable,
  * with its unique partial index). `down()` works on an empty database.
+ *
+ * Picture FKs are composite `(tenant_id, media_id) -> site_media(tenant_id, id)` (same shape as
+ * `1791600000000-Applications`), so a post or staff card can never point at another school's
+ * picture. `ON DELETE SET NULL (col)` (Postgres 15+) clears only the media column, never
+ * `tenant_id`. `previous_subdomain` gets no extra index: its UNIQUE constraint already is one.
  */
 export class SchoolWebsite1791900003400 implements MigrationInterface {
   name = 'SchoolWebsite1791900003400';
@@ -38,11 +43,9 @@ export class SchoolWebsite1791900003400 implements MigrationInterface {
         CONSTRAINT "UQ_school_sites_custom_domain" UNIQUE ("custom_domain"),
         CONSTRAINT "CHK_school_sites_subdomain" CHECK ("subdomain" ~ '^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$'),
         CONSTRAINT "CHK_school_sites_media_bytes_used" CHECK ("media_bytes_used" >= 0),
+        CONSTRAINT "CHK_school_sites_custom_domain_lower" CHECK ("custom_domain" = lower("custom_domain")),
         CONSTRAINT "FK_school_sites_tenant_id" FOREIGN KEY ("tenant_id") REFERENCES "schools"("id") ON DELETE CASCADE
       )`);
-    await queryRunner.query(
-      `CREATE INDEX "IDX_school_sites_previous_subdomain" ON "school_sites" ("previous_subdomain") WHERE "previous_subdomain" IS NOT NULL`,
-    );
 
     await queryRunner.query(`
       CREATE TABLE "site_media" (
@@ -58,6 +61,7 @@ export class SchoolWebsite1791900003400 implements MigrationInterface {
         CONSTRAINT "PK_site_media" PRIMARY KEY ("id"),
         CONSTRAINT "UQ_site_media_storage_key" UNIQUE ("storage_key"),
         CONSTRAINT "UQ_site_media_tenant_hash" UNIQUE ("tenant_id", "hash"),
+        CONSTRAINT "UQ_site_media_tenant_id" UNIQUE ("tenant_id", "id"),
         CONSTRAINT "CHK_site_media_bytes" CHECK ("bytes" > 0),
         CONSTRAINT "FK_site_media_tenant_id" FOREIGN KEY ("tenant_id") REFERENCES "schools"("id") ON DELETE CASCADE
       )`);
@@ -78,7 +82,7 @@ export class SchoolWebsite1791900003400 implements MigrationInterface {
         CONSTRAINT "UQ_site_posts_tenant_slug" UNIQUE ("tenant_id", "slug"),
         CONSTRAINT "CHK_site_posts_kind" CHECK ("kind" IN ('POST','PAGE')),
         CONSTRAINT "FK_site_posts_tenant_id" FOREIGN KEY ("tenant_id") REFERENCES "schools"("id") ON DELETE CASCADE,
-        CONSTRAINT "FK_site_posts_cover_media_id" FOREIGN KEY ("cover_media_id") REFERENCES "site_media"("id") ON DELETE SET NULL
+        CONSTRAINT "FK_site_posts_cover_media_id" FOREIGN KEY ("tenant_id", "cover_media_id") REFERENCES "site_media"("tenant_id", "id") ON DELETE SET NULL ("cover_media_id")
       )`);
     await queryRunner.query(
       `CREATE INDEX "IDX_site_posts_tenant_published" ON "site_posts" ("tenant_id", "published_at")`,
@@ -119,7 +123,7 @@ export class SchoolWebsite1791900003400 implements MigrationInterface {
         CONSTRAINT "UQ_staff_web_profiles_tenant_user" UNIQUE ("tenant_id", "user_id"),
         CONSTRAINT "FK_staff_web_profiles_tenant_id" FOREIGN KEY ("tenant_id") REFERENCES "schools"("id") ON DELETE CASCADE,
         CONSTRAINT "FK_staff_web_profiles_user_id" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE,
-        CONSTRAINT "FK_staff_web_profiles_photo_media_id" FOREIGN KEY ("photo_media_id") REFERENCES "site_media"("id") ON DELETE SET NULL
+        CONSTRAINT "FK_staff_web_profiles_photo_media_id" FOREIGN KEY ("tenant_id", "photo_media_id") REFERENCES "site_media"("tenant_id", "id") ON DELETE SET NULL ("photo_media_id")
       )`);
 
     await queryRunner.query(`ALTER TABLE "exams" ADD "website_published_at" timestamptz`);
