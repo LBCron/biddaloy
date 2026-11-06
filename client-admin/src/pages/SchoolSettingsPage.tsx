@@ -32,6 +32,7 @@ import { SeatsBillingSection } from '../features/billing/SeatsBillingSection';
 import { AcrCriteriaSection } from './settings/AcrCriteriaSection';
 import { AlertsSection } from './settings/AlertsSection';
 import { ApplicationsSection } from './settings/ApplicationsSection';
+import { AttendanceDevicesSection } from './settings/AttendanceDevicesSection';
 import { AttendanceSection } from './settings/AttendanceSection';
 import { BackupSection } from './settings/backup-section';
 import { CalendarSection } from './settings/CalendarSection';
@@ -121,7 +122,7 @@ export function SchoolSettingsPage({ backupJobId }: SchoolSettingsPageProps = {}
   const canManagePrinting = useHasPermission(Permission.PRINT_TEMPLATE_MANAGE);
   const canManageBackup = useHasPermission(Permission.BACKUP_MANAGE);
 
-  const { section, buy, order, payment } = useSearch({ from: '/_staff/settings' });
+  const { section, buy, order, payment, devices } = useSearch({ from: '/_staff/settings' });
   const hash = useLocation().hash;
   const categories = SETTINGS_CATEGORIES.filter(
     (c) =>
@@ -177,6 +178,7 @@ export function SchoolSettingsPage({ backupJobId }: SchoolSettingsPageProps = {}
             {loaded && (
               <>
                 <AttendanceSection schoolId={loaded.schoolId} attendance={loaded.data.attendance} />
+                <AttendanceDevicesSection openAdd={devices === 'new'} />
                 <EvaluationsSection
                   key={loaded.schoolId}
                   schoolId={loaded.schoolId}
