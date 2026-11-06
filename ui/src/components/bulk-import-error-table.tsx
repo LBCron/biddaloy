@@ -37,6 +37,9 @@ export function BulkImportErrorTable({
   const [page, setPage] = React.useState(1);
 
   const showTab = errors.some((error) => error.tab);
+  // A server that sends only a code (the marks sheet) has no value to show; an "(empty)"
+  // column beside "Above full marks" would mislead.
+  const showValue = errors.some((error) => error.value);
   const rowIndex = React.useMemo(
     () => new Map(errors.map((error, index) => [error, index])),
     [errors],
@@ -62,11 +65,16 @@ export function BulkImportErrorTable({
       header: t('errors.columnColumn'),
       accessorFn: (error) => error.column ?? t('errors.wholeRow'),
     },
-    {
-      id: 'value',
-      header: t('errors.columnValue'),
-      accessorFn: (error) => (error.value ? error.value : t('errors.emptyValue')),
-    },
+    ...(showValue
+      ? [
+          {
+            id: 'value',
+            header: t('errors.columnValue'),
+            accessorFn: (error: BulkImportError) =>
+              error.value ? error.value : t('errors.emptyValue'),
+          } satisfies DataTableColumn<BulkImportError>,
+        ]
+      : []),
     {
       id: 'message',
       header: t('errors.columnMessage'),
@@ -90,7 +98,7 @@ export function BulkImportErrorTable({
       t('errors.columnRow'),
       ...(showTab ? [t('errors.columnTab')] : []),
       t('errors.columnColumn'),
-      t('errors.columnValue'),
+      ...(showValue ? [t('errors.columnValue')] : []),
       t('errors.columnMessage'),
       t('errors.columnSeverity'),
     ];
@@ -100,7 +108,7 @@ export function BulkImportErrorTable({
         error.row,
         ...(showTab ? [error.tab ?? ''] : []),
         error.column ?? '',
-        error.value ?? '',
+        ...(showValue ? [error.value ?? ''] : []),
         messageOf(error),
         t(`errors.severity.${error.severity}`),
       ]),

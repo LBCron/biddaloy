@@ -142,7 +142,7 @@ If you have many students, fill the marks in Excel and upload the file. The app 
 
    ![Fill marks in Excel page: 1 · step 2, Fill in the marks. You fill the file in Excel on your computer, so the app shows only this step](img/marks-sheet-02-fill.png)
 
-3. Go back to the app. In the marks list press **Upload sheet** and choose the file (or drop it on the box). The page shows three steps: **1. Download the sheet**, **2. Fill in the marks**, **3. Upload the sheet**. → The app reads the file.
+3. Go back to the app. In the marks list press **Upload sheet** and choose the file. The page shows three steps: **1. Download the sheet**, **2. Fill in the marks**, **3. Upload the sheet**. → The app reads the file.
 
    ![Fill marks in Excel page before a file is chosen: 1 · step 3, Upload the sheet 2 · the Choose file box](img/marks-sheet-03-upload.png)
 
