@@ -27,7 +27,7 @@
     "uploading": "Uploading… {{percent}}%",
     "checking": "Checking your sheet…",
     "fileTooLarge": "This file is too large — choose a file under 5 MB.",
-    "fileWrongType": "This file type is not supported — choose an .xlsx file.",
+    "fileWrongType": "This file type is not supported — choose an .xlsx or .csv file.",
     "tooManyRows": "This sheet has more than {{max}} rows — split it and upload in parts.",
     "failed": "Upload failed. Try again.",
     "reviewChanges": "Review changes"

@@ -129,7 +129,9 @@ export function RosterMarker({
   }
 
   function handleListKeyDown(event: React.KeyboardEvent<HTMLUListElement>) {
-    if (isTypingTarget(event.target)) return;
+    if (disabled || isTypingTarget(event.target)) return;
+    // Badges are focusable for their tooltips; their keys are not row shortcuts.
+    if (event.target instanceof HTMLElement && !event.target.closest('button')) return;
 
     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
       event.preventDefault();

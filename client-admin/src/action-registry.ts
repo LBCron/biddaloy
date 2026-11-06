@@ -253,7 +253,7 @@ export const ACTIONS: readonly PaletteAction[] = [
   // [76.4.03] Attendance sheet import (D15). `sectionId` rides along only when the page has one.
   {
     id: 'attendance.import',
-    label: { en: 'Import attendance', bn: 'উপস্থিতি আমদানি করুন' },
+    label: { en: 'Upload attendance sheet', bn: 'উপস্থিতি শীট আপলোড করুন' },
     permission: Permission.ATTENDANCE_MARK,
     kind: 'navigate',
     group: 'attendance',

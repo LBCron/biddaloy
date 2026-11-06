@@ -165,7 +165,7 @@ function AttendanceImportPage() {
         title={t('pageTitle')}
         size="wide"
         onClose={close}
-        secondary={{ label: tc('actions.back'), onClick: () => setStep('pick') }}
+        secondary={{ label: tc('wizard.back'), onClick: () => setStep('pick') }}
         primary={{
           label: t('upload.reviewChanges'),
           onClick: handleValidate,

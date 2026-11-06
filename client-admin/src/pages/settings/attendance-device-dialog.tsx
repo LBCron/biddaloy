@@ -40,7 +40,7 @@ export type DeviceKind = (typeof DEVICE_KINDS)[number];
 export const KIND_FALLBACK: Record<DeviceKind, string> = {
   BIOMETRIC: 'Fingerprint',
   FACE: 'Face',
-  RFID: 'Card (RFID)',
+  RFID: 'Card',
   OTHER: 'Other',
 };
 
@@ -172,7 +172,7 @@ export function AddDeviceDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => (create.isPending ? undefined : onOpenChange(next))}>
       <DialogContent size="md">
         <DialogHeader>
           <DialogTitle>{d('add.title', 'Add attendance machine')}</DialogTitle>
@@ -223,7 +223,7 @@ export function AddDeviceDialog({
             <Combobox
               className="mt-1.5"
               aria-label={d('form.section', 'Section (optional)')}
-              placeholder={d('form.wholeSchool', 'Whole school')}
+              placeholder={d('wholeSchool', 'Whole school')}
               options={sectionOptions}
               value={sectionId}
               onValueChange={setSectionId}
@@ -244,7 +244,7 @@ export function AddDeviceDialog({
             </p>
           ) : null}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" disabled={create.isPending} onClick={() => onOpenChange(false)}>
               {d('form.cancel', 'Cancel')}
             </Button>
             <Button type="submit" loading={create.isPending}>

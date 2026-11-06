@@ -593,6 +593,7 @@
   "cardNo": {
     "label": "Card number",
     "help": "The number on the staff member's attendance card. No two people share one.",
+    "scanHint": "Touch the card to the reader, or type the number.",
     "scan": "Scan card",
     "duplicate": "This card number already belongs to another staff member.",
     "invalid": "Use 1 to 64 letters, numbers or dashes."

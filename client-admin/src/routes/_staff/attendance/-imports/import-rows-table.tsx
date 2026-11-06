@@ -135,7 +135,7 @@ export function ImportRowsTable({ rows }: ImportRowsTableProps) {
         caption={t('review.title')}
         columns={columns}
         data={shown}
-        getRowId={(row) => `${row.date}:${row.section_id}:${row.roll}`}
+        getRowId={(row) => `${shown.indexOf(row)}:${row.date}:${row.section_id}:${row.roll}`}
         sorting={null}
         onSortingChange={() => undefined}
         paginated={false}
