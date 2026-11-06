@@ -58,13 +58,19 @@ test('opens the dashboard and reads an ACR without being able to change it', asy
 
   // Open the ACR itself (by URL: the register can be long) and check it is read-only.
   await page.goto(`/staff/${subjectId}/acr/${acrId}`);
-  await expect(page
+  await expect(
+    page
       .getByRole('dialog')
-      .getByRole('heading', { level: 1, name: t('evaluations.acr.pageTitle', { name: '' }).trim() })).toBeVisible();
+      .getByRole('heading', {
+        level: 1,
+        name: t('evaluations.acr.pageTitle', { name: '' }).trim(),
+      }),
+  ).toBeVisible();
   // The ACR is INCOMPLETE, so step 1 is editable for ACR_WRITE (ADMIN) and disabled
   // only because COMMITTEE lacks it (`readOnly = completed || !canWrite`, acr-form.tsx).
   await expect(
-    page.getByLabel(t('evaluations.acr.step1.periodFrom'), { exact: true }),
+    // The DatePicker's name is "<label>, <shown value>" (WCAG 2.5.3), so match the label part.
+    page.getByLabel(t('evaluations.acr.step1.periodFrom')),
   ).toBeDisabled();
 });
 

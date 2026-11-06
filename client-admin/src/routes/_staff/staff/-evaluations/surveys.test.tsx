@@ -228,8 +228,8 @@ describe('survey form page validation and rows', () => {
   it('uses date pickers, not browser date inputs', async () => {
     await open();
     expect(document.querySelector('input[type="date"]')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Opens on' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Closes on' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Opens on, / })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Closes on, / })).toBeTruthy();
   });
 });
 

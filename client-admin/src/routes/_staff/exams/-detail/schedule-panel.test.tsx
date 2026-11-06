@@ -312,7 +312,7 @@ describe('exams/$examId Schedule tab', () => {
     await user.click((await screen.findAllByRole('option', { name: /১০:০০|10:00/ }))[0]!);
     await waitFor(() => expect(sent.patches).toEqual([{ starts_at: '10:00' }]));
 
-    await user.click(screen.getByRole('button', { name: 'Change Date — Mathematics' }));
+    await user.click(screen.getByRole('button', { name: /^Change Date — Mathematics, / }));
     // Pick another day of the displayed month (Feb 2026).
     await screen.findByRole('grid', { name: 'Calendar' });
     await user.click(document.querySelector<HTMLElement>('[data-date="2026-02-12"]')!);

@@ -510,9 +510,10 @@ describe('SocialAuthController (e2e)', () => {
       [NOLOGIN_ID, SEED_ADMIN_PASSWORD_HASH],
     );
     google.nextSubject = `${SUB_PREFIX}suspended`;
+    const bearer1 = await sessionFor(NOLOGIN_ID);
     const started = await http()
       .post(`${API}/auth/social/google/link-start`)
-      .set('Authorization', `Bearer ${await sessionFor(NOLOGIN_ID)}`)
+      .set('Authorization', `Bearer ${bearer1}`)
       .send({ current_password: SEED_ADMIN_PASSWORD })
       .expect(200);
     await dataSource.query(`UPDATE users SET status = 'INACTIVE' WHERE id = $1`, [NOLOGIN_ID]);
@@ -537,9 +538,10 @@ describe('SocialAuthController (e2e)', () => {
       `INSERT INTO user_identities (user_id, provider, subject) VALUES ($1, 'google', $2)`,
       [ABROAD_ID, `${SUB_PREFIX}abroad`],
     );
+    const bearer2 = await sessionFor(ABROAD_ID);
     const refused = await http()
       .delete(`${API}/auth/social/identities/google`)
-      .set('Authorization', `Bearer ${await sessionFor(ABROAD_ID)}`)
+      .set('Authorization', `Bearer ${bearer2}`)
       .expect(409);
     expect(refused.body.details.code).toBe('LAST_SIGN_IN_METHOD');
   });
@@ -556,9 +558,10 @@ describe('SocialAuthController (e2e)', () => {
        VALUES ($1, 'google', $2), ($1, 'facebook', $3)`,
       [TWO_WAYS_ID, `${SUB_PREFIX}two-g`, `${SUB_PREFIX}two-f`],
     );
+    const bearer3 = await sessionFor(TWO_WAYS_ID);
     await http()
       .delete(`${API}/auth/social/identities/google`)
-      .set('Authorization', `Bearer ${await sessionFor(TWO_WAYS_ID)}`)
+      .set('Authorization', `Bearer ${bearer3}`)
       .expect(204);
   });
 
@@ -575,9 +578,10 @@ describe('SocialAuthController (e2e)', () => {
       `INSERT INTO user_identities (user_id, provider, subject) VALUES ($1, 'google', $2)`,
       [NO_SCHOOL_ID, `${SUB_PREFIX}no-school`],
     );
+    const bearer4 = await sessionFor(NO_SCHOOL_ID);
     const refused = await http()
       .delete(`${API}/auth/social/identities/google`)
-      .set('Authorization', `Bearer ${await sessionFor(NO_SCHOOL_ID)}`)
+      .set('Authorization', `Bearer ${bearer4}`)
       .expect(409);
     expect(refused.body.details.code).toBe('LAST_SIGN_IN_METHOD');
   });

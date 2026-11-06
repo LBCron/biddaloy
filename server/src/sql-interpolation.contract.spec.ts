@@ -185,10 +185,12 @@ const REVIEWED_INTERPOLATIONS: Record<string, string[]> = {
   'modules/reports/collections-report.service.ts': ['clause', 'clause'],
   // [8.15.15] sort.key is a registry key (snake_case, checked when the app starts), quoted as an output column name
   'modules/reports/engine/compiler/sql-builder.ts': ['sort.key'],
-  // [8.15.22] sql is the compiler's own text with $n placeholders (DECLARE CURSOR); the other two are numeric constants
+  // [8.15.22] sql is the compiler's own text with $n placeholders (DECLARE CURSOR); the other two are numeric constants.
+  // REPORT_DB_ROLE is the code-constant Postgres role name ('report_reader') for SET LOCAL ROLE — a role cannot be bound as a parameter.
   'modules/reports/engine/runner/report-runner.service.ts': [
     'CURSOR_BATCH',
     'Math.trunc(timeoutMs)',
+    'REPORT_DB_ROLE',
     'sql',
   ],
   // [58.0.03] actorIsStaffIn: code-constant role list + literal $n / column refs

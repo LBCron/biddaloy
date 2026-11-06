@@ -37,7 +37,7 @@ export const Default: Story = {
     end: (
       <>
         <Button variant="ghost" size="sm">
-          Search (Ctrl+K)
+          Search… Ctrl+K
         </Button>
         <NotificationBell
           label="Notifications"

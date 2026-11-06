@@ -311,7 +311,7 @@ describe('/audit-logs', () => {
     // Forwarding it would silently filter by a date nobody chose while the
     // picker sat empty, giving no hint that it had happened.
     expect(seen.params!.get('to_date')).toBeNull();
-    expect(screen.getByRole('button', { name: 'To date' }).textContent).toBe('Pick a date');
+    expect(screen.getByRole('button', { name: /^To date, / }).textContent).toBe('Pick a date');
   });
 
   // Same reasoning as the dates: `?action=foo` fails the server's

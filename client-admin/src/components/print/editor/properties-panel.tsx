@@ -132,6 +132,7 @@ function Choice<T extends string>({
   help,
   placeholder,
   onChange,
+  onCloseAutoFocus,
 }: {
   id: string;
   label: string;
@@ -140,6 +141,8 @@ function Choice<T extends string>({
   help?: string;
   placeholder?: string;
   onChange: (value: T) => void;
+  /** Runs once the list has closed; `preventDefault()` keeps focus off the trigger. */
+  onCloseAutoFocus?: (event: Event) => void;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -150,7 +153,7 @@ function Choice<T extends string>({
         <SelectTrigger id={id} aria-labelledby={`${id}-label`}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent onCloseAutoFocus={onCloseAutoFocus}>
           {options.map((o) => (
             <SelectItem key={o.value} value={o.value}>
               {o.label}
@@ -224,10 +227,20 @@ function TextBlockField({
     const next = text.slice(0, start) + token + text.slice(end);
     setText(next);
     onCommit(next);
-    requestAnimationFrame(() => {
-      el?.focus();
-      el?.setSelectionRange(start + token.length, start + token.length);
-    });
+    caretAfterPick.current = start + token.length;
+  };
+  // Radix returns focus to the picker's trigger when its list closes, after the pick. Taking
+  // focus in a requestAnimationFrame raced that (whichever ran last won, and the order differs
+  // between jsdom versions and browsers), so hand focus to the textarea from the close itself.
+  const caretAfterPick = React.useRef<number | null>(null);
+  const focusTextareaAfterPick = (event: Event) => {
+    const caret = caretAfterPick.current;
+    const el = ref.current;
+    if (caret === null || !el) return; // closed without picking: keep Radix's default
+    caretAfterPick.current = null;
+    event.preventDefault();
+    el.focus();
+    el.setSelectionRange(caret, caret);
   };
   return (
     // Commit when focus leaves the textarea AND its picker. Moving from the textarea to the picker
@@ -259,6 +272,7 @@ function TextBlockField({
         value=""
         options={fields}
         onChange={insert}
+        onCloseAutoFocus={focusTextareaAfterPick}
       />
     </div>
   );

@@ -110,7 +110,7 @@ async function setup(
 
 async function fillValid(user: ReturnType<typeof userEvent.setup>, phone = '1712345678') {
   await user.type(screen.getByLabelText(/Student's full name/), 'Rahim Ahmed');
-  await user.click(screen.getByRole('button', { name: "Student's date of birth" }));
+  await user.click(screen.getByRole('button', { name: /^Student's date of birth, / }));
   const now = new Date();
   const first = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   await user.click(

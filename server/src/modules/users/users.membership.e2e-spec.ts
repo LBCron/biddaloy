@@ -248,9 +248,10 @@ describe('POST /users/me/leave (e2e)', () => {
   });
 
   it('a TEACHER cannot restore a member (403)', async () => {
+    const bearer1 = await tokenFor(STAFF_EMAIL);
     await request()
       .post(`/api/v1/users/${TEACHER_ID}/restore`)
-      .set('Authorization', `Bearer ${await tokenFor(STAFF_EMAIL)}`)
+      .set('Authorization', `Bearer ${bearer1}`)
       .set('X-Tenant-ID', SEED_TENANT_ID)
       .expect(403);
   });
@@ -258,9 +259,10 @@ describe('POST /users/me/leave (e2e)', () => {
   it('a TEACHER cannot remove a member (403) and the target token keeps working', async () => {
     const targetToken = await tokenFor(PARENT_EMAIL);
 
+    const bearer2 = await tokenFor(STAFF_EMAIL);
     await request()
       .delete(`/api/v1/users/${PARENT_ID}`)
-      .set('Authorization', `Bearer ${await tokenFor(STAFF_EMAIL)}`)
+      .set('Authorization', `Bearer ${bearer2}`)
       .set('X-Tenant-ID', SEED_TENANT_ID)
       .expect(403);
 
@@ -273,9 +275,10 @@ describe('POST /users/me/leave (e2e)', () => {
   });
 
   it('a PARENT cannot leave (403)', async () => {
+    const bearer3 = await tokenFor(PARENT_EMAIL);
     await request()
       .post('/api/v1/users/me/leave')
-      .set('Authorization', `Bearer ${await tokenFor(PARENT_EMAIL)}`)
+      .set('Authorization', `Bearer ${bearer3}`)
       .set('X-Tenant-ID', SEED_TENANT_ID)
       .expect(403);
   });
@@ -293,9 +296,10 @@ describe('POST /users/me/leave (e2e)', () => {
        VALUES ($1, $2, $3, NOW(), NOW(), NOW()) ON CONFLICT DO NOTHING`,
       [FORMER_ID, OTHER_TENANT, UserRole.TEACHER],
     );
+    const bearer4 = await tokenFor(SEED_ADMIN_EMAIL);
     await request()
       .post(`/api/v1/users/${FORMER_ID}/restore`)
-      .set('Authorization', `Bearer ${await tokenFor(SEED_ADMIN_EMAIL)}`)
+      .set('Authorization', `Bearer ${bearer4}`)
       .set('X-Tenant-ID', SEED_TENANT_ID)
       .expect(404);
   });
@@ -400,13 +404,15 @@ describe('shared identity (68.1.#2209) (e2e)', () => {
         .send({ email, password: SEED_ADMIN_PASSWORD })
         .expect(200)
     ).body.access_token as string;
-  const patch = async (id: string, body: object) =>
-    request()
+  const patch = async (id: string, body: object) => {
+    const bearer5 = await adminToken();
+    return request()
       .patch(`/api/v1/users/${id}`)
-      .set('Authorization', `Bearer ${await adminToken()}`)
+      .set('Authorization', `Bearer ${bearer5}`)
       .set('X-Tenant-ID', SEED_TENANT_ID)
       .send(body)
       .expect(200);
+  };
 
   // [75.1] Was a 409 under #2209: now the change is held until the person approves it.
   it('B admin PATCH of a shared user email is pending: 200, DB unchanged, one ADMIN_PROPOSAL token', async () => {
@@ -594,9 +600,10 @@ describe('shared identity (68.1.#2209) (e2e)', () => {
     const logs = 'SELECT count(*) n FROM communication_logs WHERE recipient_address = $1';
     const tokensBefore = await count(tokens, [SHARED_ID]);
     const logsBefore = await count(logs, [SHARED_EMAIL]);
+    const bearer6 = await adminToken();
     await request()
       .post(`/api/v1/users/${SHARED_ID}/reset-password`)
-      .set('Authorization', `Bearer ${await adminToken()}`)
+      .set('Authorization', `Bearer ${bearer6}`)
       .set('X-Tenant-ID', SEED_TENANT_ID)
       .expect(409);
     expect(await count(tokens, [SHARED_ID])).toBe(tokensBefore);
@@ -628,9 +635,10 @@ describe('shared identity (68.1.#2209) (e2e)', () => {
   });
 
   it('B admin gets 404 on PATCH of a user with no membership in B', async () => {
+    const bearer7 = await adminToken();
     await request()
       .patch(`/api/v1/users/${ELSEWHERE_ID}`)
-      .set('Authorization', `Bearer ${await adminToken()}`)
+      .set('Authorization', `Bearer ${bearer7}`)
       .set('X-Tenant-ID', SEED_TENANT_ID)
       .send({ email: 'x-2209@example.com' })
       .expect(404);

@@ -649,9 +649,10 @@ describe('POST /backup/restore E2E', () => {
     );
     expect(memberships).toHaveLength(0);
 
+    const bearer1 = await loginJoinAdmin();
     const listed = await supertest(app.getHttpServer())
       .get('/api/v1/users')
-      .set('Authorization', `Bearer ${await loginJoinAdmin()}`)
+      .set('Authorization', `Bearer ${bearer1}`)
       .set('X-Tenant-ID', JOIN_TENANT_ID)
       .expect(200);
     const emails = (listed.body.data ?? listed.body).map((u: { email: string }) => u.email);

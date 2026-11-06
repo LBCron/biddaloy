@@ -189,7 +189,7 @@ describe('FilterBuilder', () => {
 
   it('keeps a half-filled date range out of the filter', async () => {
     const { user } = await open([{ field: 'due_date', op: 'BETWEEN' }]);
-    await user.click(screen.getByRole('button', { name: 'From' }));
+    await user.click(screen.getByRole('button', { name: /^From, / }));
     await user.click(screen.getAllByRole('gridcell')[10]!.querySelector('button')!);
     expect(state().filters[0]!.value).toBeUndefined();
   });

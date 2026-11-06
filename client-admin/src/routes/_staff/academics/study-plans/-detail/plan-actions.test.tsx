@@ -152,7 +152,7 @@ describe('plan header actions', () => {
 
     it('disables future dates and, for a teacher, days older than 7', async () => {
       const { user, dialog } = await openExtra('TEACHER');
-      await user.click(within(dialog).getByRole('button', { name: 'Date' }));
+      await user.click(within(dialog).getByRole('button', { name: /^Date, / }));
       await screen.findByRole('grid', { name: 'Calendar' });
 
       expect(cell('2026-03-16').getAttribute('aria-disabled')).toBe('true');
@@ -163,7 +163,7 @@ describe('plan header actions', () => {
 
     it('lets ADMIN pick 8 days back', async () => {
       const { user, dialog } = await openExtra('ADMIN');
-      await user.click(within(dialog).getByRole('button', { name: 'Date' }));
+      await user.click(within(dialog).getByRole('button', { name: /^Date, / }));
       await screen.findByRole('grid', { name: 'Calendar' });
 
       expect(cell('2026-03-07').getAttribute('aria-disabled')).toBeNull();

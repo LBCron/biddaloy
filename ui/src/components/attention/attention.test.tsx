@@ -202,7 +202,7 @@ describe('AlertSnoozeMenu', () => {
     expect(within(dialog).getByRole('button', { name: 'Remind me' }).hasAttribute('disabled')).toBe(
       true,
     );
-    await user.click(within(dialog).getByRole('button', { name: 'Date' }));
+    await user.click(within(dialog).getByRole('button', { name: /^Date, / }));
     await user.click(
       await waitFor(() => {
         const cell = document.querySelector<HTMLElement>('[data-date="2026-10-12"]');

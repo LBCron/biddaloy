@@ -235,10 +235,8 @@ describe('/portal/statement', () => {
     await localeReady;
     expect(await screen.findByText('Could not load the statement. Try again.')).toBeTruthy();
     expect(screen.queryByText(/internal detail/)).toBeNull();
-    expect(screen.getByLabelText('Show the statement from this date')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Download/ }).hasAttribute('disabled')).toBe(
-      true,
-    );
+    expect(screen.getByLabelText(/^Show the statement from this date, /)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Download/ }).hasAttribute('disabled')).toBe(true);
   });
 
   it('shows the same closing balance as the staff Fees tab for the same statement', async () => {

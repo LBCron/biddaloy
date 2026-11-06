@@ -345,7 +345,7 @@ describe('AttendanceSection', () => {
       const dialog = await screen.findByRole('dialog');
       await user.type(within(dialog).getByLabelText('Name'), 'Winter');
       const pick = async (label: string, day: string) => {
-        await user.click(within(dialog).getByRole('button', { name: label }));
+        await user.click(within(dialog).getByRole('button', { name: new RegExp(`^${label}, `) }));
         await screen.findByRole('grid', { name: 'Calendar' });
         await user.click(document.querySelector<HTMLElement>(`[data-date="${ym}-${day}"]`)!);
       };

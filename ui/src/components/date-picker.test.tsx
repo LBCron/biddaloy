@@ -39,7 +39,7 @@ async function setup(ui: React.ReactElement) {
   return view;
 }
 
-const trigger = () => screen.getByRole('button', { name: 'Enrollment date' });
+const trigger = () => screen.getByRole('button', { name: /^Enrollment date, / });
 const openGrid = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(trigger());
   return screen.findByRole('grid', { name: 'Calendar' });
@@ -61,15 +61,18 @@ describe('DatePicker', () => {
     expect(trigger().textContent).toContain(formatDate(date, REGION_BD_EN));
   });
 
-  it('the trigger announces the value as its description, the label as its name', async () => {
+  it('the accessible name is the label followed by exactly the visible text (WCAG 2.5.3)', async () => {
     const date = new Date(2024, 0, 5);
     await setup(<Controlled initial={date} />);
     expect(
-      screen.getByRole('button', {
-        name: 'Enrollment date',
-        description: formatDate(date, REGION_BD_EN),
-      }),
+      screen.getByRole('button', { name: `Enrollment date, ${formatDate(date, REGION_BD_EN)}` }),
     ).toBeTruthy();
+    expect(trigger().getAttribute('aria-label')).toContain(trigger().textContent ?? '');
+  });
+
+  it('with no value the name ends with the placeholder that is on screen', async () => {
+    await setup(<Controlled />);
+    expect(screen.getByRole('button', { name: 'Enrollment date, Pick a date' })).toBeTruthy();
   });
 
   it('Clear empties a picked value and closes', async () => {

@@ -45,7 +45,7 @@ describe('/admission/$slug public form', () => {
 
     await user.type(screen.getByLabelText(/Student's full name/), 'Rahim Ahmed');
     // DatePicker: open it, pick the 1st of the current month (always in the past or today).
-    await user.click(screen.getByRole('button', { name: "Student's date of birth" }));
+    await user.click(screen.getByRole('button', { name: /^Student's date of birth, / }));
     const now = new Date();
     const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     await user.click(
@@ -109,7 +109,7 @@ describe('/admission/$slug public form', () => {
 
   async function fillValidExceptDocument(user: ReturnType<typeof userEvent.setup>) {
     await user.type(screen.getByLabelText(/Student's full name/), 'Rahim Ahmed');
-    await user.click(screen.getByRole('button', { name: "Student's date of birth" }));
+    await user.click(screen.getByRole('button', { name: /^Student's date of birth, / }));
     const now = new Date();
     const first = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     await user.click(

@@ -112,7 +112,7 @@ describe('/attendance/$sectionId', () => {
     const user = userEvent.setup();
     // Visible label and accessible name are both "Date" (not "Attendance").
     expect(screen.getByText('Date')).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: 'Date' }));
+    await user.click(screen.getByRole('button', { name: /^Date, / }));
     await user.click(document.querySelector('[data-date="2026-09-10"]') as HTMLElement);
 
     await waitFor(() => expect(requestedDates).toContain('2026-09-10'));

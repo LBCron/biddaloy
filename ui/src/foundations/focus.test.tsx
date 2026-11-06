@@ -91,7 +91,7 @@ describe('focus-ring vocabulary', () => {
     }
     render(<Controlled />);
 
-    await user.click(screen.getByRole('button', { name: 'Enrollment date' }));
+    await user.click(screen.getByRole('button', { name: /^Enrollment date, / }));
     await screen.findByRole('grid');
     const day = document.querySelector<HTMLElement>('[data-date="2024-01-05"]')!;
 

@@ -43,7 +43,7 @@ describe('/admissions/intakes', () => {
     label: string,
     day: number,
   ) {
-    await user.click(scope.getByRole('button', { name: label }));
+    await user.click(scope.getByRole('button', { name: new RegExp(`^${label}, `) }));
     const cell = await waitFor(() => {
       const el = document.querySelector<HTMLElement>(`[data-date="${iso(day)}"]`);
       if (!el) throw new Error('calendar not open');

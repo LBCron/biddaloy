@@ -305,9 +305,9 @@ describe('ReportPrompts', () => {
       parameters: [...SYSTEM_REPORT_SHAPES.collections!, ...SYSTEM_REPORT_SHAPES.attendance!],
       onRun: vi.fn(),
     });
-    expect(screen.getByRole('button', { name: 'Dates — From' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Dates — To' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Day' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Dates — From, / })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Dates — To, / })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Day, / })).toBeTruthy();
     expect(screen.getByRole('combobox', { name: 'Status' }).textContent).toContain('Present');
     await expect(container).toHaveNoViolations();
   });
