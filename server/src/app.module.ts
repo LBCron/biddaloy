@@ -33,6 +33,7 @@ import { CommunicationsModule } from './modules/communications/communications.mo
 import { AuditModule } from './modules/audit/audit.module';
 import { SchoolsModule } from './modules/schools/schools.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
+import { AttendanceImportModule } from './modules/attendance/import/attendance-import.module';
 import { RoutinesModule } from './modules/routines/routines.module';
 import { AccountAccessModule } from './modules/account-access/account-access.module';
 import { WorkbookModule } from './modules/workbook/workbook.module';
@@ -495,6 +496,7 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
     IdleAccountModule,
     SchoolsModule,
     AttendanceModule,
+    AttendanceImportModule,
     RoutinesModule,
     AccountAccessModule,
     WorkbookModule,

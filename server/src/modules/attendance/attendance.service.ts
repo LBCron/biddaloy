@@ -7,6 +7,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import {
   Between,
@@ -317,6 +318,48 @@ export class AttendanceService {
           )
         : { can_write: true, write_reason: null, first_period_today: false };
     return { ...register, ...state };
+  }
+
+  /**
+   * [76.2.2] One (date, section) group of an attendance sheet, written inside the caller's
+   * transaction (so a whole sheet commits or rolls back together). Same checks and write as a
+   * teacher save, plus the whole-day gate again (the caller's role may have changed since
+   * validate). Never finalizes. `entries` carry only the sheet's rows; other students keep
+   * their marks. `matrix: true` keeps stored minutes / remarks and skips the replay shortcut.
+   */
+  async writeImportDay(
+    manager: EntityManager,
+    params: {
+      sectionId: string;
+      date: string;
+      tenantId: string;
+      role: string;
+      userId: string;
+      importId: string;
+      ip: string | null;
+      userAgent: string | null;
+      entries: { student_id: string; status: AttendanceStatus }[];
+    },
+  ): Promise<RegisterResponseDto> {
+    const { sectionId, date, tenantId, role, userId, importId, ip, userAgent, entries } = params;
+    await this.attendanceAccessService.assertCanWriteDayRegister(
+      role,
+      userId,
+      sectionId,
+      date,
+      tenantId,
+    );
+    return this.writeRegisterDay(
+      manager,
+      { sectionId, tenantId, role, userId, ip, userAgent, matrix: true, importId },
+      {
+        date,
+        base_version: 0,
+        client_request_id: randomUUID(),
+        reason: 'Attendance sheet import',
+        entries,
+      } as PutRegisterDto,
+    );
   }
 
   // ---------------------------------------------------------------------
@@ -659,10 +702,16 @@ export class AttendanceService {
       ip: string | null;
       userAgent: string | null;
       matrix: boolean;
+      /** [76.2.2] A sheet import: marks the session / record `source` as IMPORT and carries
+       * `import_id` on the audit rows. Absent for a teacher save. An import skips the
+       * `base_version` check: its stale-ness guard is the 30-minute staged diff. */
+      importId?: string;
     },
     dto: PutRegisterDto,
   ): Promise<RegisterResponseDto> {
     const { sectionId, tenantId, role, userId, ip, userAgent } = ctx;
+    const source = ctx.importId ? AttendanceSource.IMPORT : AttendanceSource.TEACHER;
+    const importAudit = ctx.importId ? { import_id: ctx.importId } : {};
     const periodNo = dto.period_no ?? null;
     const studentIds = dto.entries.map((e) => e.student_id);
     const sessionRepo = manager.getRepository(AttendanceSession);
@@ -823,7 +872,7 @@ export class AttendanceService {
     // 7. Version — a mismatch carries the full current register, which is
     // the payload [8.12.5]'s conflict dialog renders.
     const currentVersion = session?.version ?? 0;
-    if (dto.base_version !== currentVersion) {
+    if (!ctx.importId && dto.base_version !== currentVersion) {
       const currentRegister = await this.loadRegister(manager, {
         sectionId,
         date: dto.date,
@@ -874,7 +923,7 @@ export class AttendanceService {
         period_no: periodNo,
         // Snapshot, never updated afterwards (D21).
         subject_id: periodSubjectId,
-        source: AttendanceSource.TEACHER,
+        source,
         state: AttendanceSessionState.DRAFT,
       });
     }
@@ -917,7 +966,7 @@ export class AttendanceService {
             status: entry.status,
             minutes_late: minutesLate,
             remarks,
-            source: AttendanceSource.TEACHER,
+            source,
             recorded_by_user_id: userId,
           }),
         );
@@ -934,6 +983,7 @@ export class AttendanceService {
             status: created.status,
             minutes_late: created.minutes_late,
             remarks: created.remarks,
+            ...importAudit,
           },
         });
         continue;
@@ -956,6 +1006,7 @@ export class AttendanceService {
       existing.minutes_late = minutesLate;
       existing.remarks = remarks;
       existing.recorded_by_user_id = userId;
+      if (ctx.importId) existing.source = source;
       await recordRepo.save(existing);
 
       recordAudits.push({
@@ -972,6 +1023,7 @@ export class AttendanceService {
           minutes_late: existing.minutes_late,
           remarks: existing.remarks,
           reason: dto.reason ?? null,
+          ...importAudit,
         },
       });
     }
@@ -992,6 +1044,7 @@ export class AttendanceService {
           state: session.state,
           version: session.version,
           counts,
+          ...importAudit,
         },
       },
       manager,
