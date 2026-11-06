@@ -111,6 +111,74 @@ describe('GuardianSmsFallbackService gates', () => {
   });
 });
 
+describe('staff SMS fallback (76.2.05)', () => {
+  const settings = (staff: boolean, quiet = { start: '00:00', end: '00:00' }) => ({
+    id: 't1',
+    name: 'S',
+    name_bn: null,
+    settings: {
+      communications: { sms: { provider: 'x' } },
+      attention: { staffSmsFallback: staff, guardianSmsFallback: false, quietHours: quiet },
+    },
+  });
+  const row = (over = {}) => ({
+    id: 'a1',
+    rule_key: 'attendance.not_taken',
+    params: { title_bn: 'T' },
+    user_id: 'u1',
+    phone: '01700000000',
+    full_name: 'Admin',
+    sent: false,
+    ...over,
+  });
+  const build = (rows: unknown[]) => {
+    const query = vi.fn().mockResolvedValue(rows);
+    const add = vi.fn();
+    const save = vi.fn(async (x) => ({ ...x, id: 'log1', metadata: {} }));
+    const service = new GuardianSmsFallbackService(
+      { query, getRepository: () => ({ create: (x: any) => x, save }) } as any,
+      { add } as any,
+      { isMetered: vi.fn().mockResolvedValue(false) } as any,
+      {
+        get: vi
+          .fn()
+          .mockReturnValue({ messages: { bn: { title: '{title_bn}', why: '', steps: [] } } }),
+      } as any,
+    );
+    return { service, query, add, save };
+  };
+  const noon = new Date('2026-10-10T06:00:00Z');
+
+  it('opt-in off: nothing, no query', async () => {
+    const { service, query } = build([row()]);
+    expect(await service.runTenant(settings(false), noon)).toBe(0);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('opt-in on: one admin SMS, keyed per alert and user, never a guardian log', async () => {
+    const { service, add, save } = build([row(), row({ user_id: 'u2', phone: '01800000000' })]);
+    expect(await service.runTenant(settings(true), noon)).toBe(2);
+    expect(add).toHaveBeenCalledTimes(2);
+    expect(save.mock.calls.map((c) => c[0].reference_key)).toEqual([
+      'attention-staff:a1:u1',
+      'attention-staff:a1:u2',
+    ]);
+    expect(save.mock.calls.every((c) => c[0].guardian_id === undefined)).toBe(true);
+  });
+
+  it('replay (already logged) sends nothing', async () => {
+    const { service, add } = build([row({ sent: true })]);
+    expect(await service.runTenant(settings(true), noon)).toBe(0);
+    expect(add).not.toHaveBeenCalled();
+  });
+
+  it('quiet hours skip', async () => {
+    const { service, query } = build([row()]);
+    expect(await service.runTenant(settings(true, { start: '00:00', end: '23:59' }), noon)).toBe(0);
+    expect(query).not.toHaveBeenCalled();
+  });
+});
+
 describe('GuardianSmsFallbackService in MESSAGE_SINK=mailpit [58.1.02]', () => {
   afterEach(() => vi.unstubAllEnvs());
 

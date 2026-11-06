@@ -101,13 +101,36 @@ export function dayRegisterTeachers(input: {
   ];
 }
 
+/** Title and why per finding: `incomplete` when a day register exists but students have no status. */
+export function texts(
+  label: string,
+  startsAt: string,
+  regEn: string,
+  regBn: string,
+  o: { unmarked: number },
+) {
+  if (o.unmarked > 0)
+    return {
+      title_en: `Attendance incomplete: ${label} — ${o.unmarked} without status`,
+      title_bn: `হাজিরা অসম্পূর্ণ: ${label} — ${o.unmarked} জনের অবস্থা নেই`,
+      why_en: `${o.unmarked} students in ${label} still have no attendance status.`,
+      why_bn: `${label}-এর ${o.unmarked} জন শিক্ষার্থীর উপস্থিতির অবস্থা এখনো দেওয়া হয়নি।`,
+    };
+  return {
+    title_en: `Attendance not taken: ${label}`,
+    title_bn: `উপস্থিতি নেওয়া হয়নি: ${label}`,
+    why_en: `${regEn} attendance for ${label} was due at ${startsAt} and has not been submitted yet.`,
+    why_bn: `${label}-এর ${regBn} উপস্থিতি ${startsAt}-এ নেওয়ার কথা ছিল, এখনো জমা দেওয়া হয়নি।`,
+  };
+}
+
 @AttentionRule()
 export class AttendanceNotTakenRule implements AttentionRuleShape {
   readonly meta = alertRuleMeta('attendance.not_taken');
   readonly messages = {
     en: {
-      title: 'Attendance not taken: {sectionLabel}',
-      why: '{register_en} attendance for {sectionLabel} was due at {startsAt} and has not been submitted yet.',
+      title: '{title_en}',
+      why: '{why_en}',
       steps: [
         'Open the register for {sectionLabel}.',
         'Mark every student.',
@@ -116,8 +139,8 @@ export class AttendanceNotTakenRule implements AttentionRuleShape {
       action: 'Take attendance',
     },
     bn: {
-      title: 'উপস্থিতি নেওয়া হয়নি: {sectionLabel}',
-      why: '{sectionLabel}-এর {register_bn} উপস্থিতি {startsAt}-এ নেওয়ার কথা ছিল, এখনো জমা দেওয়া হয়নি।',
+      title: '{title_bn}',
+      why: '{why_bn}',
       steps: [
         '{sectionLabel}-এর উপস্থিতি খাতা খুলুন।',
         'প্রত্যেক শিক্ষার্থীর উপস্থিতি দিন।',
@@ -143,47 +166,65 @@ export class AttendanceNotTakenRule implements AttentionRuleShape {
     const q = <R>(sql: string, params: unknown[]): Promise<R[]> =>
       this.dataSource.query(sql, params);
 
-    const [sections, holidayClasses, slots, sessions, homeroom, leaves] = await Promise.all([
-      q<{ id: string; class_id: string; shift_id: string | null; label: string }>(
-        `SELECT cs.id, cs.class_id, c.shift_id, c.name || '-' || cs.section_name AS label
+    const [sections, holidayClasses, slots, sessions, homeroom, leaves, unmarkedRows] =
+      await Promise.all([
+        q<{ id: string; class_id: string; shift_id: string | null; label: string }>(
+          `SELECT cs.id, cs.class_id, c.shift_id, c.name || '-' || cs.section_name AS label
          FROM class_sections cs
          JOIN classes c ON c.id = cs.class_id AND c.tenant_id = $1 AND c.deleted_at IS NULL
          JOIN academic_years y ON y.id = c.academic_year_id AND y.tenant_id = $1 AND y.is_current = true AND y.deleted_at IS NULL
          WHERE cs.tenant_id = $1 AND cs.deleted_at IS NULL`,
-        [t],
-      ),
-      q<{ class_id: string }>(
-        `SELECT DISTINCT ec.class_id FROM calendar_events h
+          [t],
+        ),
+        q<{ class_id: string }>(
+          `SELECT DISTINCT ec.class_id FROM calendar_events h
          JOIN calendar_event_classes ec ON ec.event_id = h.id AND ec.tenant_id = $1
          WHERE h.tenant_id = $1 AND h.deleted_at IS NULL AND h.published_at IS NOT NULL
            AND h.counts_as_working_day = false AND h.start_date <= $2 AND h.end_date >= $2`,
-        [t, ctx.localDate],
-      ),
-      this.resolveRoutine.resolveTenantDay(t, ctx.localDate),
-      q<{ section_id: string; period_no: number | null; state: string }>(
-        `SELECT section_id, period_no, state FROM attendance_sessions WHERE tenant_id = $1 AND date = $2`,
-        [t, ctx.localDate],
-      ),
-      q<{
-        section_id: string;
-        assignment_type: string;
-        teacher_id: string;
-        staff_profile_id: string | null;
-        user_id: string;
-      }>(
-        `SELECT tcs.section_id, tcs.assignment_type, te.id AS teacher_id, te.staff_profile_id, te.user_id
+          [t, ctx.localDate],
+        ),
+        this.resolveRoutine.resolveTenantDay(t, ctx.localDate),
+        q<{ section_id: string; period_no: number | null; state: string }>(
+          `SELECT section_id, period_no, state FROM attendance_sessions WHERE tenant_id = $1 AND date = $2`,
+          [t, ctx.localDate],
+        ),
+        q<{
+          section_id: string;
+          assignment_type: string;
+          teacher_id: string;
+          staff_profile_id: string | null;
+          user_id: string;
+        }>(
+          `SELECT tcs.section_id, tcs.assignment_type, te.id AS teacher_id, te.staff_profile_id, te.user_id
          FROM teacher_class_sections tcs
          JOIN teachers te ON te.id = tcs.teacher_id AND te.tenant_id = $1 AND te.deleted_at IS NULL
          JOIN users u ON u.id = te.user_id AND u.status = 'ACTIVE' AND u.deleted_at IS NULL
          WHERE tcs.tenant_id = $1 AND tcs.assignment_type IN ('CLASS_TEACHER','ASSISTANT_CLASS_TEACHER')`,
-        [t],
-      ),
-      q<{ staff_profile_id: string }>(
-        `SELECT staff_profile_id FROM leave_records
+          [t],
+        ),
+        q<{ staff_profile_id: string }>(
+          `SELECT staff_profile_id FROM leave_records
          WHERE tenant_id = $1 AND status = 'APPROVED' AND start_date <= $2 AND end_date >= $2`,
-        [t, ctx.localDate],
-      ),
-    ]);
+          [t, ctx.localDate],
+        ),
+        // [76.2.05] D28: active students with no whole-day record today, per section.
+        q<{ section_id: string; unmarked: number }>(
+          `SELECT st.class_section_id AS section_id,
+                count(*) FILTER (WHERE NOT EXISTS (
+                  SELECT 1 FROM attendance_records r
+                  JOIN attendance_sessions s ON s.id = r.session_id AND s.tenant_id = $1
+                    AND s.date = $2 AND s.period_no IS NULL
+                  WHERE r.tenant_id = $1 AND r.student_id = st.id))::int AS unmarked
+         FROM students st
+         WHERE st.tenant_id = $1 AND st.deleted_at IS NULL AND st.enrollment_status = 'ACTIVE'
+         GROUP BY st.class_section_id`,
+          [t, ctx.localDate],
+        ),
+      ]);
+    const unmarkedOf = new Map(unmarkedRows.map((r) => [r.section_id, r.unmarked]));
+    const hasDaySession = new Set(
+      sessions.filter((s) => s.period_no == null).map((s) => s.section_id),
+    );
 
     const periodIds = [...new Set(slots.map((s) => s.period_slot_id))];
     const teacherIds = [
@@ -262,7 +303,9 @@ export class AttendanceNotTakenRule implements AttentionRuleShape {
         ),
         ctx.settings.escalateAttendanceToHeads,
       );
-      if (step !== 'BEFORE_START' && !finalized.has(`${sec.id}|`)) {
+      const unmarked = unmarkedOf.get(sec.id) ?? 0;
+      // A device school's register can be FINALIZED with students still unmarked: still fires.
+      if (step !== 'BEFORE_START' && (!finalized.has(`${sec.id}|`) || unmarked > 0)) {
         const rows = homeroom.filter((h) => h.section_id === sec.id);
         const asTeacher = (h: (typeof rows)[number]) => ({
           teacherId: h.teacher_id,
@@ -301,6 +344,9 @@ export class AttendanceNotTakenRule implements AttentionRuleShape {
               startsAt: firstStart.slice(0, 5),
               register_en: 'Daily',
               register_bn: 'আজকের',
+              ...texts(sec.label, firstStart.slice(0, 5), 'Daily', 'আজকের', {
+                unmarked: hasDaySession.has(sec.id) ? unmarked : 0,
+              }),
             },
             severity: level?.severity ?? AlertSeverity.REMINDER,
             escalationLevel: level?.level ?? 0,
@@ -338,6 +384,13 @@ export class AttendanceNotTakenRule implements AttentionRuleShape {
             startsAt: p.starts_at.slice(0, 5),
             register_en: `Period ${p.period_no}`,
             register_bn: `${p.period_no} নম্বর পিরিয়ডের`,
+            ...texts(
+              sec.label,
+              p.starts_at.slice(0, 5),
+              `Period ${p.period_no}`,
+              `${p.period_no} নম্বর পিরিয়ডের`,
+              { unmarked: 0 },
+            ),
           },
           severity: late ? AlertSeverity.WARNING : AlertSeverity.REMINDER,
           escalationLevel: late ? 1 : 0,
