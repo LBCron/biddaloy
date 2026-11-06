@@ -133,9 +133,6 @@ export function RosterMarker({
     // inside this list, so hiding the buttons is not enough (review, PR #3661).
     if (disabled) return;
     if (isTypingTarget(event.target)) return;
-    // Only a row button carries `focusedIndex`'s student; a key on a badge or row action
-    // must not change some other row.
-    if (!rowRefs.current.includes(event.target as HTMLButtonElement)) return;
 
     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
       event.preventDefault();
@@ -152,6 +149,10 @@ export function RosterMarker({
       if (isStatusAllowed(AttendanceStatus.PRESENT)) onAllPresent();
       return;
     }
+    // List-wide keys above work from anywhere in the list; the row keys below only from a row
+    // button, the one `focusedIndex` points at. A key on a badge or row action must not change
+    // some other row.
+    if (!rowRefs.current.includes(event.target as HTMLButtonElement)) return;
 
     switch (event.key) {
       case 'ArrowDown':

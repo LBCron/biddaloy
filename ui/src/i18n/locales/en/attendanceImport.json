@@ -61,7 +61,7 @@
     "saving": "Saving…",
     "saveFailed": "Could not save. Nothing was changed.",
     "nothingToSave": "There is nothing to change in this sheet.",
-    "earlierGone": "The earlier upload was not found. Press Save again to keep this sheet as a new upload."
+    "earlierGone": "The earlier upload was not found. This sheet will be saved as a new upload."
   },
   "outcome": {
     "NEW": "New",

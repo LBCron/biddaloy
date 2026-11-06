@@ -280,6 +280,9 @@ export function RotateDeviceDialog({
   const d = useDeviceText();
   const rotate = useRotateAttendanceDeviceKey(device.id);
   const [secret, setSecret] = React.useState<string | null>(null);
+  // Same as Add: no new key left in the mutation cache once this dialog unmounts.
+  const resetRotate = rotate.reset;
+  React.useEffect(() => resetRotate, [resetRotate]);
 
   if (secret !== null) {
     return (
