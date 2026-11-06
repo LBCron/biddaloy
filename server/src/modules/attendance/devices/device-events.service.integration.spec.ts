@@ -542,6 +542,26 @@ describe('DeviceEventsService (integration)', () => {
     expect(byReg.results[0].outcome).not.toBe('unknown_student');
   });
 
+  it("resolves to the student whose registration number equals another student's card_no (registration number wins)", async () => {
+    const device = await createActiveDevice();
+    const repo = dataSource.getRepository(Student);
+    const b = await repo.save({
+      full_name: 'Reg Owner B',
+      registration_number: `COLLIDE-${Date.now()}`,
+      roll_number: 7,
+      class_section_id: sectionId,
+      tenant_id: TENANT_ID,
+    });
+    // Student A (the default fixture) carries B's registration number as its card.
+    await repo.update({ id: studentId }, { card_no: b.registration_number });
+
+    const result = await service.ingest(device, [inEvent({ external_ref: b.registration_number })]);
+
+    expect(result.results[0].outcome).toBe('accepted');
+    const records = await dataSource.getRepository(AttendanceRecord).find();
+    expect(records.map((r) => r.student_id)).toEqual([b.id]);
+  });
+
   it("reports unknown_student for another tenant's card_no (tenant isolation)", async () => {
     const device = await createActiveDevice(); // bound to TENANT_ID
     const card = `OTHER-CARD-${Date.now()}`;
@@ -703,6 +723,31 @@ describe('DeviceEventsService (integration)', () => {
       const result = await service.ingest(device, [inEvent({ student_id: studentId })]);
 
       expect(result.results[0].outcome).toBe('accepted');
+    });
+
+    it("resolves to the staff whose employee_id equals another staff's card_no (employee_id wins)", async () => {
+      const device = await createActiveDevice();
+      const user = await dataSource.getRepository(User).save({
+        full_name: 'Collide Staff B',
+        email: `collide-staff-${Date.now()}@example.com`,
+        password_hash: 'x',
+      });
+      const staffB = await dataSource.getRepository(StaffProfile).save({
+        user_id: user.id,
+        tenant_id: TENANT_ID,
+        employee_id: `EMP-COLLIDE-${Date.now()}`,
+      });
+      await dataSource
+        .getRepository(StaffProfile)
+        .update({ id: staffProfileId }, { card_no: staffB.employee_id });
+
+      const result = await service.ingest(device, [
+        inEvent({ subject_type: AttendanceSubjectType.STAFF, external_ref: staffB.employee_id }),
+      ]);
+
+      expect(result.results[0].outcome).toBe('accepted');
+      const records = await dataSource.getRepository(StaffAttendanceRecord).find();
+      expect(records.map((r) => r.staff_profile_id)).toEqual([staffB.id]);
     });
 
     it('resolves a staff scan by card_no, but never by a student card_no (D37)', async () => {
