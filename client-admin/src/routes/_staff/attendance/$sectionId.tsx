@@ -85,6 +85,9 @@ const searchSchema = z.object({
   period: z.coerce.number().int().min(1).max(30).optional().catch(undefined),
 });
 
+/** Reasons the server can give for a read-only register; anything else gets the generic banner. */
+const KNOWN_WRITE_REASONS = new Set(['CLASS_TEACHER_ONLY', 'FIRST_PERIOD_ONLY', 'DEVICE_SCHOOL']);
+
 export const Route = createFileRoute('/_staff/attendance/$sectionId')({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => ({ date: search.date, period: search.period }),
@@ -280,16 +283,21 @@ function SectionRegisterPage() {
     // status the policy forbids.
     if (allowedStatuses && !allowedStatuses.includes(AttendanceStatus.PRESENT)) return;
     const previous = draft;
+    const unmarked = (registerQuery.data?.students ?? []).filter(
+      (student) => !draft[student.student_id]?.status,
+    );
+    // Nothing to fill: no change, so no toast and no Undo.
+    if (unmarked.length === 0) return;
     setDraft((current) => {
       const next: Draft = { ...current };
-      for (const student of registerQuery.data?.students ?? []) {
+      for (const student of unmarked) {
         if (!next[student.student_id]?.status) {
           next[student.student_id] = { status: AttendanceStatus.PRESENT, minutes_late: null };
         }
       }
       return next;
     });
-    toast.success(t('mark.allPresent'), {
+    toast.success(t('mark.allPresentDone', { count: unmarked.length }), {
       action: { label: t('mark.undo'), onClick: () => handleUndo(previous) },
       duration: 5000,
     });
@@ -299,16 +307,21 @@ function SectionRegisterPage() {
   function handleRestAbsent() {
     if (allowedStatuses && !allowedStatuses.includes(AttendanceStatus.ABSENT)) return;
     const previous = draft;
+    const unmarked = (registerQuery.data?.students ?? []).filter(
+      (student) => !draft[student.student_id]?.status,
+    );
+    // Nothing to fill: no change, so no toast and no Undo.
+    if (unmarked.length === 0) return;
     setDraft((current) => {
       const next: Draft = { ...current };
-      for (const student of registerQuery.data?.students ?? []) {
+      for (const student of unmarked) {
         if (!next[student.student_id]?.status) {
           next[student.student_id] = { status: AttendanceStatus.ABSENT, minutes_late: null };
         }
       }
       return next;
     });
-    toast.success(t('markRestAbsent'), {
+    toast.success(t('markRestAbsentDone', { count: unmarked.length }), {
       action: { label: t('mark.undo'), onClick: () => handleUndo(previous) },
       duration: 5000,
     });
@@ -635,13 +648,15 @@ function SectionRegisterPage() {
               })}
         </p>
       )}
-      {writeBlocked && register.write_reason && (
+      {writeBlocked && (
         <p
           role="status"
           className="flex items-start gap-2 rounded-lg border border-border-subtle bg-muted p-4 text-text-secondary"
         >
           <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          {t(`registerBanner.${register.write_reason}`)}
+          {t(
+            `registerBanner.${KNOWN_WRITE_REASONS.has(register.write_reason ?? '') ? register.write_reason : 'UNKNOWN'}`,
+          )}
         </p>
       )}
       {register.first_period_today === true && period === undefined && (

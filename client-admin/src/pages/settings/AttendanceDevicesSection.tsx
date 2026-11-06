@@ -32,11 +32,18 @@ import { SettingsSection } from './settings-layout';
 export interface AttendanceDevicesSectionProps {
   /** `?devices=new` (palette action): open the add dialog on arrival. */
   openAdd?: boolean;
+  /** Called when the add dialog closes, so the page can drop `?devices=new`. */
+  onAddClosed?: () => void;
 }
 
-export function AttendanceDevicesSection({ openAdd = false }: AttendanceDevicesSectionProps) {
-  const d = useDeviceText();
+/** Outer gate: without the permission nothing below mounts, so no request goes out. */
+export function AttendanceDevicesSection(props: AttendanceDevicesSectionProps) {
   const canManage = useHasPermission(Permission.ATTENDANCE_DEVICE_MANAGE);
+  return canManage ? <AttendanceDevicesPanel {...props} /> : null;
+}
+
+function AttendanceDevicesPanel({ openAdd = false, onAddClosed }: AttendanceDevicesSectionProps) {
+  const d = useDeviceText();
   const regionConfig = useRegionConfig();
   const query = useAttendanceDevices();
   const sectionOptions = useSectionOptions();
@@ -47,8 +54,6 @@ export function AttendanceDevicesSection({ openAdd = false }: AttendanceDevicesS
   }, [openAdd]);
   const [rotateTarget, setRotateTarget] = React.useState<AttendanceDevice | undefined>();
   const [revokeTarget, setRevokeTarget] = React.useState<AttendanceDevice | undefined>();
-
-  if (!canManage) return null;
 
   const devices = (query.data ?? []).filter((x) => x.status === 'ACTIVE');
   const sectionLabel = (id: string | null) =>
@@ -145,7 +150,13 @@ export function AttendanceDevicesSection({ openAdd = false }: AttendanceDevicesS
         )}
       </div>
 
-      <AddDeviceDialog open={adding} onOpenChange={setAdding} />
+      <AddDeviceDialog
+        open={adding}
+        onOpenChange={(open) => {
+          setAdding(open);
+          if (!open) onAddClosed?.();
+        }}
+      />
       {rotateTarget ? (
         <RotateDeviceDialog
           key={rotateTarget.id}

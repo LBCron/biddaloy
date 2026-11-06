@@ -165,4 +165,65 @@ describe('/attendance/import', () => {
     await screen.findAllByText(`Upload on ${IMPORT_ID}`, {}, { timeout: 5000 });
     expect(body).toEqual({ staging_id: STAGING_ID, supersedes_import_id: IMPORT_ID });
   });
+
+  it('returns to upload on a 404 too (staged review is gone)', async () => {
+    server.use(
+      http.post('/api/v1/attendance/import/commit', () =>
+        HttpResponse.json(
+          { statusCode: 404, message: 'gone', requestId: 'r', path: '/', timestamp: 't' },
+          { status: 404 },
+        ),
+      ),
+    );
+    renderPage();
+    const user = await toReview();
+
+    await user.click(screen.getByRole('button', { name: 'Save 2 changes' }));
+
+    expect(await screen.findByText('This review has expired')).toBeTruthy();
+  });
+
+  it('keeps Save off until "skip the rows with errors" is ticked when some rows have errors', async () => {
+    let body: unknown;
+    server.use(
+      http.post('/api/v1/attendance/import/commit', async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ import_id: IMPORT_ID }, { status: 201 });
+      }),
+    );
+    renderPage();
+    const user = await toReview(
+      preview({
+        rows: [row(2, 'NEW'), row(3, 'ERROR', { code: 'BAD_STATUS', after: null })],
+        counts: { new: 1, changed: 0, unchanged: 0, error: 1 },
+        overwrite_count: 0,
+      }),
+    );
+
+    const save = screen.getByRole('button', { name: 'Save 1 changes' });
+    expect(save.hasAttribute('disabled')).toBe(true);
+
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: 'Save the correct rows and skip the rows with errors',
+      }),
+    );
+    expect(save.hasAttribute('disabled')).toBe(false);
+    await user.click(save);
+
+    await screen.findAllByText(`Upload on ${IMPORT_ID}`, {}, { timeout: 5000 });
+    expect(body).toEqual({ staging_id: STAGING_ID });
+  });
+
+  it('?sectionId for a section the user may not write is not pre-ticked', async () => {
+    renderPage('?sectionId=99999999-9999-4999-8999-999999999999');
+
+    const box = await screen.findByRole('checkbox', { name: 'Class 5 – A' });
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Download sheet' }).hasAttribute('disabled')).toBe(
+        true,
+      ),
+    );
+    expect(box.getAttribute('data-state')).toBe('unchecked');
+  });
 });

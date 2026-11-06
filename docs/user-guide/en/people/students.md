@@ -51,6 +51,7 @@ helpIds:
     people.students.action.sendReminder,
     people.students.field.rollNumber,
     people.students.field.bloodGroup,
+    people.students.field.cardNo,
     people.students.field.preferredCommunication,
     people.students.section.statement#task-fees,
   ]
@@ -591,11 +592,12 @@ A request from a guardian waits for the class teacher, who answers it in [**My c
 
 <!-- guide:generated:fields:students -->
 
-| Field             | What to enter                                                                       | Required? |
-| ----------------- | ----------------------------------------------------------------------------------- | --------- |
-| Roll number       | A positive whole number. Leave it empty to use the next roll number in the section. | No        |
-| Blood group       | Choose one from the list, or leave it Not set.                                      | No        |
-| Preferred contact | SMS, WhatsApp, Email, Phone call or Messenger. It starts as SMS.                    | No        |
+| Field             | What to enter                                                                        | Required? |
+| ----------------- | ------------------------------------------------------------------------------------ | --------- |
+| Roll number       | A positive whole number. Leave it empty to use the next roll number in the section.  | No        |
+| Blood group       | Choose one from the list, or leave it Not set.                                       | No        |
+| Preferred contact | SMS, WhatsApp, Email, Phone call or Messenger. It starts as SMS.                     | No        |
+| Card number       | The number on the student's attendance card. It must be different for every student. | No        |
 
 <!-- /guide:generated -->
 

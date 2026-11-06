@@ -15,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip';
 export interface AttendanceMarkBadgesProps {
   scanned_at?: string | null | undefined;
   source?: string | null | undefined;
-  /** Gets the formatted time, e.g. `(time) => t('scannedBadge', { time })`. */
+  /** Gets the formatted time, e.g. the app's "Scanned {{time}}" string. */
   scannedLabel: (time: string) => string;
   scannedHint: string;
   fromSheetLabel: string;

@@ -567,7 +567,8 @@
     "employeeId": "Employee ID",
     "designations": "Designations",
     "subjectSpecialization": "Subject specialization",
-    "joiningDate": "Joining date"
+    "joiningDate": "Joining date",
+    "cardNo": "Card number"
   },
   "help": {
     "fullName": "The person's full name.",
@@ -593,7 +594,8 @@
     "label": "Card number",
     "help": "The number on the staff member's attendance card. No two people share one.",
     "scan": "Scan card",
-    "duplicate": "This card number already belongs to another staff member."
+    "duplicate": "This card number already belongs to another staff member.",
+    "invalid": "Use 1 to 64 letters, numbers or dashes."
   },
   "bulkUpload": {
     "cardNoDuplicate": "Row {{row}}: this card number is already used — use a different number."
