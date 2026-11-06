@@ -1,6 +1,7 @@
 import { TENANT_SETTINGS_SCHEMA_VERSION } from '../dto/tenant-settings.dto';
 import {
   ApprovalMode,
+  DailyAttendanceSource,
   DEFAULT_CONDUCT_ITEMS,
   DEFAULT_STUDY_PLANS_SETTINGS,
   TermLabel,
@@ -87,6 +88,7 @@ export const DEFAULT_ATTENDANCE_SETTINGS: AttendancePolicySettings = {
   shiftTimes: [],
   specialTimings: [],
   periodAttendance: { enabled: false },
+  dailySource: DailyAttendanceSource.ANY,
 };
 
 /**
@@ -141,6 +143,7 @@ export const DEFAULT_ATTENTION_SETTINGS: AttentionSettings = {
   eveningAt: '17:00',
   quietHours: { start: '21:00', end: '07:00' },
   guardianSmsFallback: false,
+  staffSmsFallback: false,
   guardianSmsDailyCap: 2,
   smsCreditLowThreshold: 200,
   failedMessagesThreshold: 10,

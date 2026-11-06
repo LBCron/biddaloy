@@ -393,7 +393,8 @@ describe('resolveTenantSettings', () => {
     });
     it('a stored true stays true', () => {
       expect(
-        resolveTenantSettings({ fees: { requireSecondApprover: true } }).fees?.requireSecondApprover,
+        resolveTenantSettings({ fees: { requireSecondApprover: true } }).fees
+          ?.requireSecondApprover,
       ).toBe(true);
     });
     it('a stored non-boolean falls back to false', () => {
@@ -416,6 +417,26 @@ describe('resolveTenantSettings', () => {
 
     expect(resolved.attendance?.shiftTimes).toEqual([]);
     expect(resolved.attendance?.periodAttendance).toEqual({ enabled: false });
+  });
+
+  it('resolves dailySource: default ANY, valid kept, unknown falls back (D1)', () => {
+    expect(resolveTenantSettings(null).attendance?.dailySource).toBe('ANY');
+    expect(
+      resolveTenantSettings({ attendance: { dailySource: 'FIRST_PERIOD' } }).attendance
+        ?.dailySource,
+    ).toBe('FIRST_PERIOD');
+    expect(
+      resolveTenantSettings({ attendance: { dailySource: 'NOPE' } }).attendance?.dailySource,
+    ).toBe('ANY');
+  });
+
+  it('resolves staffSmsFallback as a strict boolean, default false (D29)', () => {
+    expect(
+      resolveTenantSettings({ attention: { staffSmsFallback: true } }).attention?.staffSmsFallback,
+    ).toBe(true);
+    expect(
+      resolveTenantSettings({ attention: { staffSmsFallback: 'yes' } }).attention?.staffSmsFallback,
+    ).toBe(false);
   });
 
   it('merges a partial attendance patch over defaults, keeping the rest', () => {

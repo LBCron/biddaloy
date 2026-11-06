@@ -78,6 +78,7 @@ describe('DEFAULT_TENANT_SETTINGS', () => {
       eveningAt: '17:00',
       quietHours: { start: '21:00', end: '07:00' },
       guardianSmsFallback: false,
+      staffSmsFallback: false,
       guardianSmsDailyCap: 2,
       smsCreditLowThreshold: 200,
       failedMessagesThreshold: 10,

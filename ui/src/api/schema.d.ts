@@ -11088,6 +11088,7 @@ export interface components {
             photo_key: string | null;
             blood_group: string | null;
             registration_number: string;
+            card_no: string | null;
             roll_number: number;
             class_section: components["schemas"]["ClassSection"];
             class_section_id: string;
@@ -12927,6 +12928,11 @@ export interface components {
                 until: string;
                 days: number[];
             }[];
+            /**
+             * @description Who marks daily attendance. Default ANY. Only limits who may write.
+             * @enum {string}
+             */
+            dailySource?: "ANY" | "CLASS_TEACHER" | "FIRST_PERIOD" | "DEVICE";
             weeklyOffDays: number[];
             lateAfter: string;
             absentAfter: string;
@@ -13020,6 +13026,8 @@ export interface components {
             eveningAt?: string;
             quietHours?: components["schemas"]["AttentionQuietHoursDto"];
             guardianSmsFallback?: boolean;
+            /** @description Text staff when an app alert is not read. Default off. */
+            staffSmsFallback?: boolean;
             /** @example 2 */
             guardianSmsDailyCap?: number;
             /** @example 200 */
