@@ -205,13 +205,17 @@ describe('org slice (integration, 2 years)', () => {
   });
 
   it('after apply: period attendance on, Morning shift, classes on it, bn locale, terms, exam templates', async () => {
-    const schools = await q<{ id: string; settings: Record<string, any> }>(
-      `SELECT id, settings FROM schools WHERE slug LIKE 'bmsc-%'`,
+    const schools = await q<{ id: string; slug: string; settings: Record<string, any> }>(
+      `SELECT id, slug, settings FROM schools WHERE slug LIKE 'bmsc-%'`,
     );
     expect(schools).toHaveLength(3);
     for (const s of schools) {
       expect(s.settings.attendance.periodAttendance.enabled).toBe(true);
       expect(s.settings.attendance.arrivalNotice.enabled).toBe(true);
+      // [76.2.8] D25: High on the gate, Primary teacher-only, College untouched; SMS fallback stays off.
+      const want = { 'bmsc-high': 'DEVICE', 'bmsc-primary': 'CLASS_TEACHER' }[s.slug as string];
+      expect(s.settings.attendance.dailySource).toBe(want);
+      expect(s.settings.attention?.staffSmsFallback ?? false).toBe(false);
       expect(s.settings.organisation.shifts).toContain('Morning');
       expect(JSON.stringify(s.settings.region)).toContain('bn');
     }

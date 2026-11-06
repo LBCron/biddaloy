@@ -3,6 +3,7 @@ import {
   CalendarEventType,
   PeriodSlotKind,
   PublicHolidaySource,
+  DailyAttendanceSource,
   SchoolStatus,
   UserRole,
   UserStatus,
@@ -295,6 +296,11 @@ export const slice: DemoSlice = {
           onboarding: { finished_at: stamp.toISOString() },
           settings: {
             attendance: {
+              // [76.2.8] D25: High is gate-driven, the first other branch is teacher-only, the rest ANY.
+              ...(b.kind === 'HIGH' && { dailySource: DailyAttendanceSource.DEVICE }),
+              ...(b.slug === 'bmsc-primary' && {
+                dailySource: DailyAttendanceSource.CLASS_TEACHER,
+              }),
               periodAttendance: { enabled: true },
               // [84.1.4] D43: SMS arrival notices on in the first branch only.
               arrivalNotice: { enabled: true, smsAllowed: i === 0 },

@@ -274,7 +274,8 @@ export const slice: DemoSlice = {
         return 'not-live';
       },
     );
-    if (expiredOutcome !== 'not-live') throw new Error('demo seed: expired SMS request was approved');
+    if (expiredOutcome !== 'not-live')
+      throw new Error('demo seed: expired SMS request was approved');
 
     await notices.idle();
 

@@ -540,6 +540,21 @@ export const slice: DemoSlice = {
         guardianIds: [hh.father, ...(hh.mother ? [hh.mother] : [])],
       };
     });
+    // [76.2.8] Gate cards: every student of one class per branch (Class 8, else the last class)
+    // gets a 10-digit card number. One draw per card from ctx.rng; unique per tenant by retry.
+    const issued = new Set<string>();
+    for (const t of org.tenants) {
+      const classes = t.years.find((y) => y.isCurrent)!.classes;
+      const cls = classes.find((c) => c.name === 'Class 8') ?? classes[classes.length - 1];
+      for (const sec of cls.sections)
+        for (const id of bySection.get(sec.id) ?? []) {
+          let card: string;
+          do card = String(ctx.rng.number.int({ min: 1_000_000_000, max: 9_999_999_999 }));
+          while (issued.has(card));
+          issued.add(card);
+          await ctx.ds.query(`UPDATE students SET card_no = $1 WHERE id = $2`, [card, id]);
+        }
+    }
     ctx.ids.set('students', {
       students: published,
       bySection,

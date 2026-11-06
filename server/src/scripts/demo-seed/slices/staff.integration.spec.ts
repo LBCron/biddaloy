@@ -109,6 +109,14 @@ describe('staff slice (integration, 2 years)', () => {
     expect(rows.filter((r) => r.role === 'COMMITTEE')).toHaveLength(1);
   });
 
+  it('5 staff per branch carry a 10-digit card, unique per tenant (76.2.8)', async () => {
+    const rows = await q<{ slug: string; n: number }>(
+      `SELECT s.slug, count(*)::int AS n FROM staff_profiles p JOIN schools s ON s.id = p.tenant_id
+        WHERE p.card_no ~ '^[0-9]{10}$' GROUP BY s.slug ORDER BY s.slug`,
+    );
+    expect(rows.map((r) => r.n)).toEqual([5, 5, 5]);
+  });
+
   it('the ICT teacher has Teacher rows and StaffProfiles in High and College', async () => {
     const [u] = await q(`SELECT id FROM users WHERE email = 'ict@bmsc.example'`);
     const teachers = await q(`SELECT tenant_id FROM teachers WHERE user_id = $1`, [u.id]);

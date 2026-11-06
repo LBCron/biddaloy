@@ -69,7 +69,13 @@ describe('notices slice (integration, 2 years, scale 0.05)', () => {
         { provide: TenantSettingsCache, useValue: { invalidate: vi.fn() } },
         { provide: StorageService, useValue: { put: async () => undefined } },
       ],
-      [ConfigModule.forRoot({ isGlobal: true }), NoticesModule, NoticeAccessModule, NoticeSmsModule, AuthModule],
+      [
+        ConfigModule.forRoot({ isGlobal: true }),
+        NoticesModule,
+        NoticeAccessModule,
+        NoticeSmsModule,
+        AuthModule,
+      ],
     );
     ds = app.get<DataSource>(getDataSourceToken());
     await ds.query(`DELETE FROM schools WHERE slug LIKE 'bmsc-%'`);
