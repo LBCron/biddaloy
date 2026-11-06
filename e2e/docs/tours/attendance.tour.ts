@@ -314,7 +314,8 @@ test('desktop: upload an attendance sheet', async ({ page }, info) => {
   test.skip(info.project.metadata.device !== 'desktop');
   test.setTimeout(120_000);
   await prepare(page);
-  await loginAs(page, 'class-teacher-8a');
+  // Admin, not the class teacher: Class 10 – B is a DEVICE section, which only admin may write by sheet.
+  await loginAs(page, 'admin');
   await page.goto(`/attendance?date=${DAY}`);
 
   // 01 — the way in: Attendance > Uploaded sheets in the menu, then the page's upload button.
