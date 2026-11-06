@@ -13,6 +13,7 @@ const messages = {
   rollNumberInvalid: 'Roll number must be a positive whole number.',
   fullNameBnTooLong: 'The Bangla name must be 200 characters or fewer.',
   bloodGroupInvalid: 'Choose a blood group from the list.',
+  cardNoInvalid: 'Use letters, digits and hyphens only.',
 };
 
 describe('buildStudentFormSchema: roll_number', () => {
@@ -181,5 +182,34 @@ describe('buildUpdatePayload: only changed keys [2603]', () => {
     expect(
       buildUpdatePayload({ ...base, home_address: '' }, { ...base, home_address: 'Old street' }),
     ).toEqual({ home_address: null });
+  });
+});
+
+describe('[76.5.07] card_no', () => {
+  const schema = buildStudentFormSchema(messages);
+  const valid = {
+    ...defaultStudentFormValues(),
+    full_name: 'Rahim Uddin',
+    class_section_id: 'section-1',
+  };
+
+  it('accepts letters, digits and hyphens, and empty', () => {
+    for (const card_no of ['AB-12', '0004567', '']) {
+      expect(schema.safeParse({ ...valid, card_no }).success).toBe(true);
+    }
+  });
+
+  it('rejects other characters and more than 64', () => {
+    for (const card_no of ['AB 12', 'ab_12', 'a'.repeat(65)]) {
+      expect(schema.safeParse({ ...valid, card_no }).success).toBe(false);
+    }
+  });
+
+  it('empty becomes absent on create and null on update', () => {
+    expect(buildCreatePayload(valid)).not.toHaveProperty('card_no');
+    expect(buildUpdatePayload({ ...valid, card_no: '' }, { ...valid, card_no: 'A1' })).toEqual({
+      card_no: null,
+    });
+    expect(buildCreatePayload({ ...valid, card_no: ' A1 ' })).toMatchObject({ card_no: 'A1' });
   });
 });

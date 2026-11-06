@@ -1,5 +1,11 @@
-import { cleanupTestState, renderWithProviders, server } from '@biddaloy/ui/test';
-import { screen } from '@testing-library/react';
+import {
+  apiErrorBody,
+  cleanupTestState,
+  renderWithProviders,
+  server,
+  userEvent,
+} from '@biddaloy/ui/test';
+import { screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -98,5 +104,48 @@ describe('HrRecordTab', () => {
 
     expect(await screen.findByText('No HR record yet')).toBeTruthy();
     expect(await screen.findByText('No promotions recorded yet')).toBeTruthy();
+  });
+
+  it('[76.5.07] saves the card number through the HR record PATCH, and shows a fixed 409 sentence', async () => {
+    let patchBody: unknown;
+    let conflict = false;
+    server.use(
+      http.get('/api/v1/staff-hr-records', () =>
+        HttpResponse.json([{ id: 'hr-1', user_id: 'user-1', card_no: null }]),
+      ),
+      http.patch('/api/v1/staff-hr-records/hr-1', async ({ request }) => {
+        patchBody = await request.json();
+        return conflict
+          ? HttpResponse.json(
+              {
+                ...apiErrorBody(409, 'x', '/api/v1/staff-hr-records/hr-1'),
+                details: { code: 'CARD_NO_TAKEN' },
+              },
+              { status: 409 },
+            )
+          : HttpResponse.json({ id: 'hr-1', user_id: 'user-1', card_no: 'AB-1' });
+      }),
+      http.get('*/designation-history', () => HttpResponse.json([])),
+      http.get('/api/v1/designations', () => HttpResponse.json([])),
+      http.get('/api/v1/staff-documents/user-1', () => HttpResponse.json([])),
+      http.get('/api/v1/staff/user-1/:kind', () => HttpResponse.json([])),
+    );
+    renderWithProviders(<HrRecordTab userId="user-1" />, {
+      locale: 'en',
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+    });
+    const user = userEvent.setup();
+    const input = await screen.findByLabelText('Card number');
+    await user.type(input, 'AB-1');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(patchBody).toEqual({ card_no: 'AB-1' }));
+
+    conflict = true;
+    await user.type(input, '2');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(
+      await screen.findByText('This card number already belongs to another staff member.'),
+    ).toBeTruthy();
   });
 });
