@@ -48,6 +48,18 @@ const POLICIES: [LeaveType, number][] = [
 ];
 const REASONS = ['জরুরি পারিবারিক কাজ', 'অসুস্থতার কারণে', 'ব্যক্তিগত কাজ'];
 
+/**
+ * [76.2.8] D11: the uploaded sheet's days, from this year's school days before "today" (`past`).
+ * The `need` days ending 3 back when the year has room; early in the year, the latest ones it has
+ * (fewer rows). ponytail: before the year's first school day there is nothing, so no sheet (the
+ * import page only takes the current year); a last-year sheet needs last year's rolls.
+ */
+export function importDays(past: string[], need: number): string[] {
+  return past.length >= need + 2
+    ? past.slice(past.length - 2 - need, past.length - 2)
+    : past.slice(-need);
+}
+
 const addDays = (d: string, n: number) =>
   new Date(Date.parse(d) + n * 86_400_000).toISOString().slice(0, 10);
 const range = (from: string, to: string): string[] => {
@@ -365,10 +377,12 @@ const load = async (ctx: DemoSeedContext) => {
           const marker = classTeacher.get(sec.id) ?? org.adminUserId;
           const isImportSec = sec.id === importSection.id && year.isCurrent;
           if (isImportSec) {
-            // The last school days before "today", ending 3 back: as many as 40 rows need.
-            const past = days.filter((d) => d < ctx.anchor);
-            const need = Math.ceil((IMPORT_ROWS - 1) / kids.length);
-            importDates = new Set(past.slice(Math.max(0, past.length - 2 - need), past.length - 2));
+            importDates = new Set(
+              importDays(
+                days.filter((d) => d < ctx.anchor),
+                Math.ceil((IMPORT_ROWS - 1) / kids.length),
+              ),
+            );
           }
           for (const [k, date] of days.entries()) {
             const isToday = date === ctx.anchor;
@@ -566,9 +580,9 @@ const load = async (ctx: DemoSeedContext) => {
       file_name: 'class-attendance.xlsx',
       rows: sheetRows,
       count_new: sheetRows.filter((r) => r.outcome === 'NEW').length,
-      count_changed: 2,
+      count_changed: sheetRows.filter((r) => r.outcome === 'CHANGED').length,
       count_unchanged: 0,
-      count_error: 1,
+      count_error: sheetRows.filter((r) => r.outcome === 'ERROR').length,
       created_at: todayAt(addDays(importDay, 1), 11),
     });
     rows += 1;

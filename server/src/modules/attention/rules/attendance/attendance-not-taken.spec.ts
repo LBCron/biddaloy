@@ -8,6 +8,10 @@ import {
   sectionCutoff,
   toMinutes,
 } from './attendance-not-taken.rule';
+import { sectionRosterIdsBySection } from '../../../enrollments/section-roster';
+
+// The unmarked count reads the dated roster (same helper as the register); stubbed per build().
+vi.mock('../../../enrollments/section-roster', () => ({ sectionRosterIdsBySection: vi.fn() }));
 
 describe('toMinutes', () => {
   it('reads HH:mm and Postgres time', () => {
@@ -113,10 +117,13 @@ interface Fx {
   unmarked?: number;
 }
 function build(f: Fx = {}) {
+  // `unmarked` students on S1's roster, none of them marked (the marked-records query returns []).
+  vi.mocked(sectionRosterIdsBySection).mockResolvedValue(
+    new Map([['S1', Array.from({ length: f.unmarked ?? 0 }, (_, i) => `st-${i}`)]]),
+  );
   const query = vi.fn(async (sql: string) => {
     // [83.2.4] Before the user_tenants route: the coordinator query has one in an EXISTS.
     if (sql.includes('FROM coordinator_assignments')) return f.coordinators ?? [];
-    if (sql.includes('FROM students st')) return [{ section_id: 'S1', unmarked: f.unmarked ?? 0 }];
     if (sql.includes('FROM class_sections cs')) return [{ id: 'S1', class_id: 'C1', label: '7-B' }];
     if (sql.includes('calendar_events')) return [];
     if (sql.includes('FROM attendance_sessions')) return f.sessions ?? [];

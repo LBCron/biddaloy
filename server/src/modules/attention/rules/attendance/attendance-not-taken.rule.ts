@@ -7,6 +7,7 @@ import {
 } from '../../../attendance/attendance-policy.util';
 import { toPeriods, type ResolvedPeriod } from '../../../attendance/attendance-periods.util';
 import { ResolveRoutineService } from '../../../routines/resolve-routine.service';
+import { sectionRosterIdsBySection } from '../../../enrollments/section-roster';
 import { SchoolsService } from '../../../schools/schools.service';
 import { AttentionRule } from '../attention-rule.decorator';
 import { endOfLocalDay } from '../rule-context.service';
@@ -166,7 +167,7 @@ export class AttendanceNotTakenRule implements AttentionRuleShape {
     const q = <R>(sql: string, params: unknown[]): Promise<R[]> =>
       this.dataSource.query(sql, params);
 
-    const [sections, holidayClasses, slots, sessions, homeroom, leaves, unmarkedRows] =
+    const [sections, holidayClasses, slots, sessions, homeroom, leaves, markedRows] =
       await Promise.all([
         q<{ id: string; class_id: string; shift_id: string | null; label: string }>(
           `SELECT cs.id, cs.class_id, c.shift_id, c.name || '-' || cs.section_name AS label
@@ -207,21 +208,31 @@ export class AttendanceNotTakenRule implements AttentionRuleShape {
          WHERE tenant_id = $1 AND status = 'APPROVED' AND start_date <= $2 AND end_date >= $2`,
           [t, ctx.localDate],
         ),
-        // [76.2.05] D28: active students with no whole-day record today, per section.
-        q<{ section_id: string; unmarked: number }>(
-          `SELECT st.class_section_id AS section_id,
-                count(*) FILTER (WHERE NOT EXISTS (
-                  SELECT 1 FROM attendance_records r
-                  JOIN attendance_sessions s ON s.id = r.session_id AND s.tenant_id = $1
-                    AND s.date = $2 AND s.period_no IS NULL
-                  WHERE r.tenant_id = $1 AND r.student_id = st.id))::int AS unmarked
-         FROM students st
-         WHERE st.tenant_id = $1 AND st.deleted_at IS NULL AND st.enrollment_status = 'ACTIVE'
-         GROUP BY st.class_section_id`,
+        // [76.2.05] D28: students with a whole-day record today.
+        q<{ student_id: string }>(
+          `SELECT DISTINCT r.student_id FROM attendance_records r
+         JOIN attendance_sessions s ON s.id = r.session_id AND s.tenant_id = $1
+           AND s.date = $2 AND s.period_no IS NULL
+         WHERE r.tenant_id = $1`,
           [t, ctx.localDate],
         ),
       ]);
-    const unmarkedOf = new Map(unmarkedRows.map((r) => [r.section_id, r.unmarked]));
+    // [76.2.05] D28: unmarked = the section's dated roster (the one the register and the device
+    // sweep use) minus those marked. An inactive enrollment with no leaving event is off the
+    // roster, so it can never keep the alert open.
+    const marked = new Set(markedRows.map((r) => r.student_id));
+    const rosters = await sectionRosterIdsBySection(
+      this.dataSource.manager,
+      t,
+      sections.map((s) => s.id),
+      { onRollOn: ctx.localDate },
+    );
+    const unmarkedOf = new Map(
+      [...rosters].map(([sectionId, ids]) => [
+        sectionId,
+        ids.filter((id) => !marked.has(id)).length,
+      ]),
+    );
     const hasDaySession = new Set(
       sessions.filter((s) => s.period_no == null).map((s) => s.section_id),
     );

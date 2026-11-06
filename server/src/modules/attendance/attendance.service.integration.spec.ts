@@ -1660,6 +1660,26 @@ describe('AttendanceService (integration)', () => {
         can_write: true,
         write_reason: null,
       });
+      // PR #3609 review: a coordinator of the class (no teaching row, no substitution) may open
+      // the period register read-only (83.3.1 D4), so can_write is false there.
+      const coordUser = await dataSource.getRepository(User).save({
+        email: `att-coord-${randomUUID()}@test.com`,
+        full_name: 'Coordinator Teacher',
+      });
+      const coord = await dataSource.getRepository(Teacher).save({
+        user_id: coordUser.id,
+        employee_id: `ATT-CO-${randomUUID().slice(0, 8)}`,
+        tenant_id: TENANT_ID,
+        designations: [],
+      });
+      await dataSource.query(
+        `INSERT INTO coordinator_assignments (tenant_id, teacher_id, class_id) VALUES ($1, $2, $3)`,
+        [TENANT_ID, coord.id, classId],
+      );
+      expect(await read(UserRole.TEACHER, coordUser.id)).toMatchObject({
+        can_write: false,
+        write_reason: null,
+      });
     });
 
     const notScheduled = { response: { details: { code: 'ATTENDANCE_PERIOD_NOT_SCHEDULED' } } };

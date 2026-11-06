@@ -38,7 +38,7 @@ import { slice as org } from './org';
 import { slice as staff } from './staff';
 import { slice as students } from './students';
 import { slice as routine } from './routine';
-import { slice } from './attendance';
+import { importDays, slice } from './attendance';
 
 const ANCHOR = '2026-10-10'; // a Saturday: a school day
 const SCHOOL_DAY = ANCHOR;
@@ -427,4 +427,22 @@ describe('attendance slice (integration, 3 years, scale 0.15)', () => {
     expect(credit.every((c) => c.available === c.ledger)).toBe(true);
     expect(credit.some((c) => c.available < 1000)).toBe(true);
   }, 120_000);
+});
+
+// PR #3609 review: the sheet's days on a short year (early-year anchor), no database needed.
+describe('importDays', () => {
+  const days = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6'];
+
+  it('enough history: the `need` days ending 3 school days back', () => {
+    expect(importDays(days, 3)).toEqual(['d2', 'd3', 'd4']);
+  });
+
+  it('short history: the latest days the year has, so the sheet is not dropped', () => {
+    expect(importDays(['d1', 'd2'], 3)).toEqual(['d1', 'd2']);
+    expect(importDays(['d1'], 20)).toEqual(['d1']);
+  });
+
+  it("the year's first school day (nothing before it): no days, no sheet", () => {
+    expect(importDays([], 3)).toEqual([]);
+  });
 });

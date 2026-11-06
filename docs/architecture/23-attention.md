@@ -177,8 +177,12 @@ The ladder is in `attendanceStep()` in
 `rules/rule.types.ts` picks the highest step reached.
 
 **Unmarked students (Epic 76, D28).** The alert also fires when a day register
-exists but some active students have no whole-day record today, even if the
-register is FINALIZED (a device school can finalize with students unmarked).
+exists but some students on the section's roll today have no whole-day record,
+even if the register is FINALIZED (a device school can finalize with students
+unmarked). "On the roll" is the same dated roster the register and the device
+absence sweep use (`sectionRosterIdsBySection(..., { onRollOn })` in
+`modules/enrollments/section-roster.ts`), so an ended enrollment never keeps the
+alert open.
 Same dedupe key, so the existing alert just updates. Example: 20 of 23 students
 unmarked turns the title into "Attendance incomplete: 7-B — 20 without status".
 Marking every student (ABSENT/SYSTEM counts) resolves it in a `DEVICE` school,

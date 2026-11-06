@@ -352,6 +352,11 @@ describe('AttendanceNotTakenRule (integration)', () => {
          VALUES ('Kid', $1, $2, $3, $4, 'ACTIVE') RETURNING id`,
         [`AR-${rand()}`, i + 2, A.sectionId, A.id],
       );
+      await q(
+        `INSERT INTO enrollments (student_id, class_id, section_id, academic_year_id, enrollment_status, tenant_id)
+         VALUES ($1, $2, $3, $4, 'ACTIVE', $5)`,
+        [id, A.classId, A.sectionId, A.yearId, A.id],
+      );
       ids.push(id);
     }
     const mark = (sidIds: string[], status: string, source: string) =>
@@ -393,6 +398,30 @@ describe('AttendanceNotTakenRule (integration)', () => {
     );
     const [f] = await rule.evaluate(ctx(A, '08:20'));
     expect(f.params.title_en).toMatch(/1 without status$/);
+  });
+
+  it('[76.2.05] PR #3609 review: an inactive enrollment with no leaving event is not counted unmarked', async () => {
+    const [{ id: sid }] = await q(
+      `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'FINALIZED') RETURNING id`,
+      [A.id, A.sectionId, DAY],
+    );
+    await q(
+      `INSERT INTO attendance_records (tenant_id, session_id, student_id, date, status) VALUES ($1, $2, $3, $4, 'PRESENT')`,
+      [A.id, sid, A.studentId, DAY],
+    );
+    // An ACTIVE student whose enrollment here ended with no leaving event: off the register
+    // roster (and the device sweep's), so it must not keep the alert open either.
+    const [{ id: gone }] = await q(
+      `INSERT INTO students (full_name, registration_number, roll_number, class_section_id, tenant_id, enrollment_status)
+       VALUES ('Gone', $1, 2, $2, $3, 'ACTIVE') RETURNING id`,
+      [`AR-${rand()}`, A.sectionId, A.id],
+    );
+    await q(
+      `INSERT INTO enrollments (student_id, class_id, section_id, academic_year_id, enrollment_status, tenant_id)
+       VALUES ($1, $2, $3, $4, 'INACTIVE', $5)`,
+      [gone, A.classId, A.sectionId, A.yearId, A.id],
+    );
+    expect(await rule.evaluate(ctx(A, '08:20'))).toEqual([]);
   });
 
   it("tenant isolation: B's unfinalized section never shows up in A's findings", async () => {

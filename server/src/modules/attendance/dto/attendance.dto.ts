@@ -316,7 +316,7 @@ export class RegisterResponseDto {
   @ApiProperty({
     required: false,
     description:
-      'GET register only. Whether you may change this register. Whole-day register: your mark permission plus the school daily-attendance setting. Period register: your mark permission plus access to that period (the daily setting does not apply).',
+      'GET register only. Whether you may change this register. Whole-day register: your mark permission plus the school daily-attendance setting. Period register: your mark permission plus access to that period (the daily setting does not apply). Not enough on its own: also check `editable` (a finalized, old or non-working-day register can still refuse the write, e.g. PUT returns ATTENDANCE_FINALIZED).',
   })
   can_write?: boolean;
   @ApiProperty({
