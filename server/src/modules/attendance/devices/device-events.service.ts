@@ -71,7 +71,7 @@ export class DeviceEventsService {
   /**
    * 403 unless `device.roster_access` is true. When the device is bound to
    * a section, that is the only section it may read. Response is exactly
-   * these five fields — built by explicitly listing them, never by
+   * these six fields — built by explicitly listing them, never by
    * returning the entity and deleting keys, which would leak whatever
    * field gets added to `Student` next year.
    */

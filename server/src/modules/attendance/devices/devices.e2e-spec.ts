@@ -317,7 +317,16 @@ describe('Attendance Devices E2E', () => {
       .expect(200);
     expect(roster.body.map((r: { student_id: string }) => r.student_id)).not.toContain(leaverId);
     // Every roster entry carries card_no (null when the student has no card).
-    for (const r of roster.body) expect(r).toHaveProperty('card_no');
+    for (const r of roster.body) {
+      expect(Object.keys(r).sort()).toEqual([
+        'card_no',
+        'full_name',
+        'registration_number',
+        'roll_number',
+        'section_id',
+        'student_id',
+      ]);
+    }
 
     const scan = await supertest(app.getHttpServer())
       .post(`${API}/attendance/device-events`)
