@@ -197,6 +197,19 @@
       "periodInvalid": "A period must end after it starts.",
       "periodsLoadFailed": "Could not load this shift's periods. Saved period times are kept as they are.",
       "overlap": "Another entry for the same shift already covers some of these dates."
+    },
+    "dailySource": {
+      "legend": "Who marks daily attendance",
+      "ANY": "Anyone assigned (today's rule)",
+      "ANYHelp": "Any teacher of the section can mark the day.",
+      "CLASS_TEACHER": "Class teacher roll call",
+      "CLASS_TEACHERHelp": "Only the class teacher marks the day.",
+      "FIRST_PERIOD": "First-period teacher",
+      "FIRST_PERIODHelp": "Whoever teaches the first period marks the day.",
+      "DEVICE": "Attendance machine",
+      "DEVICEHelp": "The machine fills the day. Teachers correct what it missed.",
+      "deviceNote": "After the absence cutoff, students the machine did not see are marked absent. The class teacher can still correct.",
+      "teacherNote": "Subject teachers can view the register but not save it."
     }
   },
   "signIn": {
