@@ -63,6 +63,10 @@ export class Notice {
   @Column({ type: 'boolean', default: false })
   is_public: boolean;
 
+  // [40.1.03] pinned on the public website
+  @Column({ type: 'boolean', default: false })
+  pinned_on_website: boolean;
+
   @Column({ type: 'date', nullable: true })
   expires_on: string | null;
 
