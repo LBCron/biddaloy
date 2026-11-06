@@ -345,6 +345,11 @@ sequenceDiagram
 A bad version stops at the first container; the second keeps serving the
 old one. Staging and demo have one `app`. nginx finds `prod-app` and
 `prod-app2` by alias.
+
+Known gap (Epic 40): the school-site renderer (`site`) calls only `prod-app`
+(`SITE_API_BASE` in `deploy/stack.yml`). While `app` restarts, a school page
+that is not in the 30 s nginx cache shows the site 503 page; a cached page is
+served stale. It ends when `app` is ready again (at most 24 x 5 s).
 `/api/health/ready` needs `HEALTH_TOKEN` in the project's secrets file; without
 it the route answers 404 and the deploy never turns ready.
 

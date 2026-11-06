@@ -3,7 +3,7 @@ import { THEMES, validateSiteConfig } from '@biddaloy/site-themes';
 import { SiteTheme } from '@biddaloy/shared';
 import { SchoolSite } from '../../../website/entities/school-site.entity';
 import { School } from '../../../schools/entities/school.entity';
-import { slugFor, themeOf } from '../../../website/site-config.service';
+import { createSiteRow, themeOf } from '../../../website/site-config.service';
 import { fromCell } from '../../codec/cell-format';
 import type {
   ColumnSpec,
@@ -127,12 +127,16 @@ export const schoolSiteTab: TabSpec<SchoolSite, SchoolSiteRow> = {
       errors.push({ tab: 'school_site', row: rowNo, column, message, severity: 'error' });
     const theme = themeOf(v.theme);
     for (const col of ['draft', 'published'] as const) {
-      if (v[col] === null) continue;
-      if (!isObj(v[col])) {
+      const cfg = v[col];
+      if (cfg === null) continue;
+      if (!isObj(cfg)) {
         bad(col, `Column "${col}": must be a JSON object.`);
         continue;
       }
-      const checked = theme ? validateSiteConfig(v[col], theme) : null;
+      // The `theme` column follows the draft (saveDraft sets it); the published copy keeps the
+      // theme it was published with until the next publish, so it is checked against its own.
+      const own = col === 'draft' ? theme : themeOf(cfg.theme);
+      const checked = own ? validateSiteConfig(cfg, own) : null;
       if (!checked?.ok) bad(col, `Column "${col}": is not a valid website config for the theme.`);
       else v[col] = checked.value;
     }
@@ -166,14 +170,14 @@ export const schoolSiteTab: TabSpec<SchoolSite, SchoolSiteRow> = {
     // One site per school: a file from another school (another subdomain) still lands on this row.
     const site = existing ?? (await m.findOne(SchoolSite, { where: { tenant_id: tenantId } }));
     const publishedChanged = !site || !same(row.published, site.published);
-    const target = site ?? new SchoolSite();
-    if (!site) {
-      const school = await m.findOneByOrFail(School, { id: tenantId });
-      target.tenant_id = tenantId;
-      target.subdomain = slugFor(school.name);
-      target.version = 0;
-      target.draft_revision = 0;
-    }
+    // No row yet: a fresh subdomain, retried on a collision so one taken slug never fails the restore.
+    const target =
+      site ??
+      (await createSiteRow(m, tenantId, (await m.findOneByOrFail(School, { id: tenantId })).name, {
+        theme: row.theme,
+        palette: row.palette,
+        draft: row.draft as never,
+      }));
     target.theme = row.theme;
     target.palette = row.palette;
     target.enabled = row.enabled;

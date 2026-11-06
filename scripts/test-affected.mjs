@@ -59,7 +59,14 @@ export const ALL_FRONTEND_FIVE = Object.freeze([
 ]);
 export const SCRIPTS_PROJECT = 'scripts:node';
 export const LANDING_PROJECT = 'landing';
-export const ALL_PROJECTS = Object.freeze([...ALL_FRONTEND_FIVE, SCRIPTS_PROJECT, LANDING_PROJECT]);
+// [40.1.03] site theme manifests. A `site-themes/` change is unmapped below, so it runs everything.
+export const SITE_THEMES_PROJECT = 'site-themes:node';
+export const ALL_PROJECTS = Object.freeze([
+  ...ALL_FRONTEND_FIVE,
+  SITE_THEMES_PROJECT,
+  SCRIPTS_PROJECT,
+  LANDING_PROJECT,
+]);
 
 const UI_PROJECTS = ['ui:node', 'ui:jsdom', 'client-admin:node', 'client-admin:jsdom'];
 const CLIENT_ADMIN_PROJECTS = ['client-admin:node', 'client-admin:jsdom'];

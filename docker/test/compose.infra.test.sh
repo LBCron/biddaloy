@@ -64,13 +64,13 @@ unpinned="$( { ENV_NAME=prod docker compose "${STACK[@]}" --profile '*' config -
 [ -z "$unpinned" ] || fail "compose images not digest-pinned: $unpinned"
 pass "compose images are digest-pinned"
 
-for df in Dockerfile scripts/backup/Dockerfile; do
+for df in Dockerfile scripts/backup/Dockerfile site/Dockerfile; do
   # Skip only FROMs that name an earlier build stage (FROM base AS deps), so a
   # real image with an alias (FROM alpine AS tools) is still checked.
   bad="$(awk '$1=="FROM" { if (!($2 in stage) && $2 !~ /@sha256:[0-9a-f]{64}$/) print; if ($3=="AS") stage[$4]=1 }' "$df")"
   [ -z "$bad" ] || fail "$df has an unpinned FROM: $bad"
 done
-pass "app and backup Dockerfile FROMs are digest-pinned"
+pass "app, backup and site Dockerfile FROMs are digest-pinned"
 
 docker build -q -t biddaloy-backup-test scripts/backup >/dev/null
 [ "$(docker run --rm --entrypoint id biddaloy-backup-test -u)" = "10001" ] \

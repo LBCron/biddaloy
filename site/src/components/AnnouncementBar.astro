@@ -10,8 +10,9 @@ interface Props {
 }
 const { bar, lang } = Astro.props;
 const DUR = { SLOW: '40s', NORMAL: '25s', FAST: '15s' } as const;
-// Enabled, in-window items; an off-site or script href is dropped (lib/announcements.ts).
-const items = barItems(bar, lang, Date.now());
+// Enabled items (the server already applied the date window); an off-site or script href is
+// dropped and a plain site path gets the language prefix (lib/announcements.ts).
+const items = barItems(bar, lang);
 const isStatic = bar?.style !== SiteAnnouncementStyle.MARQUEE || items.length < 2;
 ---
 {items.length > 0 && (

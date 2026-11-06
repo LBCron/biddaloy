@@ -12,7 +12,10 @@ const pkg = (path: string) => JSON.parse(readFileSync(join(__dirname, path), 'ut
 const declared = new Set([
   ...Object.keys(pkg('../../../package.json').dependencies),
   ...Object.keys(pkg('../../../../shared/package.json').dependencies),
+  // Workspace packages: the root Dockerfile copies their dist + package.json into the image,
+  // where the yarn-workspaces symlink resolves them.
   '@biddaloy/shared',
+  '@biddaloy/site-themes',
 ]);
 
 // Every form that survives TypeScript emit: `import … from`, `export … from` and the

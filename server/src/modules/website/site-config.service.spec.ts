@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { SiteTheme } from '@biddaloy/shared';
 import type { SiteConfig } from '@biddaloy/shared';
 import { THEMES, defaultConfigFor } from '@biddaloy/site-themes';
-import { SiteConfigService, changeTheme, slugFor } from './site-config.service';
+import { SiteConfigService, changeTheme, createSiteRow, slugFor } from './site-config.service';
 import { SITE_SUBDOMAIN_RE } from '@biddaloy/shared';
 
 const bnTexts = (c: SiteConfig) =>
@@ -24,6 +24,54 @@ describe('slugFor', () => {
   it('falls back to "school" for a Bangla-only name or a reserved word', () => {
     expect(slugFor('গ্রিন ভ্যালি', () => 'ab12')).toBe('school-ab12');
     expect(slugFor('Admin', () => 'ab12')).toBe('school-ab12');
+  });
+});
+
+describe('createSiteRow', () => {
+  // [#3621 gate] The workbook restore uses this too: a taken subdomain (insert ignored, no row)
+  // must retry with a new slug, not fail the whole restore.
+  it('retries with a new slug while the insert is ignored, then returns the row', async () => {
+    const slugs: string[] = [];
+    let inserts = 0;
+    const qb = {
+      insert: () => qb,
+      into: () => qb,
+      values: (v: { subdomain: string }) => (slugs.push(v.subdomain), qb),
+      orIgnore: () => qb,
+      execute: async () => ({ affected: ++inserts < 3 ? 0 : 1 }),
+    };
+    const m = {
+      createQueryBuilder: () => qb,
+      findOne: async () => (inserts < 3 ? null : { id: 'row' }),
+    };
+    const draft = defaultConfigFor(SiteTheme.BASIC);
+    const row = await createSiteRow(m as never, 't1', 'Green Valley', {
+      theme: SiteTheme.BASIC,
+      palette: draft.palette,
+      draft,
+    });
+    expect(row).toEqual({ id: 'row' });
+    expect(slugs).toHaveLength(3);
+    expect(new Set(slugs).size).toBe(3);
+  });
+
+  it('gives up with 409 site.unavailable after 5 ignored inserts', async () => {
+    const qb = {
+      insert: () => qb,
+      into: () => qb,
+      values: () => qb,
+      orIgnore: () => qb,
+      execute: async () => ({ affected: 0 }),
+    };
+    const m = { createQueryBuilder: () => qb, findOne: async () => null };
+    const draft = defaultConfigFor(SiteTheme.BASIC);
+    await expect(
+      createSiteRow(m as never, 't1', 'Green Valley', {
+        theme: SiteTheme.BASIC,
+        palette: draft.palette,
+        draft,
+      }),
+    ).rejects.toThrow('site.unavailable');
   });
 });
 
@@ -123,6 +171,9 @@ function setup(row: Record<string, unknown> | null) {
       return { affected: hit ? 1 : 0 };
     }),
   };
+  // `createSiteRow` (the first-read insert) goes through the repository's manager.
+  const manager = { createQueryBuilder: () => qb, findOne: async () => state.row };
+  Object.assign(sites, { manager });
   const schools = { findOneOrFail: vi.fn(async () => ({ name: 'Test School' })) };
   const cache = { invalidate: vi.fn(async () => undefined) };
   const svc = new SiteConfigService(sites as never, schools as never, cache as never);

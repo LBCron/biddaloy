@@ -202,6 +202,8 @@ const REVIEWED_INTERPOLATIONS: Record<string, string[]> = {
   'modules/students/students.service.ts': ['BN_COLLATION', 'BN_COLLATION'],
   // BN_COLLATION / NOT_SWAPPED_SQL constants
   'modules/users/users.service.ts': ['BN_COLLATION', 'NOT_SWAPPED_SQL'],
+  // not SQL: `Buffer.from(\`<svg …\`)` builds a demo picture; w/h are seed pixel constants
+  'scripts/demo-seed/slices/website.ts': ['h', 'w'],
   // DEMO: constant `s.slug LIKE 'bmsc-%'` fragment, no input
   'scripts/demo-seed/validator.ts': [
     'DEMO',
