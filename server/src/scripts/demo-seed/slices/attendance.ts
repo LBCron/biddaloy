@@ -11,6 +11,7 @@ import {
   ArrivalNoticeMode,
   ArrivalNoticeStatus,
   AttendanceStatus,
+  type AttendanceImportHistoryRow,
   LeaveStatus,
   LeaveType,
 } from '@biddaloy/shared';
@@ -23,6 +24,7 @@ import { AttendanceDeviceEvent } from '../../../modules/attendance/entities/atte
 import { StaffAttendanceSession } from '../../../modules/staff-attendance/entities/staff-attendance-session.entity';
 import { StaffAttendanceRecord } from '../../../modules/staff-attendance/entities/staff-attendance-record.entity';
 import { LeavePolicy } from '../../../modules/leave/entities/leave-policy.entity';
+import { AttendanceImport } from '../../../modules/attendance/entities/attendance-import.entity';
 import { LeaveRecord } from '../../../modules/leave/entities/leave-record.entity';
 import { insertChunked } from '../bulk';
 import type { DemoSeedContext, DemoSlice } from '../context';
@@ -329,6 +331,19 @@ const load = async (ctx: DemoSeedContext) => {
   };
   const todayEvents: Record<string, unknown>[] = [];
 
+  // [76.2.8] D5: three scanned-but-absent students in the High draft (teacher marked them ABSENT).
+  let mismatchLeft = 3;
+  // [76.2.8] D11: one uploaded sheet in the first non-High branch, 3 school days back; its records
+  // are written below with source IMPORT. Target = that branch's first section with students.
+  const importTenant = org.tenants.find((t) => t.id !== high.id)!;
+  const importSection = importTenant.years
+    .find((y) => y.isCurrent)!
+    .classes.flatMap((c) => c.sections)
+    .find((sec) => (st.bySection.get(sec.id)?.length ?? 0) > 0)!;
+  const IMPORT_ROWS = 40;
+  const imported: { date: string; id: string; status: AttendanceStatus; i: number }[] = [];
+  let importDates = new Set<string>();
+
   for (const t of org.tenants) {
     for (const [yi, year] of t.years.entries()) {
       const withPeriods = yi >= t.years.length - 2; // current and previous year (D3)
@@ -348,6 +363,13 @@ const load = async (ctx: DemoSeedContext) => {
           // A chronic absentee misses 3 days in every 10 (70%): always under 75%, in runs of 3.
           const phase = kids.map(() => Math.floor(rnd() * 10));
           const marker = classTeacher.get(sec.id) ?? org.adminUserId;
+          const isImportSec = sec.id === importSection.id && year.isCurrent;
+          if (isImportSec) {
+            // The last school days before "today", ending 3 back: as many as 40 rows need.
+            const past = days.filter((d) => d < ctx.anchor);
+            const need = Math.ceil((IMPORT_ROWS - 1) / kids.length);
+            importDates = new Set(past.slice(Math.max(0, past.length - 2 - need), past.length - 2));
+          }
           for (const [k, date] of days.entries()) {
             const isToday = date === ctx.anchor;
             const mode = isToday ? todayMode.get(sec.id) : 'FINALIZED';
@@ -383,17 +405,28 @@ const load = async (ctx: DemoSeedContext) => {
                   !chronic.has(i) && rnd() < 0.15
                     ? AttendanceStatus.LEAVE
                     : AttendanceStatus.ABSENT;
+              // A scanned student the teacher then marked absent (D5): the mismatch badge counts it.
+              const mismatch = deviceFilled && mismatchLeft > 0 && s === AttendanceStatus.PRESENT;
+              if (mismatch) {
+                s = AttendanceStatus.ABSENT;
+                mismatchLeft--;
+              }
               status.push(s);
               const minutes = s === AttendanceStatus.LATE ? 5 + Math.floor(rnd() * 26) : null;
               late.push(minutes);
-              const id = isToday && t.id === high.id ? randomUUID() : undefined;
+              const isImport =
+                isImportSec && importDates.has(date) && imported.length < IMPORT_ROWS - 1;
+              const id = (isToday && t.id === high.id) || isImport ? randomUUID() : undefined;
+              if (isImport) imported.push({ date, id: id!, status: s, i });
               // Only a student who came in scanned at the gate; in the device-filled draft the rest
               // are the teacher's marks, with no check-in time.
               const scannedAt =
-                id && s !== AttendanceStatus.ABSENT && s !== AttendanceStatus.LEAVE
+                id &&
+                isToday &&
+                (mismatch || (s !== AttendanceStatus.ABSENT && s !== AttendanceStatus.LEAVE))
                   ? todayAt(date, 7, Math.floor(rnd() * 50))
                   : null;
-              const byDevice = deviceFilled && !!scannedAt;
+              const byDevice = deviceFilled && !!scannedAt && !mismatch;
               const row = {
                 ...(id && { id }),
                 tenant_id: t.id,
@@ -408,9 +441,13 @@ const load = async (ctx: DemoSeedContext) => {
               if (id) {
                 rSlow.push({
                   ...row,
-                  source: byDevice ? AttendanceSource.DEVICE : AttendanceSource.TEACHER,
-                  device_id: byDevice ? deviceOf.get(t.id) : null,
-                  check_in_at: byDevice ? scannedAt : null,
+                  source: byDevice
+                    ? AttendanceSource.DEVICE
+                    : isImport
+                      ? AttendanceSource.IMPORT
+                      : AttendanceSource.TEACHER,
+                  device_id: scannedAt ? deviceOf.get(t.id) : null,
+                  check_in_at: scannedAt,
                 });
               } else rBuf.push(row);
               if (scannedAt) {
@@ -480,6 +517,50 @@ const load = async (ctx: DemoSeedContext) => {
     todayEvents as never,
     CHUNK / 2,
   );
+
+  // --- [76.2.8] the upload history row: 1 section, 40 rows, 2 CHANGED, 1 ERROR, the rest NEW ----
+  const sheetRows: AttendanceImportHistoryRow[] = imported.map((r, n) => {
+    const changed = n < 2;
+    return {
+      date: r.date,
+      sectionId: importSection.id,
+      roll: r.i + 1,
+      before: changed
+        ? r.status === AttendanceStatus.ABSENT
+          ? AttendanceStatus.PRESENT
+          : AttendanceStatus.ABSENT
+        : null,
+      after: r.status,
+      outcome: changed ? 'CHANGED' : 'NEW',
+      recordId: r.id,
+    };
+  });
+  if (sheetRows.length) {
+    // ponytail: the error row is a roll no section has; one is enough to show the red state.
+    sheetRows.splice(2, 0, {
+      date: sheetRows[0].date,
+      sectionId: importSection.id,
+      roll: 999,
+      before: null,
+      after: null,
+      outcome: 'ERROR',
+      recordId: null,
+      code: 'ROLL_NOT_IN_SECTION',
+    });
+    const importDay = sheetRows[sheetRows.length - 1].date;
+    await ctx.ds.getRepository(AttendanceImport).insert({
+      tenant_id: importTenant.id,
+      uploaded_by_user_id: classTeacher.get(importSection.id) ?? org.adminUserId,
+      file_name: 'class-attendance.xlsx',
+      rows: sheetRows,
+      count_new: sheetRows.filter((r) => r.outcome === 'NEW').length,
+      count_changed: 2,
+      count_unchanged: 0,
+      count_error: 1,
+      created_at: todayAt(addDays(importDay, 1), 11),
+    });
+    rows += 1;
+  }
 
   // --- leave policies and the approved / rejected ledger -------------------------------
   await ctx.ds
@@ -720,6 +801,7 @@ export const slice: DemoSlice = {
     LeavePolicy,
     LeaveRecord,
     ArrivalNoticeSubscription,
+    AttendanceImport,
   ],
   run: (ctx: DemoSeedContext) =>
     withoutIndexes(ctx.ds, ['attendance_sessions', 'attendance_records'], () => load(ctx)),

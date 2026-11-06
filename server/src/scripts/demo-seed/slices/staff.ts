@@ -541,6 +541,19 @@ export const slice: DemoSlice = {
     await ins(TeacherClassSection, tcs);
     await ins(CoordinatorAssignment, coordinators);
 
+    // [76.2.8] Gate cards for the first 5 teachers of each branch, 10 digits from ctx.rng.
+    const issuedCards = new Set<string>();
+    for (const list of teacherRows.values())
+      for (const t of list.slice(0, 5)) {
+        let card: string;
+        do card = String(rng.number.int({ min: 1_000_000_000, max: 9_999_999_999 }));
+        while (issuedCards.has(card));
+        issuedCards.add(card);
+        await ctx.ds.query(`UPDATE staff_profiles SET card_no = $1 WHERE id = $2`, [
+          card,
+          t.staffProfileId,
+        ]);
+      }
     ctx.ids.set('teachersByTenant', teacherRows);
     ctx.ids.set('staffByCardKey', byCard);
     return rows + allUserIds.length + people.length;
