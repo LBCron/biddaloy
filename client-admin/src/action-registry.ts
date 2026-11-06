@@ -1086,6 +1086,14 @@ export const ACTIONS: readonly PaletteAction[] = [
     run: (ctx) => ctx.navigate({ to: '/settings?section=billing&buy=1' }),
   },
   {
+    id: 'settings.attendanceDevices.add',
+    label: { en: 'Add attendance machine', bn: 'হাজিরা মেশিন যোগ করুন' },
+    permission: Permission.ATTENDANCE_DEVICE_MANAGE,
+    kind: 'modal',
+    group: 'administration',
+    run: (ctx) => ctx.navigate({ to: '/settings?section=academics&devices=new' }),
+  },
+  {
     id: 'settings.backup',
     label: { en: 'Backup and restore', bn: 'ব্যাকআপ ও রিস্টোর' },
     permission: Permission.SETTINGS_MANAGE,
