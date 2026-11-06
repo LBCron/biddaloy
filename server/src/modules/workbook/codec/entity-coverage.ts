@@ -41,6 +41,11 @@ import { PrinterProfile } from '../../print/entities/printer-profile.entity';
 import { PrintJob } from '../../print/entities/print-job.entity';
 import { PrintJobItem } from '../../print/entities/print-job-item.entity';
 import { WorkbookJob } from '../jobs/workbook-job.entity';
+import { SchoolSite } from '../../website/entities/school-site.entity';
+import { SiteEnquiry } from '../../website/entities/site-enquiry.entity';
+import { SiteMedia } from '../../website/entities/site-media.entity';
+import { SitePost } from '../../website/entities/site-post.entity';
+import { StaffWebProfile } from '../../website/entities/staff-web-profile.entity';
 
 /**
  * Entities that `registry.completeness.spec.ts` allows to have no workbook
@@ -160,6 +165,16 @@ export const ENTITY_COVERAGE_EXEMPT: ReadonlyMap<EntityTarget<unknown>, string> 
   // StaffAttendanceSession, StaffAttendanceRecord, LeaveRecord,
   // LeavePolicy — got a workbook tab in [36.5.1]. No exemption entries
   // left for them.
+
+  // --- Epic 40 school website: tables landed in [40.1.03], tabs land in #3621 (40.1.08) ---
+  [SchoolSite, 'Epic 40 school website settings, no tab yet — tracked in #3621.'],
+  [SitePost, 'Epic 40 website posts and pages, no tab yet — tracked in #3621.'],
+  [SiteEnquiry, 'Epic 40 website enquiries, no tab yet — tracked in #3621.'],
+  [StaffWebProfile, 'Epic 40 staff website cards, no tab yet — tracked in #3621.'],
+  [
+    SiteMedia,
+    'Epic 40 website picture records; the files are in storage, not the workbook — #3621 decides the row tab.',
+  ],
 ]);
 
 /**

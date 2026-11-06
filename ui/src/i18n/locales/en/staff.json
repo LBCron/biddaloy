@@ -539,7 +539,8 @@
       "AUDIT_ENTITY_HISTORY_READ": "View activity history",
       "SETTINGS_MANAGE": "Manage settings",
       "BACKUP_MANAGE": "Backup & restore",
-      "STEP_UP_REQUEST": "Request approver confirmation"
+      "STEP_UP_REQUEST": "Request approver confirmation",
+      "WEBSITE_MANAGE": "Manage the school website"
     }
   },
   "filters": {

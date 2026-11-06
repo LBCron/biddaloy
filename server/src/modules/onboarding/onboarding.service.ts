@@ -61,7 +61,8 @@ export class OnboardingService {
     ]);
 
     const comms = (await this.schoolsService.getResolvedSettings(tenantId)).communications;
-    const done: Record<OnboardingItemId, boolean> = {
+    // TODO(#3626): add the `website` item (shown only when the school asked for a site).
+    const done: Record<Exclude<OnboardingItemId, 'website'>, boolean> = {
       profile: !!(school.name_bn || school.logo_key),
       structure: classes >= 1,
       sections: sections >= 1,
@@ -89,7 +90,7 @@ export class OnboardingService {
       dismissed_at: onboarding.dismissed_at ?? null,
       seen: ((onboarding.seen_by as string[] | undefined) ?? []).includes(userId),
       setup_path: onboarding.setup_path ?? null,
-      items: (Object.keys(done) as OnboardingItemId[]).map((id) => ({ id, done: done[id] })),
+      items: (Object.keys(done) as (keyof typeof done)[]).map((id) => ({ id, done: done[id] })),
       counts: { classes, sections, students, staff },
       trial,
       support_url: this.config.get<string>('SUPPORT_CONTACT_URL') ?? null,

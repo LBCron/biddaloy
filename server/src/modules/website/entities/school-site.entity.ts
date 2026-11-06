@@ -3,7 +3,6 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  Index,
   JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -14,7 +13,7 @@ import type { SiteConfig } from '@biddaloy/shared';
 import { School } from '../../schools/entities/school.entity';
 
 /**
- * [40.1.03] One public website per school. CHECKs, partial index and uniques mirror the
+ * [40.1.03] One public website per school. CHECKs and uniques mirror the
  * migration `SchoolWebsite1791900003400`.
  *
  * Rule 27 (delete guards) for the whole website module, answered once here:
@@ -30,18 +29,16 @@ import { School } from '../../schools/entities/school.entity';
  *  losing the membership, so the cascades above never fire in normal use. Every public read
  *  of this module MUST itself filter on the school's `deleted_at`, `users.deleted_at` and an
  *  active membership, or a removed teacher with `show_on_website = true` stays public.
- *  The staff public-read ticket owns that filter. Tenant match of `cover_media_id` /
- *  `photo_media_id` is also checked in the service layer (the FKs are not tenant-scoped).
+ *  The staff public-read ticket owns that filter. The picture FKs are composite
+ *  `(tenant_id, media_id)`, so the DB itself refuses another school's picture.
  */
 @Unique('UQ_school_sites_tenant_id', ['tenant_id'])
 @Unique('UQ_school_sites_subdomain', ['subdomain'])
 @Unique('UQ_school_sites_previous_subdomain', ['previous_subdomain'])
 @Unique('UQ_school_sites_custom_domain', ['custom_domain'])
-@Index('IDX_school_sites_previous_subdomain', ['previous_subdomain'], {
-  where: '"previous_subdomain" IS NOT NULL',
-})
 @Check('CHK_school_sites_subdomain', `"subdomain" ~ '^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$'`)
 @Check('CHK_school_sites_media_bytes_used', `"media_bytes_used" >= 0`)
+@Check('CHK_school_sites_custom_domain_lower', `"custom_domain" = lower("custom_domain")`)
 @Entity('school_sites')
 export class SchoolSite {
   @PrimaryGeneratedColumn('uuid')

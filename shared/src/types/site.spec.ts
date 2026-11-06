@@ -6,7 +6,8 @@ describe('SITE_SUBDOMAIN_RE', () => {
   it.each(['rumsc', 'rumsc-2026', 'abc', 'a'.repeat(30)])('accepts %s', (s) => {
     expect(SITE_SUBDOMAIN_RE.test(s)).toBe(true);
   });
-  it.each(['-a', 'a-', 'ab', 'a'.repeat(31), 'Rumsc', 'a_b', ''])('rejects %s', (s) => {
+  // 'a' and 'ab' are too short: the DB CHECK needs 3-30 chars.
+  it.each(['a', '-a', 'a-', 'ab', 'a'.repeat(31), 'Rumsc', 'a_b', ''])('rejects %s', (s) => {
     expect(SITE_SUBDOMAIN_RE.test(s)).toBe(false);
   });
 });

@@ -54,6 +54,8 @@ export class StaffWebProfile {
   @Column({ type: 'uuid', nullable: true })
   photo_media_id: string | null;
 
+  // In the DB this FK is composite: (tenant_id, photo_media_id) -> site_media(tenant_id, id),
+  // ON DELETE SET NULL ("photo_media_id") (migration 1791900003400).
   @ManyToOne(() => SiteMedia, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({
     name: 'photo_media_id',

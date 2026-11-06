@@ -78,6 +78,9 @@ const excluded: readonly string[] = [
   // No workbook tab for academic terms yet (tracked in #856) — a restore
   // leaves this optional relation null, same as any other ref with no tab.
   'academic_term_id',
+  // [40.1.03] Epic 40 website columns; #3621 (40.1.08) turns them into tab columns.
+  'website_published_at',
+  'website_show_names',
 ];
 
 const MAX_LENGTHS: Record<string, number> = {

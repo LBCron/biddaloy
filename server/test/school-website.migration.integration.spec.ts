@@ -1,7 +1,7 @@
 /**
  * [40.1.03] SchoolWebsite migration, on a throwaway database: up creates the five tables,
  * the new columns and the constraints; down removes them and brings `schools.domain` back;
- * up again works.
+ * up again works. Also: picture FKs are tenant-scoped, custom_domain is lower case only.
  */
 import 'reflect-metadata';
 import { join } from 'path';
@@ -45,6 +45,28 @@ async function newSchool(): Promise<string> {
     `s-${Math.random().toString(36).slice(2, 10)}`,
   ]);
   return rows[0].id;
+}
+
+async function newUser(): Promise<string> {
+  const rows = await ds.query(
+    `INSERT INTO users (id, email, full_name) VALUES (gen_random_uuid(), $1, 'Site Test') RETURNING id`,
+    [`u-${Math.random().toString(36).slice(2, 10)}@site.test`],
+  );
+  return rows[0].id;
+}
+
+async function newMedia(tenantId: string): Promise<string> {
+  const key = Math.random().toString(36).slice(2, 12);
+  const rows = await ds.query(
+    `INSERT INTO site_media (tenant_id, slot, storage_key, hash, width, height, bytes) VALUES ($1, 'hero', $2, $3, 1, 1, 5) RETURNING id`,
+    [tenantId, `k-${key}`, key.padEnd(64, '0')],
+  );
+  return rows[0].id;
+}
+
+async function indexExists(name: string): Promise<boolean> {
+  const rows = await ds.query(`SELECT to_regclass($1) AS i`, [`public.${name}`]);
+  return rows[0].i !== null;
 }
 
 async function insertSite(tenantId: string, subdomain: string): Promise<void> {
@@ -96,9 +118,75 @@ describe('SchoolWebsite migration', () => {
       'UQ_site_media_tenant_hash',
       'UQ_site_posts_tenant_slug',
       'UQ_staff_web_profiles_tenant_user',
+      'UQ_site_media_tenant_id',
+      'CHK_school_sites_custom_domain_lower',
     ]) {
       expect(await constraintExists(c), c).toBe(true);
     }
+    // previous_subdomain's UNIQUE is already an index; the old extra partial index is gone.
+    expect(await indexExists('IDX_school_sites_previous_subdomain')).toBe(false);
+  });
+
+  it('stores custom_domain in lower case only', async () => {
+    const a = await newSchool();
+    const b = await newSchool();
+    // Mixed case would let "School.com" and "school.com" both pass the UNIQUE.
+    await expect(
+      ds.query(
+        `INSERT INTO school_sites (tenant_id, subdomain, palette, draft, custom_domain) VALUES ($1, 'case-a', 'blue', '{}', 'School.Example.com')`,
+        [a],
+      ),
+    ).rejects.toThrow(/CHK_school_sites_custom_domain_lower/);
+    await ds.query(
+      `INSERT INTO school_sites (tenant_id, subdomain, palette, draft, custom_domain) VALUES ($1, 'case-b', 'blue', '{}', 'school.example.com')`,
+      [b],
+    );
+  });
+
+  it("refuses another school's picture on a post or a staff card", async () => {
+    const owner = await newSchool();
+    const other = await newSchool();
+    const media = await newMedia(owner);
+    const user = await newUser();
+    // Tenant isolation in the DB: the composite FK (tenant_id, media_id) has no match.
+    await expect(
+      ds.query(
+        `INSERT INTO site_posts (tenant_id, slug, title, body, cover_media_id) VALUES ($1, 'x', '{}', '{}', $2)`,
+        [other, media],
+      ),
+    ).rejects.toThrow(/FK_site_posts_cover_media_id/);
+    await expect(
+      ds.query(
+        `INSERT INTO staff_web_profiles (tenant_id, user_id, photo_media_id) VALUES ($1, $2, $3)`,
+        [other, user, media],
+      ),
+    ).rejects.toThrow(/FK_staff_web_profiles_photo_media_id/);
+    // Same school: accepted.
+    await ds.query(
+      `INSERT INTO staff_web_profiles (tenant_id, user_id, photo_media_id) VALUES ($1, $2, $3)`,
+      [owner, user, media],
+    );
+  });
+
+  it('deleting a picture clears only the staff photo; deleting the user removes the card', async () => {
+    const t = await newSchool();
+    const media = await newMedia(t);
+    const user = await newUser();
+    const card = await ds.query(
+      `INSERT INTO staff_web_profiles (tenant_id, user_id, photo_media_id) VALUES ($1, $2, $3) RETURNING id`,
+      [t, user, media],
+    );
+    await ds.query(`DELETE FROM site_media WHERE id = $1`, [media]);
+    const rows = await ds.query(
+      `SELECT tenant_id, photo_media_id FROM staff_web_profiles WHERE id = $1`,
+      [card[0].id],
+    );
+    // SET NULL ("photo_media_id") leaves tenant_id alone (a plain SET NULL would null both).
+    expect(rows[0]).toEqual({ tenant_id: t, photo_media_id: null });
+
+    await ds.query(`DELETE FROM users WHERE id = $1`, [user]);
+    const left = await ds.query(`SELECT 1 FROM staff_web_profiles WHERE id = $1`, [card[0].id]);
+    expect(left).toHaveLength(0);
   });
 
   it('rejects an invalid subdomain and negative media_bytes_used', async () => {
@@ -156,10 +244,11 @@ describe('SchoolWebsite migration', () => {
       [t, media[0].id],
     );
     await ds.query(`DELETE FROM site_media WHERE id = $1`, [media[0].id]);
-    const rows = await ds.query(`SELECT cover_media_id FROM site_posts WHERE id = $1`, [
+    const rows = await ds.query(`SELECT tenant_id, cover_media_id FROM site_posts WHERE id = $1`, [
       post[0].id,
     ]);
-    expect(rows[0].cover_media_id).toBeNull();
+    // Only the media column is cleared; the row stays in its school.
+    expect(rows[0]).toEqual({ tenant_id: t, cover_media_id: null });
   });
 
   it('down then up: tables gone, schools.domain back, then recreated', async () => {

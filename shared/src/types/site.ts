@@ -18,8 +18,11 @@ export const SITE_MEDIA_SLOT_PX: Record<SiteMediaSlot, { w: number; h: number; m
   [SiteMediaSlot.POST_IMAGE]: { w: 0, h: 0, maxW: 1200 },
 };
 
-/** 3-30 chars, lowercase letters, digits and inner hyphens (D34). */
-export const SITE_SUBDOMAIN_RE = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?$/;
+/**
+ * 3-30 chars, lowercase letters, digits and inner hyphens (D34). Same pattern as the DB
+ * CHECK `CHK_school_sites_subdomain` (migration 1791900003400); keep the two identical.
+ */
+export const SITE_SUBDOMAIN_RE = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/;
 
 /**
  * Subdomains a school may not take (D34). Mirror of runbook Part 17 (School websites).
