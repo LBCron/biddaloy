@@ -37,7 +37,7 @@ const BY_TABLE: Record<string, Partial<Record<ScrubHandling, string[]>>> = {
   // taken in the #2793 review, recommended option). date_of_birth moves 1-180 days.
   students: {
     fake: ['full_name', 'home_address', 'father_name', 'mother_name', 'date_of_birth'],
-    null: ['full_name_bn', 'birth_reg_no', 'health_notes', 'photo_key'],
+    null: ['full_name_bn', 'birth_reg_no', 'health_notes', 'photo_key', 'card_no'],
     'kept-public': ['registration_number', 'blood_group', 'religion', 'gender'],
   },
   admission_applicants: {
@@ -108,6 +108,10 @@ const BY_TABLE: Record<string, Partial<Record<ScrubHandling, string[]>>> = {
   invoice_share_tokens: { 'delete-row': ['*'] },
   push_subscriptions: { 'delete-row': ['*'] },
   attendance_devices: { 'delete-row': ['*'] },
+  // [76.2] upload history keeps the file name and the parsed rows (names, card numbers).
+  attendance_imports: { 'delete-row': ['*'] },
+  // [76.1] the ID card number can identify a person.
+  staff_profiles: { null: ['card_no'] },
   attendance_device_events: { 'delete-row': ['*'] },
   print_job_items: {
     fake: ['verify_token_hash', 'subject_label'],

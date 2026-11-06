@@ -4740,6 +4740,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attendance/import/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a pre-filled attendance sheet (.xlsx) for up to 10 sections on one date. Only sections you may write. */
+        get: operations["AttendanceImportController_template_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/import/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check an attendance sheet (.xlsx / .csv, max 5 MB, 2000 rows) row by row and stage the rows that can be saved. Writes nothing. */
+        post: operations["AttendanceImportController_validate_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/import/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save a validated sheet: one register write per (date, section), source IMPORT, never finalizes. All or nothing. Needs an `Idempotency-Key` header. */
+        post: operations["AttendanceImportController_commit_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Past sheet uploads, newest first. A teacher sees only their own. */
+        get: operations["AttendanceImportController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One upload with every row and the record’s current mark. */
+        get: operations["AttendanceImportController_detail_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/backup/export": {
         parameters: {
             query?: never;
@@ -10929,6 +11014,7 @@ export interface components {
             preferred_communication?: "SMS" | "WHATSAPP" | "EMAIL" | "PHONE_CALL" | "MESSENGER";
             guardian_ids?: string[];
             birth_reg_no?: string;
+            card_no?: string;
             religion?: string;
             health_notes?: string;
             father_name?: string;
@@ -11212,6 +11298,7 @@ export interface components {
             preferred_communication?: "SMS" | "WHATSAPP" | "EMAIL" | "PHONE_CALL" | "MESSENGER";
             guardian_ids?: string[];
             birth_reg_no?: string | null;
+            card_no?: string | null;
             religion?: string | null;
             health_notes?: string | null;
             father_name?: string | null;
@@ -13905,6 +13992,8 @@ export interface components {
             late: number;
             leave: number;
             unmarked: number;
+            /** @description Students with a card scan today who are marked absent or on leave. */
+            scanned_but_absent: number;
             marked_at: string | null;
         };
         MySectionDto: {
@@ -13952,6 +14041,8 @@ export interface components {
             correction_count: number;
             /** @enum {string|null} */
             suggested_status: "PRESENT" | "ABSENT" | "LATE" | "LEAVE" | null;
+            /** @description When a card scan came in for a student who is marked absent or on leave: the scan time. Otherwise null. */
+            scanned_at: string | null;
         };
         RegisterResponseDto: {
             section: components["schemas"]["RegisterSectionDto"];
@@ -13961,6 +14052,17 @@ export interface components {
             non_working_day: boolean;
             policy: components["schemas"]["RegisterPolicyDto"];
             students: components["schemas"]["RegisterStudentDto"][];
+            /** @description Whether period-wise attendance is switched on for this school. */
+            period_attendance_enabled: boolean;
+            /** @description GET register only. Whether you may change this whole-day register under the school daily-attendance setting. Always false for a period register. */
+            can_write?: boolean;
+            /**
+             * @description GET register only. Why you cannot write; null when you can (or never could).
+             * @enum {string|null}
+             */
+            write_reason?: "CLASS_TEACHER_ONLY" | "FIRST_PERIOD_ONLY" | "DEVICE_SCHOOL" | null;
+            /** @description GET register only. True when you cover period 1 of this section on this date. */
+            first_period_today?: boolean;
         };
         PeriodDto: {
             period_no: number;
@@ -14426,6 +14528,7 @@ export interface components {
         DeviceRosterEntryDto: {
             student_id: string;
             registration_number: string;
+            card_no: string | null;
             roll_number: number;
             full_name: string;
             section_id: string;
@@ -14663,6 +14766,87 @@ export interface components {
         CopyRoutineDto: {
             /** Format: uuid */
             target_academic_year_id: string;
+        };
+        ImportPreviewRowDto: {
+            /** @description 1-based row number in the file */
+            row: number;
+            date: string | null;
+            section_id: string | null;
+            class_name: string | null;
+            section_name: string | null;
+            roll: number | null;
+            /** @enum {string|null} */
+            before: "PRESENT" | "ABSENT" | "LATE" | "LEAVE" | null;
+            /** @enum {string|null} */
+            after: "PRESENT" | "ABSENT" | "LATE" | "LEAVE" | null;
+            /** @enum {string} */
+            outcome: "NEW" | "CHANGED" | "UNCHANGED" | "ERROR";
+            /** @description Stable problem code; the UI translates it */
+            code?: string;
+        };
+        ImportCountsDto: {
+            new: number;
+            changed: number;
+            unchanged: number;
+            error: number;
+        };
+        ValidateAttendanceImportResultDto: {
+            /** @description null when nothing can be saved */
+            staging_id: string | null;
+            rows: components["schemas"]["ImportPreviewRowDto"][];
+            counts: components["schemas"]["ImportCountsDto"];
+            /** @description Recorded marks this save will change */
+            overwrite_count: number;
+        };
+        CommitAttendanceImportDto: {
+            /** Format: uuid */
+            staging_id: string;
+            /** Format: uuid */
+            supersedes_import_id?: string;
+        };
+        CommitAttendanceImportResultDto: {
+            import_id: string;
+        };
+        AttendanceImportSummaryDto: {
+            id: string;
+            uploaded_by_user_id: string | null;
+            file_name: string;
+            counts: components["schemas"]["ImportCountsDto"];
+            supersedes_import_id: string | null;
+            created_at: string;
+        };
+        AttendanceImportListDto: {
+            items: components["schemas"]["AttendanceImportSummaryDto"][];
+            total: number;
+            page: number;
+            limit: number;
+        };
+        AttendanceImportDetailRowDto: {
+            date: string;
+            section_id: string;
+            roll: number;
+            /** @enum {string|null} */
+            before: "PRESENT" | "ABSENT" | "LATE" | "LEAVE" | null;
+            /** @enum {string|null} */
+            after: "PRESENT" | "ABSENT" | "LATE" | "LEAVE" | null;
+            /** @enum {string} */
+            outcome: "NEW" | "CHANGED" | "UNCHANGED" | "ERROR";
+            record_id: string | null;
+            code?: string;
+            /**
+             * @description The record’s status now; differs from `after` when it was changed later
+             * @enum {string|null}
+             */
+            current: "PRESENT" | "ABSENT" | "LATE" | "LEAVE" | null;
+        };
+        AttendanceImportDetailDto: {
+            id: string;
+            uploaded_by_user_id: string | null;
+            file_name: string;
+            counts: components["schemas"]["ImportCountsDto"];
+            supersedes_import_id: string | null;
+            created_at: string;
+            rows: components["schemas"]["AttendanceImportDetailRowDto"][];
         };
         RequestExportDto: {
             /**
@@ -16967,7 +17151,7 @@ export interface components {
             seat_count: number;
             open_date: string;
             close_date: string;
-            required_document_types: ("TRANSCRIPT" | "PHOTO" | "BIRTH_CERTIFICATE")[];
+            required_document_types: ("TRANSCRIPT" | "BIRTH_CERTIFICATE" | "PHOTO")[];
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -17744,6 +17928,7 @@ export interface components {
             blood_group?: string | null;
             name_bn?: string | null;
             religion?: string | null;
+            card_no?: string | null;
         };
         StaffDesignationHistory: {
             id: string;
@@ -31260,6 +31445,178 @@ export interface operations {
             };
         };
     };
+    AttendanceImportController_template_v1: {
+        parameters: {
+            query: {
+                sectionIds: string[];
+                date: string;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AttendanceImportController_validate_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidateAttendanceImportResultDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AttendanceImportController_commit_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitAttendanceImportDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommitAttendanceImportResultDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AttendanceImportController_list_v1: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceImportListDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AttendanceImportController_detail_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceImportDetailDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     WorkbookController_requestExport_v1: {
         parameters: {
             query?: never;
@@ -38311,7 +38668,7 @@ export interface operations {
             };
             path: {
                 id: string;
-                type: "TRANSCRIPT" | "PHOTO" | "BIRTH_CERTIFICATE";
+                type: "TRANSCRIPT" | "BIRTH_CERTIFICATE" | "PHOTO";
             };
             cookie?: never;
         };

@@ -156,6 +156,8 @@ export const TRANSACTIONAL_TABLES_CHILD_FIRST = [
   'attendance_records',
   'attendance_sessions',
   'attendance_devices',
+  // [76.2] upload history; only a self-FK and FKs to tenants/users.
+  'attendance_imports',
   'calendar_feed_tokens',
   'calendar_event_classes',
   'calendar_events',

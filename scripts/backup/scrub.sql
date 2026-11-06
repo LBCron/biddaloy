@@ -74,7 +74,10 @@ UPDATE students SET
   father_name = CASE WHEN father_name IS NULL THEN NULL ELSE 'Father ' || left(id::text, 4) END,
   mother_name = CASE WHEN mother_name IS NULL THEN NULL ELSE 'Mother ' || left(id::text, 4) END,
   health_notes = NULL,
-  photo_key = NULL;
+  photo_key = NULL,
+  card_no = NULL;
+
+UPDATE staff_profiles SET card_no = NULL;
 
 UPDATE admission_applicants a SET guardian_phone = '+88017' || lpad(n.rn::text, 8, '0')
 FROM (SELECT id, row_number() OVER (ORDER BY id) AS rn FROM admission_applicants) n
@@ -170,6 +173,7 @@ DELETE FROM invoice_share_tokens;
 DELETE FROM push_subscriptions;
 DELETE FROM attendance_device_events;
 DELETE FROM attendance_devices;
+DELETE FROM attendance_imports;
 -- verify_token_hash is CHAR(64) NOT NULL UNIQUE, so it cannot be NULL: 64 hex chars from the id.
 UPDATE print_job_items SET
   verify_token_hash = md5(id::text) || md5(reverse(id::text)),

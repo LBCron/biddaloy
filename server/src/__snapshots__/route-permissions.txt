@@ -81,6 +81,9 @@ GET /attendance/arrival-subscriptions | ArrivalSubscriptionsController | perm: A
 GET /attendance/devices | DevicesController | perm: ATTENDANCE_DEVICE_MANAGE
 GET /attendance/devices/me/roster | DeviceIngestController | allowlist: DeviceAuthGuard
 GET /attendance/flags/low | AttendanceSummaryController | perm: ATTENDANCE_READ | roles: ACCOUNTANT,ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF
+GET /attendance/import/template | AttendanceImportController | perm: ATTENDANCE_MARK
+GET /attendance/imports | AttendanceImportController | perm: ATTENDANCE_READ | roles: ACCOUNTANT,ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
+GET /attendance/imports/:id | AttendanceImportController | perm: ATTENDANCE_READ | roles: ACCOUNTANT,ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
 GET /attendance/my-sections | AttendanceController | perm: ATTENDANCE_READ | roles: ACCOUNTANT,ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
 GET /attendance/records/:recordId/history | AttendanceController | perm: ATTENDANCE_READ | roles: ACCOUNTANT,ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
 GET /attendance/sections/:sectionId/periods | AttendanceController | perm: ATTENDANCE_READ | roles: ACCOUNTANT,ADMIN,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,TEACHER
@@ -525,6 +528,8 @@ POST /attendance/device-events | DeviceIngestController | allowlist: DeviceAuthG
 POST /attendance/devices | DevicesController | perm: ATTENDANCE_DEVICE_MANAGE
 POST /attendance/devices/:id/rotate | DevicesController | perm: ATTENDANCE_DEVICE_MANAGE
 POST /attendance/devices/me/heartbeat | DeviceIngestController | allowlist: DeviceAuthGuard
+POST /attendance/import/commit | AttendanceImportController | perm: ATTENDANCE_MARK
+POST /attendance/import/validate | AttendanceImportController | perm: ATTENDANCE_MARK
 POST /attendance/sections/:sectionId/absence-notice/preview | AbsenceNoticeController | perm: COMMUNICATION_BULK_SEND | roles: ADMIN
 POST /attendance/sections/:sectionId/absence-notice/send | AbsenceNoticeController | perm: COMMUNICATION_BULK_SEND | roles: ADMIN
 POST /attendance/sections/:sectionId/register/finalize | AttendanceController | perm: ATTENDANCE_MARK

@@ -1110,3 +1110,23 @@ no shared tables, no shared code, just the same status enum reused. See
   migration-schema and restore integration specs alone (green); the unrelated
   reds are reported, not fixed here. Rule candidate: a close ticket runs the
   remaining sections with `--only` when an unrelated spec blocks the run.
+
+- **2026-11-06 · Epic 76 W2 close — a new required response field breaks old test fixtures.**
+  Surprise: `scanned_at` is required on `RegisterStudent` in the regenerated
+  `schema.d.ts`, so `-correction-dialog.test.tsx` stopped type-checking (the
+  `ci:local` verify step caught it, no lane did). Cost: one red verify run.
+  Fix: fixture gets `scanned_at: null`. Rule candidate: a ticket that adds a
+  response field greps the UI tests that build that type by hand.
+- **2026-11-06 · Epic 76 W2 close — the `@Roles` narrowing check catches read routes too.**
+  Surprise: `GET /attendance/imports` and `/imports/:id` use `@Roles` to keep
+  parent/student out although they hold `ATTENDANCE_READ`; the permission
+  matrix wanted a `ROLE_NARROWINGS` entry per route. Cost: two red matrix
+  tests at close. Fix: two entries in `permission-matrix.e2e-spec.ts`. Rule
+  candidate: a route ticket that adds `@Roles` also adds its `ROLE_NARROWINGS`
+  entry.
+- **2026-11-06 · Epic 76 W2 close — api-types regen reorders an unrelated enum.**
+  Surprise: `required_document_types` / `type` unions changed order
+  (`"PHOTO" | "BIRTH_CERTIFICATE"` swapped) with no source change. Cost: two
+  noise lines in `schema.d.ts`. Fix: kept, since `check:api-types` compares
+  against the generator. Rule candidate: none, generator order follows the
+  enum declaration.

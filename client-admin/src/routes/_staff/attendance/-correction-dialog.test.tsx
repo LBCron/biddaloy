@@ -21,6 +21,7 @@ function student(overrides: Partial<RegisterStudent> = {}): RegisterStudent {
     source: 'TEACHER',
     correction_count: 1,
     suggested_status: null,
+    scanned_at: null,
     ...overrides,
   };
 }
