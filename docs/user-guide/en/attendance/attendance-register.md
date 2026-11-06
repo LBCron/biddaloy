@@ -201,6 +201,7 @@ People who cannot correct attendance do not see the **Edit** button.
 The school decides who may save a section's attendance ([Who marks daily attendance](attendance.md#task-source)). The month grid follows the same rule:
 
 - You can look at and print any register you may see. The **Edit** button shows only for people who may save that section's attendance: the class teacher, an assistant, and admins. Under the setting **First-period teacher**, the first-period teacher can correct a day too, but only a day, not the whole month.
+- If your role cannot mark attendance at all (for example accountant), the day's register says **You can see this register, but your role cannot mark attendance.**
 - If you are not allowed to save, the day's register says, for example, "Only the class teacher saves this register. You can look, but not change it." The buttons are absent, not greyed out.
 - A mark that came from the card machine shows **Scanned** with the time, and one that came from an uploaded sheet shows **From sheet**, on the day's register ([details](attendance.md#task-source)).
 - To fill many days of one section at once from a file, see [Upload an attendance sheet](uploads.md).
