@@ -522,7 +522,7 @@ export function StudentForm<TInput>({
                     label={t('cardNo.label')}
                     scanLabel={t('cardNo.scan')}
                     scanHint={t('cardNo.scanHint')}
-                    helpKey="people.students.field.cardNo"
+                    helpId="people.students.field.cardNo"
                     // `?focus=card` deep link asked for it.
                     // eslint-disable-next-line jsx-a11y/no-autofocus
                     autoFocus={focusCard}
