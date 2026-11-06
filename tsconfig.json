@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "shared" },
+    { "path": "site-themes" },
     { "path": "ui" },
     { "path": "client-admin" },
     { "path": "client-admin/tsconfig.sw.json" },
