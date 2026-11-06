@@ -234,6 +234,66 @@ describe('/attendance/$sectionId', () => {
     expect(toastSpy).toHaveBeenCalledTimes(1);
   });
 
+  describe('[76.5.03] write gate, first-period hint, rest absent', () => {
+    function mount(body: Record<string, unknown>) {
+      server.use(
+        http.get('/api/v1/attendance/sections/section-1/register', () =>
+          HttpResponse.json(registerBody(body)),
+        ),
+      );
+      renderWithRouter(routeTree, {
+        initialEntries: ['/attendance/section-1?date=2026-09-04'],
+        tenantId: 'tenant-1',
+        role: 'TEACHER',
+        locale: 'en',
+      });
+    }
+
+    it('shows the banner and no Save or marking buttons when can_write is false', async () => {
+      mount({ can_write: false, write_reason: 'CLASS_TEACHER_ONLY' });
+      expect(await screen.findByText(/Only the class teacher saves this register/)).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Submit attendance' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Mark the rest absent' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'All present' })).toBeNull();
+    });
+
+    it('shows Save and no banner when can_write is true', async () => {
+      mount({ can_write: true, write_reason: null });
+      expect(await screen.findByRole('button', { name: 'Submit attendance' })).toBeTruthy();
+      expect(screen.queryByText(/Only the class teacher saves/)).toBeNull();
+    });
+
+    it('shows the first-period hint only when flagged', async () => {
+      mount({ first_period_today: true });
+      expect(await screen.findByText(/You teach the first period/)).toBeTruthy();
+    });
+
+    it('hides the first-period hint when not flagged', async () => {
+      mount({ first_period_today: false });
+      await screen.findByText('Rafi Ahmed');
+      expect(screen.queryByText(/You teach the first period/)).toBeNull();
+    });
+
+    it('"Mark the rest absent" sends ABSENT for unmarked rows only', async () => {
+      let body: { entries?: { student_id: string; status: string }[] } | null = null;
+      server.use(
+        http.put('/api/v1/attendance/sections/section-1/register', async ({ request }) => {
+          body = (await request.json()) as typeof body;
+          return HttpResponse.json({}, { status: 500 });
+        }),
+      );
+      vi.spyOn(toast, 'error').mockImplementation(() => '');
+      mount({});
+      const user = userEvent.setup();
+      await user.click(await screen.findByText('Rafi Ahmed')); // PRESENT
+      await user.click(screen.getByRole('button', { name: 'Mark the rest absent' }));
+      await user.click(screen.getByRole('button', { name: 'Submit attendance' }));
+      await waitFor(() => expect(body).not.toBeNull());
+      const byId = Object.fromEntries(body!.entries!.map((r) => [r.student_id, r.status]));
+      expect(byId).toEqual({ 'student-1': 'PRESENT', 'student-2': 'ABSENT' });
+    });
+  });
+
   it('sends finalize: true when the register is submitted', async () => {
     let body: { finalize?: boolean } | null = null;
     server.use(

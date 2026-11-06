@@ -47,7 +47,15 @@ import { useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { PageContainer } from '@biddaloy/ui/shells';
 import { parseDate, tenantTodayIso, toIsoDate } from '@biddaloy/ui/utils';
 import { createFileRoute } from '@tanstack/react-router';
-import { CalendarClock, CheckCheck, Info, MoreVertical, RotateCcw, Send } from 'lucide-react';
+import {
+  CalendarClock,
+  CheckCheck,
+  Info,
+  MoreVertical,
+  RotateCcw,
+  Send,
+  UserX,
+} from 'lucide-react';
 import * as React from 'react';
 import { z } from 'zod';
 
@@ -287,6 +295,25 @@ function SectionRegisterPage() {
     });
   }
 
+  /** [76.5.03] Every unmarked row becomes ABSENT; marked rows stay. Saves through the normal Save. */
+  function handleRestAbsent() {
+    if (allowedStatuses && !allowedStatuses.includes(AttendanceStatus.ABSENT)) return;
+    const previous = draft;
+    setDraft((current) => {
+      const next: Draft = { ...current };
+      for (const student of registerQuery.data?.students ?? []) {
+        if (!next[student.student_id]?.status) {
+          next[student.student_id] = { status: AttendanceStatus.ABSENT, minutes_late: null };
+        }
+      }
+      return next;
+    });
+    toast.success(t('markRestAbsent'), {
+      action: { label: t('mark.undo'), onClick: () => handleUndo(previous) },
+      duration: 5000,
+    });
+  }
+
   function handleReset() {
     const previous = draft;
     setDraft({});
@@ -466,7 +493,9 @@ function SectionRegisterPage() {
   }
 
   const register = registerQuery.data;
-  const editable = register.editable && canMark;
+  // [76.5.03] Whole-day register the server says this caller may not save: calm banner, no controls.
+  const writeBlocked = period === undefined && register.can_write === false;
+  const editable = register.editable && canMark && !writeBlocked;
   // [9.7] Whether the correction dialog (PATCH, reason-captured) is on
   // offer for this register, as distinct from `editable` (the normal
   // inline PUT flow). See `canCorrect`'s own comment above for why this
@@ -606,6 +635,21 @@ function SectionRegisterPage() {
               })}
         </p>
       )}
+      {writeBlocked && register.write_reason && (
+        <p
+          role="status"
+          className="flex items-start gap-2 rounded-lg border border-border-subtle bg-muted p-4 text-text-secondary"
+        >
+          <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          {t(`registerBanner.${register.write_reason}`)}
+        </p>
+      )}
+      {register.first_period_today === true && period === undefined && (
+        <p className="border-success/30 bg-success/10 flex items-start gap-2 rounded-lg border p-4 text-text-primary">
+          <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          {t('firstPeriod.hint')}
+        </p>
+      )}
       {futureDateLeaveOnly && (
         <p className="flex items-start gap-2 rounded-lg border border-border-subtle bg-muted p-4 text-text-secondary">
           <CalendarClock aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
@@ -645,6 +689,17 @@ function SectionRegisterPage() {
                 </Button>
                 <HelpHint helpId="attendance.attendance.action.allPresent" />
               </span>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleRestAbsent}
+                disabled={Boolean(
+                  allowedStatuses && !allowedStatuses.includes(AttendanceStatus.ABSENT),
+                )}
+              >
+                <UserX aria-hidden="true" />
+                {t('markRestAbsent')}
+              </Button>
               <Button type="button" variant="ghost" onClick={handleReset}>
                 <RotateCcw aria-hidden="true" />
                 {t('mark.reset')}
@@ -658,6 +713,7 @@ function SectionRegisterPage() {
           onStatusChange={handleStatusChange}
           onMinutesLateChange={handleMinutesLateChange}
           onAllPresent={handleAllPresent}
+          onRestAbsent={handleRestAbsent}
           onSubmit={handleSubmit}
           disabled={!editable}
           allowedStatuses={allowedStatuses}
