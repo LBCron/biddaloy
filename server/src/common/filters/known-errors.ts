@@ -15,7 +15,7 @@ import { ImportFileError } from '../errors/import-file.error';
  */
 export function mapKnownError(exception: unknown): HttpException | null {
   return (
-    mapBodyParserError(exception) ??
+    mapBodyParserError(unwrapAdapterError(exception)) ??
     mapHomeworkActiveUnique(exception) ??
     mapFinalResultUnique(exception) ??
     mapUniqueViolation(exception) ??
@@ -23,6 +23,7 @@ export function mapKnownError(exception: unknown): HttpException | null {
     mapInvalidDate(exception) ??
     mapDeadlock(exception) ??
     mapMulterError(exception) ??
+    mapWrappedMulterError(exception) ??
     mapImportFileError(exception)
   );
 }
@@ -220,6 +221,14 @@ function mapInvalidDate(exception: unknown): HttpException | null {
   return INVALID_DATE_CODES.has(code ?? '') ? new BadRequestException('Invalid date') : null;
 }
 
+// @nestjs/platform-express 12.3 turns an http-errors instance (body-parser's 413/415) into an
+// HttpException and keeps the original as `cause`; map from the original, as before.
+function unwrapAdapterError(exception: unknown): unknown {
+  return exception instanceof HttpException && exception.cause instanceof Error
+    ? exception.cause
+    : exception;
+}
+
 // The `type` values body-parser / raw-body set. Any other Error carrying a 4xx
 // `status` (an SDK, other middleware) is not a request-body problem and stays a 500.
 const BODY_PARSER_TYPES = new Set([
@@ -264,4 +273,17 @@ function mapMulterError(exception: unknown): HttpException | null {
   return (exception as Error & { code?: string }).code === 'LIMIT_FILE_SIZE'
     ? new PayloadTooLargeException('File too large')
     : new BadRequestException('Unexpected upload field');
+}
+
+// Nest 12.3 rewrites a MulterError into a plain BadRequestException before any filter runs
+// ("Unexpected file field - <the client's field name>"), so the code is gone and the message is
+// all that is left. These are multer's own fixed sentences; the client's field name follows " - ".
+const WRAPPED_MULTER_MESSAGE =
+  /^(Unexpected (file )?field|Too many (parts|files|fields)|Field (name (too long|missing|nesting too deep|array index too large)|value too long)|Invalid field name)( - |$)/;
+
+function mapWrappedMulterError(exception: unknown): HttpException | null {
+  if (!(exception instanceof BadRequestException)) return null;
+  return WRAPPED_MULTER_MESSAGE.test(exception.message)
+    ? new BadRequestException('Unexpected upload field')
+    : null;
 }

@@ -1,3 +1,4 @@
+import { BadRequestException, HttpException } from '@nestjs/common';
 import { describe, it, expect } from 'vitest';
 import { MulterError } from 'multer';
 import { QueryFailedError } from 'typeorm';
@@ -276,5 +277,23 @@ describe('mapKnownError — import file errors (#3020)', () => {
 
   it('ignores a plain Error', () => {
     expect(mapKnownError(new Error('x'))).toBeNull();
+  });
+});
+
+describe('mapKnownError — errors @nestjs/platform-express 12.3 already wrapped', () => {
+  it('maps a body-parser error held as an HttpException cause', () => {
+    const cause = httpError('request entity too large', 413, 'entity.too.large');
+    const wrapped = new HttpException(cause.message, 413, { cause });
+    expect(mapKnownError(wrapped)?.message).toBe('Request body too large');
+  });
+
+  it('maps a wrapped multer field error without the client field name', () => {
+    const mapped = mapKnownError(new BadRequestException('Unexpected file field - wrong_field'));
+    expect(mapped?.getStatus()).toBe(400);
+    expect(mapped?.message).toBe('Unexpected upload field');
+  });
+
+  it('leaves a route’s own BadRequestException alone', () => {
+    expect(mapKnownError(new BadRequestException('file is required'))).toBeNull();
   });
 });
