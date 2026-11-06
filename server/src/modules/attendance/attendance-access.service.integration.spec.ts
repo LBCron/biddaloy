@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
+import { Subject } from '../academics/entities/subject.entity';
+import { RoutineSlotTeacher } from '../routines/entities/routine-slot-teacher.entity';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { getDataSourceToken } from '@nestjs/typeorm';
@@ -13,7 +15,13 @@ import { ClassSection } from '../academics/entities/class-section.entity';
 import { Teacher } from '../academics/entities/teacher.entity';
 import { TeacherClassSection } from '../academics/entities/teacher-class-section.entity';
 import { User } from '../users/entities/user.entity';
-import { RoutineState, UserRole } from '@biddaloy/shared';
+import {
+  Permission,
+  RoutineState,
+  TeacherAssignmentType,
+  UserRole,
+  roleHasPermission,
+} from '@biddaloy/shared';
 import { ConfigModule } from '@nestjs/config';
 import { AttendanceModule } from './attendance.module';
 import { AuthModule } from '../auth/auth.module';
@@ -490,6 +498,235 @@ describe('AttendanceAccessService (integration)', () => {
       await seed(RoutineState.PUBLISHED);
       const periods = await service.resolvePeriods(TENANT_A, sectionA1Id, DATE);
       expect(periods.map((p) => p.period_no)).toEqual([1, 2]);
+    });
+  });
+
+  // [76.2.1] D2 / D31 / D32: the whole-day write gate under each `dailySource`.
+  describe('assertCanWriteDayRegister', () => {
+    const DATE = '2026-03-04'; // a Wednesday inside the baseline year
+    let assistantUserId: string;
+    let subjectUserId: string; // teaches period 1 (the "first-period teacher")
+    let subjectTeacherId: string;
+    let lateSubjectUserId: string; // teaches period 2 only
+
+    async function addTeacher(type: TeacherAssignmentType, subjectId: string | null) {
+      const user = await dataSource.getRepository(User).save({
+        email: `w-${Date.now()}-${Math.random()}@test.com`,
+        full_name: 'Writer',
+      });
+      const teacher = await dataSource.getRepository(Teacher).save({
+        user_id: user.id,
+        employee_id: `W-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+        tenant_id: TENANT_A,
+        designations: [],
+      });
+      await dataSource.getRepository(TeacherClassSection).save({
+        teacher_id: teacher.id,
+        section_id: sectionA1Id,
+        tenant_id: TENANT_A,
+        assignment_type: type,
+        subject_id: subjectId,
+      });
+      return { userId: user.id, teacherId: teacher.id };
+    }
+
+    async function setup(opts: { routine: boolean } = { routine: true }) {
+      const assistant = await addTeacher(TeacherAssignmentType.ASSISTANT_CLASS_TEACHER, null);
+      assistantUserId = assistant.userId;
+      const routine = opts.routine
+        ? await seedPeriodRoutine(dataSource, {
+            tenantId: TENANT_A,
+            academicYearId: SEED_ACADEMIC_YEAR_ID,
+            sectionId: sectionA1Id,
+            date: DATE,
+            periods: 2,
+            createdBy: teacherAUserId,
+          })
+        : null;
+      const subjectId = routine ? routine.slots[0].subject.id : null;
+      // Subject teacher rows need a live subject; with no routine, make one.
+      const sid =
+        subjectId ??
+        (
+          await dataSource.getRepository(Subject).save({
+            tenant_id: TENANT_A,
+            name_en: 'Gate subject',
+            code: `G${Math.floor(Math.random() * 100000)}`,
+          })
+        ).id;
+      const first = await addTeacher(TeacherAssignmentType.SUBJECT_TEACHER, sid);
+      subjectUserId = first.userId;
+      subjectTeacherId = first.teacherId;
+      const late = await addTeacher(TeacherAssignmentType.SUBJECT_TEACHER, sid);
+      lateSubjectUserId = late.userId;
+      if (routine) {
+        const slotRepo = dataSource.getRepository(RoutineSlotTeacher);
+        await slotRepo.save({
+          tenant_id: TENANT_A,
+          routine_slot_id: routine.slots[0].routineSlot.id,
+          teacher_id: first.teacherId,
+        });
+        await slotRepo.save({
+          tenant_id: TENANT_A,
+          routine_slot_id: routine.slots[1].routineSlot.id,
+          teacher_id: late.teacherId,
+        });
+      }
+      return routine;
+    }
+
+    async function setSource(source: string) {
+      await dataSource.query(
+        `UPDATE schools SET settings = jsonb_set(COALESCE(settings,'{}'::jsonb), '{attendance}', COALESCE(settings->'attendance','{}'::jsonb) || $2::jsonb) WHERE id = $1`,
+        [TENANT_A, JSON.stringify({ dailySource: source })],
+      );
+    }
+    afterEach(() => setSource('ANY'));
+
+    /** 'PASS', or the refusal's `details.reason`; a 404 stays '404'. */
+    async function outcome(
+      role: UserRole,
+      userId: string,
+      opts: { monthGrid?: boolean } = {},
+    ): Promise<string> {
+      try {
+        await service.assertCanWriteDayRegister(role, userId, sectionA1Id, DATE, TENANT_A, opts);
+        return 'PASS';
+      } catch (e) {
+        if (e instanceof ForbiddenException) {
+          return (e.getResponse() as { details: { reason: string } }).details.reason;
+        }
+        if (e instanceof NotFoundException) return '404';
+        throw e;
+      }
+    }
+
+    it('ANY: every section writer passes (unchanged behaviour)', async () => {
+      await setup();
+      await setSource('ANY');
+      expect(await outcome(UserRole.TEACHER, teacherAUserId)).toBe('PASS');
+      expect(await outcome(UserRole.TEACHER, assistantUserId)).toBe('PASS');
+      expect(await outcome(UserRole.TEACHER, subjectUserId)).toBe('PASS');
+      expect(await outcome(UserRole.TEACHER, lateSubjectUserId)).toBe('PASS');
+      expect(await outcome(UserRole.ADMIN, 'not-a-teacher')).toBe('PASS');
+    });
+
+    it('CLASS_TEACHER: class + assistant + ADMIN pass; subject teachers get CLASS_TEACHER_ONLY', async () => {
+      await setup();
+      await setSource('CLASS_TEACHER');
+      expect(await outcome(UserRole.TEACHER, teacherAUserId)).toBe('PASS');
+      expect(await outcome(UserRole.TEACHER, assistantUserId)).toBe('PASS');
+      expect(await outcome(UserRole.ADMIN, 'not-a-teacher')).toBe('PASS');
+      expect(await outcome(UserRole.TEACHER, subjectUserId)).toBe('CLASS_TEACHER_ONLY');
+      expect(await outcome(UserRole.TEACHER, lateSubjectUserId)).toBe('CLASS_TEACHER_ONLY');
+    });
+
+    it('DEVICE: only class teachers and admins write, others get DEVICE_SCHOOL', async () => {
+      await setup();
+      await setSource('DEVICE');
+      expect(await outcome(UserRole.TEACHER, teacherAUserId)).toBe('PASS');
+      expect(await outcome(UserRole.TEACHER, assistantUserId)).toBe('PASS');
+      expect(await outcome(UserRole.ADMIN, 'not-a-teacher')).toBe('PASS');
+      expect(await outcome(UserRole.TEACHER, subjectUserId)).toBe('DEVICE_SCHOOL');
+    });
+
+    it('FIRST_PERIOD: the period-1 teacher passes, a period-2 teacher does not', async () => {
+      await setup();
+      await setSource('FIRST_PERIOD');
+      expect(await outcome(UserRole.TEACHER, teacherAUserId)).toBe('PASS');
+      expect(await outcome(UserRole.TEACHER, assistantUserId)).toBe('PASS');
+      expect(await outcome(UserRole.ADMIN, 'not-a-teacher')).toBe('PASS');
+      expect(await outcome(UserRole.TEACHER, subjectUserId)).toBe('PASS');
+      expect(await outcome(UserRole.TEACHER, lateSubjectUserId)).toBe('FIRST_PERIOD_ONLY');
+    });
+
+    it('FIRST_PERIOD: a substitution wins over the planned teacher', async () => {
+      const routine = await setup();
+      await setSource('FIRST_PERIOD');
+      // The late teacher covers period 1 today; the planned teacher no longer does.
+      const late = await dataSource
+        .getRepository(Teacher)
+        .findOneByOrFail({ user_id: lateSubjectUserId, tenant_id: TENANT_A });
+      await routine!.substitute(0, late.id);
+      expect(await outcome(UserRole.TEACHER, lateSubjectUserId)).toBe('PASS');
+      expect(await outcome(UserRole.TEACHER, subjectUserId)).toBe('FIRST_PERIOD_ONLY');
+      expect(subjectTeacherId).toBeTruthy();
+    });
+
+    it('FIRST_PERIOD with no routine that day: class teacher passes, subject teacher is refused (D2)', async () => {
+      await setup({ routine: false });
+      await setSource('FIRST_PERIOD');
+      expect(await outcome(UserRole.TEACHER, teacherAUserId)).toBe('PASS');
+      expect(await outcome(UserRole.TEACHER, subjectUserId)).toBe('FIRST_PERIOD_ONLY');
+    });
+
+    it('month grid refuses the first-period teacher (D31) but not the class teacher', async () => {
+      await setup();
+      await setSource('FIRST_PERIOD');
+      expect(await outcome(UserRole.TEACHER, subjectUserId, { monthGrid: true })).toBe(
+        'CLASS_TEACHER_ONLY',
+      );
+      expect(await outcome(UserRole.TEACHER, teacherAUserId, { monthGrid: true })).toBe('PASS');
+    });
+
+    it('a teacher holding ATTENDANCE_CORRECT is still gated by assignment (D32)', async () => {
+      await setup();
+      await setSource('CLASS_TEACHER');
+      // The gate reads the assignment, never the permission list.
+      expect(roleHasPermission(UserRole.TEACHER, Permission.ATTENDANCE_CORRECT)).toBe(false);
+      expect(await outcome(UserRole.TEACHER, subjectUserId)).toBe('CLASS_TEACHER_ONLY');
+    });
+
+    it("404s a tenant B teacher on tenant A's section and names nobody in a refusal", async () => {
+      await setup();
+      await setSource('CLASS_TEACHER');
+      expect(await outcome(UserRole.TEACHER, teacherBUserId)).toBe('404');
+      await expect(
+        service.assertCanWriteDayRegister(
+          UserRole.TEACHER,
+          subjectUserId,
+          sectionA1Id,
+          DATE,
+          TENANT_A,
+        ),
+      ).rejects.toMatchObject({
+        response: {
+          message: 'You cannot change this day register under the school attendance setting',
+        },
+      });
+    });
+
+    it('dayRegisterWriteState mirrors the assert without throwing', async () => {
+      await setup();
+      await setSource('FIRST_PERIOD');
+      expect(
+        await service.dayRegisterWriteState(
+          UserRole.TEACHER,
+          subjectUserId,
+          sectionA1Id,
+          DATE,
+          TENANT_A,
+        ),
+      ).toEqual({ can_write: true, write_reason: null, first_period_today: true });
+      expect(
+        await service.dayRegisterWriteState(
+          UserRole.TEACHER,
+          lateSubjectUserId,
+          sectionA1Id,
+          DATE,
+          TENANT_A,
+        ),
+      ).toEqual({ can_write: false, write_reason: 'FIRST_PERIOD_ONLY', first_period_today: false });
+      // A teacher with no access to the section: no write, no reason, no throw.
+      expect(
+        await service.dayRegisterWriteState(
+          UserRole.TEACHER,
+          teacherBUserId,
+          sectionA1Id,
+          DATE,
+          TENANT_A,
+        ),
+      ).toEqual({ can_write: false, write_reason: null, first_period_today: false });
     });
   });
 });

@@ -17,12 +17,16 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { AttendanceSessionState, AttendanceSource, AttendanceStatus } from '@biddaloy/shared';
+import {
+  AttendanceSessionState,
+  AttendanceSource,
+  AttendanceStatus,
+  DailyRegisterWriteReason,
+} from '@biddaloy/shared';
 import { SanitizeText } from '../../../common/decorators/sanitize-text.decorator';
 import { IsRealDate } from '../../../common/decorators/is-real-date.decorator';
 import { AuditLogListResponseDto } from '../../audit/dto/audit-log-response.dto';
 import { SMALLINT_MAX } from '../../routines/dto/setup.dto';
-
 
 // ---------------------------------------------------------------------------
 // Requests
@@ -285,6 +289,13 @@ export class RegisterStudentDto {
    * the day register says so, otherwise `null` (D8). Never persisted. */
   @ApiProperty({ enum: AttendanceStatus, nullable: true })
   suggested_status: AttendanceStatus | null;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'When a card scan came in for a student who is marked absent or on leave: the scan time. Otherwise null.',
+  })
+  scanned_at: string | null;
 }
 
 /** The shape returned by `GET .../register`, `PUT .../register` (200, both
@@ -298,6 +309,28 @@ export class RegisterResponseDto {
   @ApiProperty() non_working_day: boolean;
   @ApiProperty({ type: RegisterPolicyDto }) policy: RegisterPolicyDto;
   @ApiProperty({ type: RegisterStudentDto, isArray: true }) students: RegisterStudentDto[];
+  @ApiProperty({
+    description: 'Whether period-wise attendance is switched on for this school.',
+  })
+  period_attendance_enabled: boolean;
+  @ApiProperty({
+    required: false,
+    description:
+      'GET register only. Whether you may change this whole-day register under the school daily-attendance setting. Always false for a period register.',
+  })
+  can_write?: boolean;
+  @ApiProperty({
+    required: false,
+    enum: DailyRegisterWriteReason,
+    nullable: true,
+    description: 'GET register only. Why you cannot write; null when you can (or never could).',
+  })
+  write_reason?: DailyRegisterWriteReason | null;
+  @ApiProperty({
+    required: false,
+    description: 'GET register only. True when you cover period 1 of this section on this date.',
+  })
+  first_period_today?: boolean;
 }
 
 export class MySectionTodayDto {
@@ -307,6 +340,10 @@ export class MySectionTodayDto {
   @ApiProperty() late: number;
   @ApiProperty() leave: number;
   @ApiProperty() unmarked: number;
+  @ApiProperty({
+    description: 'Students with a card scan today who are marked absent or on leave.',
+  })
+  scanned_but_absent: number;
   @ApiProperty({ type: String, nullable: true }) marked_at: string | null;
 }
 
