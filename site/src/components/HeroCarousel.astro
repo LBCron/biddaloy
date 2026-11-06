@@ -1,0 +1,49 @@
+---
+import { t } from '../i18n/t';
+import type { Lang } from '../lib/types';
+
+interface Props {
+  photos: string[];
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const photos = Astro.props.photos.slice(0, 5);
+---
+{photos.length > 0 && (
+  <div class="hc" data-carousel data-single={photos.length === 1 ? '' : undefined} role="group" aria-roledescription="carousel" aria-label={t(lang, 'hero.label')}>
+    <div class="hc-track">
+      {photos.map((p, i) => (
+        <div class="hc-slide" aria-hidden={i === 0 ? undefined : 'true'}>
+          <img src={`/media/${p}`} alt="" loading={i === 0 ? 'eager' : 'lazy'} decoding="async" />
+        </div>
+      ))}
+    </div>
+    <button type="button" class="hc-btn hc-prev" aria-label={t(lang, 'hero.prev')}>‹</button>
+    <button type="button" class="hc-btn hc-next" aria-label={t(lang, 'hero.next')}>›</button>
+    <div class="hc-dots">
+      {photos.map((_, i) => <button type="button" aria-label={`${t(lang, 'hero.goto')} ${i + 1}`} aria-current={i === 0 ? 'true' : 'false'}></button>)}
+    </div>
+  </div>
+)}
+{photos.length > 1 && (
+  <script is:inline>
+    document.querySelectorAll('[data-carousel]').forEach(function (c) {
+      var track = c.querySelector('.hc-track'), slides = c.querySelectorAll('.hc-slide'), dots = c.querySelectorAll('.hc-dots button');
+      var i = 0, timer, reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      function go(n) {
+        i = (n + slides.length) % slides.length;
+        track.style.transform = 'translateX(' + (-100 * i) + '%)';
+        slides.forEach(function (s, k) { k === i ? s.removeAttribute('aria-hidden') : s.setAttribute('aria-hidden', 'true'); });
+        dots.forEach(function (d, k) { d.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+      }
+      function stop() { clearInterval(timer); timer = 0; }
+      function start() { if (!reduce && !timer) timer = setInterval(function () { go(i + 1); }, 6000); }
+      c.querySelector('.hc-prev').addEventListener('click', function () { go(i - 1); });
+      c.querySelector('.hc-next').addEventListener('click', function () { go(i + 1); });
+      dots.forEach(function (d, k) { d.addEventListener('click', function () { go(k); }); });
+      c.addEventListener('mouseenter', stop); c.addEventListener('mouseleave', start);
+      c.addEventListener('focusin', stop); c.addEventListener('focusout', start);
+      start();
+    });
+  </script>
+)}
