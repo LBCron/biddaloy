@@ -135,7 +135,10 @@
     "portalHomework": "Homework",
     "committeeReport": "Monthly meeting report",
     "reportsUsage": "Report usage",
-    "reportRun": "Your report"
+    "reportRun": "Your report",
+    "upload": "Upload sheet",
+    "uploads": "Uploaded sheets",
+    "uploadDetail": "Upload details"
   },
   "groups": {
     "people": "People",

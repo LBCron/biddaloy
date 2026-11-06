@@ -587,7 +587,10 @@
         "accessToken": "Copy it from Meta Business."
       }
     },
-    "conductItems": "Each line gets a grade from A to D on the report card, for example Discipline or Neatness. Renaming a line keeps the grades already given."
+    "conductItems": "Each line gets a grade from A to D on the report card, for example Discipline or Neatness. Renaming a line keeps the grades already given.",
+    "dailySource": "Decides who can save the daily register: any assigned teacher, the class teacher, the first-period teacher, or the attendance machine.",
+    "staffSmsFallback": "If daily attendance is still not taken late in the day, send the admin a text message. Off by default.",
+    "deviceSecretKey": "The machine's secret key. It is shown once, so copy it now and keep it safe."
   },
   "helpRequired": {
     "schoolName": "Yes",
