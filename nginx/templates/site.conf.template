@@ -34,16 +34,18 @@ server {
 server {
     listen 8081;
     access_log /var/log/nginx/access.log redacted;
-    # One label only (D5). Quoted: the pattern holds braces. nginx picks exact names before
-    # regex ones, so even on a shared listener a fixed host would win; it is on a separate
-    # listener so it cannot be reached here at all.
-    server_name "~^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?\.${ROOT_DOMAIN}$";
+    # One label of 3-30 characters (D5, SITE_SUBDOMAIN_RE) under ROOT_DOMAIN, dots escaped:
+    # rumsc.schools.test matches, rumsc.schoolsXtest and ab.schools.test do not. edge-mode.sh
+    # writes this server_name from ROOT_DOMAIN (envsubst cannot escape the dots).
+    include /etc/nginx/snippets/site-server-name.conf;
 
     proxy_http_version 1.1;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $edge_proto;
+    # Not trusted from a visitor; the site and the API read the school from Host.
+    proxy_set_header X-Forwarded-Host "";
     proxy_set_header Cookie "";
     proxy_set_header X-Site-Preview "";
     proxy_connect_timeout 2s;
@@ -51,9 +53,14 @@ server {
     # Pages are anonymous: nothing from upstream may set a cookie on a school host.
     proxy_hide_header Set-Cookie;
     # The default cache key holds the upstream name, the same for every school: add the host.
+    # Known gap #3677: behind this cache the API still sees one IP (the site container) for every
+    # school, so its 1200/min read limit is one shared bucket, and the host lookup is uncached.
     proxy_cache_key $host$request_uri;
 
-    # Pages: 30 s micro-cache; an hour of stale pages if the site container is down (D32).
+    # Pages: 30 s micro-cache (D32). If the site container is down, an expired page is served
+    # stale for as long as it stays down; nginx has no max-stale age. The only bound is eviction:
+    # an entry nobody asked for in 2 hours (inactive=2h) is gone, and then the visitor gets the
+    # maintenance page (503).
     location / {
         proxy_pass http://site_upstream;
         proxy_cache site_cache;
@@ -79,16 +86,35 @@ server {
     }
 
     # Media: the API answers `no-store` (Rule 14); this is the one documented long-cache response.
-    # Safe because keys are content-addressed; only a 200 is cached (1 day on the nginx side).
+    # Safe because a picture's key is its media id: a new picture gets a new URL. Only a 200 is
+    # cached (1 day on the nginx side). A location's own proxy_hide_header replaces the server's,
+    # so Set-Cookie is hidden again here; a response that sets a cookie is never stored.
+    # Accepted (D41): a deleted picture or a switched-off site keeps answering from here for up
+    # to 1 day, and from browsers for up to a year. There is no purge.
     location /media/ {
         rewrite ^/media/(.+)$ /api/v1/public/site/by-host/$host/media/$1 break;
         proxy_pass http://app_upstream;
         proxy_hide_header Cache-Control;
-        proxy_ignore_headers Cache-Control Expires Set-Cookie;
+        proxy_hide_header Set-Cookie;
+        proxy_ignore_headers Cache-Control Expires;
         add_header Cache-Control "public, max-age=31536000, immutable";
         add_header Strict-Transport-Security $edge_hsts always;
         proxy_cache site_cache;
         proxy_cache_valid 200 1d;
+    }
+
+    # The logo is NOT keyed by content: every page links the same /media/logo
+    # (page-read-model.ts), so a new logo keeps that URL. Short cache, never immutable.
+    location = /media/logo {
+        rewrite ^ /api/v1/public/site/by-host/$host/media/logo break;
+        proxy_pass http://app_upstream;
+        proxy_hide_header Cache-Control;
+        proxy_hide_header Set-Cookie;
+        proxy_ignore_headers Cache-Control Expires;
+        add_header Cache-Control "public, max-age=300";
+        add_header Strict-Transport-Security $edge_hsts always;
+        proxy_cache site_cache;
+        proxy_cache_valid 200 1m;
     }
 
     # Islands (D21): straight to the by-host API, never cached. rewrite keeps the query string.

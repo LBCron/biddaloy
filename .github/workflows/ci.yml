@@ -137,6 +137,9 @@ jobs:
               - 'scripts/backup/**'
               - 'scripts/demo/**'
               - 'docker-compose.build.yml'
+              # [Epic 40 #3620] Mounted / rendered by the edge (site.infra.test.sh, deploy.yml).
+              - 'site/public/maintenance.html'
+              - 'infra/ansible/templates/cloudflared-config.yml.j2'
               - '**/*.infra.test.sh'
               - '.github/workflows/ci.yml'
 

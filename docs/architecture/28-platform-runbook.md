@@ -2052,7 +2052,7 @@ What another answer means:
 | `Could not resolve host`   | the `*` record is missing or not saved | redo step 2                                 |
 | Cloudflare error page 1033 | the tunnel is not connected            | `biddaloy-doctor edge`, restart cloudflared |
 | `502`                      | nginx down, or the site listener's 444 | `docker ps`, then the nginx access log      |
-| `503` "try again" page      | the `site` container is down           | `docker ps`, restart the `site` service     |
+| `503` "try again" page     | the `site` container is down           | `docker ps`, restart the `site` service     |
 
 The catch-all reaches the site listener. When it closes the connection with no reply
 (nginx `444`, Rule 12), cloudflared returns `502`, not `520`. So a `502` then means nginx is down
@@ -2175,14 +2175,40 @@ Cloudflare for SaaS, health checks. Work this part already owes to the tickets t
   arrives as the school's name in `Host` (`www.rumsc.edu`), not `sites.schoolmanagerp.com`.
   Do not add a `*.schoolmanagerp.com` rule that points at `nginx:80`.
 - **`ROOT_DOMAIN` (#3620, done).** One name, read by the nginx site template (`deploy/edge.yml`),
-  the preflight `edge_domain_keys` list in `infra/ansible/tasks/preflight.yml`, and the `site` and
+  the preflight lists in `infra/ansible/tasks/preflight.yml` (`edge_domain_keys` for edge,
+  `required_by_stack` for prod, staging and demo, so a missing key fails with the file to fix), and
+  `config-check` (`COMMON_REQUIRED`), and the `site` and
   `app` services (`deploy/stack.yml`, as `SITE_ROOT_DOMAIN`). **Owner:** add `ROOT_DOMAIN=<apex>`
   (same value as `LANDING_DOMAIN`, for example `schoolmanagerp.com`) to
   `infra/secrets/{edge,prod,staging,demo}.enc.env` with `sops` **before** the deploy of #3620:
   `stack.yml` refuses to start without it. `scripts/bootstrap-secrets.sh` writes it for new setups.
-- **Media and pages cache.** nginx keeps a 30 s page cache (stale pages for up to the two-hour
-  idle window if `site` is down) in the `site_cache` volume of the edge stack. `/media/*` is
-  served `immutable` for a year; Rule 14 lists it as the one documented exception.
+- **Media and pages cache.** nginx keeps pages in the `site_cache` volume of the edge stack.
+  Example: `rumsc.schoolmanagerp.com/bn/` is fresh for 30 s. When `site` is down, nginx keeps
+  serving the old page for as long as `site` stays down. nginx has no "max stale age". The only
+  limit: an entry nobody asked for in 2 hours is evicted, and then the visitor gets the
+  maintenance page (`503`).
+
+  ```mermaid
+  flowchart LR
+    R["Request for a school page"] --> F{"In cache,<br/>under 30 s old?"}
+    F -- yes --> H["HIT: cached page"]
+    F -- no --> S{"site container<br/>answers?"}
+    S -- yes --> N["Fresh page, cached 30 s"]
+    S -- no --> E{"Old copy still in cache?<br/>(evicted after 2 h<br/>without a request)"}
+    E -- yes --> T["STALE: old page"]
+    E -- no --> M["503 maintenance page"]
+  ```
+
+- **Media.** `/media/<id>` is served `immutable` for a year (Rule 14's one documented exception).
+  `/media/logo` keeps one URL when the logo changes, so it is cached 5 minutes only. A deleted
+  picture or a switched-off site stays visible from nginx for up to 1 day and from browsers for up
+  to a year (accepted, D41). There is no purge path.
+- **Known gap (#3677).** Every visitor reaches the API through the one `site` container, so the
+  site-read rate limit (1200/min per IP) is one bucket for all schools, and the host lookup is not
+  cached.
+- **`site` runs on prod only.** Deploy starts it on prod (`app_services` in
+  `infra/ansible/deploy.yml`); staging and demo have no school-site route, so they leave it
+  stopped.
 - **The case check** in 17a (cloudflared's `ingress rule` and the curl) must still pass after the deploy.
 
 ## Known gaps

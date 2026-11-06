@@ -125,6 +125,8 @@ export const COMMON_REQUIRED = [
   'POSTGRES_PASSWORD',
   'S3_ACCESS_KEY_ID',
   'S3_SECRET_ACCESS_KEY',
+  // School websites (Epic 40): the app gets it as SITE_ROOT_DOMAIN.
+  'ROOT_DOMAIN',
 ];
 const EXTRA_REQUIRED: Record<Stack, string[]> = {
   prod: ['BACKUP_AGE_PUBLIC_KEY'],

@@ -60,7 +60,7 @@
     # Images each stack needs in GHCR, all tagged with the full commit sha. ops runs public
     # images pinned by digest.
     images_by_stack:
-      prod: [biddaloy-app, biddaloy-backup]
+      prod: [biddaloy-app, biddaloy-backup, biddaloy-site]
       staging: [biddaloy-app, biddaloy-backup]
       demo: [biddaloy-app, biddaloy-demo-reset]
       edge: [biddaloy-landing]
@@ -75,12 +75,14 @@
     # retention and maybe write today's daily. The next prod deploy (after restore-prod) starts it.
     # Staging and demo name `mailpit` (Epic 87 test inbox): a profile only makes a service
     # eligible, so an unnamed one never starts. --wait covers its healthcheck too.
+    # Prod also names `site` (school websites, Epic 40 #3620): only prod's edge routes school
+    # hosts (site.conf.template), so staging and demo leave it stopped.
     app_services: >-
-      {{ ('db redis seaweedfs app app2' ~ ('' if (db_users_before | default(1) | int) == 0 else ' backup'))
+      {{ ('db redis seaweedfs app app2 site' ~ ('' if (db_users_before | default(1) | int) == 0 else ' backup'))
          if stack == 'prod' else 'db redis seaweedfs mailpit app' }}
-    # The rollback runs the previous compose file, which may predate mailpit ("no such service").
-    # A mailpit already running is left as it is.
-    rollback_services: "{{ app_services | replace(' mailpit', '') }}"
+    # The rollback runs the previous compose file, which may predate mailpit or site ("no such
+    # service"). A mailpit or site already running is left as it is.
+    rollback_services: "{{ app_services | replace(' mailpit', '') | replace(' site', '') }}"
     # Users in the database, in one psql call; a missing table counts as 0 (query_to_xml keeps a
     # missing table from failing at parse time). Run with `dc exec db`, the query as $1.
     users_sql: >-
@@ -199,6 +201,9 @@
             mkdir release.new
             cp -a {{ repo_root }}/nginx release.new/nginx
             cp -p {{ repo_root }}/deploy/edge.yml {{ repo_root }}/deploy/edge.direct.yml release.new/
+            # The school-site maintenance page edge.yml mounts (a missing file would become a directory).
+            mkdir -p release.new/site/public
+            cp -p {{ repo_root }}/site/public/maintenance.html release.new/site/public/
           args:
             chdir: '{{ project_dir }}'
           changed_when: false
