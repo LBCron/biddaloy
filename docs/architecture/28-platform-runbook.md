@@ -2183,8 +2183,9 @@ Cloudflare for SaaS, health checks. Work this part already owes to the tickets t
   `infra/secrets/{edge,prod,staging,demo}.enc.env` with `sops` **before** the deploy of #3620:
   `stack.yml` refuses to start without it. `scripts/bootstrap-secrets.sh` writes it for new setups.
 - **Media and pages cache.** nginx keeps pages in the `site_cache` volume of the edge stack.
-  Example: `rumsc.schoolmanagerp.com/bn/` is fresh for 30 s. When `site` is down, nginx keeps
-  serving the old page for as long as `site` stays down. nginx has no "max stale age". The only
+  Example: `rumsc.schoolmanagerp.com/bn/` is fresh for 30 s. When `site` or the API behind it is
+  down (no answer or a `5xx`), nginx keeps serving the old page for as long as that lasts. nginx
+  has no "max stale age". The only
   limit: an entry nobody asked for in 2 hours is evicted, and then the visitor gets the
   maintenance page (`503`).
 
@@ -2192,7 +2193,7 @@ Cloudflare for SaaS, health checks. Work this part already owes to the tickets t
   flowchart LR
     R["Request for a school page"] --> F{"In cache,<br/>under 30 s old?"}
     F -- yes --> H["HIT: cached page"]
-    F -- no --> S{"site container<br/>answers?"}
+    F -- no --> S{"site (and its API)<br/>answer 200 or 404?"}
     S -- yes --> N["Fresh page, cached 30 s"]
     S -- no --> E{"Old copy still in cache?<br/>(evicted after 2 h<br/>without a request)"}
     E -- yes --> T["STALE: old page"]
