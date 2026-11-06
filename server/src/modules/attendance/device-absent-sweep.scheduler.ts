@@ -11,6 +11,7 @@ import {
   DailyAttendanceSource,
 } from '@biddaloy/shared';
 import { AttendanceSession } from './entities/attendance-session.entity';
+import { sectionRosterIdsBySection } from '../enrollments/section-roster';
 import { AuditService } from '../audit/audit.service';
 import { SchoolsService } from '../schools/schools.service';
 import { SchoolCalendarService } from '../calendar/school-calendar.service';
@@ -80,31 +81,49 @@ export class DeviceAbsentSweepScheduler extends WorkerHost implements OnModuleIn
     const today = localToday(timezone);
     if (await this.schoolCalendarService.isNonWorkingDay({ tenantId, date: today })) return 0;
 
-    const [{ count }] = await this.dataSource.query(
-      `SELECT COUNT(*)::int AS count FROM attendance_device_events
-       WHERE tenant_id = $1 AND created_at >= ($2::date)::timestamp AT TIME ZONE $3`,
+    // Any accepted scan that resolved to a student today. Unknown-card or rejected scans do not
+    // count: a machine that only produces those is as good as dead (D27).
+    const scans = await this.dataSource.query(
+      `SELECT 1 FROM attendance_device_events
+       WHERE tenant_id = $1 AND created_at >= ($2::date)::timestamp AT TIME ZONE $3
+         AND outcome = 'accepted' AND student_id IS NOT NULL
+       LIMIT 1`,
       [tenantId, today, timezone],
     );
-    if (count === 0) {
+    if (scans.length === 0) {
       this.logger.log(`Device-absent sweep skipped for tenant ${tenantId}: no scans today`);
       return 0;
     }
 
-    const sections: { id: string; shift_id: string | null }[] = await this.dataSource.query(
-      `SELECT cs.id, c.shift_id
+    const sections: { id: string; class_id: string; shift_id: string | null }[] =
+      await this.dataSource.query(
+        `SELECT cs.id, c.id AS class_id, c.shift_id
        FROM class_sections cs
        JOIN classes c ON c.id = cs.class_id AND c.tenant_id = $1 AND c.deleted_at IS NULL
        JOIN academic_years ay ON ay.id = c.academic_year_id AND ay.tenant_id = $1
          AND ay.is_current = true AND ay.deleted_at IS NULL
        WHERE cs.tenant_id = $1 AND cs.deleted_at IS NULL`,
-      [tenantId],
-    );
+        [tenantId],
+      );
 
     const now = localTimeHHmm(timezone);
+    // A holiday can be class-scoped: one check per distinct class.
+    const workingByClass = new Map<string, boolean>();
     let inserted = 0;
     for (const section of sections) {
       const { absentAfter } = policyForShift(policy, section.shift_id, today);
       if (now < absentAfter) continue;
+      if (!workingByClass.has(section.class_id)) {
+        workingByClass.set(
+          section.class_id,
+          !(await this.schoolCalendarService.isNonWorkingDay({
+            tenantId,
+            date: today,
+            classId: section.class_id,
+          })),
+        );
+      }
+      if (!workingByClass.get(section.class_id)) continue;
       inserted += await this.dataSource.transaction((manager) =>
         this.sweepSection(manager, tenantId, section.id, today),
       );
@@ -121,6 +140,22 @@ export class DeviceAbsentSweepScheduler extends WorkerHost implements OnModuleIn
     sectionId: string,
     date: string,
   ): Promise<number> {
+    // Same roll rule as the register: enrolled in this section and on the roll today.
+    const roster =
+      (await sectionRosterIdsBySection(manager, tenantId, [sectionId], { onRollOn: date })).get(
+        sectionId,
+      ) ?? [];
+    if (roster.length === 0) return 0;
+    const marked: { student_id: string }[] = await manager.query(
+      `SELECT student_id FROM attendance_records
+       WHERE tenant_id = $1 AND date = $2 AND student_id = ANY($3::uuid[])`,
+      [tenantId, date, roster],
+    );
+    const markedIds = new Set(marked.map((r) => r.student_id));
+    const unmarked = roster.filter((id) => !markedIds.has(id));
+    // No session is created for a section with nobody to mark.
+    if (unmarked.length === 0) return 0;
+
     // ON CONFLICT DO NOTHING: a racing creator must not abort the transaction.
     await manager
       .createQueryBuilder()
@@ -137,8 +172,12 @@ export class DeviceAbsentSweepScheduler extends WorkerHost implements OnModuleIn
       })
       .orIgnore()
       .execute();
-    const session = await manager.getRepository(AttendanceSession).findOneOrFail({
+    // Row lock (as markLeaveRange): serialises with a teacher save / finalize, and the state is
+    // re-checked under it. No advisory lock needed: this lock plus insert-only ON CONFLICT.
+    const sessionRepo = manager.getRepository(AttendanceSession);
+    const session = await sessionRepo.findOneOrFail({
       where: { tenant_id: tenantId, section_id: sectionId, date, period_no: IsNull() },
+      lock: { mode: 'pessimistic_write' },
     });
     if (session.state === AttendanceSessionState.FINALIZED) return 0;
 
@@ -147,15 +186,17 @@ export class DeviceAbsentSweepScheduler extends WorkerHost implements OnModuleIn
       `INSERT INTO attendance_records (tenant_id, session_id, student_id, date, status, source)
        SELECT s.tenant_id, $2, s.id, $3, 'ABSENT', 'SYSTEM'
        FROM students s
-       WHERE s.tenant_id = $1 AND s.class_section_id = $4
-         AND s.enrollment_status = 'ACTIVE' AND s.deleted_at IS NULL
+       WHERE s.tenant_id = $1 AND s.id = ANY($4::uuid[]) AND s.deleted_at IS NULL
          AND NOT EXISTS (
            SELECT 1 FROM attendance_records r
            WHERE r.tenant_id = $1 AND r.session_id = $2 AND r.student_id = s.id)
        ON CONFLICT (session_id, student_id) DO NOTHING
        RETURNING id`,
-      [tenantId, session.id, date, sectionId],
+      [tenantId, session.id, date, unmarked],
     );
+    if (rows.length > 0) {
+      await sessionRepo.increment({ id: session.id, tenant_id: tenantId }, 'version', 1);
+    }
     for (const row of rows) {
       await this.auditService.record(
         {

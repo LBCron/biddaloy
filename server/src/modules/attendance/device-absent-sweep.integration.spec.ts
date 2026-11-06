@@ -18,6 +18,9 @@ import { AttendanceSession } from './entities/attendance-session.entity';
 import { AttendanceRecord } from './entities/attendance-record.entity';
 import { AttendanceDevice } from './entities/attendance-device.entity';
 import { AttendanceDeviceEvent } from './entities/attendance-device-event.entity';
+import { Shift } from '../routines/entities/shift.entity';
+import { CalendarEvent } from '../calendar/entities/calendar-event.entity';
+import { CalendarEventClass } from '../calendar/entities/calendar-event-class.entity';
 import { AuditLog } from '../audit/entities/audit-log.entity';
 import {
   AttendanceDeviceKind,
@@ -36,6 +39,7 @@ describe('DeviceAbsentSweepScheduler (integration)', () => {
   const TENANT = SEED_TENANT_ID;
   const OTHER = '00000000-0000-4000-8000-000000000098';
   let sectionId: string;
+  let classId: string;
   let otherSectionId: string;
   let studentIds: string[];
   let otherStudentId: string;
@@ -128,6 +132,7 @@ describe('DeviceAbsentSweepScheduler (integration)', () => {
       academic_year_id: SEED_ACADEMIC_YEAR_ID,
       tenant_id: TENANT,
     });
+    classId = klass.id;
     sectionId = (
       await dataSource
         .getRepository(ClassSection)
@@ -210,6 +215,7 @@ describe('DeviceAbsentSweepScheduler (integration)', () => {
         }),
       ),
     );
+    await enrollPlacedStudents(dataSource);
     const before = await records(TENANT);
 
     expect(await sweeper.sweepTenant(TENANT)).toBe(2);
@@ -244,12 +250,111 @@ describe('DeviceAbsentSweepScheduler (integration)', () => {
     expect(await sweeper.sweepTenant(TENANT)).toBe(0);
     expect(await records(TENANT)).toHaveLength(0);
 
-    await addScan(OTHER, null);
+    await addScan(OTHER, otherStudentId);
     expect(await sweeper.sweepTenant(OTHER)).toBe(1);
     const otherRecords = await records(OTHER);
     expect(otherRecords.map((r) => r.student_id)).toEqual([otherStudentId]);
     // The seed tenant's students stay unmarked.
     expect(await records(TENANT)).toHaveLength(0);
+  });
+
+  it('skips the school when every scan is an unknown student', async () => {
+    await addScan(TENANT, null);
+    expect(await sweeper.sweepTenant(TENANT)).toBe(0);
+    expect(await records(TENANT)).toHaveLength(0);
+  });
+
+  it('leaves a FINALIZED register alone', async () => {
+    await addScan(TENANT, studentIds[0]);
+    await mark(studentIds[0], AttendanceStatus.PRESENT, AttendanceSource.DEVICE);
+    await dataSource
+      .getRepository(AttendanceSession)
+      .update(
+        { tenant_id: TENANT, section_id: sectionId },
+        { state: AttendanceSessionState.FINALIZED },
+      );
+    expect(await sweeper.sweepTenant(TENANT)).toBe(0);
+    expect(await records(TENANT)).toHaveLength(1);
+  });
+
+  it('excludes students who left or were deleted, and bumps the session version', async () => {
+    await addScan(TENANT, studentIds[0]);
+    // 3 leaves the roll (inactive enrollment, no leaving event), 4 is soft-deleted.
+    await dataSource.query(
+      `UPDATE enrollments SET enrollment_status = 'INACTIVE' WHERE student_id = $1`,
+      [studentIds[3]],
+    );
+    await dataSource.getRepository(Student).softDelete({ id: studentIds[4] });
+    expect(await sweeper.sweepTenant(TENANT)).toBe(3);
+    const swept = (await records(TENANT)).map((r) => r.student_id);
+    expect(swept).not.toContain(studentIds[3]);
+    expect(swept).not.toContain(studentIds[4]);
+    const session = await dataSource
+      .getRepository(AttendanceSession)
+      .findOneByOrFail({ tenant_id: TENANT, section_id: sectionId });
+    expect(session.version).toBe(2);
+  });
+
+  it('skips a class on a class-scoped holiday', async () => {
+    await addScan(TENANT, studentIds[0]);
+    const today = (await dataSource.query(`SELECT (now() AT TIME ZONE 'Asia/Dhaka')::date AS d`))[0]
+      .d;
+    const date = new Date(today).toLocaleDateString('en-CA');
+    const event = await dataSource.getRepository(CalendarEvent).save({
+      tenant_id: TENANT,
+      academic_year_id: SEED_ACADEMIC_YEAR_ID,
+      start_date: date,
+      end_date: date,
+      name: 'Class Break',
+      counts_as_working_day: false,
+      published_at: new Date(),
+    });
+    await dataSource
+      .getRepository(CalendarEventClass)
+      .save({ event_id: event.id, class_id: classId, tenant_id: TENANT });
+    try {
+      expect(await sweeper.sweepTenant(TENANT)).toBe(0);
+      expect(await records(TENANT)).toHaveLength(0);
+    } finally {
+      await dataSource.getRepository(CalendarEventClass).delete({ event_id: event.id });
+      await dataSource.getRepository(CalendarEvent).delete({ id: event.id });
+    }
+  });
+
+  it('uses the shift own absentAfter: swept after its cut-off, not before', async () => {
+    await addScan(TENANT, studentIds[0]);
+    const shift = await dataSource.getRepository(Shift).save({
+      tenant_id: TENANT,
+      name: 'Sweep Shift',
+      day_starts_at: '08:00',
+      day_ends_at: '14:00',
+      sequence: 99,
+    });
+    await dataSource.getRepository(Class).update({ id: classId }, { shift_id: shift.id });
+    const withShift = (absentAfter: string) =>
+      dataSource.getRepository(School).update(
+        { id: TENANT },
+        {
+          settings: {
+            version: 1,
+            attendance: {
+              weeklyOffDays: [],
+              dailySource: DailyAttendanceSource.DEVICE,
+              lateAfter: '00:00',
+              absentAfter: '00:00',
+              shiftTimes: [{ shiftId: shift.id, lateAfter: '00:00', absentAfter }],
+            },
+          } as any,
+        },
+      );
+    try {
+      await withShift('23:59'); // shift cut-off not reached yet (school-wide one has passed)
+      expect(await sweeper.sweepTenant(TENANT)).toBe(0);
+      await withShift('00:00');
+      expect(await sweeper.sweepTenant(TENANT)).toBe(5);
+    } finally {
+      await dataSource.getRepository(Class).update({ id: classId }, { shift_id: null });
+    }
   });
 
   it('ignores a school whose source is not DEVICE', async () => {
