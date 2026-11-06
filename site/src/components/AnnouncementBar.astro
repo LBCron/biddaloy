@@ -1,0 +1,32 @@
+---
+import { SiteAnnouncementStyle } from '@biddaloy/shared';
+import { t } from '../i18n/t';
+import { pick } from '../lib/pick';
+import type { Lang, SiteManifest } from '../lib/types';
+
+interface Props {
+  bar: SiteManifest['announcements'] | undefined;
+  lang: Lang;
+}
+const { bar, lang } = Astro.props;
+const DUR = { SLOW: '40s', NORMAL: '25s', FAST: '15s' } as const;
+const now = Date.now();
+// Only enabled items inside their date window, with text.
+const items = (bar?.items ?? [])
+  .filter((i) => i.enabled && (!i.from || Date.parse(i.from) <= now) && (!i.until || Date.parse(i.until) >= now))
+  .map((i) => ({ text: pick(i.text, lang), href: i.href }))
+  .filter((i): i is { text: string; href: string | undefined } => !!i.text);
+const isStatic = bar?.style !== SiteAnnouncementStyle.MARQUEE || items.length < 2;
+---
+{items.length > 0 && (
+  <div class="ann" role="region" aria-label={t(lang, 'announcements')} aria-live="off" data-static={isStatic ? '' : undefined} style={`--ann-dur:${DUR[bar?.speed as keyof typeof DUR] ?? '25s'}`}>
+    <span class="ann-label">{t(lang, 'announcements')}</span>
+    <div class="ann-view"><div class="ann-track">
+      {(isStatic ? [0] : [0, 1]).map((n) => (
+        <ul class="ann-set" aria-hidden={n === 1 ? 'true' : undefined}>
+          {items.map((i) => <li>{i.href ? <a href={i.href} tabindex={n === 1 ? -1 : undefined}>{i.text}</a> : <a>{i.text}</a>}</li>)}
+        </ul>
+      ))}
+    </div></div>
+  </div>
+)}

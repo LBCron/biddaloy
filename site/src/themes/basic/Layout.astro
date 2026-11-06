@@ -1,0 +1,36 @@
+---
+import AnnouncementBar from '../../components/AnnouncementBar.astro';
+import Footer from '../../components/Footer.astro';
+import LangSwitch from '../../components/LangSwitch.astro';
+import { t } from '../../i18n/t';
+import { pick } from '../../lib/pick';
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import type { Lang, SiteManifest } from '../../lib/types';
+import './theme.css';
+
+interface Props {
+  manifest: SiteManifest;
+  lang: Lang;
+  rest?: string;
+  title?: string;
+}
+const { manifest, lang, rest = '', title } = Astro.props;
+const name = pick(manifest.schoolName, lang) ?? '';
+const nav = manifest.nav.filter((n) => n.page !== 'home');
+---
+<SiteLayout manifest={manifest} lang={lang} rest={rest} title={title}>
+  <AnnouncementBar bar={manifest.announcements} lang={lang} />
+  <header class="top"><div class="wrap">
+    <a class="brand" href={`/${lang}/`}>
+      <span class="logo">{manifest.logo ? <img src={manifest.logo} alt="" width="40" height="40" /> : name.slice(0, 1)}</span>
+      <span><b>{name}</b></span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href={`/${lang}/`} aria-current={rest === '' ? 'page' : undefined}>{t(lang, 'nav.home')}</a>
+      {nav.map((n) => <a href={`/${lang}/${n.page}/`} aria-current={rest === `${n.page}/` ? 'page' : undefined}>{(n.label && pick(n.label, lang)) || t(lang, `nav.${n.page}`)}</a>)}
+    </nav>
+    <div class="tools"><LangSwitch lang={lang} rest={rest} /></div>
+  </div></header>
+  <main id="main"><slot /></main>
+  <Footer manifest={manifest} lang={lang} />
+</SiteLayout>
