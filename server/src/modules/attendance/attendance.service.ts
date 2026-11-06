@@ -74,10 +74,11 @@ interface RegisterCounts {
   absent: number;
   late: number;
   leave: number;
+  scanned_but_absent: number;
 }
 
 function emptyCounts(): RegisterCounts {
-  return { present: 0, absent: 0, late: 0, leave: 0 };
+  return { present: 0, absent: 0, late: 0, leave: 0, scanned_but_absent: 0 };
 }
 
 function tallyStatus(counts: RegisterCounts, status: AttendanceStatus): void {
@@ -187,15 +188,25 @@ export class AttendanceService {
         .select('r.session_id', 'session_id')
         .addSelect('r.status', 'status')
         .addSelect('COUNT(*)', 'count')
+        .addSelect('COUNT(*) FILTER (WHERE r.device_id IS NOT NULL)', 'scanned')
         .where('r.tenant_id = :tenantId', { tenantId })
         .andWhere('r.session_id IN (:...sessionIds)', { sessionIds })
         .groupBy('r.session_id')
         .addGroupBy('r.status')
-        .getRawMany<{ session_id: string; status: AttendanceStatus; count: string }>();
+        .getRawMany<{
+          session_id: string;
+          status: AttendanceStatus;
+          count: string;
+          scanned: string;
+        }>();
 
       for (const row of rows) {
         const entry = countsBySessionId.get(row.session_id) ?? emptyCounts();
         const n = Number(row.count);
+        // [76.2.1] D5: a card scan on a student marked absent / on leave.
+        if (row.status === AttendanceStatus.ABSENT || row.status === AttendanceStatus.LEAVE) {
+          entry.scanned_but_absent += Number(row.scanned);
+        }
         if (row.status === AttendanceStatus.PRESENT) entry.present += n;
         else if (row.status === AttendanceStatus.ABSENT) entry.absent += n;
         else if (row.status === AttendanceStatus.LATE) entry.late += n;
@@ -252,6 +263,7 @@ export class AttendanceService {
           late: counts.late,
           leave: counts.leave,
           unmarked: Math.max(studentCount - marked, 0),
+          scanned_but_absent: counts.scanned_but_absent,
           marked_at: session.marked_at ? session.marked_at.toISOString() : null,
         };
       }
@@ -286,13 +298,25 @@ export class AttendanceService {
     await this.assertRegisterAccess(role, userId, sectionId, tenantId, date, periodNo, {
       includeCoordinated: true,
     });
-    return this.loadRegister(this.dataSource.manager, {
+    const register = await this.loadRegister(this.dataSource.manager, {
       sectionId,
       date,
       periodNo,
       tenantId,
       role,
     });
+    // [76.2.1] D2: the whole-day gate. A period register keeps today's rule (writable by access).
+    const state =
+      periodNo === null
+        ? await this.attendanceAccessService.dayRegisterWriteState(
+            role,
+            userId,
+            sectionId,
+            date,
+            tenantId,
+          )
+        : { can_write: true, write_reason: null, first_period_today: false };
+    return { ...register, ...state };
   }
 
   // ---------------------------------------------------------------------
@@ -313,7 +337,9 @@ export class AttendanceService {
     const periodNo = dto.period_no ?? null;
 
     // 1. Object-level access (and the period switch, for a period register).
-    await this.assertRegisterAccess(role, userId, sectionId, tenantId, dto.date, periodNo);
+    await this.assertRegisterAccess(role, userId, sectionId, tenantId, dto.date, periodNo, {
+      write: true,
+    });
 
     // 3. Date sanity.
     if (!DATE_ONLY.test(dto.date)) {
@@ -1002,11 +1028,14 @@ export class AttendanceService {
     userAgent: string | null;
   }): Promise<MatrixSaveResponseDto> {
     const { sectionId, tenantId, role, userId, dto, ip, userAgent } = params;
-    const section = await this.attendanceAccessService.assertCanAccessSection(
+    // D31: the month grid is class-teacher only, a first-period teacher is refused.
+    const { section } = await this.attendanceAccessService.assertCanWriteDayRegister(
       role,
       userId,
       sectionId,
+      dto.days[0]?.date ?? '',
       tenantId,
+      { monthGrid: true },
     );
 
     const dates = dto.days.map((d) => d.date);
@@ -1193,7 +1222,9 @@ export class AttendanceService {
     userAgent: string | null;
   }): Promise<RegisterResponseDto> {
     const { sectionId, tenantId, role, userId, date, periodNo, ip, userAgent } = params;
-    await this.assertRegisterAccess(role, userId, sectionId, tenantId, date, periodNo);
+    await this.assertRegisterAccess(role, userId, sectionId, tenantId, date, periodNo, {
+      write: true,
+    });
 
     const result = await this.dataSource.transaction(async (manager) => {
       const sessionRepo = manager.getRepository(AttendanceSession);
@@ -1293,6 +1324,7 @@ export class AttendanceService {
         tenantId,
         session.date,
         session.period_no,
+        { write: true },
       ).catch((e: unknown) => {
         throw e instanceof NotFoundException
           ? new NotFoundException('Attendance record not found')
@@ -1529,9 +1561,20 @@ export class AttendanceService {
     date: string,
     periodNo: number | null,
     /** [83.3.1] D4 — true only for reads (register view, record history). */
-    opts: { includeCoordinated?: boolean } = {},
+    opts: { includeCoordinated?: boolean; write?: boolean } = {},
   ): Promise<void> {
     if (periodNo === null) {
+      // [76.2.1] D32: every whole-day write goes through the `dailySource` gate.
+      if (opts.write) {
+        await this.attendanceAccessService.assertCanWriteDayRegister(
+          role,
+          userId,
+          sectionId,
+          date,
+          tenantId,
+        );
+        return;
+      }
       await this.attendanceAccessService.assertCanAccessSection(
         role,
         userId,
@@ -1752,8 +1795,15 @@ export class AttendanceService {
           source: record?.source ?? null,
           correction_count: record ? (correctionCounts.get(record.id) ?? 0) : 0,
           suggested_status: suggestedByStudentId.get(s.id) ?? null,
+          // D5: scan time only where the scan contradicts the mark.
+          scanned_at:
+            record?.device_id &&
+            (record.status === AttendanceStatus.ABSENT || record.status === AttendanceStatus.LEAVE)
+              ? (record.check_in_at?.toISOString() ?? null)
+              : null,
         };
       }),
+      period_attendance_enabled: policy.periodAttendance?.enabled === true,
     };
   }
 }

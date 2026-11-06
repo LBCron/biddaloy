@@ -463,6 +463,64 @@ describe('Attendance E2E', () => {
       expect(res.body.session.version).toBe(1);
     });
 
+    // [76.2.1] D2/D36: the school's dailySource decides who writes the whole-day register.
+    describe('dailySource write gate', () => {
+      const putAs = (extra: Record<string, unknown> = {}) =>
+        supertest(app.getHttpServer())
+          .put(`/api/v1/attendance/sections/${MAPPED_SECTION_ID}/register`)
+          .set('Authorization', `Bearer ${teacherToken}`)
+          .set('X-Tenant-ID', TENANT_ID)
+          .set('X-Role', UserRole.TEACHER)
+          .send({
+            date: todayIso(),
+            base_version: 0,
+            client_request_id: randomUUID(),
+            entries: [{ student_id: studentId, status: 'PRESENT' }],
+            ...extra,
+          });
+      const setSource = (source: string) =>
+        dataSource.query(
+          `UPDATE schools SET settings = jsonb_set(COALESCE(settings,'{}'::jsonb), '{attendance}', COALESCE(settings->'attendance','{}'::jsonb) || $2::jsonb) WHERE id = $1`,
+          [TENANT_ID, JSON.stringify({ dailySource: source })],
+        );
+      afterEach(() => setSource('ANY'));
+
+      it('class teacher writes under CLASS_TEACHER (200)', async () => {
+        await setSource('CLASS_TEACHER');
+        await putAs().expect(200);
+      });
+
+      it('subject teacher is refused under CLASS_TEACHER (403, details.reason)', async () => {
+        await setSource('CLASS_TEACHER');
+        const code = randomUUID().slice(0, 6).toUpperCase();
+        await dataSource.query(
+          `WITH s AS (INSERT INTO subjects (id, tenant_id, name_en, code, is_active, created_at, updated_at)
+             VALUES (gen_random_uuid(), $1, 'Gate ' || $2, $2, true, NOW(), NOW()) RETURNING id)
+           UPDATE teacher_class_sections SET assignment_type = 'SUBJECT_TEACHER', subject_id = (SELECT id FROM s)
+           WHERE section_id = $3 AND tenant_id = $1`,
+          [TENANT_ID, code, MAPPED_SECTION_ID],
+        );
+        const res = await putAs().expect(403);
+        expect(res.body.details.reason).toBe('CLASS_TEACHER_ONLY');
+        // The 403 never names another teacher.
+        expect(JSON.stringify(res.body)).not.toContain('E2E-TEACHER');
+      });
+
+      it('keeps the tenant header checks (missing 401, unknown tenant 401)', async () => {
+        await supertest(app.getHttpServer())
+          .put(`/api/v1/attendance/sections/${MAPPED_SECTION_ID}/register`)
+          .set('Authorization', `Bearer ${teacherToken}`)
+          .send({})
+          .expect(401);
+        await supertest(app.getHttpServer())
+          .put(`/api/v1/attendance/sections/${MAPPED_SECTION_ID}/register`)
+          .set('Authorization', `Bearer ${teacherToken}`)
+          .set('X-Tenant-ID', randomUUID())
+          .send({})
+          .expect(401);
+      });
+    });
+
     it('refuses a date outside the academic year (422)', async () => {
       const res = await supertest(app.getHttpServer())
         .put(`/api/v1/attendance/sections/${MAPPED_SECTION_ID}/register`)
