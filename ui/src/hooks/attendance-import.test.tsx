@@ -1,6 +1,6 @@
 import { waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../api/errors';
 import { server } from '../test/msw/server';
@@ -15,6 +15,7 @@ import {
   useAttendanceImport,
   useAttendanceImports,
   useCommitAttendanceSheet,
+  useDownloadAttendanceSheet,
   useValidateAttendanceSheet,
 } from './attendance-import';
 
@@ -77,6 +78,38 @@ describe('useCommitAttendanceSheet', () => {
     expect(queryClient.getQueryState(attendanceImportKeys.list({ page: 1 }))?.isInvalidated).toBe(
       true,
     );
+  });
+});
+
+describe('useDownloadAttendanceSheet', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // [review] The plain filename= has Bangla turned into `_`; the real name is in filename*.
+  it('saves the sheet under the UTF-8 file name', async () => {
+    server.use(
+      http.get('/api/v1/attendance/import/template', () =>
+        HttpResponse.text('x', {
+          headers: {
+            'Content-Disposition': `attachment; filename="____.xlsx"; filename*=UTF-8''${encodeURIComponent('শ্রেণি ৫.xlsx')}`,
+          },
+        }),
+      ),
+    );
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    let saved = '';
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      saved = this.download;
+    });
+    const { result } = renderHookWithProviders(() => useDownloadAttendanceSheet(), {
+      tenantId: 't1',
+    });
+    await result.current.mutateAsync({ sectionIds: ['s1'], date: '2026-11-06' });
+    expect(saved).toBe('শ্রেণি ৫.xlsx');
   });
 });
 

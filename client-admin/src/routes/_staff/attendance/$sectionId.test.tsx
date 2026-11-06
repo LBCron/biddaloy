@@ -371,7 +371,7 @@ describe('/attendance/$sectionId', () => {
       expect(puts).toBe(0);
     });
 
-    it('shows no "cannot save right now" banner to a caller who cannot mark at all', async () => {
+    it('tells a caller who cannot mark that the register is view only, with no "right now" banner', async () => {
       server.use(
         http.get('/api/v1/attendance/sections/section-1/register', () =>
           HttpResponse.json(registerBody({ can_write: false, write_reason: null })),
@@ -385,6 +385,9 @@ describe('/attendance/$sectionId', () => {
       });
       await screen.findByText('Rafi Ahmed');
       expect(screen.queryByText(/cannot save this register right now/)).toBeNull();
+      expect(
+        screen.getByText('You can see this register, but your role cannot mark attendance.'),
+      ).toBeTruthy();
     });
 
     it('"Mark the rest absent" with nothing unmarked shows no toast', async () => {

@@ -81,6 +81,7 @@
     "announceStatusChanged": "{{name}} marked {{status}}",
     "readOnlyExplanation": "This register is outside the correction window and can no longer be edited here.",
     "readOnlyNoPermission": "This register is older than {{days}} days. Ask an administrator to correct it.",
+    "viewOnly": "You can see this register, but your role cannot mark attendance.",
     "requestCorrection": "Request correction",
     "futureDateBanner": "Future date — only Leave can be marked ahead of time.",
     "rollNumber": "Roll {{roll}}",

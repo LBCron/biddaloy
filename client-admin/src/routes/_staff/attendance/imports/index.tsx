@@ -8,6 +8,7 @@ import { Permission } from '@biddaloy/shared';
 import { StatusBadge, type DataTableColumn } from '@biddaloy/ui/components';
 import {
   useAttendanceImports,
+  useCurrentUserId,
   useHasPermission,
   type AttendanceImportSummary,
 } from '@biddaloy/ui/hooks';
@@ -39,6 +40,9 @@ function AttendanceImportsPage() {
     items.flatMap((item) => (item.supersedes_import_id ? [item.supersedes_import_id] : [])),
   );
   const num = (n: number) => formatNumber(n, regionConfig);
+  const me = useCurrentUserId();
+  const uploaderLabel = (id: string | null) =>
+    id === null ? '—' : t(id === me ? 'history.you' : 'history.someone');
 
   const columns: DataTableColumn<AttendanceImportSummary>[] = [
     {
@@ -56,8 +60,8 @@ function AttendanceImportsPage() {
     {
       id: 'who',
       header: t('history.columnWho'),
-      // The list carries the uploader's id only, never a name: a short tag until the server adds one.
-      accessorFn: (row) => row.uploaded_by_user_id?.slice(0, 8) ?? '—',
+      // The server sends the uploader's id only, never a name (#3659 adds it): "You" or a plain fallback.
+      accessorFn: (row) => uploaderLabel(row.uploaded_by_user_id),
     },
     {
       id: 'new',

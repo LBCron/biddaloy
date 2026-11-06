@@ -6,7 +6,12 @@
  */
 import { Permission } from '@biddaloy/shared';
 import { ErrorState, Skeleton } from '@biddaloy/ui/components';
-import { useAttendanceImport, useAttendanceImports, useHasPermission } from '@biddaloy/ui/hooks';
+import {
+  useAttendanceImport,
+  useAttendanceImports,
+  useCurrentUserId,
+  useHasPermission,
+} from '@biddaloy/ui/hooks';
 import { useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { DetailShell } from '@biddaloy/ui/shells';
 import { formatDateTime, formatNumber } from '@biddaloy/ui/utils';
@@ -28,6 +33,7 @@ function AttendanceImportDetailPage() {
   const regionConfig = useTenantRegionConfig();
   const { importId } = Route.useParams();
   const canMark = useHasPermission(Permission.ATTENDANCE_MARK);
+  const me = useCurrentUserId();
   const query = useAttendanceImport(importId);
   // The newer upload that corrects this one, if it is on the first page of the list.
   const newer = useAttendanceImports(1).data?.items.find(
@@ -57,7 +63,14 @@ function AttendanceImportDetailPage() {
     <DetailShell
       name={`${data.file_name} · ${when}`}
       facts={[
-        { label: t('history.columnWho'), value: data.uploaded_by_user_id?.slice(0, 8) ?? '—' },
+        // The server sends the uploader's id only, never a name (#3659 adds it).
+        {
+          label: t('history.columnWho'),
+          value:
+            data.uploaded_by_user_id === null
+              ? '—'
+              : t(data.uploaded_by_user_id === me ? 'history.you' : 'history.someone'),
+        },
         { label: t('history.columnNew'), value: num(data.counts.new) },
         { label: t('history.columnChanged'), value: num(data.counts.changed) },
         { label: t('history.columnErrors'), value: num(data.counts.error) },

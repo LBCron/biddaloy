@@ -8,6 +8,7 @@
 import * as React from 'react';
 
 import { cn } from '../primitives/lib/utils';
+import { toLatinDigits } from '../utils/digits';
 
 import { Button } from './button';
 import { Input } from './input';
@@ -16,6 +17,8 @@ import { Label } from './label';
 /** Letters, digits and hyphen only. */
 const INVALID_CHARS = /[^A-Za-z0-9-]/g;
 export const CARD_NO_MAX_LENGTH = 64;
+/** The whole-value rule a host form checks before saving (same as the server DTO). */
+export const CARD_NO_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
 
 export interface ScanCardFieldProps {
   value: string;
@@ -88,7 +91,8 @@ export function ScanCardField({
           autoComplete="off"
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
-          onChange={(e) => onChange(e.target.value.replace(INVALID_CHARS, ''))}
+          // A Bangla keyboard layout (or a reader behind one) types ০-৯: keep them as 0-9.
+          onChange={(e) => onChange(toLatinDigits(e.target.value).replace(INVALID_CHARS, ''))}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();

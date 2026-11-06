@@ -46,6 +46,9 @@ describe('/attendance/imports', () => {
     expect(screen.getByText('fixed.xlsx')).toBeTruthy();
     expect(screen.getAllByText('Superseded')).toHaveLength(1);
     expect(screen.getAllByText('Current')).toHaveLength(1);
+    // [review r2] The server sends no name (#3659): a plain label, never an id fragment.
+    expect(screen.getAllByText('A staff member').length).toBeGreaterThan(0);
+    expect(screen.queryByText('aaaaaaaa')).toBeNull();
   });
 
   it('shows the empty state', async () => {
