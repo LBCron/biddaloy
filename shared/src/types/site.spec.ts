@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { RESERVED_SUBDOMAINS, SITE_SUBDOMAIN_RE } from './site';
+import { RESERVED_SUBDOMAINS, SITE_SUBDOMAIN_RE, isSiteRelativeHref } from './site';
 
 describe('SITE_SUBDOMAIN_RE', () => {
   it.each(['rumsc', 'rumsc-2026', 'abc', 'a'.repeat(30)])('accepts %s', (s) => {
@@ -20,5 +20,27 @@ describe('RESERVED_SUBDOMAINS', () => {
     for (const s of RESERVED_SUBDOMAINS) {
       expect(SITE_SUBDOMAIN_RE.test(s) || s.includes('.'), s).toBe(true);
     }
+  });
+});
+
+describe('isSiteRelativeHref', () => {
+  it('accepts a link on the same site', () => {
+    expect(isSiteRelativeHref('/')).toBe(true);
+    expect(isSiteRelativeHref('/notices')).toBe(true);
+    expect(isSiteRelativeHref('/admission?class=6#form')).toBe(true);
+  });
+
+  // Each of these would send a visitor to another host or run script (XSS through the bar).
+  it('refuses another host, a scheme, and tricks browsers undo', () => {
+    expect(isSiteRelativeHref('//evil.com')).toBe(false);
+    expect(isSiteRelativeHref('/\\evil.com')).toBe(false);
+    expect(isSiteRelativeHref('/\t/evil.com')).toBe(false);
+    expect(isSiteRelativeHref('/a b')).toBe(false);
+    expect(isSiteRelativeHref('javascript:alert(1)')).toBe(false);
+    expect(isSiteRelativeHref('https://evil.com')).toBe(false);
+    expect(isSiteRelativeHref('notices')).toBe(false);
+    expect(isSiteRelativeHref('')).toBe(false);
+    expect(isSiteRelativeHref(42)).toBe(false);
+    expect(isSiteRelativeHref('/' + 'a'.repeat(500))).toBe(false);
   });
 });

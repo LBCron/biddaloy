@@ -62,6 +62,22 @@ export const SITE_HERO_MAX_PHOTOS = 5;
 export const SITE_ANNOUNCEMENTS_MAX = 5;
 export const SITE_FEATURED_TEACHERS_MAX = 8;
 export const SITE_SUBDOMAIN_REDIRECT_DAYS = 30;
+export const SITE_HREF_MAX_CHARS = 500;
+
+/**
+ * An announcement link must stay on the school's own site: `/notices`, `/admission?x=1`.
+ * Refused: `//evil.com` and `/\evil.com` (browsers read both as another host), `javascript:`,
+ * any scheme, and any space or control character (browsers strip tabs and newlines, so
+ * `/\t/evil.com` would turn into `//evil.com`). The validator and the site renderer both use it.
+ */
+export function isSiteRelativeHref(href: unknown): href is string {
+  return (
+    typeof href === 'string' &&
+    href.length <= SITE_HREF_MAX_CHARS &&
+    // eslint-disable-next-line no-control-regex
+    /^\/(?![/\\])[^\s\\\u0000-\u001f\u007f]*$/.test(href)
+  );
+}
 
 /** Font ids. */
 export interface SiteTypographyPair {
