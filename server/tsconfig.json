@@ -16,6 +16,7 @@
     "types": ["vitest/globals", "multer"],
     "paths": {
       "@biddaloy/shared": ["../shared/dist"],
+      "@biddaloy/site-themes": ["../site-themes/dist"],
       "@test/*": ["test/*"]
     }
   },

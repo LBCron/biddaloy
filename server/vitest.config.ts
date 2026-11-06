@@ -89,6 +89,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@biddaloy/shared': resolve(__dirname, '../shared/src'),
+      '@biddaloy/site-themes': resolve(__dirname, '../site-themes/src'),
       '@test': resolve(__dirname, 'test'),
     },
   },

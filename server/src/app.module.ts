@@ -73,6 +73,9 @@ import { AcrModule } from './modules/acr/acr.module';
 import { IncidentsModule } from './modules/incidents/incidents.module';
 import { AttentionModule } from './modules/attention/attention.module';
 import { NoticesModule } from './modules/notices/notices.module';
+import { WebsiteModule } from './modules/website/website.module';
+import { SchoolSite } from './modules/website/entities/school-site.entity';
+import { SiteMedia } from './modules/website/entities/site-media.entity';
 import { NoticeSmsModule } from './modules/notices/sms/notice-sms.module';
 import { NoticeAccessModule } from './modules/notices/access/notice-access.module';
 import { SurveysModule } from './modules/surveys/surveys.module';
@@ -398,6 +401,9 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
             // registering it via `forFeature`. Fixed here as part of
             // [36.2.2] since it blocked this ticket's own e2e test.
             StaffProfile,
+            // [40.1.04] needed by WebsiteModule; w1-g4-02 adds the other website entities.
+            SchoolSite,
+            SiteMedia,
             StaffAttendanceSession,
             StaffAttendanceRecord,
             LeaveRecord,
@@ -544,6 +550,7 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
     AttentionModule,
     NoticeAccessModule, // before NoticesModule: GET /notices/mine must register before GET /notices/:id
     NoticesModule,
+    WebsiteModule,
     NoticeSmsModule,
     SurveysModule,
     PerformanceModule,
