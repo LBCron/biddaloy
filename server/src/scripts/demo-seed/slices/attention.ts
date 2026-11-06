@@ -15,6 +15,7 @@ import { Alert } from '../../../modules/attention/entities/alert.entity';
 import { AlertRecipient } from '../../../modules/attention/entities/alert-recipient.entity';
 import { AttentionScheduler } from '../../../modules/attention/engine/attention-scheduler';
 import { ManualAlertsService } from '../../../modules/attention/manual/manual-alerts.service';
+import { texts as notTakenTexts } from '../../../modules/attention/rules/attendance/attendance-not-taken.rule';
 import { addDaysIso } from '../../../modules/attention/rules/rule-context.service';
 import { insertChunked } from '../bulk';
 import type { DemoSeedContext, DemoSlice } from '../context';
@@ -36,6 +37,7 @@ const notTaken: HistoryRule = {
     startsAt: '08:00',
     register_en: 'Daily',
     register_bn: 'আজকের',
+    ...notTakenTexts(s.label, '08:00', 'Daily', 'আজকের', { unmarked: 0 }),
   }),
 };
 
