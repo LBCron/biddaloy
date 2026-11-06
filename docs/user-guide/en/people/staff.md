@@ -333,7 +333,9 @@ The **Card number** is the number on the staff member's attendance card. No two 
 1. Open the person's page ([the tabs](#task-detail)) and press the **HR record** tab.
 2. Find the section **Card number** at the top. If the page says **No HR record yet**, press **Add job details** first and save; the card number needs an HR record.
 3. Press **Scan card** and touch the card to the reader, or type the number.
-4. Press **Save**.
+4. Press **Save**. The **Save** button stays grey until the number is different from the saved one.
+
+When you open the **HR record** tab again, the saved number is shown in the box. To remove a number, clear the box and press **Save**. A Bangla-digit number you type or scan is stored as ordinary digits.
 
 → If another staff member already has the number, the box says "This card number already belongs to another staff member." Use 1 to 64 letters, numbers or dashes. To add the machine itself: [Settings](../administration/settings.md#task-devices). For students: [Students](students.md#task-card).
 
