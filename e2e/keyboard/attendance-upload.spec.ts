@@ -1,5 +1,10 @@
 import ExcelJS from 'exceljs';
-import { adminApiSession, createStudentsInSection, markableDateIso } from '../api';
+import {
+  adminApiSession,
+  createStudentsInSection,
+  currentAcademicYear,
+  markableDateIso,
+} from '../api';
 import { expect, loggedIn, test } from '../fixtures/test';
 import { t } from '../i18n';
 import { tabUntilFocused } from './keyboard-utils';
@@ -12,7 +17,7 @@ import { tabUntilFocused } from './keyboard-utils';
  * Palette label is typed in Bangla because the e2e locale is `bn`: it is the `bn`
  * label of `attendance.import` in `client-admin/src/action-registry.ts`.
  */
-const IMPORT_LABEL = 'উপস্থিতি আমদানি করুন';
+const IMPORT_LABEL = 'হাজিরা শীট আপলোড করুন';
 const DATE = markableDateIso();
 
 test.use(loggedIn('admin'));
@@ -20,7 +25,14 @@ test.use(loggedIn('admin'));
 test('palette to saved upload with the keyboard alone', async ({ page, request }) => {
   test.setTimeout(120_000);
   const admin = await adminApiSession(request);
-  const chain = await createStudentsInSection(request, admin, 'Kbd Sheet', 2);
+  // Current year: the wizard lists current-year sections only.
+  const chain = await createStudentsInSection(
+    request,
+    admin,
+    'Kbd Sheet',
+    2,
+    await currentAcademicYear(request, admin),
+  );
 
   await page.goto('/dashboard');
   await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
@@ -31,7 +43,8 @@ test('palette to saved upload with the keyboard alone', async ({ page, request }
   await page.keyboard.type(IMPORT_LABEL);
   await expect(page.getByRole('option').first()).toBeVisible();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/\/attendance\/import/);
+  // The wizard itself, not the Uploaded sheets list (`/attendance/imports`).
+  await expect(page).toHaveURL(/\/attendance\/import(\?|$)/);
 
   // Step 1: tick the section, download the sheet.
   await tabUntilFocused(page, `${chain.className} – A`, 120, { tag: 'button' });

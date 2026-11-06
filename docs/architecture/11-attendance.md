@@ -307,8 +307,8 @@ field included, but not while one of these dialogs is open. The palette reaches 
 
 ## 3b. Uploading a sheet (Epic 76)
 
-A teacher or office user can fill a day's marks in a spreadsheet instead of
-the grid. Three steps. Nothing is written until step 3.
+A teacher or admin-level user (anyone with `ATTENDANCE_MARK`; office staff do
+not have it) can fill a day's marks in a spreadsheet instead of the grid. Three steps. Nothing is written until step 3.
 
 ```mermaid
 sequenceDiagram
@@ -318,7 +318,7 @@ sequenceDiagram
     participant DB as Database
 
     U->>A: GET /attendance/import/template?sectionIds=a,b&date=2026-11-02
-    A-->>U: .xlsx, pre-filled, only sections you may write (max 10)
+    A-->>U: .xlsx, pre-filled (max 10 sections)<br/>403 for the whole download if any section is not yours to write
     U->>A: POST /attendance/import/validate (file, max 5 MB, 2000 rows)
     A->>A: Resolve every row, diff against the register
     A->>S: Stage the NEW / CHANGED rows
@@ -347,18 +347,18 @@ Rules that hold:
 Source: `shared/src/types/attendance-import.types.ts`, set in
 `attendance-import.service.ts` `resolveRows`.
 
-| `code`                     | Outcome | Meaning                                                              |
-| -------------------------- | ------- | -------------------------------------------------------------------- |
-| `BAD_STATUS`               | ERROR   | Not `P`/`A`/`L`/`LV` (or `উ`/`অ`/`দে`/`ছু`).                         |
-| `DUPLICATE_ROW`            | ERROR   | Same date, section and roll twice in one sheet.                      |
-| `SECTION_NOT_FOUND`        | ERROR   | Section not in this school.                                          |
-| `DATE_OUTSIDE_YEAR`        | ERROR   | Date is outside the section's academic year.                         |
-| `NOT_ALLOWED_SECTION`      | ERROR   | Caller may not write that section's day register.                    |
-| `NON_WORKING_DAY`          | ERROR   | Holiday or weekly off-day for that class.                            |
-| `FUTURE_DATE`              | ERROR   | Future date while `allowFutureDates` is off.                         |
-| `ROLL_NOT_IN_SECTION`      | ERROR   | No student, or two students, with that roll.                         |
-| `NEEDS_CORRECT_PERMISSION` | ERROR   | Register finalized or past the correction window; caller lacks it.   |
-| `NAME_MISMATCH`            | warning | Name column differs from the roster. The row still saves (D6).       |
+| `code`                     | Outcome | Meaning                                                                    |
+| -------------------------- | ------- | -------------------------------------------------------------------------- |
+| `BAD_STATUS`               | ERROR   | Not `P`/`A`/`L`/`LV` (or `উ`/`অ`/`দে`/`ছু`).                               |
+| `DUPLICATE_ROW`            | ERROR   | Same date, section and roll twice in one sheet.                            |
+| `SECTION_NOT_FOUND`        | ERROR   | Section not in this school's current year, or two sections share the name. |
+| `DATE_OUTSIDE_YEAR`        | ERROR   | Date is outside the section's academic year, or cannot be read.            |
+| `NOT_ALLOWED_SECTION`      | ERROR   | Caller may not write that section's day register.                          |
+| `NON_WORKING_DAY`          | ERROR   | Holiday or weekly off-day for that class.                                  |
+| `FUTURE_DATE`              | ERROR   | Future date. Allowed only with `allowFutureDates` on and status `LV`.      |
+| `ROLL_NOT_IN_SECTION`      | ERROR   | No student, or two students, with that roll.                               |
+| `NEEDS_CORRECT_PERMISSION` | ERROR   | Register finalized or past the correction window; caller lacks it.         |
+| `NAME_MISMATCH`            | warning | Name column differs from the roster. The row still saves (D6).             |
 
 A blank status cell is `UNCHANGED`: the existing mark stays.
 
@@ -379,10 +379,27 @@ The demo seed writes one (`demo-seed/slices/attendance.ts`, `bmsc-primary`):
   "supersedes_import_id": null, // set when "re-upload" replaces an earlier sheet
   "rows": [
     // CHANGED: the sheet overwrote a mark
-    { "date": "<day>", "sectionId": "<uuid>", "roll": 1, "before": "PRESENT", "after": "ABSENT", "outcome": "CHANGED", "recordId": "<uuid>" },
+    {
+      "date": "<day>",
+      "sectionId": "<uuid>",
+      "roll": 1,
+      "before": "PRESENT",
+      "after": "ABSENT",
+      "outcome": "CHANGED",
+      "recordId": "<uuid>",
+    },
     // ERROR: row kept for the history, nothing written
-    { "date": "<day>", "sectionId": "<uuid>", "roll": 41, "before": null, "after": null, "outcome": "ERROR", "recordId": null, "code": "ROLL_NOT_IN_SECTION" }
-  ]
+    {
+      "date": "<day>",
+      "sectionId": "<uuid>",
+      "roll": 41,
+      "before": null,
+      "after": null,
+      "outcome": "ERROR",
+      "recordId": null,
+      "code": "ROLL_NOT_IN_SECTION",
+    },
+  ],
 }
 ```
 
@@ -549,10 +566,10 @@ in 6, `LATE` in 1 and `ABSENT` in 1. With `lateCountsAsPresent` on, he attended
 register**. It is a **write gate only** (D2): it never changes how a mark is
 computed, only who may save one. Period registers ignore it.
 
-| `dailySource`   | Who may write a section's day register                                              | `write_reason` when refused |
-| --------------- | ----------------------------------------------------------------------------------- | --------------------------- |
-| `ANY` (default) | Anyone with section access, as before Epic 76.                                      | never refused               |
-| `CLASS_TEACHER` | The section's class teacher or assistant class teacher.                             | `CLASS_TEACHER_ONLY`        |
+| `dailySource`   | Who may write a section's day register                                               | `write_reason` when refused |
+| --------------- | ------------------------------------------------------------------------------------ | --------------------------- |
+| `ANY` (default) | Anyone with section access, as before Epic 76.                                       | never refused               |
+| `CLASS_TEACHER` | The section's class teacher or assistant class teacher.                              | `CLASS_TEACHER_ONLY`        |
 | `FIRST_PERIOD`  | Class teachers, plus whoever covers period 1 that date (a substitute replaces them). | `FIRST_PERIOD_ONLY`         |
 | `DEVICE`        | Class teachers correct; devices and the sweep fill in. Others are refused.           | `DEVICE_SCHOOL`             |
 
@@ -601,7 +618,16 @@ A teacher who is not this section's class teacher, in a `CLASS_TEACHER` school:
 ```jsonc
 {
   "section": { "id": "<uuid>", "section_name": "A", "class_name": "Class 8" },
-  "session": { "id": null, "date": "<day>", "period_no": null, "state": "DRAFT", "version": 0, "marked_by_user_id": null, "marked_at": null, "finalized_at": null },
+  "session": {
+    "id": "<uuid>",
+    "date": "2026-11-02",
+    "period_no": null,
+    "state": "DRAFT",
+    "version": 2,
+    "marked_by_user_id": "<uuid>",
+    "marked_at": "2026-11-02T02:30:00.000Z",
+    "finalized_at": null,
+  },
   "editable": true,
   "reason_required": false,
   "non_working_day": false,
@@ -609,9 +635,22 @@ A teacher who is not this section's class teacher, in a `CLASS_TEACHER` school:
   "can_write": false,
   "write_reason": "CLASS_TEACHER_ONLY",
   "first_period_today": false,
+  "period_attendance_enabled": false,
   "students": [
-    { "student_id": "<uuid>", "roll_number": 1, "full_name": "…", "status": "ABSENT", "source": "TEACHER", "scanned_at": "2026-11-02T02:05:00.000Z", "suggested_status": null, "correction_count": 0 }
-  ]
+    {
+      "student_id": "<uuid>",
+      "roll_number": 1,
+      "full_name": "…",
+      "record_id": "<uuid>",
+      "status": "ABSENT",
+      "minutes_late": null,
+      "remarks": null,
+      "source": "TEACHER",
+      "scanned_at": "2026-11-02T02:05:00.000Z",
+      "suggested_status": null,
+      "correction_count": 0,
+    },
+  ],
 }
 ```
 
@@ -814,8 +853,9 @@ not atomic (one bad scan must not fail the other 199):
 A reader sends whatever the card carries in `external_ref`. The API looks it up
 in **one query on both columns**: `students.registration_number OR students.card_no`
 (`devices/device-events.service.ts`). If one student's registration number equals
-another's card number, the registration number wins. A staff scan matches
-`staff_profiles.card_no`.
+another's card number, the registration number wins. A staff scan does the
+same on `staff_profiles.employee_id OR staff_profiles.card_no`; the employee id
+wins a tie.
 
 - One card per person (D9). `card_no` is unique per school among live students
   (`UQ_students_tenant_card_no`, ends `AND "deleted_at" IS NULL`) and among

@@ -1,31 +1,36 @@
 import { AttendanceStatus } from '@biddaloy/shared';
-import type { APIRequestContext } from '@playwright/test';
+import type { APIRequestContext, BrowserContext } from '@playwright/test';
 import {
-  adminApiSession,
-  apiSession,
+  createOfferedSubject,
   createStudentsInSection,
+  createTeacher,
+  del,
   get,
   isFridayAnywhere,
+  loginAsFreshUser,
   markableDateIso,
   post,
   put,
   type ApiSession,
+  type ClassSectionChain,
 } from '../api';
-import { expect, loggedIn, test } from '../fixtures/test';
+import { shells } from '../config';
+import { newSchool, type NewSchool } from '../fixtures/new-school';
+import { expect, guest, loggedIn, test } from '../fixtures/test';
 import { t } from '../i18n';
 
 /**
  * [76.5.08] Who saves the daily register (Epic 76 D1, D5, D10, D23), end to end:
- *  1. CLASS_TEACHER source: a teacher who is not the class teacher sees the banner
- *     and no Save; the class teacher still saves.
+ *  1. CLASS_TEACHER source: a subject teacher of a section (not its class teacher) sees the
+ *     banner and no Save.
  *  2. DEVICE source: a student the machine saw but the register marks absent shows
- *     on the check-list, and the register carries the scanned badge.
+ *     on the check-list.
  *  3. Settings > Attendance machines: add a machine, see the key once, revoke it.
  *
- * Serial: tests 1 and 2 flip the tenant's `attendance.dailySource`, restored in a
- * `finally`, so nothing else in this file may run beside them.
+ * Tests 1 and 2 switch `attendance.dailySource`, a school-wide setting. Each runs in a school of
+ * its own (`newSchool`), so a spec on another worker that saves a seeded register never meets
+ * the switched setting, and the device-absent sweep can only reach that throwaway school.
  */
-test.describe.configure({ mode: 'serial' });
 
 const DATE = markableDateIso();
 
@@ -48,73 +53,101 @@ async function setSource(
   expect(response.ok(), `setting dailySource failed: ${response.status()}`).toBe(true);
 }
 
+/** One section of `count` students in a new current academic year of `school`. My sections,
+ * the check-list and a teacher's scope list current-year sections only. */
+async function currentYearSection(
+  school: NewSchool,
+  namePrefix: string,
+  count: number,
+): Promise<ClassSectionChain> {
+  const yearOf = DATE.slice(0, 4);
+  const bounds = { start_date: `${yearOf}-01-01`, end_date: `${yearOf}-12-31` };
+  const year = await post<{ id: string }>(school.api, school.session, '/academic-years', {
+    name: `E2E Year ${Date.now()}`,
+    ...bounds,
+    is_current: true,
+  });
+  return createStudentsInSection(school.api, school.session, namePrefix, count, {
+    id: year.id,
+    ...bounds,
+  });
+}
+
 interface RegisterView {
-  can_write?: boolean;
-  write_reason?: string | null;
+  session: { version: number };
   students: { student_id: string; roll_number: number }[];
 }
 
 test.describe('class teacher source', () => {
-  test.use(loggedIn('teacher'));
+  test.use(guest);
 
-  test('a teacher who is not the class teacher sees the banner and no Save', async ({
-    page,
-    request,
-  }) => {
-    const admin = await adminApiSession(request);
-    await setSource(request, admin, 'CLASS_TEACHER');
+  test('a subject teacher sees the banner and no Save', async ({ browser, playwright }) => {
+    test.setTimeout(120_000);
+    const school = await newSchool(browser, playwright);
+    const teacherApi = await playwright.request.newContext({ baseURL: shells.app.baseURL });
+    let teacherContext: BrowserContext | undefined;
     try {
-      // A section the teacher can open but may not save: found through the API, not hard-coded.
-      const teacher = await apiSession(request, 'teacher');
-      const mine = await get<{ section_id: string }[]>(request, teacher, '/attendance/my-sections');
-      let blocked: string | undefined;
-      for (const s of mine) {
-        const view = await get<RegisterView>(
-          request,
-          teacher,
-          `/attendance/sections/${s.section_id}/register?date=${DATE}`,
-        );
-        if (view.can_write === false) blocked = s.section_id;
-      }
-      test.skip(blocked === undefined, 'the seed has no section this teacher cannot save');
+      const { api, session } = school;
+      const chain = await currentYearSection(school, 'Source', 1);
+      const subject = await createOfferedSubject(api, session, chain, 'E2E Source Subject');
+      const teacher = await createTeacher(api, session, `E2E Subject Teacher ${Date.now()}`);
+      // A subject teacher may open the section, but under CLASS_TEACHER may not save its day register.
+      await post(api, session, `/classes/${chain.classId}/sections/${chain.sectionId}/teachers`, {
+        teacher_id: teacher.teacherId,
+        subject_id: subject.id,
+      });
+      await setSource(api, session, 'CLASS_TEACHER');
 
-      await page.goto(`/attendance/${blocked}?date=${DATE}`);
+      teacherContext = await browser.newContext({
+        storageState: await loginAsFreshUser(
+          teacherApi,
+          shells.app.baseURL,
+          teacher.email,
+          teacher.password,
+        ),
+      });
+      const page = await teacherContext.newPage();
+      await page.goto(`/attendance/${chain.sectionId}?date=${DATE}`);
       await expect(page.getByText(t('attendance.registerBanner.CLASS_TEACHER_ONLY'))).toBeVisible();
       await expect(
         page.getByRole('button', { name: t('attendance.mark.submitOnline') }),
       ).toHaveCount(0);
     } finally {
-      await setSource(request, admin, 'ANY');
+      await teacherContext?.close();
+      await teacherApi.dispose();
+      await school.context.close();
+      await school.api.dispose();
     }
   });
 });
 
 test.describe('device source', () => {
-  test.use(loggedIn('admin'));
+  test.use(guest);
 
-  test('a scanned student marked absent shows on the check-list and the register', async ({
-    page,
-    request,
+  test('a scanned student marked absent shows on the check-list', async ({
+    browser,
+    playwright,
   }) => {
     test.skip(isFridayAnywhere(), 'the school is closed on Friday');
-    test.setTimeout(90_000);
-    const admin = await adminApiSession(request);
-    const chain = await createStudentsInSection(request, admin, 'Scan', 2);
-    const register = await get<RegisterView>(
-      request,
-      admin,
-      `/attendance/sections/${chain.sectionId}/register?date=${DATE}`,
-    );
-    const scanned = register.students[0]!.student_id;
-
-    await setSource(request, admin, 'DEVICE');
+    test.setTimeout(120_000);
+    const school = await newSchool(browser, playwright);
+    const { api, session, page } = school;
+    let deviceId: string | undefined;
     try {
-      const device = await post<{ key: string }>(request, admin, '/attendance/devices', {
-        name: `E2E scanner ${Date.now()}`,
-        kind: 'RFID',
-        roster_access: true,
-      });
-      const scan = await request.post('/api/v1/attendance/device-events', {
+      const chain = await currentYearSection(school, 'Scan', 2);
+      const path = `/attendance/sections/${chain.sectionId}/register`;
+      const before = await get<RegisterView>(api, session, `${path}?date=${DATE}`);
+      const scanned = before.students[0]!.student_id;
+
+      await setSource(api, session, 'DEVICE');
+      const device = await post<{ device: { id: string }; key: string }>(
+        api,
+        session,
+        '/attendance/devices',
+        { name: `E2E scanner ${Date.now()}`, kind: 'RFID', roster_access: true },
+      );
+      deviceId = device.device.id;
+      const scan = await api.post('/api/v1/attendance/device-events', {
         headers: { 'X-Device-Key': device.key },
         data: {
           events: [
@@ -129,10 +162,12 @@ test.describe('device source', () => {
       });
       expect(scan.ok(), `scan failed: ${scan.status()}`).toBe(true);
 
+      // The scan opened today's register and bumped its version: send the version it has now.
+      const afterScan = await get<RegisterView>(api, session, `${path}?date=${DATE}`);
       // The register marks the scanned student absent: the mismatch.
-      await put(request, admin, `/attendance/sections/${chain.sectionId}/register`, {
+      await put(api, session, path, {
         date: DATE,
-        base_version: 0,
+        base_version: afterScan.session.version,
         client_request_id: crypto.randomUUID(),
         entries: [{ student_id: scanned, status: AttendanceStatus.ABSENT }],
       });
@@ -142,7 +177,9 @@ test.describe('device source', () => {
         page.getByText(t('attendance.list.scannedAbsent_one', { count: 1 })).first(),
       ).toBeVisible();
     } finally {
-      await setSource(request, admin, 'ANY');
+      if (deviceId) await del(api, session, `/attendance/devices/${deviceId}`);
+      await school.context.close();
+      await school.api.dispose();
     }
   });
 });
