@@ -327,6 +327,10 @@ GET /public/admission/:slug | PublicAdmissionController | allowlist: none
 GET /public/invoices/:token | PublicInvoiceController | allowlist: none
 GET /public/notices/:token | PublicNoticeController | allowlist: none
 GET /public/notices/:token/files/:fileId | PublicNoticeController | allowlist: none
+GET /public/site/by-host/:host/island/:kind | PublicSiteController | allowlist: none
+GET /public/site/by-host/:host/manifest | PublicSiteController | allowlist: none
+GET /public/site/by-host/:host/media/:key | PublicSiteController | allowlist: none
+GET /public/site/by-host/:host/page/:page | PublicSiteController | allowlist: none
 GET /public/verify/:token | PublicVerifyController | allowlist: none
 GET /reports/catalogue | ReportDefinitionsController | perm: REPORTS_VIEW
 GET /reports/catalogue/:id/definition | ReportDefinitionsController | perm: REPORTS_VIEW
@@ -431,6 +435,8 @@ GET /users/:id | UserController | perm: USER_READ
 GET /users/invitations/batch/:batchId | UserController | perm: USER_CREATE
 GET /users/me | UserController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
 GET /users/me/preferences/notifications | UserController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
+GET /website | SiteConfigController | perm: WEBSITE_MANAGE
+GET /website/themes | SiteConfigController | perm: WEBSITE_MANAGE
 PATCH /academic-years/:id | AcademicYearController | perm: ACADEMIC_YEAR_MANAGE
 PATCH /acr/assessments/:id | AcrAssessmentsController | perm: ACR_WRITE
 PATCH /admission-intakes/:id | IntakeController | perm: ADMISSION_REVIEW
@@ -759,6 +765,8 @@ POST /users/join-requests | UserController | perm: USER_CREATE
 POST /users/me/contact-change | UserController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
 POST /users/me/contact-change/confirm-phone | UserController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
 POST /users/me/leave | UserController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
+POST /website/enabled | SiteConfigController | perm: WEBSITE_MANAGE
+POST /website/publish | SiteConfigController | perm: WEBSITE_MANAGE
 PUT /acr/criteria | AcrCriteriaController | perm: ACR_WRITE
 PUT /attendance/sections/:sectionId/register | AttendanceController | perm: ATTENDANCE_MARK
 PUT /attendance/sections/:sectionId/register-matrix | AttendanceController | perm: ATTENDANCE_MARK
@@ -782,3 +790,4 @@ PUT /staff/:userId/training | TrainingController | perm: STAFF_HR_MANAGE
 PUT /students/:studentId/subject-choices | SubjectChoicesController | perm: STUDENT_UPDATE
 PUT /study-plans/:id/exam-markers | StudyPlansController | perm: SYLLABUS_MANAGE
 PUT /study-plans/:id/lessons | StudyPlansController | perm: SYLLABUS_MANAGE
+PUT /website/draft | SiteConfigController | perm: WEBSITE_MANAGE

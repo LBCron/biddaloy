@@ -254,6 +254,19 @@ export const ALLOWLIST: AllowlistEntry[] = [
     reason:
       '[53.2] D17 — same token credential; stamps link_opened_at on the matching recipient only, never changes notice state.',
   },
+  ...(
+    [
+      ['/public/site/by-host/:host/manifest', 'the manifest'],
+      ['/public/site/by-host/:host/page/:page', 'one published page'],
+      ['/public/site/by-host/:host/island/:kind', 'a live island list'],
+      ['/public/site/by-host/:host/media/:key', 'the logo or a site picture'],
+    ] as const
+  ).map(([path, what]) => ({
+    controller: 'PublicSiteController',
+    method: 'GET',
+    path,
+    reason: `[40.1.04] Reads ${what} for the school-site container. The host name is the only tenant signal; there is no JWT, user or X-Tenant-ID. Unknown host and switched-off site answer one 404 (site.not_found). Throttled via SITE_READ_RATE_LIMIT.`,
+  })),
   {
     controller: 'PublicVerifyController',
     method: 'GET',
