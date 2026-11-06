@@ -170,6 +170,8 @@ Every registry field carries one level. The runner hides a field the caller's ro
 | `FINANCIAL` | amount due, paid, discount         | `FEE_READ` / `PAYMENT_READ`                  |
 | `SENSITIVE` | health note, religion              | ADMIN only                                   |
 
+Registration number, employee ID and attendance **card number** (`card_no`, students and staff) are `PERSONAL`: a card number lets someone clock in as that person, so it is hidden from roles without `STUDENT_READ`. A report gets it by picking the field; no system report shows it by default.
+
 The exact permission per level is finalised in 8.15.19; this table is the contract that ticket implements.
 
 ## 7. Safety net

@@ -55,6 +55,14 @@ export const studentsArea: SubjectAreaDef = {
       { sensitivity: FieldSensitivity.PERSONAL, groupable: false },
     ),
     field(
+      'card_no',
+      T.TEXT,
+      's.card_no',
+      's',
+      { en: 'Card number', bn: 'কার্ড নম্বর' },
+      { sensitivity: FieldSensitivity.PERSONAL, groupable: false },
+    ),
+    field(
       'name',
       T.TEXT,
       's.full_name',
