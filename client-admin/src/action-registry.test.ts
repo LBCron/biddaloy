@@ -61,6 +61,8 @@ const NAV_PATH_TO_ROUTE_ID: Record<string, string> = {
   '/reports/printables?tab=register': '/_staff/reports/printables',
   '/reports/printables?tab=to-print': '/_staff/reports/printables',
   '/students': '/_staff/students/',
+  '/attendance/import': '/_staff/attendance/import',
+  '/attendance/imports': '/_staff/attendance/imports/',
   '/settings#printers-section': '/_staff/settings',
   '/communications/notices/new': '/_staff/communications/notices/new',
   '/communications/send': '/_staff/communications/send',
@@ -148,6 +150,7 @@ const REGISTERED_ACTION_FILES: Record<string, string> = {
   'communications.sendMessage': 'client-admin/src/routes/_staff/communications/send.tsx',
   'communications.sendFeeReminder': 'client-admin/src/routes/_staff/communications/reminders.tsx',
   'attendance.take': 'client-admin/src/routes/_staff/attendance/index.tsx',
+  'attendance.import': 'client-admin/src/routes/_staff/attendance/import.tsx',
   'attendance.register.edit': 'client-admin/src/routes/_staff/attendance/register.tsx',
   'attendance.markStaff': 'client-admin/src/routes/_staff/attendance/staff/index.tsx',
   // Holds <FullPageShell after 52.5.3; registered in advance so the palette-coverage test is satisfied.
@@ -332,6 +335,8 @@ describe('action-registry.ts', () => {
     // DOCUMENT_PRINT is stricter than the printables page's PRINT_HISTORY_READ (the To print
     // tab needs it): the palette must not offer what the person cannot finish.
     'certificates.issue',
+    // [76.4.03] Falls back to `/students` (READ) with no student in context; the edit route needs UPDATE.
+    'students.assignCard',
     'print.toPrint',
     // [66.3] SYLLABUS_MANAGE is stricter than the syllabus page's SYLLABUS_READ
     // gate; the create wizard is the only thing it opens.
