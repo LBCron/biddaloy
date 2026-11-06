@@ -19,6 +19,8 @@ const settingsSearchSchema = z.object({
   buy: z.literal(1).optional().catch(undefined),
   /** 49 W4: bKash sends the admin back with `?section=billing&order=<id>`; the section shows its status. */
   order: z.string().uuid().optional().catch(undefined),
+  /** 76.5: `?section=academics&devices=new` opens the Add attendance machine dialog (palette action). */
+  devices: z.literal('new').optional().catch(undefined),
   /** How the bKash return went; `error` = the server could not confirm it (generic). */
   payment: z.enum(['success', 'cancel', 'failure', 'error']).optional().catch(undefined),
 });
