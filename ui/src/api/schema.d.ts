@@ -10269,6 +10269,159 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/website": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The site: draft, state and address. First call creates it. */
+        get: operations["SiteConfigController_get_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/website/themes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The theme manifests a school can pick from. */
+        get: operations["SiteConfigController_themes_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/website/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save the draft. 400 site.invalid, 409 site.stale. */
+        put: operations["SiteConfigController_saveDraft_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/website/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish the draft. Needs an `Idempotency-Key` header (Rule 25). 409 site.stale if the version or the draft changed. */
+        post: operations["SiteConfigController_publish_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/website/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Switch the public site on or off. On needs a published version. */
+        post: operations["SiteConfigController_setEnabled_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/site/by-host/{host}/manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Theme, nav, announcements and school facts of a published site. */
+        get: operations["PublicSiteController_manifest_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/site/by-host/{host}/page/{page}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One published page: enabled sections in order. */
+        get: operations["PublicSiteController_page_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/site/by-host/{host}/island/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Live list for a client island (notices). Cached 60 s. */
+        get: operations["PublicSiteController_island_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/site/by-host/{host}/media/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The school logo (`logo`) or an uploaded site picture, by media id. */
+        get: operations["PublicSiteController_media_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notices/{id}/sms": {
         parameters: {
             query?: never;
@@ -11075,7 +11228,6 @@ export interface components {
             id: string;
             name: string;
             slug: string;
-            domain: string | null;
             address: string | null;
             phone: string | null;
             email: string | null;
@@ -15920,6 +16072,9 @@ export interface components {
             status: "DRAFT" | "PROCESSED" | "PUBLISHED";
             /** Format: date-time */
             published_at: string | null;
+            /** Format: date-time */
+            website_published_at: string | null;
+            website_show_names: boolean;
             mark_entry_deadline: string | null;
             /** Format: date-time */
             created_at: string;
@@ -15945,6 +16100,9 @@ export interface components {
             status: "DRAFT" | "PROCESSED" | "PUBLISHED";
             /** Format: date-time */
             published_at: string | null;
+            /** Format: date-time */
+            website_published_at: string | null;
+            website_show_names: boolean;
             mark_entry_deadline: string | null;
             /** Format: date-time */
             created_at: string;
@@ -19001,6 +19159,54 @@ export interface components {
             /** Format: date-time */
             editedAt: string | null;
             files: components["schemas"]["PublicNoticeFileDto"][];
+        };
+        SiteDto: {
+            theme: string;
+            palette: string;
+            enabled: boolean;
+            noindex: boolean;
+            subdomain: string;
+            custom_domain?: string | null;
+            custom_domain_status?: string | null;
+            version: number;
+            draft_revision: number;
+            published_at?: string | null;
+            has_published: boolean;
+            draft: {
+                [key: string]: unknown;
+            };
+        };
+        ThemeSummaryDto: {
+            id: string;
+            name: {
+                [key: string]: unknown;
+            };
+            palettes: Record<string, never>[];
+            fonts: {
+                [key: string]: unknown;
+            };
+            defaultTypography: {
+                [key: string]: unknown;
+            };
+            sections: Record<string, never>[];
+            pages: Record<string, never>[];
+        };
+        SaveDraftDto: {
+            /** @description The whole site config. Checked against the theme it names. */
+            config: {
+                [key: string]: unknown;
+            };
+            /** @description The draft_revision this edit started from (409 site.stale if someone saved since). */
+            draft_revision: number;
+        };
+        PublishDto: {
+            /** @description The version this publish started from (409 site.stale if behind). */
+            version: number;
+            /** @description The draft_revision the publisher is looking at (409 site.stale if it changed). */
+            draft_revision: number;
+        };
+        SetEnabledDto: {
+            enabled: boolean;
         };
         SmsRecipientRowDto: {
             id: string;
@@ -45387,6 +45593,254 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    SiteConfigController_get_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SiteConfigController_themes_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThemeSummaryDto"][];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SiteConfigController_saveDraft_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveDraftDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SiteConfigController_publish_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SiteConfigController_setEnabled_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetEnabledDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicSiteController_manifest_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                host: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicSiteController_page_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                host: string;
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicSiteController_island_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                host: string;
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicSiteController_media_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                host: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
             };
         };
     };

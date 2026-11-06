@@ -36,6 +36,7 @@ import { arrivalNoticeSubscriptionsTab, attendanceTabs } from '../tabs/attendanc
 import { hrTabs } from '../tabs/hr';
 import { applicationsTabs } from '../tabs/applications';
 import { noticesTabs } from '../tabs/notices';
+import { websiteTabs } from '../tabs/website';
 import { acrTabs } from '../tabs/people/acr.tab';
 import { incidentsTabs } from '../tabs/people/incidents.tab';
 import { surveysTabs } from '../tabs/people/surveys.tab';
@@ -227,6 +228,11 @@ export const EXPECTED_TABS = [
   'notices',
   'notice_attachments',
   'notice_recipients',
+  // [40.1.08] Epic 40 school website. `staff_web_profiles` depends on `users`.
+  'school_site',
+  'site_posts',
+  'site_enquiries',
+  'staff_web_profiles',
 ] as const;
 
 export type ExpectedTabName = (typeof EXPECTED_TABS)[number];
@@ -307,6 +313,8 @@ export const ALL_TABS: readonly TabSpec<any, any>[] = [
   ...reportsTabs,
   // [53.6.02]
   ...noticesTabs,
+  // [40.1.08]
+  ...websiteTabs,
 ];
 
 export class RegistryError extends Error {

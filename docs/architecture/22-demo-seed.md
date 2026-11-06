@@ -77,8 +77,14 @@ because it derives alerts from everything before it.
 
 ```mermaid
 flowchart LR
-  org --> staff --> students --> student-extras --> routine --> attendance --> fees --> exams --> learning --> people-ops --> comms-print --> applications --> billing --> attention
+  org --> staff --> students --> student-extras --> routine --> attendance --> fees --> exams --> learning --> people-ops --> comms-print --> applications --> billing --> reports --> notices --> website --> website-content --> attention
 ```
+
+The `website` slice (Epic 40, #3621) gives the demo school (`bmsc-high`) a published, switched-on Basic
+site at the subdomain `bmsc-high`. It goes through `SiteConfigService` (draft, publish, switch on), stores two
+1920x1080 WebP hero pictures and a logo through `StorageService`, and adds six teacher cards (three featured)
+picked by `ctx.rng`. When `SITE_TEST_HOST` is set (staging), that host also answers for the school as an ACTIVE
+custom domain. `website-content` is a stub that owes `SitePost` and `SiteEnquiry` to #3638 (40.3.11).
 
 The `billing` slice (Epic 49) gives each of the three branches one PAID seat order (1,400 seats, 12 months, period
 anchor -6 months to +6 months) and one `OFFLINE_BANK` payment for the full amount (`seats * 12 * 1000` paisa).

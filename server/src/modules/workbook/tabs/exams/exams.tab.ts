@@ -31,6 +31,8 @@ export interface ExamRow {
   status: string;
   published_at: string | null;
   mark_entry_deadline: string | null;
+  website_published_at: string | null;
+  website_show_names: boolean;
 }
 
 const columns: readonly ColumnSpec[] = [
@@ -70,6 +72,17 @@ const columns: readonly ColumnSpec[] = [
     type: 'date',
     label: { en: 'Mark entry deadline', bn: 'মার্ক এন্ট্রির শেষ দিন' },
   },
+  // [40.1.08] Epic 40: results shown on the school's public website.
+  {
+    key: 'website_published_at',
+    type: 'datetime',
+    label: { en: 'Published on website at', bn: 'ওয়েবসাইটে প্রকাশের সময়' },
+  },
+  {
+    key: 'website_show_names',
+    type: 'bool',
+    label: { en: 'Show names on website', bn: 'ওয়েবসাইটে নাম দেখানো' },
+  },
 ];
 
 const excluded: readonly string[] = [
@@ -78,9 +91,6 @@ const excluded: readonly string[] = [
   // No workbook tab for academic terms yet (tracked in #856) — a restore
   // leaves this optional relation null, same as any other ref with no tab.
   'academic_term_id',
-  // [40.1.03] Epic 40 website columns; #3621 (40.1.08) turns them into tab columns.
-  'website_published_at',
-  'website_show_names',
 ];
 
 const MAX_LENGTHS: Record<string, number> = {
@@ -121,6 +131,8 @@ export const examsTab: TabSpec<Exam, ExamRow> = {
       status: entity.status,
       published_at: entity.published_at,
       mark_entry_deadline: entity.mark_entry_deadline,
+      website_published_at: entity.website_published_at,
+      website_show_names: entity.website_show_names,
     };
   },
 
@@ -204,6 +216,9 @@ export const examsTab: TabSpec<Exam, ExamRow> = {
         status: values.status as string,
         published_at: (values.published_at as string | null) ?? null,
         mark_entry_deadline: (values.mark_entry_deadline as string | null) ?? null,
+        website_published_at: (values.website_published_at as string | null) ?? null,
+        // A file from before Epic 40 has no such column: the database default (shown) applies.
+        website_show_names: (values.website_show_names as boolean | null) ?? true,
       },
     };
   },
@@ -226,6 +241,12 @@ export const examsTab: TabSpec<Exam, ExamRow> = {
     if (rowPublished !== existingPublished) changed.push('published_at');
     if ((row.mark_entry_deadline ?? null) !== (existing.mark_entry_deadline ?? null))
       changed.push('mark_entry_deadline');
+    const rowWeb = row.website_published_at ?? null;
+    const existingWeb = existing.website_published_at
+      ? existing.website_published_at.toISOString()
+      : null;
+    if (rowWeb !== existingWeb) changed.push('website_published_at');
+    if (row.website_show_names !== existing.website_show_names) changed.push('website_show_names');
     return changed;
   },
 
@@ -244,6 +265,10 @@ export const examsTab: TabSpec<Exam, ExamRow> = {
     exam.status = row.status as Exam['status'];
     exam.published_at = row.published_at ? new Date(row.published_at) : null;
     exam.mark_entry_deadline = row.mark_entry_deadline ?? null;
+    exam.website_published_at = row.website_published_at
+      ? new Date(row.website_published_at)
+      : null;
+    exam.website_show_names = row.website_show_names;
 
     return m.save(Exam, exam);
   },
