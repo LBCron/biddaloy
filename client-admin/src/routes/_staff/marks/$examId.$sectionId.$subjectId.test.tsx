@@ -1,4 +1,4 @@
-import { REGION_BD_BN } from '@biddaloy/ui/i18n';
+import { REGION_BD_EN } from '@biddaloy/ui/i18n';
 import { cleanupTestState, examFactory, renderWithRouter, server } from '@biddaloy/ui/test';
 import { formatNumber } from '@biddaloy/ui/utils';
 import { screen, waitFor, within } from '@testing-library/react';
@@ -194,7 +194,7 @@ describe('/marks/$examId/$sectionId/$subjectId', () => {
     });
     // Never discarded — the typed value stays in the cell.
     // The cell re-renders the kept value in the region's numerals.
-    expect(cell.value).toBe(formatNumber(90, REGION_BD_BN));
+    expect(cell.value).toBe(formatNumber(90, REGION_BD_EN));
 
     await within(screen.getByTestId('save-state-line')).findByText(/All changes saved/, undefined, {
       timeout: 5000,
@@ -217,7 +217,7 @@ describe('/marks/$examId/$sectionId/$subjectId', () => {
     const dialog = await screen.findByRole('dialog');
     await within(dialog).findByRole('alert');
     expect(within(dialog).getByRole('alert').textContent).toContain(
-      `${formatNumber(1, REGION_BD_BN)} blank cell must be filled first`,
+      `${formatNumber(1, REGION_BD_EN)} blank cell must be filled first`,
     );
     expect(within(dialog).getByRole('button', { name: 'Submit' }).hasAttribute('disabled')).toBe(
       true,
@@ -551,7 +551,7 @@ describe('/marks/$examId/$sectionId/$subjectId', () => {
     });
 
     await screen.findByText(
-      `Math · Section Six - A · Half Yearly 2026 · ${formatNumber(1, REGION_BD_BN)} student`,
+      `Math · Section Six - A · Half Yearly 2026 · ${formatNumber(1, REGION_BD_EN)} student`,
     );
     expect(screen.queryByText('No changes yet')).toBeNull();
     expect(screen.queryByTestId('save-state-line')).toBeNull();
@@ -580,10 +580,10 @@ describe('/marks/$examId/$sectionId/$subjectId', () => {
     });
 
     await screen.findByText(
-      `Math · Section Six - A · Half Yearly 2026 · ${formatNumber(1, REGION_BD_BN)} student`,
+      `Math · Section Six - A · Half Yearly 2026 · ${formatNumber(1, REGION_BD_EN)} student`,
     );
     // Desktop only: the keyboard help and the student total.
-    expect(screen.getByText(`Total ${formatNumber(1, REGION_BD_BN)}`)).toBeTruthy();
+    expect(screen.getByText(`Total ${formatNumber(1, REGION_BD_EN)}`)).toBeTruthy();
     expect(screen.getByText('Enter')).toBeTruthy();
   });
 
@@ -611,12 +611,12 @@ describe('/marks/$examId/$sectionId/$subjectId', () => {
     });
 
     await screen.findByText(
-      `Section Six - A · Half Yearly 2026 · ${formatNumber(1, REGION_BD_BN)} student`,
+      `Section Six - A · Half Yearly 2026 · ${formatNumber(1, REGION_BD_EN)} student`,
     );
     expect(screen.queryByText(/English/)).toBeNull();
   });
 
-  it('shows the saved time without seconds, in the tenant numerals', async () => {
+  it('shows the saved time without seconds, with the Bangla locale default numerals', async () => {
     const user = userEvent.setup();
     server.use(
       http.get(GRID_URL, () => HttpResponse.json(baseGrid)),
@@ -631,18 +631,14 @@ describe('/marks/$examId/$sectionId/$subjectId', () => {
       initialEntries: ['/marks/exam-1/sec-1/subj-1'],
       tenantId: 'tenant-1',
       role: 'TEACHER',
-      locale: 'en',
+      locale: 'bn',
     });
 
     await user.type(await screen.findByLabelText('Rafi Ahmed — Written'), '90');
-    const line = await within(screen.getByTestId('save-state-line')).findByText(
-      /All changes saved/,
-      undefined,
-      { timeout: 3000 },
-    );
-    // "<hh>:<mm>" in Bangla digits and no seconds part.
-    expect(line.textContent).toMatch(/[০-৯]{1,2}:[০-৯]{2}(?!:)/);
-    expect(line.textContent).not.toMatch(/:[০-৯]{2}:/);
+    // Bangla UI: the locale-default region gives Bangla digits. "<hh>:<mm>", no seconds part.
+    const saveLine = () => screen.getByTestId('save-state-line').textContent ?? '';
+    await waitFor(() => expect(saveLine()).toMatch(/[০-৯]{1,2}:[০-৯]{2}(?!:)/), { timeout: 3000 });
+    expect(saveLine()).not.toMatch(/:[০-৯]{2}:/);
   });
 
   it('a submitted grid shows a Submitted badge and a date sentence, never the user id', async () => {

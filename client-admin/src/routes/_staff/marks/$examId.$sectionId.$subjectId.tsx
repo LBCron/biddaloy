@@ -37,7 +37,12 @@ import {
   saveMarkBatch,
   type MarkGridCell,
 } from '@biddaloy/ui/hooks';
-import { useRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
+import {
+  RegionConfigProvider,
+  useRegionConfig,
+  useTenantRegionConfig,
+  useTranslation,
+} from '@biddaloy/ui/i18n';
 import { PageContainer } from '@biddaloy/ui/shells';
 import { formatDateTime, formatNumber, formatTime } from '@biddaloy/ui/utils';
 import { createFileRoute, useBlocker, useNavigate } from '@tanstack/react-router';
@@ -86,6 +91,15 @@ function useIsMobile(): boolean {
 }
 
 function MarksEntryPage() {
+  const regionConfig = useTenantRegionConfig();
+  return (
+    <RegionConfigProvider value={regionConfig}>
+      <MarksEntryContent />
+    </RegionConfigProvider>
+  );
+}
+
+function MarksEntryContent() {
   const { examId, sectionId, subjectId } = Route.useParams();
   const { t } = useTranslation('exams');
   const { t: tg, i18n } = useTranslation('grading');

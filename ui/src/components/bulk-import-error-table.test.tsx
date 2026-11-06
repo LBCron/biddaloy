@@ -54,16 +54,25 @@ describe('BulkImportErrorTable', () => {
   });
 
   it('falls back to "Whole row" and "(empty)" when column/value are missing', async () => {
-    await renderTable([error({ column: null })]);
+    // Another row carries a value, so the Value column is shown and this row falls back.
+    await renderTable([error({ column: null }), error({ row: 3, value: 'John' })]);
 
     expect(screen.getByText('Whole row')).toBeTruthy();
     expect(screen.getByText('(empty)')).toBeTruthy();
   });
 
   it('treats an empty-string value the same as a missing one', async () => {
-    await renderTable([error({ value: '' })]);
+    await renderTable([error({ value: '' }), error({ row: 3, value: 'John' })]);
 
     expect(screen.getByText('(empty)')).toBeTruthy();
+  });
+
+  it('hides the Value column when no error carries a value (code-only servers)', async () => {
+    await renderTable([error({ code: 'ABOVE_FULL_MARKS' })]);
+
+    expect(await screen.findByText('Rows with problems')).toBeTruthy();
+    expect(screen.queryByText('Value in your file')).toBeNull();
+    expect(screen.queryByText('(empty)')).toBeNull();
   });
 
   it('only shows the tab column when at least one error has a tab', async () => {
