@@ -8,7 +8,7 @@ import { AppShellPage } from '../pages/app-shell';
 
 /**
  * [24.4.2] EXAM_CONTROLLER journey (#1369, D13, D16): the built-in exam controller
- * runs exams, seat plans and results, can look at marks but never enter them, and
+ * runs exams, seat plans and results, enters marks as backup for an absent teacher (81 D5b), and
  * has no access to fees or settings.
  *
  * Logs in as `exam@biddaloy.test` (seeded by #1368) via `loggedIn()`. The API sets the scene as ADMIN in its own
@@ -27,7 +27,7 @@ async function adminScene(
   return { ctx, session: await adminApiSession(ctx) };
 }
 
-test('runs an exam: create, seat plan, read-only marks, publish result', async ({
+test('runs an exam: create, seat plan, backup mark entry, publish result', async ({
   page,
   playwright,
   baseURL,
@@ -95,6 +95,7 @@ test('runs an exam: create, seat plan, read-only marks, publish result', async (
   // --- scene part 2 (needs the exam id): subject, schedule, room, one saved (unsubmitted) mark
   let subjectId: string;
   let subjectName: string;
+  let componentId: string;
   try {
     const subject = await post<{ id: string; name_bn: string }>(ctx, session, '/subjects', {
       code: `E2EXC-${suffix}`,
@@ -120,6 +121,7 @@ test('runs an exam: create, seat plan, read-only marks, publish result', async (
       pass_marks: '33.00',
       sequence: 1,
     });
+    componentId = component.id;
     const marks = await ctx.patch(`/api/v1/exams/${exam.id}/marks`, {
       headers: { Authorization: `Bearer ${session.token}`, 'X-Tenant-ID': session.tenantId },
       data: {
@@ -147,19 +149,39 @@ test('runs an exam: create, seat plan, read-only marks, publish result', async (
   // Generating lands straight on the new plan.
   await expect(page.getByRole('heading', { name: planName })).toBeVisible();
 
-  // --- 3. marks grid is view-only: disabled cells, no submit button, and the API refuses a write
+  // --- 3. marks grid is editable for the controller (81 D5b): enabled cells, and the API accepts a DRAFT write
   await page.goto(`/marks/${exam.id}/${sectionId}/${subjectId}`);
   await expect(page.getByRole('heading', { name: t('exams.marksGrid.caption') })).toBeVisible();
-  await expect(page.getByRole('textbox', { name: / — Written$/ }).first()).toBeDisabled();
-  await expect(
-    page.getByRole('button', { name: new RegExp(`^${t('exams.submitDialog.confirm')}`) }),
-  ).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: / — Written$/ }).first()).toBeEnabled();
   const controller = await apiSession(page.request, 'EXAM_CONTROLLER');
+  const headers = {
+    Authorization: `Bearer ${controller.token}`,
+    'X-Tenant-ID': controller.tenantId,
+  };
   const write = await page.request.patch(`/api/v1/exams/${exam.id}/marks`, {
-    headers: { Authorization: `Bearer ${controller.token}`, 'X-Tenant-ID': controller.tenantId },
-    data: { section_id: sectionId, subject_id: subjectId, cells: [] },
+    headers,
+    data: {
+      section_id: sectionId,
+      subject_id: subjectId,
+      cells: [
+        { student_id: studentId, component_id: componentId, value: '91.00', status: 'PRESENT' },
+      ],
+    },
   });
-  expect(write.status()).toBe(403);
+  expect(write.status(), await write.text()).toBe(200);
+  // The controller's value is saved (it replaced the admin's 88.00).
+  const grid = await page.request.get(
+    `/api/v1/exams/${exam.id}/marks?section_id=${sectionId}&subject_id=${subjectId}`,
+    { headers },
+  );
+  expect(grid.ok()).toBe(true);
+  expect(await grid.text()).toContain('91');
+  // Reopening a submitted grid stays ADMIN-only.
+  const reopen = await page.request.post(`/api/v1/exams/${exam.id}/marks/reopen`, {
+    headers,
+    data: { section_id: sectionId, subject_id: subjectId },
+  });
+  expect(reopen.status()).toBe(403);
 
   // --- 4. process and publish the result ----------------------------------------
   await page.goto(`/exams/${exam.id}`);

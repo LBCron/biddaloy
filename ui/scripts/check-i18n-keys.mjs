@@ -106,7 +106,11 @@ function walkFiles(dir, out = []) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
       walkFiles(full, out);
-    } else if (SOURCE_EXTENSIONS.some((ext) => entry.name.endsWith(ext))) {
+    } else if (
+      // Test files may look up keys on purpose to prove a key is missing.
+      !/\.(test|spec)\./.test(entry.name) &&
+      SOURCE_EXTENSIONS.some((ext) => entry.name.endsWith(ext))
+    ) {
       out.push(full);
     }
   }

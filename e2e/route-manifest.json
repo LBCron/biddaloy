@@ -234,6 +234,18 @@
       "role": "admin",
       "archetype": "detail"
     },
+
+    {
+      "path": "/marks/$examId/$sectionId/$subjectId/import",
+      "params": {
+        "examId": "seeded",
+        "sectionId": "seeded",
+        "subjectId": "seeded"
+      },
+      "role": "admin",
+      "archetype": "form"
+    },
+
     {
       "path": "/results",
       "role": "admin",

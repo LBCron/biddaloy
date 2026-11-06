@@ -436,14 +436,14 @@ describe('/marks/$examId/$sectionId/$subjectId', () => {
     expect(screen.queryByRole('button', { name: 'Reopen' })).toBeNull();
   });
 
-  it('an exam controller (view only) sees an unsubmitted grid read-only with no submit', async () => {
+  it('an executive (view only) sees an unsubmitted grid read-only with no submit', async () => {
     const user = userEvent.setup();
     server.use(http.get(GRID_URL, () => HttpResponse.json(baseGrid)));
 
     renderWithRouter(routeTree, {
       initialEntries: ['/marks/exam-1/sec-1/subj-1'],
       tenantId: 'tenant-1',
-      role: 'EXAM_CONTROLLER',
+      role: 'EXECUTIVE',
       locale: 'en',
     });
 
@@ -463,6 +463,23 @@ describe('/marks/$examId/$sectionId/$subjectId', () => {
       initialEntries: ['/marks/exam-1/sec-1/subj-1'],
       tenantId: 'tenant-1',
       role: 'TEACHER',
+      locale: 'en',
+    });
+
+    const cell = await screen.findByLabelText<HTMLInputElement>('Rafi Ahmed — Written');
+    expect(cell.disabled).toBe(false);
+    await user.keyboard('{Control>}{Enter}{/Control}');
+    await screen.findByRole('heading', { name: 'Submit this marks list?' });
+  });
+
+  it('an exam controller (backup entry, 81 D5b) edits an unsubmitted grid and can submit', async () => {
+    const user = userEvent.setup();
+    server.use(http.get(GRID_URL, () => HttpResponse.json(baseGrid)));
+
+    renderWithRouter(routeTree, {
+      initialEntries: ['/marks/exam-1/sec-1/subj-1'],
+      tenantId: 'tenant-1',
+      role: 'EXAM_CONTROLLER',
       locale: 'en',
     });
 
@@ -685,5 +702,97 @@ describe('/marks/$examId/$sectionId/$subjectId', () => {
     await screen.findByRole('heading', { name: 'Leave without saving?' });
     await user.click(screen.getByRole('button', { name: 'Stay' }));
     expect(screen.queryByRole('heading', { name: 'Leave without saving?' })).toBeNull();
+  });
+
+  describe('sheet toolbar', () => {
+    const SHEET_URL = '/api/v1/exams/exam-1/marks/sheet';
+    const open = (role: string) =>
+      renderWithRouter(routeTree, {
+        initialEntries: ['/marks/exam-1/sec-1/subj-1'],
+        tenantId: 'tenant-1',
+        role,
+        locale: 'en',
+      });
+
+    it('DRAFT with entry rights shows Download, Upload and Submit in tab order', async () => {
+      server.use(http.get(GRID_URL, () => HttpResponse.json(baseGrid)));
+      open('TEACHER');
+      const download = await screen.findByRole('button', { name: 'Download sheet' });
+      const upload = screen.getByRole('button', { name: 'Upload sheet' });
+      const submit = screen.getByRole('button', { name: /^Submit/ });
+      const order = [download, upload, submit].map((b) =>
+        Array.from(document.querySelectorAll('button')).indexOf(b as HTMLButtonElement),
+      );
+      expect(order).toEqual([...order].sort((a, b) => a - b));
+    });
+
+    it('SUBMITTED grid shows only Download', async () => {
+      server.use(http.get(GRID_URL, () => HttpResponse.json({ ...baseGrid, state: 'SUBMITTED' })));
+      open('TEACHER');
+      await screen.findByRole('button', { name: 'Download sheet' });
+      expect(screen.queryByRole('button', { name: 'Upload sheet' })).toBeNull();
+    });
+
+    it('a read-only role shows only Download', async () => {
+      server.use(http.get(GRID_URL, () => HttpResponse.json(baseGrid)));
+      open('EXECUTIVE');
+      await screen.findByRole('button', { name: 'Download sheet' });
+      expect(screen.queryByRole('button', { name: 'Upload sheet' })).toBeNull();
+    });
+
+    it('Upload opens the import page', async () => {
+      const user = userEvent.setup();
+      server.use(http.get(GRID_URL, () => HttpResponse.json(baseGrid)));
+      const { router } = open('TEACHER') as unknown as {
+        router: { state: { location: { pathname: string } } };
+      };
+      await user.click(await screen.findByRole('button', { name: 'Upload sheet' }));
+      await waitFor(() =>
+        expect(router.state.location.pathname).toBe('/marks/exam-1/sec-1/subj-1/import'),
+      );
+    });
+
+    it('Download calls the sheet endpoint once', async () => {
+      const user = userEvent.setup();
+      const hit = vi.fn();
+      vi.stubGlobal(
+        'URL',
+        Object.assign(URL, { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} }),
+      );
+      server.use(
+        http.get(GRID_URL, () => HttpResponse.json(baseGrid)),
+        http.get(SHEET_URL, () => {
+          hit();
+          return new HttpResponse(new Uint8Array([1]), {
+            headers: { 'content-disposition': 'attachment; filename="m.xlsx"' },
+          });
+        }),
+      );
+      open('TEACHER');
+      await user.click(await screen.findByRole('button', { name: 'Download sheet' }));
+      await waitFor(() => expect(hit).toHaveBeenCalledTimes(1));
+    });
+
+    it('saves staged marks first and downloads nothing when the save fails', async () => {
+      const user = userEvent.setup();
+      const hit = vi.fn();
+      let patched = 0;
+      server.use(
+        http.get(GRID_URL, () => HttpResponse.json(baseGrid)),
+        http.patch(GRID_URL, () => {
+          patched += 1;
+          return HttpResponse.json({ message: 'boom' }, { status: 500 });
+        }),
+        http.get(SHEET_URL, () => {
+          hit();
+          return new HttpResponse(new Uint8Array([1]));
+        }),
+      );
+      open('TEACHER');
+      await user.type(await screen.findByLabelText('Rafi Ahmed — Written'), '90');
+      await user.click(screen.getByRole('button', { name: 'Download sheet' }));
+      await waitFor(() => expect(patched).toBeGreaterThan(0));
+      expect(hit).not.toHaveBeenCalled();
+    });
   });
 });

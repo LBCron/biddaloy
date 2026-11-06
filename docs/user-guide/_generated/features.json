@@ -281,7 +281,11 @@
     "path": "exams-results/marks-entry",
     "route": "/marks",
     "roles": ["ADMIN", "TEACHER", "EXECUTIVE", "EXAM_CONTROLLER"],
-    "routes": ["/marks", "/marks/$examId/$sectionId/$subjectId"]
+    "routes": [
+      "/marks",
+      "/marks/$examId/$sectionId/$subjectId",
+      "/marks/$examId/$sectionId/$subjectId/import"
+    ]
   },
   {
     "id": "examsResults.seatPlans",

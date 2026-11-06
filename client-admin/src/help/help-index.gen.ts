@@ -2118,6 +2118,26 @@ export const HELP_INDEX: HelpIndex = {
     anchor: '',
     knownIssues: 0,
   },
+  'examsResults.marksEntry.action.downloadSheet': {
+    title: { bn: 'পরীক্ষার নম্বর দেওয়া ও জমা দেওয়া', en: 'Entering and submitting exam marks' },
+    summary: {
+      bn: 'পরীক্ষা বেছে নিজের শাখা ও বিষয়ের নম্বর তালিকা খুলুন, প্রতিটি শিক্ষার্থীর নম্বর বা অনুপস্থিত/মওকুফ লিখুন, তারপর তালিকা জমা দিন।',
+      en: "Pick an exam, open the marks list for your section and subject, type each student's marks or mark them absent or exempt, then submit the list.",
+    },
+    path: 'exams-results/marks-entry',
+    anchor: 'task-excel',
+    knownIssues: 0,
+  },
+  'examsResults.marksEntry.action.uploadSheet': {
+    title: { bn: 'পরীক্ষার নম্বর দেওয়া ও জমা দেওয়া', en: 'Entering and submitting exam marks' },
+    summary: {
+      bn: 'পরীক্ষা বেছে নিজের শাখা ও বিষয়ের নম্বর তালিকা খুলুন, প্রতিটি শিক্ষার্থীর নম্বর বা অনুপস্থিত/মওকুফ লিখুন, তারপর তালিকা জমা দিন।',
+      en: "Pick an exam, open the marks list for your section and subject, type each student's marks or mark them absent or exempt, then submit the list.",
+    },
+    path: 'exams-results/marks-entry',
+    anchor: 'task-excel',
+    knownIssues: 0,
+  },
   'examsResults.marksEntry.action.submit': {
     title: { bn: 'পরীক্ষার নম্বর দেওয়া ও জমা দেওয়া', en: 'Entering and submitting exam marks' },
     summary: {
@@ -5125,6 +5145,7 @@ export const HELP_ROUTES = {
   '/exams/templates/$templateId': 'examsResults.examTemplates',
   '/marks': 'examsResults.marksEntry',
   '/marks/$examId/$sectionId/$subjectId': 'examsResults.marksEntry',
+  '/marks/$examId/$sectionId/$subjectId/import': 'examsResults.marksEntry',
   '/exams/seat-plans': 'examsResults.seatPlans',
   '/exams/seat-plans/$planId': 'examsResults.seatPlans',
   '/grading-scales': 'examsResults.gradingScales',

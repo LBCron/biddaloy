@@ -285,18 +285,18 @@ used as a tiebreak when a caller has multiple roles in one tenant and omits
 `RolesGuard` enforces it after `ContextGuard` has resolved which role the
 caller is acting as.
 
-| Role              | Who it is for                           | Data scope (`ROLE_SCOPE`) |
-| ----------------- | --------------------------------------- | ------------------------- |
-| `SUPER_ADMIN`     | Platform operator                       | `TENANT`                  |
-| `ADMIN`           | School head / IT admin                  | `TENANT`                  |
-| `ACCOUNTANT`      | Fees and payments                       | `TENANT`                  |
-| `EXECUTIVE`       | Principal / management, read-mostly     | `TENANT`                  |
-| `OFFICE_STAFF`    | Front-office clerk: admissions, records | `TENANT`                  |
-| `EXAM_CONTROLLER` | Runs exams, marks and results           | `TENANT`                  |
-| `COMMITTEE`       | Governing / admission committee member  | `TENANT`                  |
-| `TEACHER`         | Classroom teacher                       | `ASSIGNED_SECTIONS`       |
-| `PARENT`          | Guardian                                | `FAMILY`                  |
-| `STUDENT`         | Learner                                 | `SELF`                    |
+| Role              | Who it is for                                                                        | Data scope (`ROLE_SCOPE`) |
+| ----------------- | ------------------------------------------------------------------------------------ | ------------------------- |
+| `SUPER_ADMIN`     | Platform operator                                                                    | `TENANT`                  |
+| `ADMIN`           | School head / IT admin                                                               | `TENANT`                  |
+| `ACCOUNTANT`      | Fees and payments                                                                    | `TENANT`                  |
+| `EXECUTIVE`       | Principal / management, read-mostly                                                  | `TENANT`                  |
+| `OFFICE_STAFF`    | Front-office clerk: admissions, records                                              | `TENANT`                  |
+| `EXAM_CONTROLLER` | Runs exams, marks and results; enters marks as backup for an absent teacher (81 D5b) | `TENANT`                  |
+| `COMMITTEE`       | Governing / admission committee member                                               | `TENANT`                  |
+| `TEACHER`         | Classroom teacher                                                                    | `ASSIGNED_SECTIONS`       |
+| `PARENT`          | Guardian                                                                             | `FAMILY`                  |
+| `STUDENT`         | Learner                                                                              | `SELF`                    |
 
 `SUPER_ADMIN`'s `TENANT` scope does not open a school's own data (marks,
 attendance, homework, performance): `hasTenantDataScope` in
@@ -744,6 +744,12 @@ flowchart TD
 - **Surprise:** `HomeworkService.findOne` gates both the homework detail read and its edits, so a read-only widening there would have opened writes. **Fix:** homework list and detail stay teaching-only; coordinators get the read-only analytics rollups. **Rule candidate:** before passing `includeCoordinated` to a gate, grep its callers for a write path.
 - **Surprise:** `GET /students/:id` goes through `FamilyAccessService.assertLinked`, the same gate fees and invoices use. **Fix:** an `opts.includeCoordinated` on `assertLinked` that only the student detail passes; the student list and `GET /students/ids` pass the flag to `sectionScope` (D5 keeps money routes teaching-only).
 - **Rule:** a coordinator gets the listed reads only; they never change attendance, marks or student records. Their one write is the reminder they send through `POST /coordination/alerts`. The enforcing test is `server/src/coordinator-scope.e2e-spec.ts`; it lists the widened reads and the unchanged edit routes in `server/test/helpers/coordinator-scope-routes.ts`.
+
+## Learning: D16 reversal, controller gets MARK_ENTER (Epic 81, 2026-11-05)
+
+- **Surprise:** reversing D16 touched far more than the permission map. The Opus review of #3466 found stale references in `new-roles-narrowings.e2e-spec.ts`, `permission-matrix.e2e-spec.ts`, a comment in `marks-authorization.util.ts`, the exam-controller journey (it sent `cells: []`, which `@ArrayNotEmpty` rejects once the role can reach the route), and three bn/en user-guide page pairs. **Cost:** a second review pass after the first one declared done. **Fix:** every stale reference updated in #3466. **Rule candidate:** when a permission changes hands, grep the permission name AND the reason text; guide prose, comments and test titles assert the old rule in words, not in identifiers.
+- **Surprise:** the first hunt only grepped the permission name, so it missed everything that stated the rule in prose. **Rule candidate:** treat "who may do X" as a sentence to search for (both languages for guide pages), not only a constant.
+- **Note:** #3467 (usability test) is SKIPPED by decision D1, because it needs real users. W1 is server-only and may start; W3 stays gated on a real usability run.
 
 ## Why this deviated from the original plan
 

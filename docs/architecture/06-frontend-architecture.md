@@ -676,6 +676,34 @@ part of any registry above. Likewise a tenant renaming "Section" to
 "Batch" (Epic 35.0's label overrides) changes what a route's nav label
 _says_, not whether it's registered.
 
+## Marks-sheet import hooks (Epic 81)
+
+Three hooks in `ui/src/hooks/exams.ts` wrap the three sheet routes. A screen
+only calls them; it never builds a request.
+
+```mermaid
+flowchart LR
+  A[useDownloadMarksSheet] -->|saves .xlsx| B[teacher fills it]
+  B --> C[useValidateMarksSheet]
+  C -->|PreviewResult: errors + counts + changes| D{any cell staged?}
+  D -- "yes (row errors allowed, D7)" --> E[useCommitMarksSheet]
+  D -- "no: staging_id ''" --> B
+  E -->|Idempotency-Key, retry false| F[grid + progress refetch]
+```
+
+- `useValidateMarksSheet` returns the shared `PreviewResult`, so
+  `BulkUploadPreview` can show it. The server sends row errors as codes, never
+  prose; the screen translates each code from `marksImport.errors.<CODE>`.
+  `staging_id` is `''` only when no cell was staged (every row errored, or
+  nothing changed). Otherwise the good cells are staged and Save stays on,
+  even next to row errors (D7). Whole-file problems are a 400 with
+  `details.code` (`IMPORT_FILE_*`, `WRONG_SHEET`, `DUPLICATE_COMPONENT`) or a
+  code-less 413; the import page maps each to `marksImport.errors.*`.
+- `useCommitMarksSheet` follows Rule 25: `retry: false`, one `Idempotency-Key`
+  per attempt (`useIdempotencyKey`), rotated on success.
+- Strings: `marksImport` namespace (en + bn) and `exams.marksSheet.*` for the
+  two buttons.
+
 ## Testing
 
 Vitest for unit/component tests (colocated `*.test.tsx`), Playwright for

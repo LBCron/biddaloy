@@ -222,7 +222,7 @@ When you give a duty, these things change in the teacher's app. They are checked
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | [Take attendance](../attendance/attendance.md) | Only the sections given to them                                                                                                                                                |
 | See the student list                           | Only the students of their sections. With no duty, the list is empty                                                                                                           |
-| Write marks                                    | Only for their subject, as **Subject teacher**. A **Class teacher** and an **Assistant class teacher** can see the marks of every subject of the section but cannot write them |
+| Write marks                                    | Only for their subject, as **Subject teacher**. A **Class teacher** and an **Assistant class teacher** can see the marks of every subject of the section but cannot write them. The **Exam controller** can write marks in any list as a backup when a teacher is away, with no duty given here |
 
 **One condition:** the duties that count for a teacher are those on a class of the current academic year. (For marks there is one exception: if a class of the previous year has a draft exam, that works too.) The **Class** list on this page does not show the academic year; check first whether a class is of the current year, or the teacher will see nothing even after you give the duty. (Not yet run in the app; taken from the code.)
 

@@ -196,6 +196,7 @@ const REGISTERED_ACTION_FILES: Record<string, string> = {
   'routines.addSubstitution': `${R}_staff/routines/-substitution-dialog.tsx`,
   'routines.copyLastYearRoutine': 'client-admin/src/routes/_staff/routines/review.tsx',
   'results.enterMarks': 'client-admin/src/routes/_staff/marks/index.tsx',
+  'marks.uploadSheet': `${R}_staff/marks/$examId.$sectionId.$subjectId_.import.tsx`,
   'results.process': 'client-admin/src/routes/_staff/results/-process-dialog.tsx',
   'results.publish': 'client-admin/src/routes/_staff/results/-publish-dialog.tsx',
   'results.sendSms': 'client-admin/src/routes/_staff/results/-send-result-sms-dialog.tsx',
@@ -324,6 +325,8 @@ describe('action-registry.ts', () => {
   // `action-registry.ts`'s comment on those three entries.
   const ROUTE_PERMISSION_EXCEPTIONS = new Set([
     'programs.add',
+    // [81.3.3] Uploading marks is MARK_ENTER; `/marks` is MARK_VIEW.
+    'marks.uploadSheet',
     'programs.enrol',
     'fines.log',
     'fines.generate',
@@ -482,6 +485,31 @@ describe('action-registry.ts', () => {
         '/students/s1?tab=documents&issue=pick',
       );
       expect(target('certificates.issue')).toBe('/students');
+    });
+  });
+
+  describe('[81.3.3] marks.uploadSheet', () => {
+    const action = ACTIONS.find((a) => a.id === 'marks.uploadSheet');
+    const target = (params?: { examId?: string; sectionId?: string; subjectId?: string }) => {
+      let to = '';
+      action!.run({ navigate: (o) => (to = o.to), ...(params ? { params } : {}) });
+      return to;
+    };
+
+    it('needs MARK_ENTER', () => {
+      expect(action?.permission).toBe(Permission.MARK_ENTER);
+    });
+    it('is greyed out off an exam route (context: exam)', () => {
+      expect(action?.context).toEqual(['exam']);
+    });
+    it('on a grid route opens that grid’s import page', () => {
+      expect(target({ examId: 'e1', sectionId: 's1', subjectId: 'u1' })).toBe(
+        '/marks/e1/s1/u1/import',
+      );
+    });
+    it('elsewhere (or on a partial route) opens the marks list', () => {
+      expect(target()).toBe('/marks');
+      expect(target({ examId: 'e1' })).toBe('/marks');
     });
   });
 

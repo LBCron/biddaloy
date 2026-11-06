@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  GoneException,
   HttpException,
   PayloadTooLargeException,
 } from '@nestjs/common';
@@ -104,6 +105,22 @@ function mapImportFileError(exception: unknown): HttpException | null {
   return new BadRequestException({
     message: exception.message,
     details: { code: exception.code },
+  });
+}
+
+// [81.2.1] Marks sheet import. Fixed sentences, no id in them (Rules 23/24); the code is what
+// the screen branches on.
+export function marksGridSubmitted(): ConflictException {
+  return new ConflictException({
+    message: 'This marks list is submitted. Ask an admin to reopen it before uploading a sheet.',
+    details: { code: 'GRID_SUBMITTED' },
+  });
+}
+
+export function marksSheetExpired(): GoneException {
+  return new GoneException({
+    message: 'This upload has expired. Upload the sheet again.',
+    details: { code: 'MARKS_SHEET_EXPIRED' },
   });
 }
 

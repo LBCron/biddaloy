@@ -81,6 +81,8 @@ export class MarksService {
     role: string,
     userId: string,
     context: RequestContext = { ip: null, userAgent: null },
+    /** Where the write came from; recorded in the audit row's `new_values`. */
+    source: 'GRID' | 'SHEET' = 'GRID',
   ): Promise<{ cells: SavedMarkCell[] }> {
     const exam = await this.examRepo.findOne({
       where: { id: examId, tenant_id: tenantId, deleted_at: IsNull() },
@@ -172,7 +174,7 @@ export class MarksService {
     }
 
     try {
-      await this.writeCells(examId, dto, tenantId, userId, context, exam.status);
+      await this.writeCells(examId, dto, tenantId, userId, context, exam.status, source);
     } catch (err) {
       // The grid lock serializes every write to a cell, so this only
       // fires in an edge the lock can't see (e.g. the student was moved
@@ -220,6 +222,7 @@ export class MarksService {
     userId: string,
     context: RequestContext,
     seenStatus: ExamStatus,
+    source: 'GRID' | 'SHEET',
   ): Promise<void> {
     await this.repo.manager.transaction(async (manager) => {
       // Exam first, then grid — the one lock order every path uses. FOR
@@ -333,6 +336,7 @@ export class MarksService {
             section_id: dto.section_id,
             subject_id: dto.subject_id,
             cell_count: dto.cells.length,
+            source,
             cells: newCells,
           },
         },

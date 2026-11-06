@@ -45,6 +45,7 @@ import { ExamTemplatesController } from './exam-templates.controller';
 import { SubjectChoicesService } from '../students/subject-choices.service';
 import { SubjectChoicesController } from '../students/subject-choices.controller';
 import { MarksService } from './marks.service';
+import { MarksImportService } from './marks-import.service';
 import { MarkGridService } from './mark-grid.service';
 import { MarksController } from './marks.controller';
 import { AttendanceComponentService } from './attendance-component.service';
@@ -141,6 +142,7 @@ import {
     ExamTemplatesService,
     SubjectChoicesService,
     MarksService,
+    MarksImportService,
     MarkGridService,
     AttendanceComponentService,
     MarksAuthorizationService,

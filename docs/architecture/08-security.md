@@ -112,8 +112,8 @@ The layers diagram above shows where most of these rules sit on a request's way 
 
 - **Rule.** An upload is accepted on its leading bytes (`matchesDeclaredType` in `server/src/modules/storage/file-signature.ts`), never on the client's mimetype. An xlsx goes through `xlsx-guard.util.ts` before parsing.
 - **Why.** The mimetype is client-sent; a zip bomb hid behind a valid header (75.8, #2330).
-- **Example.** A `.png` whose bytes are a PDF → `400 File content does not match its declared type`.
-- **Test.** `homework-submission.controller.e2e-spec.ts`, `xlsx-guard.util.spec.ts`.
+- **Example.** A `.png` whose bytes are a PDF → `400 File content does not match its declared type`. The marks sheet upload (`POST /exams/:examId/marks/sheet/validate`, 81.0) is checked by `xlsx-guard.util.ts` (which refuses a non-zip, so it is the signature check) before the parser; a `.csv` is read as plain text, as in the homework bulk upload.
+- **Test.** `homework-submission.controller.e2e-spec.ts`, `xlsx-guard.util.spec.ts`, `marks-sheet.controller.e2e-spec.ts`.
 
 ### Rule 7: Outbound HTTP goes through the SSRF guard or a reviewed fixed host
 
@@ -200,12 +200,17 @@ flowchart LR
 
 ### Rule 15: Redis down has a written answer per route
 
-- **Rule.** When Redis is down, routes marked `@FailClosedWithoutRedis()` (sign-in, OTP, reset, step-up, contact change) answer 503. The throttler and lockout fail open everywhere else. Every route on an `/auth*` or `/account*` controller is listed as fail-closed or fail-open in `server/test/helpers/redis-outage-routes.ts`. A down Redis raises a platform alert: a SUPER_ADMIN banner plus SMS.
+- **Rule.** When Redis is down, routes marked `@FailClosedWithoutRedis()` (sign-in, OTP, reset, step-up, contact change) answer 503. The throttler and lockout fail open everywhere else. Every route on an `/auth*` or `/account*` controller, and on `MarksController` (sheet import, 81 D21), is listed as fail-closed or fail-open in `server/test/helpers/redis-outage-routes.ts`. A down Redis raises a platform alert: a SUPER_ADMIN banner plus SMS.
 - **Why.** "Open everywhere" means unlimited password guessing; "closed everywhere" takes the app down (D4, D4b, D15, 75.18, 75.34).
 - **Example.** `POST /auth/login` with Redis down → `503`; `POST /auth/refresh` → served. The public notice link routes (`/public/notices/:token*`) are not `/auth*` or `/account*`: they stay open without Redis (the throttle fails open, #3374 D29).
 - **Test.** `app-throttler.guard.spec.ts`, `app-throttler.guard.e2e-spec.ts`, `route-guard-coverage.e2e-spec.ts`, `platform-alerts.service.spec.ts`.
 
-**The one route family that fails open on purpose: `Idempotency-Key`.** A double-click or a retry of a send or create must not send twice. `IdempotencyInterceptor` keeps the first answer in Redis for 24 hours and replays it. If Redis is down the request runs unprotected and an error is logged, because a closed route would stop a school from messaging anyone at all. Routes: `communications/send`, `reminder/bulk`, `reminder/single/:studentId`, `invoices/:id/send`, `promotions` (create), `students` (create), `final-results` (create), `final-results/:id/sms` (the key is required: no key is a 400). Test: `idempotency.interceptor.spec.ts`, `reminders.e2e-spec.ts`.
+| Marks sheet route (81 D21)                 | Redis down      | Why                                                                                           |
+| ------------------------------------------ | --------------- | --------------------------------------------------------------------------------------------- |
+| `POST /exams/:examId/marks/sheet/validate` | 503 fail-closed | The parsed diff is staged in Redis; without it nothing can be committed.                      |
+| `POST /exams/:examId/marks/sheet/commit`   | 503 fail-closed | It consumes the staged diff once; the `Idempotency-Key` interceptor still fails open (below). |
+
+**The one route family that fails open on purpose: `Idempotency-Key`.** A double-click or a retry of a send or create must not send twice. `IdempotencyInterceptor` keeps the first answer in Redis for 24 hours and replays it. If Redis is down the request runs unprotected and an error is logged, because a closed route would stop a school from messaging anyone at all. Routes: `communications/send`, `reminder/bulk`, `reminder/single/:studentId`, `invoices/:id/send`, `promotions` (create), `students` (create), `final-results` (create), `final-results/:id/sms` (the key is required: no key is a 400), `exams/:examId/marks/sheet/commit`. Test: `idempotency.interceptor.spec.ts`, `reminders.e2e-spec.ts`.
 
 ```mermaid
 flowchart LR
@@ -266,6 +271,8 @@ flowchart LR
 - **Why.** Guard changes are easy to miss in a diff (D21). A `/platform/*` route also needs `PlatformSuperAdminGuard`, which only this snapshot shows.
 - **Example.** `GET /api/v1/platform/alerts  401 PASS 403 …` (`TENANT_SA` 403).
 - **Test.** `server/src/route-status-snapshot.e2e-spec.ts`. See `server/CLAUDE.md` "Route status snapshot".
+- **Log.** 2026-11-05 [81.0.1] D5b: `PATCH /exams/:examId/marks` and `POST /exams/:examId/marks/submit` flip `EXAM_CONTROLLER` 403 → PASS (it now holds `MARK_ENTER`, a backup for an absent teacher). Teacher scope, other roles and other routes unchanged.
+- **Log.** 2026-11-06 [81.2] D5a/D21: new routes `GET /exams/:examId/marks/sheet` (`MARK_VIEW`), `POST …/marks/sheet/validate` and `POST …/marks/sheet/commit` (`MARK_ENTER`; the two writes pass for `ADMIN`, `TEACHER` and `EXAM_CONTROLLER`; `EXECUTIVE` and every other role get 403). Lines are in `route-status.snapshot.txt`.
 
 ### Rule 21: CI actions and images are pinned
 
@@ -316,6 +323,7 @@ flowchart LR
 ```
 
 - **Test.** `ui/src/hooks/mutation-retry.guard.spec.ts`, `server/src/common/idempotency/idempotency.interceptor.spec.ts`, `e2e/journeys/double-submit.spec.ts` (registry: `double-submit.registry.ts`).
+- **Log.** 2026-11-06 [81.2] `POST /exams/:examId/marks/sheet/commit` carries `IdempotencyInterceptor`; the mutation default of `retry: false` applies.
 
 ### Rule 26: Money is compared in whole paisa, with DB CHECKs behind it
 

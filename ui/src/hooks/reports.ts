@@ -126,7 +126,23 @@ function toExportParams(filters: object, format: ListExportFormat): Record<strin
   return params;
 }
 
-function filenameFromContentDisposition(header: string | undefined, fallback: string): string {
+/**
+ * Express `res.attachment()` sends two names: `filename="…"` with every non-Latin-1 character
+ * turned into `?`, and the real one as `filename*=UTF-8''…` (RFC 5987/6266). Prefer the real one,
+ * or a Bangla name downloads as `????.xlsx`.
+ */
+export function filenameFromContentDisposition(
+  header: string | undefined,
+  fallback: string,
+): string {
+  const utf8 = header?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  if (utf8) {
+    try {
+      return decodeURIComponent(utf8.trim());
+    } catch {
+      // A malformed %-escape: use the plain filename= below.
+    }
+  }
   const match = header?.match(/filename="?([^";]+)"?/i);
   return match?.[1] ?? fallback;
 }
@@ -143,7 +159,7 @@ async function tooLargeFromBody(body: unknown): Promise<ExportTooLargeError | nu
   }
 }
 
-function saveBlob(blob: Blob, filename: string): void {
+export function saveBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;

@@ -24,8 +24,7 @@ export const NOT_IN_NAV: Record<string, string> = {
   '/select-school': 'tenant/role switcher, reached before the staff sidebar itself renders',
   '/i/$token': 'invitation-accept route reached via a tokenized email link, not signed-in nav',
   '/v/$token': "[32.3.9] public verify page opened by scanning an ID card's QR code, signed-out",
-  '/n/$token':
-    '[53] public notice page, opened signed-out via a shared link, not in any nav',
+  '/n/$token': '[53] public notice page, opened signed-out via a shared link, not in any nav',
   '/admission/$slug/':
     '[27.11] public admission-form route, opened signed-out via a school-specific link',
   '/admission/$slug/status':
@@ -97,6 +96,8 @@ export const NOT_IN_NAV: Record<string, string> = {
   '/_staff/exams/seat-plans/$planId': 'detail route reached from the seat plans list',
   '/_staff/marks/$examId/$sectionId/$subjectId':
     'detail route reached from /marks or the exam Progress tab',
+  '/_staff/marks/$examId/$sectionId/$subjectId_/import':
+    'upload page reached from the marks list toolbar',
   '/_staff/results/$examId/$studentId':
     'report card, reached from the exam Results tab or /results, not its own sidebar item',
   '/_staff/results/final/$finalResultId': 'detail route reached from the final results list',

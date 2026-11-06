@@ -138,10 +138,10 @@ describe('MarksAuthorizationService per-role table', () => {
     [UserRole.EXECUTIVE, false, true],
     [UserRole.ACCOUNTANT, false, false],
     // SUPER_ADMIN is out of tenant data scope, reads and writes, until product
-    // decides (D-N); EXAM_CONTROLLER reads only (D16); OFFICE_STAFF and COMMITTEE
+    // decides (D-N); EXAM_CONTROLLER writes as teacher backup (81 D5b); OFFICE_STAFF and COMMITTEE
     // hold no mark permission, so COMMITTEE never reaches marks (D9).
     [UserRole.SUPER_ADMIN, false, false],
-    [UserRole.EXAM_CONTROLLER, false, true],
+    [UserRole.EXAM_CONTROLLER, true, true],
     [UserRole.OFFICE_STAFF, false, false],
     [UserRole.COMMITTEE, false, false],
     [UserRole.TEACHER, false, false],

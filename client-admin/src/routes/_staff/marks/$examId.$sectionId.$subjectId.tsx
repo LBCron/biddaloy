@@ -22,6 +22,7 @@ import {
   Skeleton,
   StatusBadge,
   TableCount,
+  toast,
 } from '@biddaloy/ui/components';
 import {
   useActiveRole,
@@ -31,6 +32,7 @@ import {
   useMarkGrid,
   useAutosave,
   useReopenMarkGrid,
+  useDownloadMarksSheet,
   useSubmitMarkGrid,
   saveMarkBatch,
   type MarkGridCell,
@@ -38,13 +40,15 @@ import {
 import { useRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { PageContainer } from '@biddaloy/ui/shells';
 import { formatDateTime, formatNumber, formatTime } from '@biddaloy/ui/utils';
-import { createFileRoute, useBlocker } from '@tanstack/react-router';
+import { createFileRoute, useBlocker, useNavigate } from '@tanstack/react-router';
 import {
   CircleAlertIcon,
   CircleCheckIcon,
   CircleDashedIcon,
+  DownloadIcon,
   LoaderCircleIcon,
   SendIcon,
+  UploadIcon,
 } from 'lucide-react';
 import * as React from 'react';
 
@@ -85,6 +89,7 @@ function MarksEntryPage() {
   const { examId, sectionId, subjectId } = Route.useParams();
   const { t } = useTranslation('exams');
   const { t: tg, i18n } = useTranslation('grading');
+  const { t: tCommon } = useTranslation('common');
   const config = useRegionConfig();
   const isMobile = useIsMobile();
   // Context for the subtitle. Both reads are allowed for a teacher (the exam
@@ -100,11 +105,13 @@ function MarksEntryPage() {
   // Entering and submitting marks both need MARK_ENTER (the controller's own
   // gate for PATCH and POST submit), not EXAM_MANAGE — a TEACHER holds
   // MARK_ENTER for their own sections without holding EXAM_MANAGE. A
-  // MARK_VIEW-only role (EXAM_CONTROLLER, EXECUTIVE) sees the grid read-only.
+  // MARK_VIEW-only role (EXECUTIVE) sees the grid read-only.
   const canEnter = useHasPermission(Permission.MARK_ENTER);
 
   const gridQuery = useMarkGrid(examId, sectionId, subjectId);
   const submitGrid = useSubmitMarkGrid(examId, sectionId, subjectId);
+  const downloadSheet = useDownloadMarksSheet(examId, sectionId, subjectId);
+  const navigate = useNavigate();
   const reopenGrid = useReopenMarkGrid(examId, sectionId, subjectId);
   const submitted = gridQuery.data?.state === 'SUBMITTED';
   // One gate for the Submit button and its Ctrl/Cmd+Enter shortcut.
@@ -131,6 +138,15 @@ function MarksEntryPage() {
     },
     [autosaveStage],
   );
+
+  // The sheet is built from what the server has, so save staged marks first;
+  // if that fails the save-state line shows why and nothing is downloaded.
+  async function downloadAfterSave() {
+    if (!(await autosave.flush())) return;
+    downloadSheet.mutate(undefined, {
+      onError: () => toast.error(tCommon('errors.generic')),
+    });
+  }
 
   // Submit locks the grid server-side, so any mark still staged (in the
   // debounce window, in flight, or failed) would be rejected afterwards and
@@ -281,20 +297,50 @@ function MarksEntryPage() {
             </p>
           )}
         </div>
-        {canSubmit && (
-          <div className="flex w-full shrink-0 items-center gap-2 md:w-auto">
-            <Button
-              type="button"
-              className="flex-1 md:flex-none"
-              aria-keyshortcuts="Control+Enter"
-              onClick={() => setSubmitOpen(true)}
-            >
-              <SendIcon aria-hidden="true" />
-              {t('submitDialog.confirm')}
-            </Button>
-            <HelpHint helpId="examsResults.marksEntry.action.submit" />
-          </div>
-        )}
+        <div className="flex w-full shrink-0 flex-wrap items-center gap-2 md:w-auto">
+          {gridQuery.data !== undefined && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                loading={downloadSheet.isPending}
+                onClick={() => void downloadAfterSave()}
+              >
+                <DownloadIcon aria-hidden="true" />
+                {t('marksSheet.download')}
+              </Button>
+              <HelpHint helpId="examsResults.marksEntry.action.downloadSheet" />
+            </>
+          )}
+          {canSubmit && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  void navigate({
+                    to: '/marks/$examId/$sectionId/$subjectId/import',
+                    params: { examId, sectionId, subjectId },
+                  })
+                }
+              >
+                <UploadIcon aria-hidden="true" />
+                {t('marksSheet.upload')}
+              </Button>
+              <HelpHint helpId="examsResults.marksEntry.action.uploadSheet" />
+              <Button
+                type="button"
+                className="flex-1 md:flex-none"
+                aria-keyshortcuts="Control+Enter"
+                onClick={() => setSubmitOpen(true)}
+              >
+                <SendIcon aria-hidden="true" />
+                {t('submitDialog.confirm')}
+              </Button>
+              <HelpHint helpId="examsResults.marksEntry.action.submit" />
+            </>
+          )}
+        </div>
       </header>
 
       {submitted && (

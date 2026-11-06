@@ -122,3 +122,24 @@ export type FinalResultRounding = (typeof FinalResultRounding)[keyof typeof Fina
 /** Letter grade for one conduct item on a report card. */
 export const ConductGrade = { A: 'A', B: 'B', C: 'C', D: 'D' } as const;
 export type ConductGrade = (typeof ConductGrade)[keyof typeof ConductGrade];
+
+/** Why one row of an uploaded marks sheet was refused (81.x). The parser raises
+ * `INVALID_VALUE` and `DUPLICATE_ROW`; the import service raises the rest. */
+export const MarksSheetRowErrorCode = {
+  NOT_IN_SECTION: 'NOT_IN_SECTION',
+  ABOVE_FULL_MARKS: 'ABOVE_FULL_MARKS',
+  INVALID_VALUE: 'INVALID_VALUE',
+  UNKNOWN_COMPONENT: 'UNKNOWN_COMPONENT',
+  DERIVED_COMPONENT: 'DERIVED_COMPONENT',
+  DUPLICATE_ROW: 'DUPLICATE_ROW',
+} as const;
+export type MarksSheetRowErrorCode =
+  (typeof MarksSheetRowErrorCode)[keyof typeof MarksSheetRowErrorCode];
+
+/** Why a whole marks sheet was refused, beyond the generic `ImportFileErrorCode`s (D13). */
+export const MarksSheetFileErrorCode = {
+  WRONG_SHEET: 'WRONG_SHEET',
+  DUPLICATE_COMPONENT: 'DUPLICATE_COMPONENT',
+} as const;
+export type MarksSheetFileErrorCode =
+  (typeof MarksSheetFileErrorCode)[keyof typeof MarksSheetFileErrorCode];

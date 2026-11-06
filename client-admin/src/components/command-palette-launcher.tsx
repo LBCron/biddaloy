@@ -448,7 +448,12 @@ export function CommandPaletteLauncher({
       const action = actions.find((candidate) => candidate.id === resultId);
       action?.run({
         navigate: (opts) => void navigate({ to: opts.to }),
-        params: { studentId: params.studentId, examId: params.examId },
+        params: {
+          studentId: params.studentId,
+          examId: params.examId,
+          sectionId: params.sectionId,
+          subjectId: params.subjectId,
+        },
         helpHref,
       });
     }

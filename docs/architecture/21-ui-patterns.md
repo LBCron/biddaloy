@@ -516,6 +516,13 @@ palette action navigates to.
 - **A list response must carry every relation its type declares (#3421).** `GET /exams` joined `class` but not `academic_year`, which the `Exam` schema lists; unit tests mocked the field, and the My class page crashed only on real data. Read a nested field with a real API response in at least one Playwright journey. -> no rule.
 - **One more heading on a shared page breaks loose locators (#3421).** The portal final card added a heading containing "ফলাফল", so `getByRole('heading', { name })` in `result-publish.spec.ts` matched two. Match page titles with `exact: true`. -> no rule.
 
+### File-upload full pages (Epic 81, Wave 3, 2026-11-06)
+
+- **A host can own the Save button of `BulkUploadPreview` (2026-11-06, #3478).** Pass `hideConfirm` and `onControllerChange`; the page puts `controller.confirm()` in the `FullPageShell` footer and reads `controller.status` / `confirmDisabled`. The footer's secondary bypasses the shell's dirty check, so the page asks "discard?" itself. -> no rule.
+- **Row errors must not raise `hard_error_count` when the server staged the rest (2026-11-06, #3478).** `BulkUploadPreview` disables Save on any hard error. The marks sheet saves the good rows (D7), so its hook reports 0 hard errors whenever `staging_id` is set and only the error table shows the bad rows. The page test mocked HTTP (the hook ran) but only ever with `staging_id: null`, so only the Playwright journey (T2) caught it; the page test now covers staged + row errors. -> no rule.
+- **A host-confirm page needs its own "nothing to save" and "list is locked" states (2026-11-06, #3478).** Save shows `Save {n}` and turns off at 0; a 409 shows the page's own sentence plus a "Back to grid" button, not the server's English. -> no rule.
+- **Match alert text by role (2026-11-06, #3478).** `BulkUploadPreview` also announces errors in an `sr-only` live region, so `getByText(sentence)` matches two nodes; use `getByRole('alert').filter({ hasText })`. -> no rule.
+
 ### UX lint stragglers
 
 `ui/eslint-rules/ux-guards.mjs` holds four rules (`no-native-picker`,

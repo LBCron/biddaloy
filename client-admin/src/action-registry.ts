@@ -45,6 +45,9 @@ export interface ActionRunContext {
   readonly params?: {
     readonly studentId?: string | undefined;
     readonly examId?: string | undefined;
+    /** [81.3.3] With `examId` and `subjectId`, the marks grid the user is on. */
+    readonly sectionId?: string | undefined;
+    readonly subjectId?: string | undefined;
   };
   /** [44.2.01] The guide URL of the current page, or null when it has none (E17). */
   readonly helpHref?: string | null;
@@ -583,6 +586,29 @@ export const ACTIONS: readonly PaletteAction[] = [
     kind: 'navigate',
     group: 'examsResults',
     run: (ctx) => ctx.navigate({ to: '/marks' }),
+  },
+  // [81.3.3] D20. On a marks grid lands on its import page. `navigate` takes a plain path (as
+  // `exams.printAdmitCards` does), so this typechecks before the import route is in the route tree.
+  {
+    id: 'marks.uploadSheet',
+    label: { en: 'Upload marks sheet', bn: 'নম্বরের শীট আপলোড' },
+    synonyms: ['import marks', 'marks excel', 'নম্বর ইমপোর্ট'],
+    // Stricter than `/marks`'s MARK_VIEW gate: uploading writes marks.
+    permission: Permission.MARK_ENTER,
+    kind: 'navigate',
+    // Greyed out (with a reason) off an exam route. On an exam page that is not a grid the
+    // run() falls back to the marks list, where the teacher picks a grid.
+    context: ['exam'],
+    group: 'examsResults',
+    run: (ctx) => {
+      const { examId, sectionId, subjectId } = ctx.params ?? {};
+      ctx.navigate({
+        to:
+          examId && sectionId && subjectId
+            ? `/marks/${examId}/${sectionId}/${subjectId}/import`
+            : '/marks',
+      });
+    },
   },
   {
     id: 'results.process',

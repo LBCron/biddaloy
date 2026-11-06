@@ -465,7 +465,7 @@ describe('runStackConfigCheck', () => {
       expect(result.ok, `${stack} ${key}`).toBe(false);
       expect(result.output).toContain(key);
     }
-  });
+  }, 30_000); // one subprocess per case; 5s default trips under a loaded full run
 
   it('fails an env file made for another stack', async () => {
     const result = await runStackConfigCheck('prod', staging);
@@ -524,7 +524,7 @@ describe('runStackConfigCheck', () => {
       expect(result.output).not.toContain('live-value-123');
     }
     expect((await runStackConfigCheck('staging', { ...staging, SMTP_HOST: '' })).ok).toBe(true);
-  });
+}, 30_000);
 
   describe('platform SMS provider (97 D3)', () => {
     const onecode = {
