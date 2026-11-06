@@ -2125,7 +2125,7 @@ export const HELP_INDEX: HelpIndex = {
       en: "Pick an exam, open the marks list for your section and subject, type each student's marks or mark them absent or exempt, then submit the list.",
     },
     path: 'exams-results/marks-entry',
-    anchor: 'task-main',
+    anchor: 'task-excel',
     knownIssues: 0,
   },
   'examsResults.marksEntry.action.uploadSheet': {
@@ -2135,7 +2135,7 @@ export const HELP_INDEX: HelpIndex = {
       en: "Pick an exam, open the marks list for your section and subject, type each student's marks or mark them absent or exempt, then submit the list.",
     },
     path: 'exams-results/marks-entry',
-    anchor: 'task-main',
+    anchor: 'task-excel',
     knownIssues: 0,
   },
   'examsResults.marksEntry.action.submit': {
