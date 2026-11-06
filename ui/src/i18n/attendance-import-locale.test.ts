@@ -27,7 +27,14 @@ const SUBTREES: Array<[string, Tree, Tree, string[]]> = [
     'attendance',
     enAttendance,
     bnAttendance,
-    ['registerBanner', 'firstPeriod', 'markRestAbsent', 'scannedBadge', 'fromSheetBadge'],
+    [
+      'registerBanner',
+      'firstPeriod',
+      'markRestAbsent',
+      'scannedBadge',
+      'fromSheetBadge',
+      'mark.viewOnly',
+    ],
   ],
   [
     'settings',

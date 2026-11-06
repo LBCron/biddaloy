@@ -498,5 +498,10 @@ export {
 export { SchoolInvitesCard, type SchoolInvitesCardProps } from './school-invites-card';
 export * from './dashboard/index';
 export * from './audience-builder/index';
-export { ScanCardField, CARD_NO_MAX_LENGTH, type ScanCardFieldProps } from './scan-card-field';
+export {
+  ScanCardField,
+  CARD_NO_MAX_LENGTH,
+  CARD_NO_PATTERN,
+  type ScanCardFieldProps,
+} from './scan-card-field';
 export { AttendanceMarkBadges, type AttendanceMarkBadgesProps } from './attendance-mark-badges';

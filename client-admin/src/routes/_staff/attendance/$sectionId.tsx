@@ -650,8 +650,15 @@ function SectionRegisterPage() {
               })}
         </p>
       )}
-      {/* A caller with no mark right at all (e.g. ACCOUNTANT) gets `write_reason: null` too:
-          the existing read-only banner covers them, so no "right now" banner on top. */}
+      {/* A caller with no mark right at all (e.g. ACCOUNTANT): the server's `editable` ignores
+          ATTENDANCE_MARK, so say "view only" here. They get `write_reason: null` too, so no
+          "right now" banner on top. */}
+      {register.editable && !canMark && (
+        <p className="flex items-start gap-2 rounded-lg border border-border-subtle bg-muted p-4 text-text-secondary">
+          <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          {t('mark.viewOnly')}
+        </p>
+      )}
       {writeBlocked && (register.write_reason != null || canMark) && (
         <p
           role="status"

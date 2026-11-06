@@ -54,6 +54,14 @@ describe('ScanCardField', () => {
     expect(screen.getByLabelText('Card number')).toHaveProperty('value', 'abc1-2');
   });
 
+  // [review] A Bangla keyboard layout types ০-৯: they become 0-9, never vanish.
+  it('keeps Bangla digits as English digits', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Host />, { locale: 'en' });
+    await user.type(screen.getByLabelText('Card number'), 'AB-০১২৯');
+    expect(screen.getByLabelText('Card number')).toHaveProperty('value', 'AB-0129');
+  });
+
   it('shows the error and links it to the input', () => {
     renderWithProviders(<Host error="Card already in use" />, { locale: 'en' });
     const input = screen.getByLabelText('Card number');

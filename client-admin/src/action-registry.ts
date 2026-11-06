@@ -44,10 +44,9 @@ export interface ActionRunContext {
   /** Ids of the current route, when it has them (the palette's context). */
   readonly params?: {
     readonly studentId?: string | undefined;
-    /** [76.4.03] Section of the current page, when it has one (prefills the import wizard). */
-    readonly sectionId?: string | undefined;
     readonly examId?: string | undefined;
-    /** [81.3.3] With `examId` and `subjectId`, the marks grid the user is on. */
+    /** [81.3.3] With `examId` and `subjectId`, the marks grid the user is on.
+     * [76.4.03] Alone, the section of the current page (prefills the attendance sheet upload). */
     readonly sectionId?: string | undefined;
     readonly subjectId?: string | undefined;
   };

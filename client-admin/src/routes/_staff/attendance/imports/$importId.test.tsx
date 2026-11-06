@@ -73,6 +73,8 @@ describe('/attendance/imports/$importId', () => {
     const register = screen.getAllByRole('link', { name: 'Open register' })[0];
     expect(register?.getAttribute('href')).toContain(`/attendance/${SECTION}`);
     expect(register?.getAttribute('href')).toContain('date=2026-11-01');
+    // [review r2] No uploader name from the server yet (#3659): a plain label, no id fragment.
+    expect(screen.getAllByText('A staff member').length).toBeGreaterThan(0);
   });
 
   it('filters to errors and opens record history for a mark changed later', async () => {

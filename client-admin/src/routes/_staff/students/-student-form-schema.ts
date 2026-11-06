@@ -23,6 +23,7 @@
  * `roll_number` as a numeric string, `date_of_birth`/`classId` handled by
  * their own widgets' native value types (`Date | undefined`, `string`).
  */
+import { CARD_NO_PATTERN } from '@biddaloy/ui/components';
 import type { CreateStudentInput, Student, UpdateStudentInput } from '@biddaloy/ui/hooks';
 import { z } from 'zod';
 
@@ -66,8 +67,6 @@ export const STUDENT_FORM_SERVER_FIELDS = [
 ] as const;
 
 export const GENDER_VALUES = ['MALE', 'FEMALE', 'OTHER'] as const;
-
-const CARD_NO_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
 
 export function buildStudentFormSchema(messages: StudentFormMessages) {
   return z.object({

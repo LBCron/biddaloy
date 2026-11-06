@@ -7,11 +7,8 @@
     "section": "Section",
     "sections": "Sections",
     "date": "Date",
-    "dateFrom": "From",
-    "dateTo": "To",
     "sectionsLimit": "You can pick up to {{max}} sections at a time.",
     "noSection": "Pick at least one section.",
-    "badRange": "Pick dates where the end is not before the start.",
     "sectionsLoading": "Loading your sections…",
     "sectionsFailed": "Could not load your sections."
   },
@@ -20,17 +17,16 @@
     "button": "Download sheet",
     "downloading": "Making your sheet…",
     "failed": "Could not make the sheet. Try again.",
+    "denied": "You cannot fill in one of these sections on this day. Pick fewer sections or another date.",
     "hint": "Fill P for present, A for absent, L for late, LV for leave. Leave a cell empty to keep it as it is."
   },
   "upload": {
     "title": "Upload your filled sheet",
     "dropzone": "Drop the sheet here, or choose a file",
     "chooseFile": "Choose file",
-    "uploading": "Uploading… {{percent}}%",
     "checking": "Checking your sheet…",
     "fileTooLarge": "This file is too large — choose a file under 5 MB.",
     "fileWrongType": "This file type is not supported — choose an .xlsx or .csv file.",
-    "tooManyRows": "This sheet has more than {{max}} rows — split it and upload in parts.",
     "failed": "Upload failed. Try again.",
     "reviewChanges": "Review changes"
   },
@@ -45,7 +41,6 @@
     "columnChange": "Status: before → after",
     "columnOutcome": "Result",
     "columnProblem": "What to fix",
-    "empty": "No change",
     "summaryNew": "{{count}} new",
     "summaryChanged": "{{count}} changed",
     "summaryUnchanged": "{{count}} unchanged",
@@ -56,7 +51,6 @@
     "skipErrorsHint": "Rows with errors are left out. You can fix them in the sheet and upload again.",
     "chooseAnother": "Choose a different file",
     "fileName": "File: {{name}}",
-    "rowLabel": "Row {{row}}",
     "save": "Save {{count}} changes",
     "saving": "Saving…",
     "saveFailed": "Could not save. Nothing was changed.",
@@ -89,23 +83,19 @@
     "NAME_MISMATCH": "The name does not match this roll — check the roll."
   },
   "done": {
-    "title": "Attendance saved",
-    "message": "{{count}} changes were saved.",
-    "messageSkipped": "{{count}} changes were saved. {{skipped}} rows were skipped.",
-    "openRegister": "Open register",
-    "uploadAnother": "Upload another sheet",
-    "viewUploads": "See all uploads"
+    "title": "Attendance saved"
   },
   "expired": {
     "title": "This review has expired",
-    "message": "A review only lasts a few minutes — upload the sheet again.",
-    "retry": "Upload again"
+    "message": "A review only lasts a few minutes — upload the sheet again."
   },
   "history": {
     "title": "Uploaded sheets",
     "description": "Every attendance sheet saved by someone at your school.",
     "columnWhen": "When",
     "columnWho": "Who",
+    "someone": "A staff member",
+    "you": "You",
     "columnFile": "File",
     "columnNew": "New",
     "columnChanged": "Changed",
@@ -113,7 +103,6 @@
     "columnStatus": "Status",
     "superseded": "Superseded",
     "statusCurrent": "Current",
-    "supersededHint": "A later upload or a correction changed some of these marks.",
     "emptyTitle": "No sheets uploaded yet",
     "emptyExplanation": "When someone saves an attendance sheet, it shows up here.",
     "emptyAction": "Upload a sheet",

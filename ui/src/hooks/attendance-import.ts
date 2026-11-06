@@ -20,6 +20,7 @@ import { importFileErrorKey } from '../utils/import-file-error';
 import { attendanceKeys } from './attendance';
 import { useIdempotencyKey } from './idempotency-key';
 import { createEntityKeys } from './query-keys';
+import { filenameFromContentDisposition, saveBlob } from './reports';
 import { shouldRetryQuery } from './retry';
 
 export { importFileErrorKey };
@@ -34,10 +35,6 @@ export type AttendanceImportDetail = components['schemas']['AttendanceImportDeta
 
 export const attendanceImportKeys = createEntityKeys<{ page: number }>('attendance-imports');
 
-function fileNameFrom(header: string | undefined, fallback: string): string {
-  return header?.match(/filename="?([^";]+)"?/i)?.[1] ?? fallback;
-}
-
 /** `GET /attendance/import/template`: a pre-filled sheet for up to 10 sections
  * on one date. Fetched as a blob because a plain link can't carry auth headers. */
 export function useDownloadAttendanceSheet() {
@@ -47,19 +44,12 @@ export function useDownloadAttendanceSheet() {
         params: { sectionIds: input.sectionIds.join(','), date: input.date },
         responseType: 'blob',
       });
-      const filename = fileNameFrom(
+      // `filename*` first: the plain `filename=` has the Bangla class/section names as `_`.
+      const filename = filenameFromContentDisposition(
         res.headers['content-disposition'] as string | undefined,
         `attendance-${input.date}.xlsx`,
       );
-      const url = URL.createObjectURL(res.data);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = filename;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      // Later tick: Safari aborts the download if revoked in the same tick.
-      setTimeout(() => URL.revokeObjectURL(url), 0);
+      saveBlob(res.data, filename);
     },
     retry: false,
   });

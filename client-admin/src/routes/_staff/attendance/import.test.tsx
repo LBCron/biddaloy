@@ -265,6 +265,52 @@ describe('/attendance/import', () => {
     ).toBeTruthy();
     expect(screen.getByText('Upload the sheet again')).toBeTruthy();
     expect(screen.queryByText('Could not save. Nothing was changed.')).toBeNull();
+
+    // [review r2] A fresh sheet's review must not carry the old save error.
+    await user.upload(await screen.findByLabelText('Choose file'), makeFile('again.xlsx'));
+    await user.click(screen.getByRole('button', { name: 'Review changes' }));
+    await screen.findByText('Review before saving');
+    expect(screen.queryByText('Could not save. Nothing was changed.')).toBeNull();
+  });
+
+  // [review r2] Any 4xx uses up the stage: a 422 refusal goes back to upload, not a dead Save.
+  it('returns to upload on a 422 refusal with the could-not-save sentence', async () => {
+    server.use(
+      http.post('/api/v1/attendance/import/commit', () =>
+        HttpResponse.json(
+          { statusCode: 422, message: 'x', requestId: 'r', path: '/', timestamp: 't' },
+          { status: 422 },
+        ),
+      ),
+    );
+    renderPage();
+    const user = await toReview();
+    await user.click(screen.getByRole('button', { name: 'Save 2 changes' }));
+    expect(
+      await screen.findByText('The sheet could not be saved. Nothing was changed.'),
+    ).toBeTruthy();
+    expect(screen.getByText('Upload the sheet again')).toBeTruthy();
+  });
+
+  // [review r2] The sheet route 403s when one picked section is blocked that day: say so.
+  it('explains a 403 on the sheet download instead of "Try again"', async () => {
+    server.use(
+      http.get('/api/v1/attendance/import/template', () =>
+        HttpResponse.json(
+          { statusCode: 403, message: 'x', requestId: 'r', path: '/', timestamp: 't' },
+          { status: 403 },
+        ),
+      ),
+    );
+    renderPage(`?sectionId=${SECTION_ID}`);
+    const user = userEvent.setup();
+    const download = await screen.findByRole('button', { name: 'Download sheet' });
+    await waitFor(() => expect(download.hasAttribute('disabled')).toBe(false));
+    await user.click(download);
+    expect(
+      await screen.findByText(/You cannot fill in one of these sections on this day/),
+    ).toBeTruthy();
+    expect(screen.queryByText('Could not make the sheet. Try again.')).toBeNull();
   });
 
   it('returns to upload on the day gate 403 too', async () => {

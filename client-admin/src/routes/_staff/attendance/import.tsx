@@ -45,20 +45,27 @@ type Step = 'pick' | 'upload' | 'preview';
 type Restart = 'expired' | 'stale' | 'failed' | 'denied';
 
 /**
- * Save failed and the stage is gone: the server uses it up before its transaction, so a 409
- * (marks changed / save failed) or the day gate's 403 burns it like an expiry does.
+ * Save failed and the stage is gone: the server uses it up before its transaction, so every 4xx
+ * (marks changed, save failed, the day gate's 403, a 400/422 refusal) burns it like an expiry does.
+ * A 5xx or a network failure keeps the user on the review.
  */
 function restartReason(error: unknown): Restart | null {
   const { statusCode, details } = error as {
     statusCode?: number;
     details?: { code?: string } | undefined;
   };
+  if (statusCode === undefined || statusCode < 400 || statusCode >= 500) return null;
   if (statusCode === 410 || statusCode === 404) return 'expired';
   if (statusCode === 403) return 'denied';
-  if (statusCode !== 409) return null;
   if (details?.code === 'ATTENDANCE_IMPORT_STALE') return 'stale';
-  if (details?.code === 'ATTENDANCE_IMPORT_FAILED') return 'failed';
-  return null;
+  return 'failed';
+}
+
+/** The sheet route's 403: one picked section cannot be filled on that day. The request asks for
+ * a blob, so its error body is never parsed into an `ApiError`: read the axios status. */
+function isTemplateDenied(error: unknown): boolean {
+  const e = error as { statusCode?: number; response?: { status?: number } } | null;
+  return (e?.statusCode ?? e?.response?.status) === 403;
 }
 
 function StepHeading({ current, title }: { current: number; title: string }) {
@@ -124,6 +131,8 @@ function AttendanceImportPage() {
     setResult(undefined);
     setSkipErrors(false);
     setUploadError(undefined);
+    // An old commit error would show "Could not save" on the next sheet's review.
+    commit.reset();
     setStep('upload');
   }
 
@@ -183,7 +192,11 @@ function AttendanceImportPage() {
           onDateChange={setDate}
           onDownload={handleDownload}
           downloading={download.isPending}
-          error={download.isError ? t('download.failed') : undefined}
+          error={
+            download.isError
+              ? t(isTemplateDenied(download.error) ? 'download.denied' : 'download.failed')
+              : undefined
+          }
         />
         <Button type="button" variant="outline" onClick={toUpload}>
           {t('upload.title')}

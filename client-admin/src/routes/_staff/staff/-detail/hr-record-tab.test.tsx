@@ -183,4 +183,56 @@ describe('HrRecordTab', () => {
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.queryByText(/raw db detail/)).toBeNull();
   });
+
+  // [review r2] The HR record read carries card_no: a saved card shows on load and can be cleared.
+  it('[76.5.07] shows the saved card number and clears it with a null PATCH', async () => {
+    let patchBody: unknown;
+    server.use(
+      http.get('/api/v1/staff-hr-records', () =>
+        HttpResponse.json([{ id: 'hr-1', user_id: 'user-1', card_no: 'AB-7' }]),
+      ),
+      http.patch('/api/v1/staff-hr-records/hr-1', async ({ request }) => {
+        patchBody = await request.json();
+        return HttpResponse.json({ id: 'hr-1', user_id: 'user-1', card_no: null });
+      }),
+      http.get('*/designation-history', () => HttpResponse.json([])),
+      http.get('/api/v1/designations', () => HttpResponse.json([])),
+      http.get('/api/v1/staff-documents/user-1', () => HttpResponse.json([])),
+      http.get('/api/v1/staff/user-1/:kind', () => HttpResponse.json([])),
+    );
+    renderWithProviders(<HrRecordTab userId="user-1" />, {
+      locale: 'en',
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+    });
+    const user = userEvent.setup();
+    const input = await screen.findByLabelText('Card number');
+    await waitFor(() => expect(input).toHaveProperty('value', 'AB-7'));
+    // Unchanged value: nothing to save.
+    expect(screen.getByRole('button', { name: 'Save' }).hasAttribute('disabled')).toBe(true);
+    await user.clear(input);
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(patchBody).toEqual({ card_no: null }));
+  });
+
+  it('[76.5.07] offers a retry when the HR record cannot load', async () => {
+    server.use(
+      http.get('/api/v1/staff-hr-records', () =>
+        HttpResponse.json(apiErrorBody(500, 'x', '/api/v1/staff-hr-records'), { status: 500 }),
+      ),
+      http.get('*/designation-history', () => HttpResponse.json([])),
+      http.get('/api/v1/designations', () => HttpResponse.json([])),
+      http.get('/api/v1/staff-documents/user-1', () => HttpResponse.json([])),
+      http.get('/api/v1/staff/user-1/:kind', () => HttpResponse.json([])),
+    );
+    renderWithProviders(<HrRecordTab userId="user-1" />, {
+      locale: 'en',
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+    });
+    expect(
+      (await screen.findAllByText('Could not load this section. Please try again.')).length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByLabelText('Card number')).toBeNull();
+  });
 });
