@@ -341,6 +341,16 @@ Rules that hold:
 - A teacher sees only their own uploads in `GET /attendance/imports`;
   other roles see all. `GET /attendance/imports/:id` returns the rows plus the
   record's `current` status.
+- **The screen restarts on any 4xx at commit.** `410`/`404` shows "expired",
+  `403` shows "not allowed", `STALE` shows the stale text, any other 4xx shows
+  "failed" and the wizard goes back to the upload step. A `5xx` or a dropped
+  connection keeps the review so the user can press Save again (safe, because
+  of the `Idempotency-Key`).
+- **A refused download shows its own sentence.** The `403` from the template
+  route reads "You cannot fill in one of these sections on this day. Pick fewer
+  sections or another date." (`attendanceImport:download.denied`).
+- **Who column.** The list and detail pages show `You` for the caller's own
+  upload and `A staff member` when the uploader's name is not on the row.
 
 ### Row-error codes
 
