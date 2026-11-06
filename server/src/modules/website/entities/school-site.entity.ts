@@ -87,8 +87,13 @@ export class SchoolSite {
   @Column({ type: 'jsonb', nullable: true })
   published: SiteConfig | null;
 
+  /** Bumped on every publish; the public cache key. */
   @Column({ type: 'int', default: 0 })
   version: number;
+
+  /** Bumped on every draft save, so a stale save or a publish of an unseen draft is 409. */
+  @Column({ type: 'int', default: 0 })
+  draft_revision: number;
 
   @Column({ type: 'timestamptz', nullable: true })
   published_at: Date | null;

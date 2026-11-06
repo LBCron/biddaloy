@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsInt, IsObject, Max, Min } from 'class-validator';
 
-/** Largest version a site can reach; keeps the number inside a Postgres int. */
+/** Largest version / draft revision a site can reach; keeps the number inside a Postgres int. */
 const VERSION_MAX = 2_000_000_000;
 
 export class SaveDraftDto {
@@ -9,11 +9,14 @@ export class SaveDraftDto {
   @IsObject()
   config: Record<string, unknown>;
 
-  @ApiProperty({ description: 'The version this edit started from (409 site.stale if behind).' })
+  @ApiProperty({
+    description:
+      'The draft_revision this edit started from (409 site.stale if someone saved since).',
+  })
   @IsInt()
   @Min(0)
   @Max(VERSION_MAX)
-  version: number;
+  draft_revision: number;
 }
 
 export class PublishDto {
@@ -22,6 +25,14 @@ export class PublishDto {
   @Min(0)
   @Max(VERSION_MAX)
   version: number;
+
+  @ApiProperty({
+    description: 'The draft_revision the publisher is looking at (409 site.stale if it changed).',
+  })
+  @IsInt()
+  @Min(0)
+  @Max(VERSION_MAX)
+  draft_revision: number;
 }
 
 export class SetEnabledDto {
@@ -39,6 +50,7 @@ export class SiteDto {
   @ApiPropertyOptional({ nullable: true }) custom_domain: string | null;
   @ApiPropertyOptional({ nullable: true }) custom_domain_status: string | null;
   @ApiProperty() version: number;
+  @ApiProperty() draft_revision: number;
   @ApiPropertyOptional({ nullable: true }) published_at: string | null;
   @ApiProperty() has_published: boolean;
   @ApiProperty({ type: Object }) draft: Record<string, unknown>;

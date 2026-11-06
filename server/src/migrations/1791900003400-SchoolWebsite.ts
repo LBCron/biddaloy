@@ -31,6 +31,7 @@ export class SchoolWebsite1791900003400 implements MigrationInterface {
         "draft" jsonb NOT NULL,
         "published" jsonb,
         "version" integer NOT NULL DEFAULT 0,
+        "draft_revision" integer NOT NULL DEFAULT 0,
         "published_at" timestamptz,
         "umami_website_id" varchar(64),
         "media_bytes_used" bigint NOT NULL DEFAULT 0,

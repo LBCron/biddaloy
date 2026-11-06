@@ -44,8 +44,11 @@ describe('SiteHostService', () => {
   it('redirects a renamed subdomain inside its window and not after it', async () => {
     const renamed = (until: string) =>
       site({ subdomain: 'new', previous_subdomain: 'old', previous_until: new Date(until) });
-    expect(await service([renamed('2026-11-10T00:00:00Z')]).resolve(`old.${ROOT}`, NOW)).toEqual({
+    expect(
+      await service([renamed('2026-11-10T00:00:00Z')]).resolve(`old.${ROOT}`, NOW),
+    ).toMatchObject({
       redirectTo: `new.${ROOT}`,
+      site: { subdomain: 'new' },
     });
     expect(await service([renamed('2026-11-01T00:00:00Z')]).resolve(`old.${ROOT}`, NOW)).toBeNull();
   });

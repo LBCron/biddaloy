@@ -3,7 +3,10 @@ import { Throttle } from '@nestjs/throttler';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import type { RateLimitTierOptions } from '../../../rate-limit';
-import { HostAnswer, PublicSiteService } from './public-site.service';
+import { buildErrorResponseBody } from '../../../common/filters/error-response';
+import { errorPath } from '../../../common/filters/http-exception.filter';
+import { resolveRequestId } from '../../../common/request-context.util';
+import { HostAnswer, PublicSiteService, siteNotFound } from './public-site.service';
 
 /**
  * The site container reads on behalf of every visitor, so the IP seen here is the container's,
@@ -85,10 +88,20 @@ export class PublicSiteController {
       "default-src 'none'; style-src 'unsafe-inline'; sandbox",
     );
     res.setHeader('Content-Type', r.contentType);
-    return new StreamableFile(r.body).setErrorHandler((_err, out) => {
-      if (out.headersSent) return;
-      out.statusCode = 404;
-      out.send('site.not_found');
+    // A storage read that fails mid-stream answers the same JSON 404 as every other miss.
+    return new StreamableFile(r.body).setErrorHandler(() => {
+      if (res.headersSent) return;
+      const requestId = resolveRequestId(res.req);
+      const body = buildErrorResponseBody(siteNotFound(), {
+        path: errorPath(res.req),
+        requestId,
+        nodeEnv: process.env.NODE_ENV,
+      });
+      res.removeHeader('ETag');
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('X-Request-Id', requestId);
+      // end(), not send(): send() would add its own ETag to the error body.
+      res.status(404).end(JSON.stringify(body));
     });
   }
 }

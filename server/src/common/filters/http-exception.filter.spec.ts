@@ -193,6 +193,21 @@ describe('AllExceptionsFilter', () => {
     expect(Number.isNaN(Date.parse(body.timestamp))).toBe(false);
   });
 
+  // Rule 23: the body's path is the route pattern, so it never echoes the host name, id or
+  // query string the caller sent.
+  it('uses the matched route pattern as the path, never the raw URL', () => {
+    const filter = new AllExceptionsFilter('production');
+    mockRequest.url = '/api/v1/public/site/by-host/secret.example/manifest?q=leak';
+    mockRequest.route = { path: '/api/v1/public/site/by-host/:host/manifest' };
+
+    filter.catch(new NotFoundException('site.not_found'), mockHost);
+
+    const body = mockJson.mock.calls[0][0];
+    expect(body.path).toBe('/api/v1/public/site/by-host/:host/manifest');
+    expect(JSON.stringify(body)).not.toContain('secret.example');
+    expect(JSON.stringify(body)).not.toContain('leak');
+  });
+
   it('handles null/undefined exceptions with 500', () => {
     const filter = new AllExceptionsFilter('production');
 

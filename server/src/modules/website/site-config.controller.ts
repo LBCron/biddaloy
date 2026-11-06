@@ -1,7 +1,9 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   Post,
   Put,
@@ -62,10 +64,21 @@ export class SiteConfigController {
   @Post('publish')
   @HttpCode(200)
   @UseInterceptors(IdempotencyInterceptor)
-  @ApiOperation({ summary: 'Publish the draft. 409 site.stale if someone published first.' })
+  @ApiOperation({
+    summary:
+      'Publish the draft. Needs an `Idempotency-Key` header (Rule 25). 409 site.stale if the version or the draft changed.',
+  })
   @ApiOkResponse({ type: SiteDto })
-  publish(@Body() dto: PublishDto, @CurrentTenant() t: Tenant) {
-    return this.config.publish(t.id, dto.version);
+  publish(
+    @Body() dto: PublishDto,
+    @CurrentTenant() t: Tenant,
+    @Headers('idempotency-key') key: string | undefined,
+  ) {
+    // The interceptor lets a request with no key through, so the requirement lives here.
+    if (key === undefined) {
+      throw new BadRequestException('Idempotency-Key header is required to publish the site.');
+    }
+    return this.config.publish(t.id, dto.version, dto.draft_revision);
   }
 
   @Post('enabled')
