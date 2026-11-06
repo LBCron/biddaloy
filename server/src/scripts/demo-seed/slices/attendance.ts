@@ -519,12 +519,22 @@ const load = async (ctx: DemoSeedContext) => {
   );
 
   // --- [76.2.8] the upload history row: 1 section, 40 rows, 2 CHANGED, 1 ERROR, the rest NEW ----
+  // Real rolls (they are reassigned on promotion, so never the roster index).
+  const importKids = st.bySection.get(importSection.id) ?? [];
+  const rollOf = new Map(
+    (
+      await q<{ id: string; roll_number: number }>(
+        `SELECT id, roll_number FROM students WHERE id = ANY($1::uuid[])`,
+        [importKids],
+      )
+    ).map((r) => [r.id, r.roll_number]),
+  );
   const sheetRows: AttendanceImportHistoryRow[] = imported.map((r, n) => {
     const changed = n < 2;
     return {
       date: r.date,
       sectionId: importSection.id,
-      roll: r.i + 1,
+      roll: rollOf.get(importKids[r.i])!,
       before: changed
         ? r.status === AttendanceStatus.ABSENT
           ? AttendanceStatus.PRESENT
@@ -540,7 +550,7 @@ const load = async (ctx: DemoSeedContext) => {
     sheetRows.splice(2, 0, {
       date: sheetRows[0].date,
       sectionId: importSection.id,
-      roll: 999,
+      roll: Math.max(0, ...rollOf.values()) + 1, // a roll nobody in the section has
       before: null,
       after: null,
       outcome: 'ERROR',
@@ -550,7 +560,9 @@ const load = async (ctx: DemoSeedContext) => {
     const importDay = sheetRows[sheetRows.length - 1].date;
     await ctx.ds.getRepository(AttendanceImport).insert({
       tenant_id: importTenant.id,
-      uploaded_by_user_id: classTeacher.get(importSection.id) ?? org.adminUserId,
+      // The admin, not the class teacher: these past days are FINALIZED, and only a holder of
+      // ATTENDANCE_CORRECT could really upload over them (validate refuses TEACHER every row).
+      uploaded_by_user_id: org.adminUserId,
       file_name: 'class-attendance.xlsx',
       rows: sheetRows,
       count_new: sheetRows.filter((r) => r.outcome === 'NEW').length,

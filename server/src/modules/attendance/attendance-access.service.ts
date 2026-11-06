@@ -171,8 +171,9 @@ export class AttendanceAccessService {
   }
 
   /** Same decision as `assertCanWriteDayRegister`, never throws. For read views that already
-   * passed their own access check. A caller who cannot write at all (a read-only coordinator)
-   * gets `can_write: false` with `write_reason: null`. */
+   * passed their own access check. A caller who cannot write at all (a read-only coordinator,
+   * or a role without ATTENDANCE_MARK such as ACCOUNTANT) gets `can_write: false` with
+   * `write_reason: null`. */
   async dayRegisterWriteState(
     role: string,
     userId: string,
@@ -185,6 +186,10 @@ export class AttendanceAccessService {
     write_reason: DailyRegisterWriteReason | null;
     first_period_today: boolean;
   }> {
+    // Same permission the PUT / finalize routes require (PermissionsGuard uses this check).
+    if (!roleHasPermission(role, Permission.ATTENDANCE_MARK)) {
+      return { can_write: false, write_reason: null, first_period_today: false };
+    }
     if (!canAccessTenantWide(role)) {
       try {
         await this.assertCanAccessSection(role, userId, sectionId, tenantId);
@@ -316,6 +321,26 @@ export class AttendanceAccessService {
       if (!isAccessMiss(err) || periodNo === null) throw err;
       const mine = await this.substitutePeriods(role, userId, sectionId, tenantId, date);
       if (!mine.some((p) => p.period_no === periodNo)) throw err;
+    }
+  }
+
+  /** May the caller write this period register? ATTENDANCE_MARK plus the period gate without
+   * coordinator reach (a coordinator reads, never writes, D4). Never throws on a miss. */
+  async canWritePeriodRegister(
+    role: string,
+    userId: string,
+    sectionId: string,
+    tenantId: string,
+    date: string,
+    periodNo: number,
+  ): Promise<boolean> {
+    if (!roleHasPermission(role, Permission.ATTENDANCE_MARK)) return false;
+    try {
+      await this.assertCanAccessPeriod(role, userId, sectionId, tenantId, date, periodNo);
+      return true;
+    } catch (err) {
+      if (isAccessMiss(err)) return false;
+      throw err;
     }
   }
 

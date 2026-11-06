@@ -316,7 +316,7 @@ export class RegisterResponseDto {
   @ApiProperty({
     required: false,
     description:
-      'GET register only. Whether you may change this whole-day register under the school daily-attendance setting. Always false for a period register.',
+      'GET register only. Whether you may change this register. Whole-day register: your mark permission plus the school daily-attendance setting. Period register: your mark permission plus access to that period (the daily setting does not apply).',
   })
   can_write?: boolean;
   @ApiProperty({

@@ -163,7 +163,8 @@ export class GuardianSmsFallbackService implements OnModuleInit, OnModuleDestroy
     );
   }
 
-  /** [76.2.05] D29: one SMS per CRITICAL staff-fallback alert to each ADMIN/EXECUTIVE recipient with a phone. Never guardians. */
+  /** [76.2.05] D29: one SMS per CRITICAL staff-fallback alert to each ADMIN/EXECUTIVE recipient with a
+   * phone who has not seen it in the app yet (`seen_at IS NULL`). Never guardians. */
   private async runStaff(
     school: SchoolRow,
     settings: ReturnType<typeof resolveTenantSettings>,
@@ -190,7 +191,7 @@ export class GuardianSmsFallbackService implements OnModuleInit, OnModuleDestroy
                  AND l.reference_key = 'attention-staff:' || a.id || ':' || u.id) AS sent
          FROM alerts a
          JOIN alert_recipients r ON r.alert_id = a.id AND r.tenant_id = a.tenant_id
-              AND r.role IN ('ADMIN','EXECUTIVE')
+              AND r.role IN ('ADMIN','EXECUTIVE') AND r.seen_at IS NULL
          JOIN users u ON u.id = r.user_id AND u.deleted_at IS NULL AND u.status = 'ACTIVE'
               AND NULLIF(btrim(u.phone), '') IS NOT NULL
         WHERE a.tenant_id = $1 AND a.status = 'ACTIVE' AND a.source = 'RULE'

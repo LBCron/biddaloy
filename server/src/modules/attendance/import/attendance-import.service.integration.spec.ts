@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import { ConfigModule } from '@nestjs/config';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
@@ -278,11 +278,24 @@ describe('AttendanceImportService (integration)', () => {
 
     it('NEEDS_CORRECT_PERMISSION: a caller without ATTENDANCE_CORRECT cannot write outside the window', async () => {
       const { teacher } = await makeTeacher(sections[0].id, TeacherAssignmentType.CLASS_TEACHER);
+      // The window guards an existing register only (same as PUT): save one first.
+      const first = await validateOk([row(0, addDays(-10), 2, 'P')]);
+      await service.commit(first.staging_id!, undefined, admin);
       const res = await service.validate(await upload([row(0, addDays(-10), 1, 'P')]), teacher);
       expect(res.rows[0]).toMatchObject({ outcome: 'ERROR', code: 'NEEDS_CORRECT_PERMISSION' });
       // An admin may (the window needs ATTENDANCE_CORRECT, which ADMIN holds).
       const ok = await service.validate(await upload([row(0, addDays(-10), 1, 'P')]), admin);
       expect(ok.rows[0].outcome).toBe('NEW');
+    });
+
+    // PR #3609 review #7: PUT lets a class teacher submit an old day nobody marked yet (the
+    // correction window only guards an existing register). The sheet must agree.
+    it('a class teacher may back-fill an old day that has no register yet', async () => {
+      const { teacher } = await makeTeacher(sections[0].id, TeacherAssignmentType.CLASS_TEACHER);
+      const res = await service.validate(await upload([row(0, addDays(-10), 1, 'P')]), teacher);
+      expect(res.rows[0]).toMatchObject({ outcome: 'NEW' });
+      await service.commit(res.staging_id!, undefined, teacher);
+      expect(await dataSource.getRepository(AttendanceRecord).count()).toBe(1);
     });
 
     it('NOT_ALLOWED_SECTION: a subject teacher under CLASS_TEACHER cannot write the day register', async () => {
@@ -398,15 +411,53 @@ describe('AttendanceImportService (integration)', () => {
       await service.commit(res.staging_id!, undefined, admin);
     });
 
-    it('rolls the whole sheet back with one fixed 409 when a group cannot be written', async () => {
+    // PR #3609 review #8: a known refusal keeps its own status and fixed text (Rule 23/24);
+    // the whole sheet still rolls back.
+    it('rolls the whole sheet back and keeps the real 422 when a day became non-working', async () => {
       const res = await validateOk([row(0, TODAY(), 1, 'P'), row(1, TODAY(), 1, 'P')]);
-      // Between validate and commit the second section's day becomes a non-working day.
+      // Between validate and commit the day becomes a non-working day.
       await setSettings({ weeklyOffDays: [new Date(TODAY()).getUTCDay()] });
       await expect(service.commit(res.staging_id!, undefined, admin)).rejects.toMatchObject({
-        status: 409,
+        status: 422,
+        response: { details: { code: 'ATTENDANCE_NON_WORKING_DAY' } },
       });
       expect(await dataSource.getRepository(AttendanceRecord).count()).toBe(0);
       expect(await dataSource.getRepository(AttendanceImport).count()).toBe(0);
+    });
+
+    it('a teacher who lost class-teacher status after validate gets the gate 403, not "upload again"', async () => {
+      await setSettings({ dailySource: 'CLASS_TEACHER' });
+      const { teacher } = await makeTeacher(sections[0].id, TeacherAssignmentType.CLASS_TEACHER);
+      const res = await validateOk([row(0, TODAY(), 1, 'P')], teacher);
+      const [subject] = await dataSource.query(
+        `INSERT INTO subjects (tenant_id, name_en, code) VALUES ($1, 'Imp Gate', $2) RETURNING id`,
+        [TENANT, `IG${randomUUID().slice(0, 6)}`],
+      );
+      await dataSource.query(
+        `UPDATE teacher_class_sections SET assignment_type = 'SUBJECT_TEACHER', subject_id = $3
+         WHERE section_id = $1 AND tenant_id = $2`,
+        [sections[0].id, TENANT, subject.id],
+      );
+      const err = await service.commit(res.staging_id!, undefined, teacher).catch((e) => e);
+      expect(err.status).toBe(403);
+      expect(err.response.details.reason).toBe('CLASS_TEACHER_ONLY');
+      expect(await dataSource.getRepository(AttendanceRecord).count()).toBe(0);
+    });
+
+    it('an unexpected database failure still answers the one fixed 409', async () => {
+      const res = await validateOk([row(0, TODAY(), 1, 'P')]);
+      const staged = res.staging_id!;
+      const spy = vi
+        .spyOn(attendanceService, 'writeImportDay')
+        .mockRejectedValueOnce(new Error('boom: secret detail'));
+      try {
+        const err = await service.commit(staged, undefined, admin).catch((e) => e);
+        expect(err.status).toBe(409);
+        expect(err.response.details.code).toBe('ATTENDANCE_IMPORT_FAILED');
+        expect(JSON.stringify(err.response)).not.toContain('secret');
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 

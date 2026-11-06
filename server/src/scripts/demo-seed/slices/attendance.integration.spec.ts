@@ -233,7 +233,7 @@ describe('attendance slice (integration, 3 years, scale 0.15)', () => {
     const [{ n: mismatches, t: mismatchTenants }] = await q(
       `SELECT count(*)::int AS n, array_agg(DISTINCT s.slug) AS t FROM attendance_records r
          JOIN schools s ON s.id = r.tenant_id
-        WHERE r.device_id IS NOT NULL AND r.status = 'ABSENT'`,
+        WHERE r.check_in_at IS NOT NULL AND r.status IN ('ABSENT', 'LEAVE')`,
     );
     expect(mismatches).toBe(3);
     expect(mismatchTenants).toEqual(['bmsc-high']);
@@ -256,6 +256,29 @@ describe('attendance slice (integration, 3 years, scale 0.15)', () => {
       [ids],
     );
     expect(imported).toBe(39);
+
+    // PR #3609 review S2: the uploader can really make this sheet (ADMIN holds ATTENDANCE_CORRECT
+    // for the finalized past days), so the demo never shows rows the app would refuse.
+    const [{ role: uploaderRole }] = await q(
+      `SELECT m.role FROM user_tenants m
+        WHERE m.user_id = $1 AND m.tenant_id = $2 AND m.deleted_at IS NULL`,
+      [imp.uploaded_by_user_id, imp.tenant_id],
+    );
+    expect(uploaderRole).toBe('ADMIN');
+    // S1: each saved row's roll is that student's real roll; the ERROR row's roll is nobody's.
+    const [{ n: wrongRolls }] = await q(
+      `SELECT count(*)::int AS n FROM jsonb_array_elements($1::jsonb) h
+         JOIN attendance_records r ON r.id = (h->>'recordId')::uuid
+         JOIN students st ON st.id = r.student_id
+        WHERE st.roll_number <> (h->>'roll')::int`,
+      [JSON.stringify(imp.rows)],
+    );
+    expect(wrongRolls).toBe(0);
+    const [{ n: takenErrorRoll }] = await q(
+      `SELECT count(*)::int AS n FROM students WHERE class_section_id = $1 AND roll_number = $2`,
+      [err[0].sectionId, err[0].roll],
+    );
+    expect(takenErrorRoll).toBe(0);
     const [{ n: deviceRows }] = await q(
       `SELECT count(*)::int AS n FROM attendance_records WHERE source = 'DEVICE'`,
     );

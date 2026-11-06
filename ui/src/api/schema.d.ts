@@ -14054,7 +14054,7 @@ export interface components {
             students: components["schemas"]["RegisterStudentDto"][];
             /** @description Whether period-wise attendance is switched on for this school. */
             period_attendance_enabled: boolean;
-            /** @description GET register only. Whether you may change this whole-day register under the school daily-attendance setting. Always false for a period register. */
+            /** @description GET register only. Whether you may change this register. Whole-day register: your mark permission plus the school daily-attendance setting. Period register: your mark permission plus access to that period (the daily setting does not apply). */
             can_write?: boolean;
             /**
              * @description GET register only. Why you cannot write; null when you can (or never could).

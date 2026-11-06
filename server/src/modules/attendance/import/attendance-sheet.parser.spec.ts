@@ -82,6 +82,20 @@ describe('parseAttendanceSheet', () => {
     expect(parsed.map((r) => r.duplicate)).toEqual([false, true]);
   });
 
+  // PR #3609 review #6 (regression guard): the section lookup collapses spaces, so the duplicate
+  // key must too (`normalizeDigits` does it), or both rows reach the same student and the commit
+  // dies on a unique key with no row named.
+  it('treats class/section names that differ only by spaces as the same row', async () => {
+    const parsed = await parseAttendanceSheet(
+      await xlsx([
+        ['2026-03-02', 'Class 6', 'A', 1, '', 'P'],
+        ['2026-03-02', 'Class  6', ' A ', 1, '', 'A'],
+      ]),
+      'a.xlsx',
+    );
+    expect(parsed.map((r) => r.duplicate)).toEqual([false, true]);
+  });
+
   it('a bad date or roll comes back null, not thrown', async () => {
     const parsed = await parseAttendanceSheet(
       await xlsx([['not-a-date', 'One', 'A', 'x', '', 'P']]),

@@ -81,11 +81,15 @@ export class DeviceAbsentSweepScheduler extends WorkerHost implements OnModuleIn
     const today = localToday(timezone);
     if (await this.schoolCalendarService.isNonWorkingDay({ tenantId, date: today })) return 0;
 
-    // Any accepted scan that resolved to a student today. Unknown-card or rejected scans do not
-    // count: a machine that only produces those is as good as dead (D27).
+    // Any accepted scan that resolved to a student and HAPPENED today (occurred_at, not ingest
+    // time: an offline device uploading yesterday's buffer this morning proves nothing about
+    // today). Unknown-card or rejected scans do not count: a machine that only produces those is
+    // as good as dead (D27).
     const scans = await this.dataSource.query(
       `SELECT 1 FROM attendance_device_events
-       WHERE tenant_id = $1 AND created_at >= ($2::date)::timestamp AT TIME ZONE $3
+       WHERE tenant_id = $1
+         AND occurred_at >= ($2::date)::timestamp AT TIME ZONE $3
+         AND occurred_at < ($2::date + 1)::timestamp AT TIME ZONE $3
          AND outcome = 'accepted' AND student_id IS NOT NULL
        LIMIT 1`,
       [tenantId, today, timezone],
@@ -146,9 +150,12 @@ export class DeviceAbsentSweepScheduler extends WorkerHost implements OnModuleIn
         sectionId,
       ) ?? [];
     if (roster.length === 0) return 0;
+    // Whole-day marks only (any section, as the not-taken rule counts them): a period mark leaves
+    // the day register's gap open.
     const marked: { student_id: string }[] = await manager.query(
-      `SELECT student_id FROM attendance_records
-       WHERE tenant_id = $1 AND date = $2 AND student_id = ANY($3::uuid[])`,
+      `SELECT r.student_id FROM attendance_records r
+       JOIN attendance_sessions s ON s.id = r.session_id AND s.tenant_id = $1 AND s.period_no IS NULL
+       WHERE r.tenant_id = $1 AND r.date = $2 AND r.student_id = ANY($3::uuid[])`,
       [tenantId, date, roster],
     );
     const markedIds = new Set(marked.map((r) => r.student_id));

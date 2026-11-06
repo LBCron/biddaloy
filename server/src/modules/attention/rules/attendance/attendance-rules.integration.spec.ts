@@ -337,6 +337,10 @@ describe('AttendanceNotTakenRule (integration)', () => {
   });
 
   it('[76.2.05] device school: 3 scanned + 20 unmarked fires; SYSTEM absences for the 20 resolve it', async () => {
+    await q(
+      `UPDATE schools SET settings = jsonb_set(settings, '{attendance,dailySource}', '"DEVICE"') WHERE id = $1`,
+      [A.id],
+    );
     const [{ id: sid }] = await q(
       `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'DRAFT') RETURNING id`,
       [A.id, A.sectionId, DAY],
@@ -364,8 +368,22 @@ describe('AttendanceNotTakenRule (integration)', () => {
     expect(f.dedupeKey).toBe(`section:${A.sectionId}:${DAY}`);
     expect(f.params.title_en).toMatch(/^Attendance incomplete: .* — 20 without status$/);
     await mark(ids.slice(3), 'ABSENT', 'SYSTEM');
-    await q(`UPDATE attendance_sessions SET state = 'FINALIZED' WHERE id = $1`, [sid]);
+    // PR #3609 review #4: ingest and the sweep leave a device register DRAFT (D27); with every
+    // student marked the alert resolves without anyone submitting it.
     expect(await rule.evaluate(ctx(A, '08:20'))).toEqual([]);
+  });
+
+  it('[76.2.05] a non-device school still needs the register submitted, even with everyone marked', async () => {
+    const [{ id: sid }] = await q(
+      `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'DRAFT') RETURNING id`,
+      [A.id, A.sectionId, DAY],
+    );
+    await q(
+      `INSERT INTO attendance_records (tenant_id, session_id, student_id, date, status) VALUES ($1, $2, $3, $4, 'PRESENT')`,
+      [A.id, sid, A.studentId, DAY],
+    );
+    const [f] = await rule.evaluate(ctx(A, '08:20'));
+    expect(f.dedupeKey).toBe(`section:${A.sectionId}:${DAY}`);
   });
 
   it('[76.2.05] a FINALIZED session with unmarked students still fires', async () => {

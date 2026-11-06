@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { ConfigModule } from '@nestjs/config';
-import { DataSource } from 'typeorm';
+import { DataSource, IsNull } from 'typeorm';
 import { getDataSourceToken } from '@nestjs/typeorm';
 import { createTestModule } from '@test/helpers/module.helper';
 import { ALL_ENTITIES } from '@test/all-entities';
@@ -59,7 +59,7 @@ describe('DeviceAbsentSweepScheduler (integration)', () => {
     );
   }
 
-  async function addScan(tenantId: string, student: string | null) {
+  async function addScan(tenantId: string, student: string | null, occurredAt = new Date()) {
     const device = await dataSource.getRepository(AttendanceDevice).save({
       tenant_id: tenantId,
       name: 'gate',
@@ -72,7 +72,7 @@ describe('DeviceAbsentSweepScheduler (integration)', () => {
       device_id: device.id,
       device_event_id: 'e-1',
       student_id: student,
-      occurred_at: new Date(),
+      occurred_at: occurredAt,
       direction: AttendanceEventDirection.IN,
       outcome: 'accepted',
     });
@@ -83,7 +83,7 @@ describe('DeviceAbsentSweepScheduler (integration)', () => {
     const date = new Date(today[0].d).toLocaleDateString('en-CA');
     const sessionRepo = dataSource.getRepository(AttendanceSession);
     let session = await sessionRepo.findOne({
-      where: { tenant_id: TENANT, section_id: sectionId, date },
+      where: { tenant_id: TENANT, section_id: sectionId, date, period_no: IsNull() },
     });
     session ??= await sessionRepo.save({
       tenant_id: TENANT,
@@ -355,6 +355,48 @@ describe('DeviceAbsentSweepScheduler (integration)', () => {
     } finally {
       await dataSource.getRepository(Class).update({ id: classId }, { shift_id: null });
     }
+  });
+
+  // PR #3609 review #9: an offline device that uploads yesterday's scans this morning is not
+  // proof the gate works today. The guard keys on when the scan happened, not when it arrived.
+  it('skips the school when the only accepted scan happened yesterday (uploaded today)', async () => {
+    await addScan(TENANT, studentIds[0], new Date(Date.now() - 36 * 3600 * 1000));
+    expect(await sweeper.sweepTenant(TENANT)).toBe(0);
+    expect(await records(TENANT)).toHaveLength(0);
+  });
+
+  // PR #3609 review #10: a period-1 mark is not a whole-day mark; the day register still needs one.
+  it('sweeps a student who has only a period mark today', async () => {
+    await addScan(TENANT, studentIds[0]);
+    const today = await dataSource.query(`SELECT (now() AT TIME ZONE 'Asia/Dhaka')::date AS d`);
+    const date = new Date(today[0].d).toLocaleDateString('en-CA');
+    const period = await dataSource.getRepository(AttendanceSession).save({
+      tenant_id: TENANT,
+      section_id: sectionId,
+      date,
+      period_no: 1,
+      state: AttendanceSessionState.DRAFT,
+      source: AttendanceSource.TEACHER,
+    });
+    await dataSource.getRepository(AttendanceRecord).save({
+      tenant_id: TENANT,
+      session_id: period.id,
+      student_id: studentIds[0],
+      date,
+      status: AttendanceStatus.PRESENT,
+      source: AttendanceSource.TEACHER,
+    });
+    expect(await sweeper.sweepTenant(TENANT)).toBe(5);
+    const day = await dataSource.getRepository(AttendanceSession).findOneByOrFail({
+      tenant_id: TENANT,
+      section_id: sectionId,
+      date,
+      period_no: IsNull(),
+    });
+    const dayRecords = await dataSource
+      .getRepository(AttendanceRecord)
+      .find({ where: { tenant_id: TENANT, session_id: day.id } });
+    expect(dayRecords.map((r) => r.student_id)).toContain(studentIds[0]);
   });
 
   it('ignores a school whose source is not DEVICE', async () => {

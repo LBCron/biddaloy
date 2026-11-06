@@ -728,5 +728,31 @@ describe('AttendanceAccessService (integration)', () => {
         ),
       ).toEqual({ can_write: false, write_reason: null, first_period_today: false });
     });
+
+    // PR #3609 review #3: a tenant-wide role that can read but not mark (route snapshot: 403 on
+    // PUT register) must not be told it can write. ADMIN (holds ATTENDANCE_MARK) still can.
+    it('read-only tenant-wide roles get can_write false with no reason; ADMIN gets true', async () => {
+      await setup();
+      await setSource('ANY');
+      const state = (role: UserRole) =>
+        service.dayRegisterWriteState(role, 'not-a-teacher', sectionA1Id, DATE, TENANT_A);
+      for (const role of [
+        UserRole.ACCOUNTANT,
+        UserRole.EXECUTIVE,
+        UserRole.OFFICE_STAFF,
+        UserRole.EXAM_CONTROLLER,
+      ]) {
+        expect(await state(role)).toEqual({
+          can_write: false,
+          write_reason: null,
+          first_period_today: false,
+        });
+      }
+      expect(await state(UserRole.ADMIN)).toEqual({
+        can_write: true,
+        write_reason: null,
+        first_period_today: false,
+      });
+    });
   });
 });

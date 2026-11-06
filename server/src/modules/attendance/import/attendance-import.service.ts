@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
   Injectable,
   Logger,
   NotFoundException,
@@ -261,7 +262,7 @@ export class AttendanceImportService {
     const rosterByGroup = new Map<string, Map<number, Student[]>>();
     const sessionByGroup = new Map<
       string,
-      { finalized: boolean; byStudent: Map<string, AttendanceStatus> }
+      { exists: boolean; finalized: boolean; byStudent: Map<string, AttendanceStatus> }
     >();
 
     const out: { outcome: AttendanceImportRowOutcome; preview: ImportPreviewRowDto }[] = [];
@@ -336,6 +337,7 @@ export class AttendanceImportService {
                 })
               : [];
             sessionByGroup.set(gKey, {
+              exists: !!session,
               finalized: session?.state === AttendanceSessionState.FINALIZED,
               byStudent: new Map(recs.map((r) => [r.student_id, r.status])),
             });
@@ -347,7 +349,9 @@ export class AttendanceImportService {
           if (!student) code = 'ROLL_NOT_IN_SECTION';
           else if (
             !hasCorrect &&
-            (daysBetween(date, today) > policy.correctionWindowDays || sess.finalized)
+            // Same as PUT: the window guards an existing register only.
+            ((sess.exists && daysBetween(date, today) > policy.correctionWindowDays) ||
+              sess.finalized)
           ) {
             code = 'NEEDS_CORRECT_PERMISSION';
           } else {
@@ -479,7 +483,9 @@ export class AttendanceImportService {
         });
       });
     } catch (err) {
-      if (err instanceof ConflictException) throw err; // the stale-marks answer, already fixed text
+      // Known refusals (stale-marks 409, the day gate's 403 with details.reason, window 403, 422s)
+      // already carry fixed text and never echo input (Rule 23/24): keep their real status.
+      if (err instanceof HttpException) throw err;
       // Rule 23: one fixed sentence; the cause stays in the log.
       this.logger.error(
         `Attendance import commit failed: ${err instanceof Error ? err.message : String(err)}`,

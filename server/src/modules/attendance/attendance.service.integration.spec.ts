@@ -1067,6 +1067,37 @@ describe('AttendanceService (integration)', () => {
         const mine = sections.find((s) => s.section_id === sectionId)!;
         expect(mine.today!.scanned_but_absent).toBe(1);
       });
+
+      // PR #3609 review #1: teacher marks ABSENT first, the card scan comes later. Device
+      // ingest (TEACHER branch) fills only check_in_at and leaves device_id null; the scan
+      // must still show.
+      it('counts a scan that came after the teacher marked the student absent', async () => {
+        const saved = await service.putRegister(putParams({ dto: basePutDto() }));
+        const r1 = saved.students[0].record_id!;
+        const scanTime = new Date('2026-03-04T03:20:00Z');
+        await dataSource
+          .getRepository(AttendanceRecord)
+          .update(
+            { id: r1 },
+            { status: AttendanceStatus.ABSENT, check_in_at: scanTime, device_id: null },
+          );
+        const reg = await get({ role: UserRole.ADMIN, userId: ADMIN_USER_ID });
+        expect(reg.students.find((s) => s.record_id === r1)!.scanned_at).toBe(
+          scanTime.toISOString(),
+        );
+        const sections = await service.listMySections({
+          role: UserRole.ADMIN,
+          userId: ADMIN_USER_ID,
+          tenantId: TENANT_ID,
+        });
+        expect(sections.find((s) => s.section_id === sectionId)!.today!.scanned_but_absent).toBe(1);
+      });
+
+      // PR #3609 review #3: ACCOUNTANT can read the register but PUT is 403 for it.
+      it('tells a read-only role it cannot write the day register', async () => {
+        const reg = await get({ role: UserRole.ACCOUNTANT, userId: ADMIN_USER_ID });
+        expect(reg).toMatchObject({ can_write: false, write_reason: null });
+      });
     });
   });
 
@@ -1594,6 +1625,41 @@ describe('AttendanceService (integration)', () => {
           putParams({ ...asSub, dto: basePutDto({ date: PDATE, period_no: 2 }) }),
         ),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    // PR #3609 review #2: a period register's can_write is the period's real write rule
+    // (ATTENDANCE_MARK + period access), not a constant true. The dailySource gate never applies.
+    it('reports can_write on a period register from the period rule', async () => {
+      const r = await routine();
+      await setTenantSettings(TENANT_ID, {
+        weeklyOffDays: [],
+        correctionWindowDays: 2,
+        allowFutureDates: false,
+        periodAttendance: { enabled: true },
+        dailySource: 'DEVICE',
+      });
+      const subUserId = await makeSubstitute(r);
+      const read = (role: UserRole, userId: string) =>
+        service.getRegister({
+          sectionId,
+          date: PDATE,
+          periodNo: 1,
+          tenantId: TENANT_ID,
+          role,
+          userId,
+        });
+      expect(await read(UserRole.ADMIN, ADMIN_USER_ID)).toMatchObject({
+        can_write: true,
+        write_reason: null,
+      });
+      expect(await read(UserRole.ACCOUNTANT, ADMIN_USER_ID)).toMatchObject({
+        can_write: false,
+        write_reason: null,
+      });
+      expect(await read(UserRole.TEACHER, subUserId)).toMatchObject({
+        can_write: true,
+        write_reason: null,
+      });
     });
 
     const notScheduled = { response: { details: { code: 'ATTENDANCE_PERIOD_NOT_SCHEDULED' } } };

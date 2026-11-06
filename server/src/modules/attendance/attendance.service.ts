@@ -189,7 +189,8 @@ export class AttendanceService {
         .select('r.session_id', 'session_id')
         .addSelect('r.status', 'status')
         .addSelect('COUNT(*)', 'count')
-        .addSelect('COUNT(*) FILTER (WHERE r.device_id IS NOT NULL)', 'scanned')
+        // check_in_at, not device_id: a scan after a teacher's mark fills only check_in_at.
+        .addSelect('COUNT(*) FILTER (WHERE r.check_in_at IS NOT NULL)', 'scanned')
         .where('r.tenant_id = :tenantId', { tenantId })
         .andWhere('r.session_id IN (:...sessionIds)', { sessionIds })
         .groupBy('r.session_id')
@@ -306,7 +307,8 @@ export class AttendanceService {
       tenantId,
       role,
     });
-    // [76.2.1] D2: the whole-day gate. A period register keeps today's rule (writable by access).
+    // [76.2.1] D2: the whole-day gate. A period register keeps today's rule (mark permission +
+    // period access, no coordinator reach); dailySource never applies to it.
     const state =
       periodNo === null
         ? await this.attendanceAccessService.dayRegisterWriteState(
@@ -316,7 +318,18 @@ export class AttendanceService {
             date,
             tenantId,
           )
-        : { can_write: true, write_reason: null, first_period_today: false };
+        : {
+            can_write: await this.attendanceAccessService.canWritePeriodRegister(
+              role,
+              userId,
+              sectionId,
+              tenantId,
+              date,
+              periodNo,
+            ),
+            write_reason: null,
+            first_period_today: false,
+          };
     return { ...register, ...state };
   }
 
@@ -1851,9 +1864,10 @@ export class AttendanceService {
           source: record?.source ?? null,
           correction_count: record ? (correctionCounts.get(record.id) ?? 0) : 0,
           suggested_status: suggestedByStudentId.get(s.id) ?? null,
-          // D5: scan time only where the scan contradicts the mark.
+          // D5: scan time only where the scan contradicts the mark. Keyed on check_in_at (only a
+          // card scan sets it), so a scan that came after the teacher's mark counts too.
           scanned_at:
-            record?.device_id &&
+            record?.check_in_at &&
             (record.status === AttendanceStatus.ABSENT || record.status === AttendanceStatus.LEAVE)
               ? (record.check_in_at?.toISOString() ?? null)
               : null,

@@ -181,7 +181,14 @@ exists but some active students have no whole-day record today, even if the
 register is FINALIZED (a device school can finalize with students unmarked).
 Same dedupe key, so the existing alert just updates. Example: 20 of 23 students
 unmarked turns the title into "Attendance incomplete: 7-B — 20 without status".
-Marking every student (ABSENT/SYSTEM counts) resolves it.
+Marking every student (ABSENT/SYSTEM counts) resolves it in a `DEVICE` school,
+where the register stays DRAFT (ingest and the absence sweep never submit it).
+Under every other source the register must also be submitted.
+
+| `dailySource`                            | Fires while                                                 |
+| ---------------------------------------- | ----------------------------------------------------------- |
+| `DEVICE`                                 | any active student has no whole-day record                  |
+| `ANY` / `CLASS_TEACHER` / `FIRST_PERIOD` | the register is not FINALIZED, or any student has no record |
 
 **Leave delegation (D22).** If every class teacher of a section is on approved
 leave, the alert goes to the assistant teachers who are not on leave, plus
@@ -210,8 +217,9 @@ Push only from this path. SMS is a separate fallback after each sweep
 (`delivery/guardian-sms-fallback.service.ts`): guardians for the guardian rules,
 and, when the school turns on `attention.staffSmsFallback` (D29), one SMS per
 CRITICAL `attendance.not_taken` alert to each ADMIN/EXECUTIVE recipient with a
-phone (idempotency key `attention-staff:<alertId>:<userId>`, quiet hours respected,
-never guardians).
+phone who has not yet seen the alert in the app (`alert_recipients.seen_at` is
+null). Idempotency key `attention-staff:<alertId>:<userId>`, quiet hours
+respected, never guardians.
 
 ```mermaid
 flowchart TD

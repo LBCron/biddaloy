@@ -1,6 +1,6 @@
 import { InjectDataSource } from '@nestjs/typeorm';
 import type { DataSource } from 'typeorm';
-import { alertRuleMeta, AlertSeverity, UserRole } from '@biddaloy/shared';
+import { alertRuleMeta, AlertSeverity, DailyAttendanceSource, UserRole } from '@biddaloy/shared';
 import {
   policyForShift,
   resolveAttendancePolicy,
@@ -304,8 +304,13 @@ export class AttendanceNotTakenRule implements AttentionRuleShape {
         ctx.settings.escalateAttendanceToHeads,
       );
       const unmarked = unmarkedOf.get(sec.id) ?? 0;
-      // A device school's register can be FINALIZED with students still unmarked: still fires.
-      if (step !== 'BEFORE_START' && (!finalized.has(`${sec.id}|`) || unmarked > 0)) {
+      // A FINALIZED register with students still unmarked still fires (D28). A DEVICE school's
+      // register stays DRAFT (ingest and the sweep never finalize, D27), so there only N > 0 fires.
+      const open =
+        policy.dailySource === DailyAttendanceSource.DEVICE
+          ? unmarked > 0
+          : !finalized.has(`${sec.id}|`) || unmarked > 0;
+      if (step !== 'BEFORE_START' && open) {
         const rows = homeroom.filter((h) => h.section_id === sec.id);
         const asTeacher = (h: (typeof rows)[number]) => ({
           teacherId: h.teacher_id,
