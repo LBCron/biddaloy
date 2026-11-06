@@ -55,3 +55,16 @@ Error state for the enquiries list and a network-failure state for other tabs re
 | Shoot script | `../site/shoot.mjs` (#3611, not merged yet) / kit script | kit `.claude/skills/redesign-page/scripts/shoot.mjs`, same report; swap when #3611 lands |
 
 New, not in the kit: nav item "ওয়েবসাইট", a Switch row, theme/palette/font-pair cards, image slot with crop note, copyable record rows with status, rich-text editor frame.
+
+## Checks
+
+Ran `.claude/skills/redesign-page/scripts/shoot.mjs` on all 22 screens (1440 desktop and 390 mobile). Real output, summarised:
+
+| Check | Result (22 of 22 screens, both widths) |
+|---|---|
+| Horizontal overflow | 0px |
+| Unlabeled button or link | 0 |
+| Tap target under 44px (390 only) | 0 |
+| Page errors, `<h1>` count | 0 errors, exactly 1 `<h1>` |
+
+Blog editor toolbar (both languages) carries: bold, italic, paragraph, H2, H3, bullet list, numbered list, table, quote, image, link. Each has a Bangla `aria-label`, 44px at 390, and wraps onto a second row on the phone.
