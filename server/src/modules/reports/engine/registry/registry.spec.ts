@@ -35,6 +35,15 @@ const nameField: FieldDef = {
 };
 
 describe('report registry', () => {
+  it('card_no is a PERSONAL field on students and staff, like registration_number', () => {
+    for (const key of [ReportSubjectArea.STUDENTS, ReportSubjectArea.STAFF]) {
+      const area = ALL_AREAS.find((x) => x.key === key)!;
+      const f = area.fields.find((x) => x.key === 'card_no');
+      expect(f?.sensitivity).toBe(FieldSensitivity.PERSONAL);
+      expect(f?.sql).toMatch(/\.card_no$/);
+    }
+  });
+
   it('every area validates', () => {
     expect(() => assertRegistryValid(ALL_AREAS)).not.toThrow();
     expect(ALL_AREAS.map((a) => a.key)).toEqual([

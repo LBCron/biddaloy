@@ -198,6 +198,29 @@ describe('system reports (integration)', () => {
       expect(girls.rows.map((r) => r.name)).toEqual(['Girl']);
     });
 
+    it('a card list (student list + card_no) shows the card, null without one, and hides it below the PERSONAL tier', async () => {
+      const withCard = await fx.student(tenantId, year, six, { name: 'Has Card' });
+      await fx.student(tenantId, year, six, { name: 'No Card' });
+      await ds.query(`UPDATE students SET card_no = '7B-001' WHERE id = $1`, [withCard]);
+      const base = SYSTEM_REPORTS.find((r) => r.key === 'student-list')!.definition;
+      const cardList = {
+        ...base,
+        dataset: { ...base.dataset, dimensions: [{ field: 'name' }, { field: 'card_no' }] },
+      };
+      const go = async (role: UserRole) => {
+        const c = await compiler().compile(cardList, {}, { tenantId, userId: 'u', role }, 500);
+        return c.query.getRawMany<Record<string, unknown>>();
+      };
+      const admin = await go(UserRole.ADMIN);
+      expect(admin.map((r) => [r.name, r.card_no ?? null]).sort()).toEqual([
+        ['Has Card', '7B-001'],
+        ['No Card', null],
+      ]);
+      // COMMITTEE has no STUDENT_READ, so the PERSONAL card column is masked or dropped.
+      const committee = await go(UserRole.COMMITTEE).catch(() => []);
+      expect(JSON.stringify(committee)).not.toContain('7B-001');
+    });
+
     it('the student list narrows by the class list a prompt sends', async () => {
       await fx.student(tenantId, year, six, { name: 'Boy', gender: 'MALE' });
       const seven = await fx.klass(tenantId, year, 'Seven', 7);
