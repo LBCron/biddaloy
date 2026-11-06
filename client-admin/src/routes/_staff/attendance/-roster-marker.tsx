@@ -15,7 +15,7 @@
  *   ("{{name}} marked absent"), read once per change.
  */
 import { AttendanceStatus } from '@biddaloy/shared';
-import { AttendanceStatusControl } from '@biddaloy/ui/components';
+import { AttendanceMarkBadges, AttendanceStatusControl } from '@biddaloy/ui/components';
 import { useArrivalSubscriptions, type RegisterStudent } from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
 import { Bell } from 'lucide-react';
@@ -34,6 +34,8 @@ export interface RosterMarkerProps {
   onStatusChange: (studentId: string, status: AttendanceStatus) => void;
   onMinutesLateChange: (studentId: string, minutes: number | null) => void;
   onAllPresent: () => void;
+  /** [76.5.03] Shift+A: every unmarked row becomes ABSENT. */
+  onRestAbsent?: (() => void) | undefined;
   onSubmit: () => void;
   disabled?: boolean;
   /** [9.7] Passed straight through to `AttendanceStatusControl` — a future
@@ -81,6 +83,7 @@ export function RosterMarker({
   onStatusChange,
   onMinutesLateChange,
   onAllPresent,
+  onRestAbsent,
   onSubmit,
   disabled = false,
   allowedStatuses,
@@ -131,6 +134,11 @@ export function RosterMarker({
     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
       event.preventDefault();
       onSubmit();
+      return;
+    }
+    if (event.shiftKey && event.key.toLowerCase() === 'a' && onRestAbsent) {
+      event.preventDefault();
+      if (isStatusAllowed(AttendanceStatus.ABSENT)) onRestAbsent();
       return;
     }
     if (event.shiftKey && event.key.toLowerCase() === 'p') {
@@ -231,6 +239,14 @@ export function RosterMarker({
                   </Bell>
                 )}
               </button>
+              <AttendanceMarkBadges
+                scanned_at={student.scanned_at}
+                source={student.source}
+                scannedLabel={(time) => t('scannedBadge', { time })}
+                scannedHint={t('scannedHint')}
+                fromSheetLabel={t('fromSheetBadge')}
+                fromSheetHint={t('fromSheetHint')}
+              />
               <AttendanceStatusControl
                 value={status}
                 onChange={(next) => setStatus(student.student_id, next)}
