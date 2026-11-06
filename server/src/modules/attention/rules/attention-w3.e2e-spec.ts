@@ -250,9 +250,16 @@ describe('Attention W3 E2E: attendance.not_taken', () => {
   it('resolves once the register is finalized and records who resolved it', async () => {
     await runRule(SCHOOL_A, MONDAY_0900);
     // The real PUT route refuses a future date, so write the finalized day session directly.
-    await q(
-      `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'FINALIZED')`,
+    const [{ id: sessionId }] = await q(
+      `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'FINALIZED') RETURNING id`,
       [SCHOOL_A, sectionA, DAY],
+    );
+    // [76.2.05] D28: a FINALIZED register with students left unmarked still fires, so the
+    // finalized register here marks both students.
+    await q(
+      `INSERT INTO attendance_records (tenant_id, session_id, student_id, date, status)
+       SELECT tenant_id, $2, id, $3, 'PRESENT' FROM students WHERE tenant_id = $1 AND class_section_id = $4`,
+      [SCHOOL_A, sessionId, DAY, sectionA],
     );
     await runRule(SCHOOL_A, MONDAY_0900, USERS.CT.id);
 
