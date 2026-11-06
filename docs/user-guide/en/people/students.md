@@ -114,6 +114,7 @@ Every student has a **profile**. The profile is their own page: at the top their
   - [Family, health and public exam details](#task-records)
   - [Photo, ID card and documents](#task-documents)
   - [Upload many photos at once](#task-photos)
+  - [Give a student a card number](#task-card)
   - [Import many students at once](#task-import)
   - [Delete a student](#task-delete)
 - [Problems and fixes](#trouble)
@@ -381,6 +382,18 @@ In the profile's **Documents** tab:
    → At the end you see three groups: **Matched**, **No matching student**, **Couldn't read**. You can copy the unmatched list with **Copy list**.
 
 If it stops halfway, the photos sent so far are kept.
+
+### Give a student a card number <a href="#task-card" id="task-card"></a>
+
+The **Card number** is the number written on the student's attendance card. The attendance machine reads it to know which student came. No two students can have the same number.
+
+1. Open the student's profile and press **Edit**, or add the student ([Add one student](#task-main)). In **Placement**, find **Card number**, below **Roll number**.
+2. Press **Scan card** and touch the card to the reader. The number fills in. Or type the number by hand.
+3. Press **Save** (or **Add student**).
+
+→ If the number belongs to another student, the box says "This card number already belongs to another student." Check the card and try again. The number may only use letters, numbers and dashes, 1 to 64 characters. An empty box is fine: the student then simply has no card.
+
+To give many students a card number at once, put it in the **Card number** column of the import file ([Import many students at once](#task-import)); a number used twice shows "Row 3: this card number is already used — use a different number." For staff: [Staff](staff.md#task-card). To add the machine itself: [Settings](../administration/settings.md#task-devices).
 
 ### Import many students at once <a href="#task-import" id="task-import"></a>
 

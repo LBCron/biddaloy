@@ -1,0 +1,14 @@
+%% title: Uploading an attendance sheet
+%% desc: Pick sections and a date, download the sheet, fill in the codes, upload it and review the changes. Rows with errors can be skipped. After saving, the upload appears in the list, and a corrected file can be uploaded later.
+flowchart LR
+  A["Pick sections<br/>and date"] --> B["Download<br/>sheet"]
+  B --> C["Fill in<br/>the codes"]
+  C --> D["Upload<br/>the file"]
+  D --> E{"Errors<br/>in review?"}
+  E -->|No| F["Save"]:::done
+  E -->|Yes| G["Skip them,<br/>or fix the file"]:::warn
+  G --> F
+  F --> H["Upload page<br/>in the list"]
+  H -->|Mistake found| I["Upload<br/>corrected file"]:::warn
+  classDef warn fill:#fff4e6,stroke:#e8590c,color:#7a2e05
+  classDef done fill:#ebfbee,stroke:#2f9e44,color:#1b4d26

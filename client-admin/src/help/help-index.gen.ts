@@ -1893,6 +1893,16 @@ export const HELP_INDEX: HelpIndex = {
     knownIssues: 0,
     field: { ns: 'attendanceRegister', key: 'reason' },
   },
+  'attendance.uploads': {
+    title: { bn: 'হাজিরা শীট আপলোড', en: 'Upload an attendance sheet' },
+    summary: {
+      bn: 'এক বা একাধিক শাখার হাজিরা এক্সেল শীটে লিখে আপলোড করুন, কী বদলাবে দেখে নিন, তারপর সেভ করুন। পরে সব আপলোড দেখুন, আর ভুল হলে ঠিক করা ফাইল দিয়ে শুধরে নিন।',
+      en: 'Fill in attendance for one or more sections on an Excel sheet, upload it, check what will change, and save. See every uploaded sheet afterwards and fix a mistake with a corrected file.',
+    },
+    path: 'attendance/uploads',
+    anchor: '',
+    knownIssues: 0,
+  },
   'attendance.staffAttendance': {
     title: { bn: 'কর্মীর উপস্থিতি ও ছুটি', en: 'Staff attendance and leave' },
     summary: {
