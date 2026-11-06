@@ -57,8 +57,8 @@ server {
     # school, so its 1200/min read limit is one shared bucket, and the host lookup is uncached.
     proxy_cache_key $host$request_uri;
 
-    # Pages: 30 s micro-cache (D32). If the site container is down, an expired page is served
-    # stale for as long as it stays down; nginx has no max-stale age. The only bound is eviction:
+    # Pages: 30 s micro-cache (D32). If the site container or the API behind it is down (no answer
+    # or a 5xx), an expired page is served stale for as long as that lasts; nginx has no max-stale age. The only bound is eviction:
     # an entry nobody asked for in 2 hours (inactive=2h) is gone, and then the visitor gets the
     # maintenance page (503).
     location / {

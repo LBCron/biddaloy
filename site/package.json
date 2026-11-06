@@ -15,7 +15,8 @@
     "@biddaloy/shared": "*",
     "@biddaloy/site-themes": "*",
     "astro": "^7.4.4",
-    "cookie": "^2.0.1"
+    "cookie": "^2.0.1",
+    "send": "^1.2.1"
   },
   "devDependencies": {
     "typescript": "^5",
