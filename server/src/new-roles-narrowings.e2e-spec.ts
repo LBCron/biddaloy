@@ -98,7 +98,7 @@ describe('[#1364] new roles vs ROLE_NARROWINGS routes', () => {
     reached(await call(R, 'get', `/exams/${UNKNOWN_ID}/results`));
     reached(await call(R, 'post', `/exams/${UNKNOWN_ID}/results/publish`));
     // The guard now passes; the empty body then fails validation (400), never 403.
-    expect((await call(R, 'patch', `/exams/${UNKNOWN_ID}/marks`, {})).status).not.toBe(403);
+    expect((await call(R, 'patch', `/exams/${UNKNOWN_ID}/marks`, {})).status).toBe(400);
     expect((await call(R, 'post', `/exams/${UNKNOWN_ID}/marks/reopen`, {})).status).toBe(403);
   });
 
