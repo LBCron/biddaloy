@@ -1,0 +1,27 @@
+{
+  "name": "@biddaloy/site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "start": "node dist/server/entry.mjs",
+    "test": "vitest run",
+    "e2e": "playwright test -c playwright.config.ts"
+  },
+  "dependencies": {
+    "@astrojs/node": "^11.1.11",
+    "@biddaloy/shared": "*",
+    "@biddaloy/site-themes": "*",
+    "astro": "^7.4.4",
+    "cookie": "^2.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vitest": "^4"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

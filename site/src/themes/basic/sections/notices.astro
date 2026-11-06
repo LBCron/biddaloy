@@ -1,0 +1,22 @@
+---
+import Skeleton from '../../../components/Skeleton.astro';
+import { t } from '../../../i18n/t';
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang } = Astro.props as SectionProps;
+const title = field(data.title, lang) ?? t(lang, 'notices.title');
+---
+<section class="sec" id="news"><div class="wrap">
+  <div class="sec-head">
+    <h2>{title}</h2>
+    <a class="btn btn-ghost btn-sm" href={`/${lang}/notices/`}>{t(lang, 'notices.all')}</a>
+  </div>
+  <div class="island" data-notices data-lang={lang} data-empty={t(lang, 'notices.empty')} data-error={t(lang, 'notices.error')} data-loading aria-busy="true">
+    <Skeleton label={t(lang, 'notices.loading')} />
+    <div class="ready notice-list" role="list"></div>
+  </div>
+</div></section>
+<script>
+  import '../../../islands/notices';
+</script>

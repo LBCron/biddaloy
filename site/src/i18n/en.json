@@ -1,0 +1,52 @@
+{
+  "skip": "Skip to content",
+  "announcements": "Announcements",
+  "nav": {
+    "home": "Home",
+    "about": "About",
+    "academics": "Academics",
+    "admissions": "Admissions",
+    "news": "News",
+    "notices": "Notice board",
+    "blog": "Blog",
+    "teachers": "Teachers",
+    "results": "Results",
+    "contact": "Contact"
+  },
+  "lang": { "label": "Language", "bn": "বাং", "en": "EN" },
+  "hero": {
+    "prev": "Previous photo",
+    "next": "Next photo",
+    "label": "Campus photos",
+    "goto": "Photo"
+  },
+  "notices": {
+    "title": "Notice board",
+    "all": "All notices",
+    "empty": "No notices right now.",
+    "error": "Could not load notices. Please try again in a moment.",
+    "loading": "Loading notices"
+  },
+  "footer": {
+    "credit": "Powered by",
+    "contact": "Contact"
+  },
+  "err404": {
+    "title": "No site at this address",
+    "body": "No school website is live at this address.",
+    "link": "Go to SchoolManagerP"
+  },
+  "err503": {
+    "title": "Please try again in a moment",
+    "body": "This site is not opening right now."
+  },
+  "contact": { "address": "Address", "phone": "Phone", "email": "Email", "hours": "Office hours" },
+  "section": {
+    "teachers": "Our teachers",
+    "events": "Upcoming days",
+    "blog": "School blog",
+    "admissions": "Admissions",
+    "contact": "Contact"
+  },
+  "empty": "Coming soon."
+}

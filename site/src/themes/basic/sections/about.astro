@@ -1,0 +1,16 @@
+---
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang } = Astro.props as SectionProps;
+const title = field(data.title, lang);
+const body = field(data.body, lang);
+const img = ((data.images ?? []) as unknown[]).find((p): p is string => typeof p === 'string');
+---
+<section class="sec sec-alt" id="about"><div class="wrap grid g2">
+  <div>
+    {title && <h2>{title}</h2>}
+    {body && <p class="muted" style="margin-top:14px;white-space:pre-line">{body}</p>}
+  </div>
+  {img && <img src={`/media/${img}`} alt="" loading="lazy" style="aspect-ratio:3/2;object-fit:cover;width:100%;border-radius:var(--r)" />}
+</div></section>

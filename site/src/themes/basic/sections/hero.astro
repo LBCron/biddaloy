@@ -1,0 +1,27 @@
+---
+import HeroCarousel from '../../../components/HeroCarousel.astro';
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang } = Astro.props as SectionProps;
+const raw = (data.photos ?? data.images ?? []) as unknown[];
+const photos = raw.filter((p): p is string => typeof p === 'string');
+const kicker = field(data.kicker, lang);
+const headline = field(data.headline, lang);
+const tagline = field(data.tagline, lang);
+const primary = field(data.ctaPrimary, lang);
+const secondary = field(data.ctaSecondary, lang);
+const base = `/${lang}/`;
+---
+<section class="hero"><div class="wrap">
+  <div>
+    {kicker && <div class="kicker"><i></i>{kicker}</div>}
+    {headline && <h1>{headline}</h1>}
+    {tagline && <p class="lead">{tagline}</p>}
+    <div class="cta">
+      {primary && <a class="btn btn-primary" href={`${base}admissions/`}>{primary}</a>}
+      {secondary && <a class="btn btn-ghost" href={`${base}contact/`}>{secondary}</a>}
+    </div>
+  </div>
+  <HeroCarousel photos={photos} lang={lang} />
+</div></section>
