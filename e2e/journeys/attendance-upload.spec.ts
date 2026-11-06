@@ -3,7 +3,9 @@ import ExcelJS from 'exceljs';
 import {
   adminApiSession,
   createStudentsInSection,
+  currentAcademicYear,
   get,
+  isFridayAnywhere,
   markableDateIso,
   put,
   type ApiSession,
@@ -24,7 +26,7 @@ import { t } from '../i18n';
 const DATE = markableDateIso();
 
 interface RegisterView {
-  students: { student_id: string; roll_number: number }[];
+  students: { student_id: string; roll_number: number; status: AttendanceStatus | null }[];
 }
 
 async function sheet(rows: [number, string][], className: string): Promise<Buffer> {
@@ -57,9 +59,20 @@ test.describe('attendance sheet upload', () => {
     page,
     request,
   }) => {
+    // The wizard's date is the school's today; on a Friday that is a closed day.
+    test.skip(isFridayAnywhere(), 'the school is closed on Friday');
     test.setTimeout(120_000);
     const admin = await adminApiSession(request);
-    const chain = await createStudentsInSection(request, admin, 'Sheet', 3);
+    // Current year: the wizard lists, and the sheet serves, current-year sections only.
+    const chain = await createStudentsInSection(
+      request,
+      admin,
+      'Sheet',
+      3,
+      await currentAcademicYear(request, admin),
+    );
+    // Unique, so the history list row of this upload can be found among everyone's.
+    const firstFile = `sheet-${chain.sectionId}.xlsx`;
     const register = await get<RegisterView>(
       request,
       admin,
@@ -85,7 +98,7 @@ test.describe('attendance sheet upload', () => {
 
     // Step 2: roll 99 does not exist, roll 3 overwrites, roll 1 is new.
     await page.getByLabel(t('attendanceImport.upload.chooseFile')).setInputFiles({
-      name: 'sheet.xlsx',
+      name: firstFile,
       mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       buffer: await sheet(
         [
@@ -114,11 +127,18 @@ test.describe('attendance sheet upload', () => {
     await page.getByRole('button', { name: t('attendanceImport.detail.filterErrors') }).click();
     await expect(page.locator('tbody tr')).toHaveCount(1);
 
-    // The register shows the new mark (roll 3 flipped to present).
+    // Open register leads to this section's register, which now holds roll 3 as present (D12).
     await page
       .getByRole('link', { name: t('attendanceImport.detail.openRegister') })
       .first()
       .click();
+    await expect(page).toHaveURL(new RegExp(`/attendance/${chain.sectionId}\\?date=${DATE}`));
+    const after = await get<RegisterView>(
+      request,
+      admin,
+      `/attendance/sections/${chain.sectionId}/register?date=${DATE}`,
+    );
+    expect(after.students.find((s) => s.roll_number === 3)?.status).toBe(AttendanceStatus.PRESENT);
 
     // Upload a corrected file from the detail page: the fixed row 99 becomes roll 2.
     await page.goto(firstImportUrl);
@@ -138,6 +158,7 @@ test.describe('attendance sheet upload', () => {
 
     // The first upload is now marked superseded in the list.
     await page.goto('/attendance/imports');
-    await expect(page.getByText(t('attendanceImport.history.superseded')).first()).toBeVisible();
+    const firstRow = page.getByRole('row').filter({ hasText: firstFile });
+    await expect(firstRow.getByText(t('attendanceImport.history.superseded'))).toBeVisible();
   });
 });
