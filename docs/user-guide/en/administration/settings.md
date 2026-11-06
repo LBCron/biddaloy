@@ -252,6 +252,31 @@ The SMS for evaluations, study plans, homework and applications go only when an 
 
 <img src="img/settings-academics.png" alt="Academics category; 1 · Attendance policy 2 · confirmation question for the automatic absence message 3 · at-risk signs on the dashboard 4 · ACR criteria; admin">
 
+#### Who marks daily attendance <a href="#task-source" id="task-source"></a>
+
+In **Attendance policy**, the group **Who marks daily attendance** decides who may save a section's daily register: **Anyone assigned (today's rule)**, **Class teacher roll call**, **First-period teacher** or **Attendance machine**. Pick one and press **Save**. What each choice means for teachers is explained in [Taking attendance](../attendance/attendance.md#task-source). With **Attendance machine**, a note says "After the absence cutoff, students the machine did not see are marked absent. The class teacher can still correct." Choose it only after a machine is added below.
+
+#### Attendance machines <a href="#task-devices" id="task-devices"></a>
+
+Under **Attendance policy** the card **Attendance machines** lists the fingerprint, face and card machines that send attendance to the school. Each row shows **Name**, **Kind**, **Section**, **Last seen** (**Never** if it has not sent anything) and **Status**. **Section** says **Whole school** unless the machine belongs to one section. If there is none, the page says **No attendance machine yet**.
+
+**Add a machine**
+
+1. Press **Add machine**.
+2. Write a **Name**, for example "Gate 1". Choose the **Kind**: **Fingerprint**, **Face**, **Card (RFID)** or **Other**. Choose a **Section** only if the machine belongs to one section; leave it empty for the whole school.
+3. Tick **Roster access** only if the machine should download the student list.
+4. Press **Add machine**. → A box opens: **Copy the key now — it is shown once**.
+5. Press **Copy**. You see **Key copied**. Put the key into the machine (the person who installs the machine does this).
+6. Press **Done**. The app asks **Did you copy the key?**. Press **Yes, I copied it**.
+
+> **Keep in mind:** the **Machine secret key** is shown only once. It is never shown again, not even to an admin. If you lose it, make a new one.
+
+**If the key is lost or leaked:** press **Make new key** on the machine's row and confirm. The old key stops working at once and the machine sends nothing until the new key is in it.
+
+**To stop a machine:** press **Revoke** and confirm. It stops sending attendance; past attendance stays. You see **Machine revoked**.
+
+To give students and staff the card number the machine reads, see [Card number](../people/students.md#task-card).
+
 ### Finance: fee rules <a href="#task-finance" id="task-finance"></a>
 
 This category has one part: **Fee rules**. "Approval, telling families and late fees — for every fee bill."

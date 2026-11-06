@@ -8,11 +8,14 @@
  * the two the tour submits back to that state so every run starts the same.
  */
 import { expect, test, type Page } from '@playwright/test';
+import ExcelJS from 'exceljs';
 
 import bnAttendance from '../../../ui/src/i18n/locales/bn/attendance.json';
 import bnNav from '../../../ui/src/i18n/locales/bn/nav.json';
+import bnAttendanceImport from '../../../ui/src/i18n/locales/bn/attendanceImport.json';
 import bnDashboard from '../../../ui/src/i18n/locales/bn/dashboard.json';
 import enAttendance from '../../../ui/src/i18n/locales/en/attendance.json';
+import enAttendanceImport from '../../../ui/src/i18n/locales/en/attendanceImport.json';
 import enDashboard from '../../../ui/src/i18n/locales/en/dashboard.json';
 import enNav from '../../../ui/src/i18n/locales/en/nav.json';
 import { beat, guideLang, imgDir, loginAs, prepare, recordGif, shoot } from '../helpers/capture';
@@ -25,6 +28,7 @@ const GIF_SECTION = 'Class 6 – B';
 const lang = guideLang();
 const a = lang === 'bn' ? bnAttendance : enAttendance;
 const nav = lang === 'bn' ? bnNav : enNav;
+const up = lang === 'bn' ? bnAttendanceImport : enAttendanceImport;
 const dashboard = lang === 'bn' ? bnDashboard : enDashboard;
 const dir = imgDir('attendance');
 const file = (name: string) => `${dir}/attendance-${name}`;
@@ -299,4 +303,75 @@ test('evidence: admin edit of an old register', async ({ page }, info) => {
   await page.screenshot({
     path: process.env.GUIDE_EVIDENCE ?? 'test-results/guide/evidence-admin-old-register.png',
   });
+});
+
+// [76.6.01] Upload an attendance sheet: pick, download, drop a filled file, review, save, detail.
+// Last in the file on purpose: saving writes the capture day's register of SHOT_SECTION, and the
+// earlier shots of that section need it unmarked (`resetCaptureDay` clears it on the next run).
+// Shot 04 (the sheet open in Excel) is not made here; take it by hand.
+test('desktop: upload an attendance sheet', async ({ page }, info) => {
+  test.skip(info.project.metadata.device !== 'desktop');
+  test.setTimeout(120_000);
+  await prepare(page);
+  await loginAs(page, 'class-teacher-8a');
+  await page.goto(`/attendance?date=${DAY}`);
+
+  // 01 — where Upload sheet sits in the menu.
+  const sidebar = page.getByRole('complementary').getByRole('navigation');
+  await sidebar.getByRole('button', { name: nav.groups.attendance, exact: true }).click();
+  const menuLink = sidebar.getByRole('link', { name: nav.items.upload, exact: true });
+  await expect(menuLink).toBeVisible();
+  await shoot(page, file('uploads-01-menu.png'), [{ target: menuLink }]);
+  await menuLink.click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(up.pageTitle);
+
+  // 02 — pick the section. The date stays on today; the filled sheet sets its own date below.
+  await page.getByLabel(SHOT_SECTION).check();
+  await shoot(page, file('uploads-02-pick.png'), [
+    { target: page.getByRole('group', { name: up.pick.sections }) },
+    { target: page.getByLabel(up.pick.date) },
+  ]);
+
+  // 03 — the download button, then the real sheet is filled in below.
+  const downloadButton = page.getByRole('button', { name: up.download.button });
+  await shoot(page, file('uploads-03-download.png'), [{ target: downloadButton }]);
+  const downloadPromise = page.waitForEvent('download');
+  await downloadButton.click();
+  const sheetPath = await (await downloadPromise).path();
+
+  // Fill the downloaded sheet: three students present, plus one row with a roll that does not exist.
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.readFile(sheetPath);
+  const ws = wb.worksheets[0];
+  const code = lang === 'bn' ? 'উ' : 'P';
+  for (let r = 2; r <= 5; r += 1) ws.getRow(r).getCell(6).value = code;
+  ws.getRow(5).getCell(4).value = 999;
+  const buffer = Buffer.from(await wb.xlsx.writeBuffer());
+
+  // 05 — the drop box.
+  const chooser = page.getByLabel(up.upload.chooseFile);
+  await expect(chooser).toBeAttached();
+  await shoot(page, file('uploads-05-drop.png'), [
+    { target: page.getByText(up.upload.dropzone).first() },
+  ]);
+  await chooser.setInputFiles({
+    name: 'sheet.xlsx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    buffer,
+  });
+  await page.getByRole('button', { name: up.upload.reviewChanges }).click();
+
+  // 06 — the review: counts, the error row and the skip box.
+  const skip = page.getByLabel(up.review.skipErrors);
+  await expect(skip).toBeVisible();
+  await shoot(page, file('uploads-06-review.png'), [
+    { target: page.getByRole('table').first() },
+    { target: skip },
+  ]);
+  await skip.check();
+  await page.getByRole('button', { name: up.review.save.split('{{count}}')[1].trim() }).click();
+
+  // 08 — the upload's page, after saving.
+  await expect(page).toHaveURL(/\/attendance\/imports\/[0-9a-f-]{36}$/);
+  await shoot(page, file('uploads-08-detail.png'), [{ target: page.getByRole('table').first() }]);
 });

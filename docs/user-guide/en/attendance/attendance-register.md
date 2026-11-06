@@ -19,6 +19,9 @@ labels:
     attendance:register.*,
     attendance:mark.errorToast,
     nav:items.attendanceRegister,
+    attendance:registerBanner.*,
+    attendance:scannedBadge,
+    attendance:fromSheetBadge,
   ]
 helpIds:
   [
@@ -60,6 +63,7 @@ Daily attendance is taken on the [Taking attendance](attendance.md) page, one re
   - [The register on a phone](#task-phone)
 - [Problems and fixes](#trouble)
 - [Who can do what](#roles)
+- [Who can correct, and where a mark came from](#task-source)
 - [Known issues](#known-issues)
 - [Learn more](#more)
 
@@ -92,10 +96,10 @@ The bell that marks a guardian waiting for an arrival notice shows only when you
 
 ## How to know a correction was saved <a href="#confirm" id="confirm"></a>
 
-| State                         | How you can tell                                                                                                  | What next                      |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| **Changed on screen only**    | While editing, changed cells look different, and the top says "3 cells changed". You lose them if you leave the page. | Press **Save**.             |
-| **Reached the school's system** | The message "Saved 2 days." appears and the register goes back to its normal view.                              | Done.                          |
+| State                           | How you can tell                                                                                                      | What next       |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------- |
+| **Changed on screen only**      | While editing, changed cells look different, and the top says "3 cells changed". You lose them if you leave the page. | Press **Save**. |
+| **Reached the school's system** | The message "Saved 2 days." appears and the register goes back to its normal view.                                    | Done.           |
 
 This page cannot save without internet. If you are offline, fix a single day from the [Taking attendance](attendance.md#task-offline) page instead.
 
@@ -165,30 +169,41 @@ On a phone, swipe sideways to see the whole grid. There is no edit button; it sa
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                                                                    | What to do                                                                                                                         | Who can help                      |
-| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| **Could not load the register.** (teacher)                                      | The list shows every class, but you can only open sections assigned to you. Pick your own section.                                 | Admin (**Teacher assignments**)   |
-| **No students in this section.**                                                | The register appears once students are enrolled.                                                                                   | Admin                             |
-| **Nothing was saved** — "Someone changed … while you were editing."             | Someone else submitted that day while you were editing. Press **Reload the month**, then make your changes again.                   | —                                 |
-| "… cannot be marked: it is a future date or a day without school."              | Press **Remove these days from my changes**, then save the rest.                                                                   | —                                 |
-| "… can only be changed by someone who can correct attendance."                  | The day is outside the window. Press **Remove these days from my changes** and ask an admin to make the correction.                | Admin                             |
-| **Write a reason of at least 3 letters.**                                       | Write a slightly longer reason in **Reason for correction**.                                                                       | —                                 |
-| No **Edit** button                                                              | You are on a phone, or your role cannot edit ([Who can do what](#roles)).                                                          | —                                 |
+| What you see                                                        | What to do                                                                                                          | Who can help                    |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| **Could not load the register.** (teacher)                          | The list shows every class, but you can only open sections assigned to you. Pick your own section.                  | Admin (**Teacher assignments**) |
+| **No students in this section.**                                    | The register appears once students are enrolled.                                                                    | Admin                           |
+| **Nothing was saved** — "Someone changed … while you were editing." | Someone else submitted that day while you were editing. Press **Reload the month**, then make your changes again.   | —                               |
+| "… cannot be marked: it is a future date or a day without school."  | Press **Remove these days from my changes**, then save the rest.                                                    | —                               |
+| "… can only be changed by someone who can correct attendance."      | The day is outside the window. Press **Remove these days from my changes** and ask an admin to make the correction. | Admin                           |
+| **Write a reason of at least 3 letters.**                           | Write a slightly longer reason in **Reason for correction**.                                                        | —                               |
+| No **Edit** button                                                  | You are on a phone, or your role cannot edit ([Who can do what](#roles)).                                           | —                               |
 
 ---
 
 ## Who can do what <a href="#roles" id="roles"></a>
 
-| Role                 | View and print           | Correct within the window | Correct outside the window |
-| -------------------- | ------------------------ | ------------------------- | -------------------------- |
-| Admin                | All sections             | Yes                       | Yes, with a reason         |
-| Teacher              | Only sections assigned to them | Yes, their own section | No                         |
-| Academic coordinator | All sections             | No                        | No                         |
-| Accountant           | All sections             | No                        | No                         |
-| Office staff         | All sections             | No                        | No                         |
-| Exam controller      | All sections             | No                        | No                         |
+| Role                 | View and print                 | Correct within the window | Correct outside the window |
+| -------------------- | ------------------------------ | ------------------------- | -------------------------- |
+| Admin                | All sections                   | Yes                       | Yes, with a reason         |
+| Teacher              | Only sections assigned to them | Yes, their own section    | No                         |
+| Academic coordinator | All sections                   | No                        | No                         |
+| Accountant           | All sections                   | No                        | No                         |
+| Office staff         | All sections                   | No                        | No                         |
+| Exam controller      | All sections                   | No                        | No                         |
 
 People who cannot correct attendance do not see the **Edit** button.
+
+---
+
+## Who can correct, and where a mark came from <a href="#task-source" id="task-source"></a>
+
+The school decides who may save a section's attendance ([Who marks daily attendance](attendance.md#task-source)). The month grid follows the same rule:
+
+- You can look at and print any register you may see. The **Edit** button shows only for people who may save that section's attendance: the class teacher, an assistant, and admins. Under the setting **First-period teacher**, the first-period teacher can correct a day too, but only a day, not the whole month.
+- If you are not allowed to save, the day's register says, for example, "Only the class teacher saves this register. You can look, but not change it." The buttons are absent, not greyed out.
+- A mark that came from the card machine shows **Scanned** with the time, and one that came from an uploaded sheet shows **From sheet**, on the day's register ([details](attendance.md#task-source)).
+- To fill many days of one section at once from a file, see [Upload an attendance sheet](uploads.md).
 
 ---
 
@@ -215,17 +230,17 @@ Checked in the code for version 0.1.0 on 2026-10-25. There are no known issues o
 <details>
 <summary><strong>Keyboard shortcuts</strong> (while editing)</summary>
 
-| Key             | What it does                   |
-| --------------- | ------------------------------ |
-| `P`             | Present                        |
-| `A`             | Absent                         |
-| `L`             | Late                           |
-| `E`             | Leave                          |
-| `Space`         | Present ↔ absent               |
-| `←` `→` `↑` `↓` | Move to the next cell          |
-| `Home` / `End`  | First / last cell in the row   |
-| `Esc`           | Cancel editing                 |
-| `Ctrl + S`      | Save                           |
+| Key             | What it does                 |
+| --------------- | ---------------------------- |
+| `P`             | Present                      |
+| `A`             | Absent                       |
+| `L`             | Late                         |
+| `E`             | Leave                        |
+| `Space`         | Present ↔ absent             |
+| `←` `→` `↑` `↓` | Move to the next cell        |
+| `Home` / `End`  | First / last cell in the row |
+| `Esc`           | Cancel editing               |
+| `Ctrl + S`      | Save                         |
 
 </details>
 
@@ -263,6 +278,7 @@ Checked in the code for version 0.1.0 on 2026-10-25. There are no known issues o
 
 - [**Taking attendance**](attendance.md) — daily attendance, one day's register.
 - [**Attendance reports**](attendance-reports.md) — the month summary and the low-attendance list.
+- [**Upload an attendance sheet**](uploads.md) — fill in many days from an Excel file.
 - [**Teacher assignments**](../people/teaching-assignments.md) — which sections a teacher can open.
 - [**Students**](../people/students.md) — enrolling students in a section.
 
