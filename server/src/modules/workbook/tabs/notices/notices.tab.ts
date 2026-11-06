@@ -70,6 +70,12 @@ const columns: readonly ColumnSpec[] = [
   { key: 'important', type: 'bool', required: true, label: label('Important', 'গুরুত্বপূর্ণ') },
   { key: 'pinned', type: 'bool', required: true, label: label('Pinned', 'পিন করা') },
   { key: 'is_public', type: 'bool', required: true, label: label('Public', 'সবার জন্য') },
+  // [40.1.08] Epic 40: shown first on the school's public website.
+  {
+    key: 'pinned_on_website',
+    type: 'bool',
+    label: label('Pinned on website', 'ওয়েবসাইটে পিন করা'),
+  },
   { key: 'expires_on', type: 'date', label: label('Expires on', 'মেয়াদ শেষ') },
   { key: 'published_at', type: 'datetime', label: label('Published at', 'প্রকাশের সময়') },
   { key: 'edited_at', type: 'datetime', label: label('Edited at', 'সম্পাদনার সময়') },
@@ -162,7 +168,6 @@ export const noticesTab: TabSpec<Notice, Rec> = {
     'alert_id', // D28: derived attention alert, left off on restore
     'sms_task_alert_id', // D28: derived attention alert, left off on restore
     'updated_at', // set by the database on write
-    'pinned_on_website', // [40.1.03] #3621 (40.1.08) turns it into a tab column
     'tenant_id', // implicit: every row is scoped to the workbook's own tenant
   ],
   dependsOn: ['users'],
@@ -201,6 +206,7 @@ export const noticesTab: TabSpec<Notice, Rec> = {
       else v[c.key] = r.value;
     }
     if (errors.length > 0) return { errors };
+    v.pinned_on_website ??= false; // blank (older file) = the column default
     const bad = (column: string, message: string) =>
       errors.push(rowError(NOTICES, rowNo, column, message));
     if ((v.title as string).length > NOTICE_TITLE_MAX)
@@ -274,7 +280,8 @@ export const noticesTab: TabSpec<Notice, Rec> = {
     );
     for (const c of SCALARS) {
       if (c.key === 'created_at' && existing) continue; // never rewrite when the row already exists
-      const val = row[c.key] ?? null;
+      // A blank bool (a file from before the column existed) takes the column default, false.
+      const val = row[c.key] ?? (c.type === 'bool' ? false : null);
       e[c.key] = c.type === 'datetime' && val !== null ? new Date(val as string) : val;
     }
     for (const [, idProp, keyProp] of ACTORS) {

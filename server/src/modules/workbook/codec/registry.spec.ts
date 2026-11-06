@@ -175,6 +175,11 @@ describe('EXPECTED_TABS', () => {
       'notices',
       'notice_attachments',
       'notice_recipients',
+      // [40.1.08] Epic 40 school website.
+      'school_site',
+      'site_posts',
+      'site_enquiries',
+      'staff_web_profiles',
     ]);
   });
 

@@ -15,17 +15,15 @@ import { slice as billing } from './slices/billing';
 import { slice as reports } from './slices/reports';
 import { slice as attention } from './slices/attention';
 import { slice as notices } from './slices/notices';
-import { SchoolSite } from '../../modules/website/entities/school-site.entity';
+import { slice as website } from './slices/website';
 import { SiteEnquiry } from '../../modules/website/entities/site-enquiry.entity';
-import { SiteMedia } from '../../modules/website/entities/site-media.entity';
 import { SitePost } from '../../modules/website/entities/site-post.entity';
-import { StaffWebProfile } from '../../modules/website/entities/staff-web-profile.entity';
 
-/** [40.1.03] Epic 40 website tables: owed stub. #3621 (40.1.08) moves it to `slices/website.ts` and seeds it. */
-const website: DemoSlice = {
-  name: 'website',
-  covers: [SchoolSite, SiteMedia, SitePost, SiteEnquiry, StaffWebProfile],
-  owedBy: '#3621',
+/** Posts and enquiries are seeded with their admin API, which lands in #3638 (40.3.11). */
+const websiteContent: DemoSlice = {
+  name: 'website-content',
+  covers: [SitePost, SiteEnquiry],
+  owedBy: '#3638',
   run: async () => {},
 };
 
@@ -47,6 +45,7 @@ export const SLICES: DemoSlice[] = [
   reports,
   notices,
   website,
+  websiteContent,
   attention,
 ];
 
