@@ -19,6 +19,7 @@ import * as React from 'react';
 
 import { HrRecordAchievementSection } from './hr-record-achievement-section';
 import { HrRecordAddressSection } from './hr-record-address-section';
+import { HrRecordCardSection } from './hr-record-card-section';
 import { HrRecordDocumentsSection } from './hr-record-documents-section';
 import { HrRecordEducationSection } from './hr-record-education-section';
 import { HrRecordExperienceSection } from './hr-record-experience-section';
@@ -35,10 +36,18 @@ export interface HrRecordTabProps {
 interface Section {
   id: string;
   labelKey: string;
+  /** Full i18n key; overrides `hrRecord.sections.<labelKey>`. */
+  titleKey?: string;
   render: (userId: string) => React.ReactNode;
 }
 
 const SECTIONS: Section[] = [
+  {
+    id: 'card',
+    labelKey: 'card',
+    titleKey: 'cardNo.label',
+    render: (userId) => <HrRecordCardSection userId={userId} />,
+  },
   { id: 'job', labelKey: 'job', render: (userId) => <HrRecordJobSection userId={userId} /> },
   {
     id: 'promotion',
@@ -99,7 +108,9 @@ export function HrRecordTab({ userId }: HrRecordTabProps) {
           className="group/hr rounded-lg border border-border-subtle bg-surface shadow-e1"
         >
           <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-4 md:min-h-12 md:px-5">
-            <h2 className="text-h3">{t(`hrRecord.sections.${section.labelKey}`)}</h2>
+            <h2 className="text-h3">
+              {t(section.titleKey ?? `hrRecord.sections.${section.labelKey}`)}
+            </h2>
             <ChevronDownIcon
               className="size-4 shrink-0 text-text-secondary group-open/hr:rotate-180"
               aria-hidden
