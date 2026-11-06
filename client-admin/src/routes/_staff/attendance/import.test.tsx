@@ -229,4 +229,101 @@ describe('/attendance/import', () => {
     );
     expect(box.getAttribute('data-state')).toBe('unchecked');
   });
+
+  // [review] The step-2 Back button reads "Back", not the raw `actions.back` key.
+  it('shows a translated Back on the upload step and returns to step 1', async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Upload your filled sheet' }));
+    await user.click(await screen.findByRole('button', { name: 'Back' }));
+    expect(await screen.findByText('Choose what to fill in')).toBeTruthy();
+    expect(screen.queryByText('actions.back')).toBeNull();
+  });
+
+  // [review] A 409 STALE uses up the stage: back to upload with its own sentence, not "Could not save".
+  it('returns to upload with the marks-changed sentence on a 409 STALE', async () => {
+    server.use(
+      http.post('/api/v1/attendance/import/commit', () =>
+        HttpResponse.json(
+          {
+            statusCode: 409,
+            message: 'x',
+            requestId: 'r',
+            path: '/',
+            timestamp: 't',
+            details: { code: 'ATTENDANCE_IMPORT_STALE' },
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    renderPage();
+    const user = await toReview();
+    await user.click(screen.getByRole('button', { name: 'Save 2 changes' }));
+    expect(
+      await screen.findByText(/The register changed after you checked the sheet/),
+    ).toBeTruthy();
+    expect(screen.getByText('Upload the sheet again')).toBeTruthy();
+    expect(screen.queryByText('Could not save. Nothing was changed.')).toBeNull();
+  });
+
+  it('returns to upload on the day gate 403 too', async () => {
+    server.use(
+      http.post('/api/v1/attendance/import/commit', () =>
+        HttpResponse.json(
+          { statusCode: 403, message: 'x', requestId: 'r', path: '/', timestamp: 't' },
+          { status: 403 },
+        ),
+      ),
+    );
+    renderPage();
+    const user = await toReview();
+    await user.click(screen.getByRole('button', { name: 'Save 2 changes' }));
+    expect(await screen.findByText(/You cannot save one of these days now/)).toBeTruthy();
+  });
+
+  // [review] With `supersedes`, a 404 may mean only "earlier upload not found" (checked before the
+  // stage is used): stay on review, drop it, and let the next Save go without it. No auto-retry.
+  it('drops a missing supersedes on 404 and the next Save goes without it', async () => {
+    const bodies: unknown[] = [];
+    server.use(
+      http.post('/api/v1/attendance/import/commit', async ({ request }) => {
+        bodies.push(await request.json());
+        if (bodies.length === 1) {
+          return HttpResponse.json(
+            { statusCode: 404, message: 'x', requestId: 'r', path: '/', timestamp: 't' },
+            { status: 404 },
+          );
+        }
+        return HttpResponse.json({ import_id: IMPORT_ID }, { status: 201 });
+      }),
+    );
+    const { router } = renderPage(`?supersedes=${IMPORT_ID}`);
+    const user = await toReview();
+    await user.click(screen.getByRole('button', { name: 'Save 2 changes' }));
+    expect(await screen.findByText(/The earlier upload was not found/)).toBeTruthy();
+    expect(bodies).toHaveLength(1);
+    await waitFor(() => expect(router.state.location.search).not.toHaveProperty('supersedes'));
+    await user.click(screen.getByRole('button', { name: 'Save 2 changes' }));
+    await waitFor(() => expect(bodies).toHaveLength(2));
+    expect(bodies[1]).toEqual({ staging_id: STAGING_ID });
+  });
+
+  // [review] A failed section list says so and offers a retry, not just "Pick at least one section".
+  it('shows a retry when the section list fails to load', async () => {
+    server.use(
+      http.get('/api/v1/attendance/my-sections', () =>
+        HttpResponse.json(
+          { statusCode: 500, message: 'x', requestId: 'r', path: '/', timestamp: 't' },
+          { status: 500 },
+        ),
+      ),
+    );
+    renderPage();
+    expect(
+      await screen.findByText('Could not load your sections.', {}, { timeout: 5000 }),
+    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
+    expect(screen.queryByText('Pick at least one section.')).toBeNull();
+  });
 });

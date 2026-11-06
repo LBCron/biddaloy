@@ -94,9 +94,11 @@ describe('/attendance', () => {
     renderList();
 
     const links = await screen.findAllByRole('link', { name: /Class 5/ });
-    const chip = within(links[0]!).getByText('3 scanned but marked absent');
+    const chip = within(links[0]!).getByText(/^3 scanned but marked absent/);
     expect(chip.getAttribute('title')).toMatch(/card machine saw/);
-    expect(within(links[0]!).getByText('4 without a status')).toBeTruthy();
+    // [review] The hint is in the chip's own text too, not only in `title` (keyboard, touch, SR).
+    expect(chip.textContent).toMatch(/card machine saw/);
+    expect(within(links[0]!).getByText(/^4 without a status/)).toBeTruthy();
     expect(within(links[1]!).queryByText(/scanned but marked absent|without a status/)).toBeNull();
   });
 

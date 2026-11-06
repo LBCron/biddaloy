@@ -666,7 +666,7 @@
     "kind": {
       "BIOMETRIC": "Fingerprint",
       "FACE": "Face",
-      "RFID": "Card (RFID)",
+      "RFID": "Card",
       "OTHER": "Other"
     },
     "empty": {

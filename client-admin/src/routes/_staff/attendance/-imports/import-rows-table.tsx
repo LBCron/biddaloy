@@ -49,6 +49,7 @@ export function ImportRowsTable({ rows }: ImportRowsTableProps) {
   const [filter, setFilter] = React.useState<Filter>('all');
   const [historyRecordId, setHistoryRecordId] = React.useState<string | null>(null);
 
+  const rowIndex = new Map(rows.map((row, i) => [row, i]));
   const shown = rows.filter((row) =>
     filter === 'changed'
       ? row.outcome === 'CHANGED'
@@ -89,7 +90,12 @@ export function ImportRowsTable({ rows }: ImportRowsTableProps) {
       id: 'message',
       header: t('review.columnProblem'),
       accessorFn: (row) =>
-        row.code ? t(`rowError.${row.code}`, { section: t('review.columnSection') }) : '—',
+        // The detail row has no section name, so this one code gets a sentence without it.
+        row.code
+          ? row.code === 'ROLL_NOT_IN_SECTION'
+            ? t('detail.rollNotInSection')
+            : t(`rowError.${row.code}`, { defaultValue: t('detail.rowProblem') })
+          : '—',
     },
     {
       id: 'current',
@@ -135,19 +141,24 @@ export function ImportRowsTable({ rows }: ImportRowsTableProps) {
         caption={t('review.title')}
         columns={columns}
         data={shown}
-        getRowId={(row) => `${row.date}:${row.section_id}:${row.roll}`}
+        // Sheet position: a DUPLICATE_ROW repeats its twin's date/section/roll, unmatched rows share blanks.
+        getRowId={(row) => String(rowIndex.get(row))}
         sorting={null}
         onSortingChange={() => undefined}
         paginated={false}
         totalCount={shown.length}
-        rowActions={(row) => [
-          {
-            intent: 'view',
-            label: t('detail.openRegister'),
-            to: `/attendance/${row.section_id}?date=${row.date}`,
-            display: 'text',
-          },
-        ]}
+        rowActions={(row) =>
+          row.section_id && row.date
+            ? [
+                {
+                  intent: 'view',
+                  label: t('detail.openRegister'),
+                  to: `/attendance/${row.section_id}?date=${row.date}`,
+                  display: 'text',
+                },
+              ]
+            : []
+        }
         emptyState={{ title: t('detail.emptyFilter'), explanation: t('history.emptyExplanation') }}
       />
       <Dialog

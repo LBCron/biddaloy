@@ -2,7 +2,8 @@
  * [76.4.04] The two register badges: "Scanned 07:55" (a card reader marked the row) and
  * "From sheet" (the row came from an uploaded sheet). Each is focusable and carries a tooltip.
  * Text comes in as props; the time goes through `formatTime`. Renders nothing when neither applies.
- * Needs a `TooltipProvider` above it (the app shell has one).
+ * Brings its own `TooltipProvider`: the app shell has none, and Radix throws without one.
+ * The time uses the nearest `RegionConfigProvider`, so the page must wrap one (tenant region).
  */
 import { ScanLine, Table2 } from 'lucide-react';
 import * as React from 'react';
@@ -10,7 +11,7 @@ import * as React from 'react';
 import { useRegionConfig } from '../i18n';
 import { formatTime } from '../utils/date';
 
-import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
 
 export interface AttendanceMarkBadgesProps {
   scanned_at?: string | null | undefined;
@@ -61,15 +62,17 @@ export function AttendanceMarkBadges({
   const fromSheet = source === 'IMPORT';
   if (!scanned_at && !fromSheet) return null;
   return (
-    <span className="inline-flex flex-wrap items-center gap-1">
-      {scanned_at ? (
-        <Pill
-          icon={ScanLine}
-          label={scannedLabel(formatTime(scanned_at, config))}
-          hint={scannedHint}
-        />
-      ) : null}
-      {fromSheet ? <Pill icon={Table2} label={fromSheetLabel} hint={fromSheetHint} /> : null}
-    </span>
+    <TooltipProvider>
+      <span className="inline-flex flex-wrap items-center gap-1">
+        {scanned_at ? (
+          <Pill
+            icon={ScanLine}
+            label={scannedLabel(formatTime(scanned_at, config))}
+            hint={scannedHint}
+          />
+        ) : null}
+        {fromSheet ? <Pill icon={Table2} label={fromSheetLabel} hint={fromSheetHint} /> : null}
+      </span>
+    </TooltipProvider>
   );
 }

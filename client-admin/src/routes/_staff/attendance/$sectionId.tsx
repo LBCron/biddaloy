@@ -43,7 +43,7 @@ import {
   type Register,
   type RegisterStudent,
 } from '@biddaloy/ui/hooks';
-import { useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
+import { RegionConfigProvider, useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { PageContainer } from '@biddaloy/ui/shells';
 import { parseDate, tenantTodayIso, toIsoDate } from '@biddaloy/ui/utils';
 import { createFileRoute } from '@tanstack/react-router';
@@ -297,7 +297,9 @@ function SectionRegisterPage() {
       }
       return next;
     });
-    toast.success(t('mark.allPresentDone', { count: unmarked.length }), {
+    // Title stays "All present" (the e2e page object closes the toast by it); the count rides below.
+    toast.success(t('mark.allPresent'), {
+      description: t('mark.allPresentDone', { count: unmarked.length }),
       action: { label: t('mark.undo'), onClick: () => handleUndo(previous) },
       duration: 5000,
     });
@@ -648,7 +650,9 @@ function SectionRegisterPage() {
               })}
         </p>
       )}
-      {writeBlocked && (
+      {/* A caller with no mark right at all (e.g. ACCOUNTANT) gets `write_reason: null` too:
+          the existing read-only banner covers them, so no "right now" banner on top. */}
+      {writeBlocked && (register.write_reason != null || canMark) && (
         <p
           role="status"
           className="flex items-start gap-2 rounded-lg border border-border-subtle bg-muted p-4 text-text-secondary"
@@ -722,19 +726,22 @@ function SectionRegisterPage() {
             </div>
           )}
         </div>
-        <RosterMarker
-          students={students}
-          draft={draft}
-          onStatusChange={handleStatusChange}
-          onMinutesLateChange={handleMinutesLateChange}
-          onAllPresent={handleAllPresent}
-          onRestAbsent={handleRestAbsent}
-          onSubmit={handleSubmit}
-          disabled={!editable}
-          allowedStatuses={allowedStatuses}
-          renderRowActions={renderRowActions}
-          arrivalSubscribed={arrivalSubscribed}
-        />
+        {/* No ambient region provider: the badges' scan time follows the tenant's region. */}
+        <RegionConfigProvider value={regionConfig}>
+          <RosterMarker
+            students={students}
+            draft={draft}
+            onStatusChange={handleStatusChange}
+            onMinutesLateChange={handleMinutesLateChange}
+            onAllPresent={handleAllPresent}
+            onRestAbsent={handleRestAbsent}
+            onSubmit={handleSubmit}
+            disabled={!editable}
+            allowedStatuses={allowedStatuses}
+            renderRowActions={renderRowActions}
+            arrivalSubscribed={arrivalSubscribed}
+          />
+        </RegionConfigProvider>
         {editable && (
           <p className="hidden border-t border-border-subtle px-5 py-3 text-caption text-text-secondary md:block">
             {t('mark.shortcutHint')}

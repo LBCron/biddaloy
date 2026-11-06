@@ -11,7 +11,9 @@
     "dateTo": "To",
     "sectionsLimit": "You can pick up to {{max}} sections at a time.",
     "noSection": "Pick at least one section.",
-    "badRange": "Pick dates where the end is not before the start."
+    "badRange": "Pick dates where the end is not before the start.",
+    "sectionsLoading": "Loading your sections…",
+    "sectionsFailed": "Could not load your sections."
   },
   "download": {
     "title": "Download the sheet",
@@ -27,7 +29,7 @@
     "uploading": "Uploading… {{percent}}%",
     "checking": "Checking your sheet…",
     "fileTooLarge": "This file is too large — choose a file under 5 MB.",
-    "fileWrongType": "This file type is not supported — choose an .xlsx file.",
+    "fileWrongType": "This file type is not supported — choose an .xlsx or .csv file.",
     "tooManyRows": "This sheet has more than {{max}} rows — split it and upload in parts.",
     "failed": "Upload failed. Try again.",
     "reviewChanges": "Review changes"
@@ -58,7 +60,8 @@
     "save": "Save {{count}} changes",
     "saving": "Saving…",
     "saveFailed": "Could not save. Nothing was changed.",
-    "nothingToSave": "There is nothing to change in this sheet."
+    "nothingToSave": "There is nothing to change in this sheet.",
+    "earlierGone": "The earlier upload was not found. Press Save again to keep this sheet as a new upload."
   },
   "outcome": {
     "NEW": "New",
@@ -131,6 +134,14 @@
     "emptyFilter": "No rows to show here.",
     "loadFailed": "Could not load this upload.",
     "notFound": "This upload was not found.",
-    "back": "Back to uploads"
+    "back": "Back to uploads",
+    "rollNotInSection": "This roll is not in that section — check the roll.",
+    "rowProblem": "This row could not be used — check it in the sheet."
+  },
+  "restart": {
+    "title": "Upload the sheet again",
+    "stale": "The register changed after you checked the sheet. Nothing was saved.",
+    "failed": "The sheet could not be saved. Nothing was changed.",
+    "denied": "You cannot save one of these days now. Nothing was saved."
   }
 }
