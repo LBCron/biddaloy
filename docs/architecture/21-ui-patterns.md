@@ -523,6 +523,20 @@ palette action navigates to.
 - **A host-confirm page needs its own "nothing to save" and "list is locked" states (2026-11-06, #3478).** Save shows `Save {n}` and turns off at 0; a 409 shows the page's own sentence plus a "Back to grid" button, not the server's English. -> no rule.
 - **Match alert text by role (2026-11-06, #3478).** `BulkUploadPreview` also announces errors in an `sr-only` live region, so `getByText(sentence)` matches two nodes; use `getByRole('alert').filter({ hasText })`. -> no rule.
 
+### Attendance sheet foundation learnings (Epic #2429, Wave 4, 2026-11-06)
+
+- **A field's help text lives in the field's own namespace.** `HelpHint` reads `<field.ns>:help.<key>`, so `help.cardNo` goes in `students.json` / `staff.json`, not in `common.json`. A key written to the wrong namespace shows as a raw key at runtime and `check:i18n` does not see it. -> no rule.
+- **Breadcrumb and nav labels resolve from `nav.json` `items.*`.** The i18n lane put them under `common.json`, so the routes lane's `{ key: 'uploads' }` had nothing to read. Lanes that share a label key must agree on the file in the ticket body. -> no rule.
+- **The UI-kit gap: none.** `ScanCardField` and `AttendanceMarkBadges` took props-only text, so no component needed a new token or shell.
+
+### Attendance sheet and source learnings (Epic #2429, Wave 5, 2026-11-06)
+
+- **A key used with `defaultValue` still counts as missing.** Three W5 lanes shipped `t('x', { defaultValue })` while the i18n keys were pending, and nothing failed. `check:i18n` only flags plain `t('key')` calls, so those keys stayed absent until the close ticket. Land the en + bn keys in the same PR as the call. -> no rule.
+- **Dynamic keys are invisible to `check:i18n`.** A key built as `reference.labels.<header>` on the student import page needs a `card_no` label and column text, and the checker cannot see that. Add the key when you add a column to the template. -> no rule.
+- **A permission gate belongs above the data hook.** `if (!canManage) return null` placed after `useAttendanceDevices()` still sends the request, and the user gets a 403. Split into an outer gate and an inner component that owns the queries. -> no rule.
+- **`ScanCardField` already strips characters outside `A-Z a-z 0-9 -`.** A client-side pattern check on its value can only fail for a value loaded from the server, so test the failure path with a 500, not a bad string.
+- **Breadcrumb entity names come from `ENTITY_RESOLVERS`, keyed by the crumb's own label key** (`uploadDetail`), reading the query cache the page already filled.
+
 ### UX lint stragglers
 
 `ui/eslint-rules/ux-guards.mjs` holds four rules (`no-native-picker`,
