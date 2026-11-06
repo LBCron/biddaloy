@@ -145,6 +145,7 @@
         LOGS_DOMAIN,
         INBOX_DEMO_DOMAIN,
         INBOX_STAGING_DOMAIN,
+        ROOT_DOMAIN,
       ]
     edge_tunnel_keys:
       [

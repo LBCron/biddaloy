@@ -33,6 +33,9 @@ services:
       KUMA_DOMAIN: ${KUMA_DOMAIN:-kuma.invalid}
       BESZEL_DOMAIN: ${BESZEL_DOMAIN:-beszel.invalid}
       LOGS_DOMAIN: ${LOGS_DOMAIN:-logs.invalid}
+      # School sites live on <school>.${ROOT_DOMAIN} (Epic 40, nginx/templates/site.conf.template),
+      # served on the separate :8081 listener that cloudflared's catch-all points at (runbook part 17).
+      ROOT_DOMAIN: ${ROOT_DOMAIN:-root.invalid}
       # Host that serves Kuma / Beszel / Dozzle on `biddaloy-ops-edge`; empty when ops is elsewhere.
       OPS_UPSTREAM_HOST: ${OPS_UPSTREAM_HOST:-}
       # Tunnel mode, required (Rule 11): the `biddaloy-edge` subnet, which the deploy pins when
@@ -46,6 +49,10 @@ services:
       - ${REPO_DIR:-..}/nginx/templates:/etc/nginx/templates:ro
       - ${REPO_DIR:-..}/nginx/edge-mode.sh:/docker-entrypoint.d/15-edge-mode.sh:ro
       - ${REPO_DIR:-..}/nginx/reload-loop.sh:/docker-entrypoint.d/99-reload-loop.sh:ro
+      # School-site micro-cache (stale pages survive an nginx restart) and the "try again" page,
+      # which is the site image's own file, taken from the repo checkout (site.conf.template).
+      - site_cache:/var/cache/nginx/site
+      - ${REPO_DIR:-..}/site/public/maintenance.html:/usr/share/nginx/site-static/maintenance.html:ro
     networks: [edge, ops-edge]
     deploy:
       resources:
@@ -96,6 +103,9 @@ services:
     depends_on:
       nginx:
         condition: service_healthy
+
+volumes:
+  site_cache:
 
 networks:
   # Created by the deploy (W3.01). app / app2 of every env join it.

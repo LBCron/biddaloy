@@ -10,6 +10,8 @@ x-logging: &logging
 
 services:
   nginx:
+    # School sites (Epic 40, D5): nothing to add here. Their listener :8081 stays unpublished and
+    # there is no wildcard certificate, so direct mode serves the fixed hosts only (tunnel-only sites).
     ports:
       - '80:80'
       - '443:443'
