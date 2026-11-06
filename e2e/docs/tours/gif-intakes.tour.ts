@@ -11,8 +11,8 @@ const TITLE = process.env.GUIDE_INTAKE_TITLE ?? 'Admission 2027: Class 7';
 const OPEN = process.env.GUIDE_INTAKE_OPEN ?? '2026-10-20';
 const CLOSE = process.env.GUIDE_INTAKE_CLOSE ?? '2026-12-15';
 
-async function pickDate(p: Page, label: string, iso: string): Promise<void> {
-  await p.getByLabel(label).click();
+async function pickDate(p: Page, id: string, iso: string): Promise<void> {
+  await p.locator(`#${id}`).click();
   await expect(p.getByRole('grid', { name: tr('common', 'date.calendar') })).toBeVisible();
   const cell = p.locator(`[role="grid"] [data-date="${iso}"]`);
   for (let i = 0; i < 6 && !(await cell.isVisible()); i++) {
@@ -43,8 +43,8 @@ gifTour(
     await beat(p, 400);
     await dialog.locator('#intake-seat-count').fill('');
     await dialog.locator('#intake-seat-count').pressSequentially('40', { delay: 80 });
-    await pickDate(p, tr(ns, 'form.openDateLabel'), OPEN);
-    await pickDate(p, tr(ns, 'form.closeDateLabel'), CLOSE);
+    await pickDate(p, 'intake-open-date', OPEN);
+    await pickDate(p, 'intake-close-date', CLOSE);
     await beat(p);
     // No papers required: the phone half then has nothing to upload.
     for (const box of await dialog.getByRole('checkbox').all()) {
