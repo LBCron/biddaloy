@@ -64,6 +64,11 @@ export class StaffHrRecord {
   @Column({ type: 'varchar', length: 50, nullable: true })
   religion: string | null;
 
+  /** [76.2.06] Not a column: the attendance card number read from the linked
+   * `staff_profiles` row (same tenant, same user), `null` when unset or no
+   * profile. Filled by `StaffHrService` on every response. */
+  card_no: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 

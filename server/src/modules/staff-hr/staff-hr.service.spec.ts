@@ -100,6 +100,7 @@ async function buildService(
   options: {
     userTenantRepo?: ReturnType<typeof createUserTenantRepoStub>;
     designationRepo?: ReturnType<typeof createDesignationRepoStub>;
+    staffProfiles?: Array<{ tenant_id: string; user_id: string; card_no: string | null }>;
   } = {},
 ) {
   const { repo: historyRepo, rows } = createHistoryRepoStub(existing);
@@ -112,6 +113,18 @@ async function buildService(
       [TENANT_A]: ['designation-1', 'old-designation', 'new-designation', 'first-designation'],
     });
 
+  // Filters on tenant_id like the real query, so a dropped tenant filter
+  // shows up as another tenant's card leaking through.
+  const profiles = options.staffProfiles ?? [];
+  const staffProfileRepo = {
+    find: vi.fn(async ({ where }: any) =>
+      profiles.filter(
+        (p) =>
+          (where.tenant_id === undefined || p.tenant_id === where.tenant_id) &&
+          where.user_id.value.includes(p.user_id),
+      ),
+    ),
+  };
   const moduleRef = await Test.createTestingModule({
     providers: [
       StaffHrService,
@@ -119,7 +132,7 @@ async function buildService(
       { provide: getRepositoryToken(StaffDesignationHistory), useValue: historyRepo },
       { provide: getRepositoryToken(Designation), useValue: designationRepo },
       { provide: getRepositoryToken(UserTenant), useValue: userTenantRepo },
-      { provide: getRepositoryToken(StaffProfile), useValue: {} },
+      { provide: getRepositoryToken(StaffProfile), useValue: staffProfileRepo },
       { provide: AuditService, useValue: auditService },
     ],
   }).compile();
@@ -341,6 +354,51 @@ describe('StaffHrService', () => {
       await service.findAll(TENANT_A);
 
       expect(hrRecordRepo.find).toHaveBeenCalledWith({ where: { tenant_id: TENANT_A } });
+    });
+  });
+
+  // [76.2.06] card_no is read from the linked staff_profiles row.
+  describe('card_no on reads', () => {
+    const record = () => ({ id: 'hr-1', tenant_id: TENANT_A, user_id: USER_ID }) as StaffHrRecord;
+
+    it('returns the card number from the same-tenant staff profile', async () => {
+      const { service, hrRecordRepo } = await buildService([], {
+        staffProfiles: [{ tenant_id: TENANT_A, user_id: USER_ID, card_no: 'CARD-9' }],
+      });
+      hrRecordRepo.find = vi.fn(async () => [record()]);
+      hrRecordRepo.findOne = vi.fn(async () => record());
+
+      expect((await service.findAll(TENANT_A))[0].card_no).toBe('CARD-9');
+      expect((await service.findOne('hr-1', TENANT_A)).card_no).toBe('CARD-9');
+    });
+
+    it('returns null (not a missing key) when the profile has no card or there is no profile', async () => {
+      const { service, hrRecordRepo } = await buildService([], {
+        staffProfiles: [{ tenant_id: TENANT_A, user_id: USER_ID, card_no: null }],
+      });
+      hrRecordRepo.find = vi.fn(async () => [
+        record(),
+        { ...record(), id: 'hr-2', user_id: 'no-profile' },
+      ]);
+
+      const rows = await service.findAll(TENANT_A);
+      expect(rows.map((r) => r.card_no)).toEqual([null, null]);
+    });
+
+    it('never returns another tenant’s card for the same user (tenant isolation)', async () => {
+      const { service, hrRecordRepo } = await buildService([], {
+        staffProfiles: [{ tenant_id: TENANT_B, user_id: USER_ID, card_no: 'B-CARD' }],
+      });
+      hrRecordRepo.find = vi.fn(async () => [record()]);
+
+      expect((await service.findAll(TENANT_A))[0].card_no).toBeNull();
+    });
+
+    it('skips the profile query when there are no records', async () => {
+      const { service, hrRecordRepo } = await buildService([]);
+      hrRecordRepo.find = vi.fn(async () => []);
+
+      expect(await service.findAll(TENANT_A)).toEqual([]);
     });
   });
 
