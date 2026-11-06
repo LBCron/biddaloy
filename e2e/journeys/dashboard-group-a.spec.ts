@@ -7,6 +7,10 @@ import { t } from '../i18n';
 import { SEED_DASHBOARD_EXAM_NAME } from '../seed-contract';
 import { ListShellPage } from '../pages/list-shell';
 
+/** The DatePicker's name is "<label>, <shown value>" (WCAG 2.5.3): match the label part only. */
+const deadlineName = () =>
+  new RegExp(`^${t('exams.examForm.deadlineLabel').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')},`);
+
 /**
  * [8.10.7.3.99] The headmaster / admin `/dashboard` with real Group A cards and
  * the briefing band: attendance, staff, collection, at-risk, mark entry, syllabus
@@ -189,7 +193,7 @@ test.describe('dashboard: admin', () => {
       await dialog.getByRole('combobox', { name: t('exams.examForm.classLabel') }).click();
       await page.getByRole('option').first().click();
 
-      await dialog.getByRole('button', { name: t('exams.examForm.deadlineLabel') }).click();
+      await dialog.getByRole('button', { name: deadlineName() }).click();
       const cell = page.locator(`[data-date="${deadline}"]`);
       for (let i = 0; i < 2 && !(await cell.isVisible()); i += 1) {
         await page.getByRole('button', { name: t('common.date.nextMonth') }).click();
@@ -211,9 +215,9 @@ test.describe('dashboard: admin', () => {
       const list = new ListShellPage(page, { titleKey: 'exams.list.title' });
       await list.clickRowAction(name, 'exams.list.edit');
       const edit = page.getByRole('dialog', { name: t('exams.examForm.editTitle') });
-      await expect(
-        edit.getByRole('button', { name: t('exams.examForm.deadlineLabel') }),
-      ).not.toContainText(t('exams.examForm.deadlinePlaceholder'));
+      await expect(edit.getByRole('button', { name: deadlineName() })).not.toContainText(
+        t('exams.examForm.deadlinePlaceholder'),
+      );
       await edit.getByRole('button', { name: t('exams.examForm.save') }).click();
       await expect(edit).toBeHidden();
 
