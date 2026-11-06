@@ -553,6 +553,10 @@ GET    /api/v1/public/invoices/:token                                           
 GET    /api/v1/public/notices/:token                                             PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 GET    /api/v1/public/notices/:token/files/:fileId                               PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 POST   /api/v1/public/notices/:token/opened                                      PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
+GET    /api/v1/public/site/by-host/:host/island/:kind                            PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
+GET    /api/v1/public/site/by-host/:host/manifest                                PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
+GET    /api/v1/public/site/by-host/:host/media/:key                              PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
+GET    /api/v1/public/site/by-host/:host/page/:page                              PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 GET    /api/v1/public/verify/:token                                              PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 GET    /api/v1/reports/catalogue                                                 401 PASS PASS PASS PASS PASS 403 403 PASS 403 403 PASS
 GET    /api/v1/reports/catalogue/:id/definition                                  401 PASS PASS PASS PASS PASS 403 403 PASS 403 403 PASS
@@ -785,3 +789,8 @@ PATCH  /api/v1/users/me/preferences/dashboard                                   
 PATCH  /api/v1/users/me/preferences/digest                                       401 PASS PASS PASS PASS PASS 403 403 PASS PASS PASS PASS
 GET    /api/v1/users/me/preferences/notifications                                401 PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 PATCH  /api/v1/users/me/preferences/notifications                                401 PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
+GET    /api/v1/website                                                           401 PASS PASS PASS 403 403 403 403 403 403 403 403
+PUT    /api/v1/website/draft                                                     401 PASS PASS PASS 403 403 403 403 403 403 403 403
+POST   /api/v1/website/enabled                                                   401 PASS PASS PASS 403 403 403 403 403 403 403 403
+POST   /api/v1/website/publish                                                   401 PASS PASS PASS 403 403 403 403 403 403 403 403
+GET    /api/v1/website/themes                                                    401 PASS PASS PASS 403 403 403 403 403 403 403 403
