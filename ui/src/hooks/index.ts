@@ -620,6 +620,33 @@ export {
   type SubmitRegisterResult,
 } from './attendance';
 export {
+  attendanceImportKeys,
+  attendanceImportsQueryOptions,
+  importFileErrorKey,
+  useAttendanceImport,
+  useAttendanceImports,
+  useCommitAttendanceSheet,
+  useDownloadAttendanceSheet,
+  useValidateAttendanceSheet,
+  type AttendanceImportDetail,
+  type AttendanceImportList,
+  type AttendanceImportSummary,
+  type AttendanceSheetCommitInput,
+  type AttendanceSheetCommitResult,
+  type AttendanceSheetValidateResult,
+} from './attendance-import';
+export {
+  attendanceDeviceKeys,
+  attendanceDevicesQueryOptions,
+  useAttendanceDevices,
+  useCreateAttendanceDevice,
+  useRevokeAttendanceDevice,
+  useRotateAttendanceDeviceKey,
+  type AttendanceDevice,
+  type AttendanceDeviceWithKey,
+  type CreateAttendanceDeviceInput,
+} from './attendance-devices';
+export {
   collectionsReportKeys,
   collectionsReportQueryOptions,
   downloadCollectionsReportCsv,
