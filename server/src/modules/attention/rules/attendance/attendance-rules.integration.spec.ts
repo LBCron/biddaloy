@@ -336,19 +336,45 @@ describe('AttendanceNotTakenRule (integration)', () => {
     expect(await rule.evaluate({ ...ctx(B, '08:20'), isWorkingDay: false })).toEqual([]);
   });
 
-  it('[76.2.05] unmarked students keep the alert, even on a FINALIZED register; marking them resolves it', async () => {
+  it('[76.2.05] device school: 3 scanned + 20 unmarked fires; SYSTEM absences for the 20 resolve it', async () => {
     const [{ id: sid }] = await q(
-      `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'FINALIZED') RETURNING id`,
+      `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'DRAFT') RETURNING id`,
+      [A.id, A.sectionId, DAY],
+    );
+    const ids: string[] = [A.studentId];
+    for (let i = 0; i < 22; i++) {
+      const [{ id }] = await q(
+        `INSERT INTO students (full_name, registration_number, roll_number, class_section_id, tenant_id, enrollment_status)
+         VALUES ('Kid', $1, $2, $3, $4, 'ACTIVE') RETURNING id`,
+        [`AR-${rand()}`, i + 2, A.sectionId, A.id],
+      );
+      ids.push(id);
+    }
+    const mark = (sidIds: string[], status: string, source: string) =>
+      Promise.all(
+        sidIds.map((student) =>
+          q(
+            `INSERT INTO attendance_records (tenant_id, session_id, student_id, date, status, source) VALUES ($1, $2, $3, $4, $5, $6)`,
+            [A.id, sid, student, DAY, status, source],
+          ),
+        ),
+      );
+    await mark(ids.slice(0, 3), 'PRESENT', 'DEVICE');
+    const [f] = await rule.evaluate(ctx(A, '08:20'));
+    expect(f.dedupeKey).toBe(`section:${A.sectionId}:${DAY}`);
+    expect(f.params.title_en).toMatch(/^Attendance incomplete: .* — 20 without status$/);
+    await mark(ids.slice(3), 'ABSENT', 'SYSTEM');
+    await q(`UPDATE attendance_sessions SET state = 'FINALIZED' WHERE id = $1`, [sid]);
+    expect(await rule.evaluate(ctx(A, '08:20'))).toEqual([]);
+  });
+
+  it('[76.2.05] a FINALIZED session with unmarked students still fires', async () => {
+    await q(
+      `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'FINALIZED')`,
       [A.id, A.sectionId, DAY],
     );
     const [f] = await rule.evaluate(ctx(A, '08:20'));
-    expect(f.dedupeKey).toBe(`section:${A.sectionId}:${DAY}`);
-    expect(f.params.title_en).toMatch(/^Attendance incomplete: .* — 1 without status$/);
-    await q(
-      `INSERT INTO attendance_records (tenant_id, session_id, student_id, date, status, source) VALUES ($1, $2, $3, $4, 'ABSENT', 'SYSTEM')`,
-      [A.id, sid, A.studentId, DAY],
-    );
-    expect(await rule.evaluate(ctx(A, '08:20'))).toEqual([]);
+    expect(f.params.title_en).toMatch(/1 without status$/);
   });
 
   it("tenant isolation: B's unfinalized section never shows up in A's findings", async () => {

@@ -5,6 +5,7 @@ import { CommunicationProviderRegistryService } from '../../communications/provi
 import {
   GuardianSmsFallbackService,
   fallbackReferenceKey,
+  staffSmsText,
   toldAboutStudent,
 } from './guardian-sms-fallback.service';
 
@@ -164,6 +165,47 @@ describe('staff SMS fallback (76.2.05)', () => {
       'attention-staff:a1:u2',
     ]);
     expect(save.mock.calls.every((c) => c[0].guardian_id === undefined)).toBe(true);
+  });
+
+  it('WARNING alerts are never selected: the query asks for CRITICAL only', async () => {
+    const { service, query } = build([]);
+    await service.runTenant(settings(true), noon);
+    const [sql, params] = query.mock.calls[0];
+    expect(sql).toContain('a.severity = $4');
+    expect(params).toContain('CRITICAL');
+    expect(params).not.toContain('WARNING');
+  });
+
+  it('staff pass never queries guardians', async () => {
+    const { service, query } = build([row()]);
+    await service.runTenant(settings(true), noon);
+    expect(query.mock.calls.every((c) => !/guardians|student_guardians/.test(c[0]))).toBe(true);
+  });
+
+  it('fixed D29 wording by school language', () => {
+    expect(staffSmsText('en', '7-B')).toBe(
+      "Some students' attendance is not updating — 7-B. Please check.",
+    );
+    expect(staffSmsText('bn', '7-B')).toBe('কিছু ছাত্রের হাজিরার অবস্থা বদলাচ্ছে না — ৭-B। দেখুন।');
+  });
+
+  it('en school gets the en text', async () => {
+    const { service, save } = build([row({ params: { sectionLabel: '7-B' } })]);
+    const sch = settings(true);
+    (sch.settings as any).region = { locale: 'en-BD', timezone: 'Asia/Dhaka' };
+    await service.runTenant(sch, noon);
+    expect(save.mock.calls[0][0].message_body).toBe(
+      "Some students' attendance is not updating — 7-B. Please check.",
+    );
+  });
+
+  it('guardian-only school: the staff pass is off and runs no query of its own', async () => {
+    const { service, query } = build([]);
+    const sch = settings(false);
+    (sch.settings as any).attention.guardianSmsFallback = true;
+    await service.runTenant(sch, noon);
+    // every query came from the guardian pass (alerts of guardian rules), none from the staff pass
+    expect(query.mock.calls.every((c) => !String(c[0]).includes('attention-staff'))).toBe(true);
   });
 
   it('replay (already logged) sends nothing', async () => {
