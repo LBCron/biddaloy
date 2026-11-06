@@ -1,7 +1,16 @@
-/** [76.4.03] `/attendance/imports` stub — the uploads list. Real table lands in W5. */
-import { useTranslation } from '@biddaloy/ui/i18n';
+/**
+ * [76.5.06] `/attendance/imports` — every saved attendance sheet, newest first.
+ * "Superseded" is derived from the loaded page: an upload is superseded when
+ * another listed upload points at it through `supersedes_import_id`.
+ * Teachers only get their own uploads — the server scopes the list.
+ */
+import { StatusBadge, type DataTableColumn } from '@biddaloy/ui/components';
+import { useAttendanceImports, type AttendanceImportSummary } from '@biddaloy/ui/hooks';
+import { useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { ListShell } from '@biddaloy/ui/shells';
-import { createFileRoute } from '@tanstack/react-router';
+import { formatDateTime, formatNumber } from '@biddaloy/ui/utils';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import * as React from 'react';
 
 import { loadRouteNamespaces, swallowUnlessOffline } from '../../../../route-loaders';
 
@@ -13,18 +22,108 @@ export const Route = createFileRoute('/_staff/attendance/imports/')({
 
 function AttendanceImportsPage() {
   const { t } = useTranslation('attendanceImport');
+  const regionConfig = useTenantRegionConfig();
+  const navigate = useNavigate();
+  const [page, setPage] = React.useState(1);
+  const query = useAttendanceImports(page);
+  const items = query.data?.items ?? [];
+
+  const supersededIds = new Set(
+    items.flatMap((item) => (item.supersedes_import_id ? [item.supersedes_import_id] : [])),
+  );
+  const num = (n: number) => formatNumber(n, regionConfig);
+
+  const columns: DataTableColumn<AttendanceImportSummary>[] = [
+    {
+      id: 'when',
+      header: t('history.columnWhen'),
+      accessorFn: (row) => formatDateTime(row.created_at, regionConfig),
+      card: 'title',
+    },
+    {
+      id: 'file',
+      header: t('history.columnFile'),
+      accessorFn: (row) => row.file_name,
+      card: 'subtitle',
+    },
+    {
+      id: 'who',
+      header: t('history.columnWho'),
+      // The list carries the uploader's id only, never a name: a short tag until the server adds one.
+      accessorFn: (row) => row.uploaded_by_user_id?.slice(0, 8) ?? '—',
+    },
+    {
+      id: 'new',
+      header: t('history.columnNew'),
+      accessorFn: (row) => num(row.counts.new),
+      align: 'end',
+    },
+    {
+      id: 'changed',
+      header: t('history.columnChanged'),
+      accessorFn: (row) => num(row.counts.changed),
+      align: 'end',
+    },
+    {
+      id: 'errors',
+      header: t('history.columnErrors'),
+      accessorFn: (row) => num(row.counts.error),
+      align: 'end',
+    },
+    {
+      id: 'status',
+      header: t('history.columnStatus'),
+      accessorFn: (row) =>
+        supersededIds.has(row.id) ? (
+          <StatusBadge tone="warning" label={t('history.superseded')} />
+        ) : (
+          <StatusBadge tone="success" label={t('history.statusCurrent')} />
+        ),
+      card: 'badge',
+    },
+  ];
+
   return (
     <ListShell
       title={t('history.title')}
+      subtitle={t('history.description')}
+      actions={[
+        {
+          id: 'upload',
+          label: t('history.uploadNew'),
+          priority: 'primary',
+          onClick: () => void navigate({ to: '/attendance/import' }),
+        },
+      ]}
       tableId="attendance-imports"
       caption={t('history.title')}
-      columns={[]}
-      data={[]}
-      getRowId={(row: { id: string }) => row.id}
+      columns={columns}
+      data={items}
+      getRowId={(row) => row.id}
       sorting={null}
       onSortingChange={() => undefined}
-      paginated={false}
-      totalCount={0}
+      page={page}
+      pageSize={query.data?.limit ?? 25}
+      onPageChange={setPage}
+      totalCount={query.data?.total ?? 0}
+      loading={query.isLoading}
+      isFetching={query.isFetching}
+      {...(query.isError ? { error: t('history.loadFailed') } : {})}
+      rowActions={(row) => [
+        {
+          intent: 'view',
+          label: row.file_name,
+          to: `/attendance/imports/${row.id}`,
+        },
+      ]}
+      emptyState={{
+        title: t('history.emptyTitle'),
+        explanation: t('history.emptyExplanation'),
+        action: {
+          label: t('history.emptyAction'),
+          onClick: () => void navigate({ to: '/attendance/import' }),
+        },
+      }}
     />
   );
 }
