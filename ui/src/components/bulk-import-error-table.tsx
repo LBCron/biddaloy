@@ -98,7 +98,7 @@ export function BulkImportErrorTable({
       t('errors.columnRow'),
       ...(showTab ? [t('errors.columnTab')] : []),
       t('errors.columnColumn'),
-      t('errors.columnValue'),
+      ...(showValue ? [t('errors.columnValue')] : []),
       t('errors.columnMessage'),
       t('errors.columnSeverity'),
     ];
@@ -108,7 +108,7 @@ export function BulkImportErrorTable({
         error.row,
         ...(showTab ? [error.tab ?? ''] : []),
         error.column ?? '',
-        error.value ?? '',
+        ...(showValue ? [error.value ?? ''] : []),
         messageOf(error),
         t(`errors.severity.${error.severity}`),
       ]),

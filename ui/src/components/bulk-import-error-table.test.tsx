@@ -1,4 +1,5 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type BulkImportError } from '../hooks/use-bulk-upload-preview';
@@ -73,6 +74,32 @@ describe('BulkImportErrorTable', () => {
     expect(await screen.findByText('Rows with problems')).toBeTruthy();
     expect(screen.queryByText('Value in your file')).toBeNull();
     expect(screen.queryByText('(empty)')).toBeNull();
+  });
+
+  it('leaves the Value column out of the CSV too when no error carries a value', async () => {
+    const blobs: Blob[] = [];
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, {
+        createObjectURL: (b: Blob) => (blobs.push(b), 'blob:x'),
+        revokeObjectURL: () => {},
+      }),
+    );
+    try {
+      await renderTable([error({ code: 'ABOVE_FULL_MARKS' })]);
+      await userEvent
+        .setup()
+        .click(await screen.findByRole('button', { name: 'Download problem rows (CSV)' }));
+      await waitFor(() => expect(blobs).toHaveLength(1));
+      const text = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.readAsText(blobs[0]!);
+      });
+      expect(text).not.toContain('Value in your file');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('only shows the tab column when at least one error has a tab', async () => {
