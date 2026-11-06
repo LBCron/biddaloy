@@ -1,0 +1,26 @@
+---
+import { t } from '../../../i18n/t';
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang, feed } = Astro.props as SectionProps;
+const title = field(data.title, lang) ?? t(lang, 'section.teachers');
+const s = (v: unknown) => (typeof v === 'string' ? v : undefined);
+---
+<section class="sec sec-alt" id="teachers"><div class="wrap">
+  <div class="sec-head"><h2>{title}</h2></div>
+  {feed.length === 0 ? (
+    <p class="empty">{t(lang, 'empty')}</p>
+  ) : (
+    <div class="grid g4">
+      {feed.map((p) => (
+        <div class="card tcard">
+          {s(p.photo) ? <img src={`/media/${s(p.photo)}`} alt="" loading="lazy" width="96" height="96" /> : <div class="avatar"></div>}
+          <b>{field(p.name, lang) ?? s(p.name)}</b>
+          <span class="small">{field(p.designation, lang) ?? s(p.designation)}</span>
+        </div>
+      ))}
+    </div>
+  )}
+  <p class="seeall"><a href={`/${lang}/teachers/`}>{t(lang, 'nav.teachers')}</a></p>
+</div></section>

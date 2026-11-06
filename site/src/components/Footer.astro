@@ -1,0 +1,24 @@
+---
+import { t } from '../i18n/t';
+import { pick } from '../lib/pick';
+import type { Lang, SiteManifest } from '../lib/types';
+
+interface Props {
+  manifest: SiteManifest;
+  lang: Lang;
+}
+const { manifest, lang } = Astro.props;
+const c = manifest.contact;
+const line = [pick(c?.address, lang), c?.phone, c?.email].filter(Boolean).join(' · ');
+const name = pick(manifest.schoolName, lang);
+---
+<footer class="foot"><div class="wrap">
+  <div>
+    <h4>{name}</h4>
+    {line && <p class="small">{line}</p>}
+  </div>
+  <div class="credit">
+    <span>© {new Date().getFullYear()} {name}</span>
+    <span>{t(lang, 'footer.credit')} <a href="https://schoolmanagerp.com">SchoolManagerP</a></span>
+  </div>
+</div></footer>

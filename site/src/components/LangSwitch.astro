@@ -1,0 +1,15 @@
+---
+import { t } from '../i18n/t';
+import type { Lang } from '../lib/types';
+
+interface Props {
+  lang: Lang;
+  /** Path after the language prefix, e.g. `` or `notices/`. */
+  rest: string;
+}
+const { lang, rest } = Astro.props;
+---
+<div class="lang" role="group" aria-label={t(lang, 'lang.label')}>
+  <a href={`/bn/${rest}`} lang="bn" aria-current={lang === 'bn' ? 'true' : undefined}>{t('bn', 'lang.bn')}</a>
+  <a href={`/en/${rest}`} lang="en" aria-current={lang === 'en' ? 'true' : undefined}>{t('en', 'lang.en')}</a>
+</div>

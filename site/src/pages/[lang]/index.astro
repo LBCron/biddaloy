@@ -1,0 +1,22 @@
+---
+import SectionRenderer from '../../components/SectionRenderer.astro';
+import { fetchByHost } from '../../lib/api';
+import type { Lang, SitePageData } from '../../lib/types';
+import { themes } from '../../themes';
+
+const { host, site, previewHome, previewToken } = Astro.locals;
+const lang = Astro.params.lang as Lang;
+if (!site) return new Response(null, { status: 404 });
+
+let page = previewHome;
+if (!page) {
+  const r = await fetchByHost<SitePageData>(host, 'page/home', { preview: previewToken });
+  if (r.kind === 'none') return Astro.rewrite('/404/');
+  if (r.kind !== 'ok') return Astro.rewrite('/503/');
+  page = r.data;
+}
+const { Layout } = themes[site.theme] ?? themes.basic;
+---
+<Layout manifest={site} lang={lang}>
+  <SectionRenderer manifest={site} page={page} lang={lang} />
+</Layout>

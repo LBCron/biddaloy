@@ -1,0 +1,22 @@
+---
+import '../themes/basic/theme.css';
+import { t } from '../i18n/t';
+
+const lang = Astro.locals.lang ?? 'bn';
+Astro.response.status = 503;
+Astro.response.headers.set('Retry-After', '60');
+---
+<!doctype html>
+<html lang={lang} style="--primary:#1a4fd6;--secondary:#0f3aa8;--accent:#e8eefc;--surface:#fff;--ink:#17181c;--font-body-bn:'Hind Siliguri';--font-body-en:Inter;--font-heading-bn:'Hind Siliguri';--font-heading-en:Inter">
+  <head>
+    <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>{t(lang, 'err503.title')}</title>
+  </head>
+  <body>
+    <main class="err">
+      <h1>{t('bn', 'err503.title')} / {t('en', 'err503.title')}</h1>
+      <p class="muted">{t('bn', 'err503.body')}<br />{t('en', 'err503.body')}</p>
+    </main>
+  </body>
+</html>

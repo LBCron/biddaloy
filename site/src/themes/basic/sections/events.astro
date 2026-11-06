@@ -1,0 +1,26 @@
+---
+import { t } from '../../../i18n/t';
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang, feed } = Astro.props as SectionProps;
+const title = field(data.title, lang) ?? t(lang, 'section.events');
+const loc = lang === 'en' ? 'en-GB' : 'bn-BD';
+const s = (v: unknown) => (typeof v === 'string' ? v : undefined);
+---
+<section class="sec" id="events"><div class="wrap">
+  <div class="sec-head"><h2>{title}</h2></div>
+  {feed.length === 0 ? <p class="empty">{t(lang, 'empty')}</p> : (
+    <div class="grid g3">
+      {feed.map((e) => {
+        const d = new Date(s(e.date) ?? '');
+        return (
+          <div class="card ev">
+            {!Number.isNaN(d.getTime()) && <span class="date"><b>{d.toLocaleDateString(loc, { day: '2-digit' })}</b><span>{d.toLocaleDateString(loc, { month: 'short' })}</span></span>}
+            <div><b>{field(e.title, lang) ?? s(e.title)}</b></div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+</div></section>

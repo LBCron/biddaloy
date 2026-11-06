@@ -1,0 +1,12 @@
+---
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang } = Astro.props as SectionProps;
+const title = field(data.title, lang);
+const body = field(data.body, lang);
+---
+<section class="sec" id="admissions"><div class="wrap">
+  {title && <div class="sec-head"><h2>{title}</h2></div>}
+  {body && <p class="muted" style="white-space:pre-line">{body}</p>}
+</div></section>

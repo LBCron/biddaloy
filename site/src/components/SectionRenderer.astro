@@ -1,0 +1,28 @@
+---
+import { themes } from '../themes';
+import { textStyleVars, toStyle } from '../lib/css-vars';
+import type { Lang, SiteManifest, SitePageData } from '../lib/types';
+
+interface Props {
+  manifest: SiteManifest;
+  page: SitePageData;
+  lang: Lang;
+  /** Skip the hero (the page renders it itself). */
+  skip?: string[];
+}
+const { manifest, page, lang, skip = [] } = Astro.props;
+const theme = themes[manifest.theme] ?? themes.basic;
+// Sections render in config order; unknown keys have no component and are dropped.
+const rows = page.sections
+  .filter((s) => s.enabled !== false && !skip.includes(s.key) && theme.sections[s.key])
+  .map((s) => ({
+    Comp: theme.sections[s.key]!,
+    s,
+    style: toStyle({ ...textStyleVars(s.typography?.[lang]?.heading), '--body-size': textStyleVars(s.typography?.[lang]?.body)['--h-size'] ?? '1' }),
+  }));
+---
+{rows.map(({ Comp, s, style }) => (
+  <div style={`display:contents;${style}`}>
+    <Comp data={s.data} lang={lang} feed={s.feed ?? []} manifest={manifest} />
+  </div>
+))}
