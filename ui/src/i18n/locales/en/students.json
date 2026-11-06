@@ -545,5 +545,15 @@
     "rollNumber": "Roll number",
     "bloodGroup": "Blood group",
     "preferredCommunication": "Preferred contact"
+  },
+  "cardNo": {
+    "label": "Card number",
+    "help": "The number on the student's attendance card. No two students share one.",
+    "scan": "Scan card",
+    "scanHint": "Touch the card to the reader, or type the number.",
+    "duplicate": "This card number already belongs to another student."
+  },
+  "bulkUpload": {
+    "cardNoDuplicate": "Row {{row}}: this card number is already used — use a different number."
   }
 }
