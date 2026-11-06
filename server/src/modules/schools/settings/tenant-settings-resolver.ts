@@ -259,12 +259,13 @@ const FEES_APPROVAL_MODES: readonly ApprovalMode[] = Object.values(ApprovalMode)
  */
 export function resolveTenantSettings(stored: Record<string, unknown> | null): TenantSettings {
   const region = overlayOnDefaults(DEFAULT_REGION_SETTINGS, stored?.region);
-  const attendance = overlayOnDefaults(DEFAULT_ATTENDANCE_SETTINGS, stored?.attendance);
+  let attendance = overlayOnDefaults(DEFAULT_ATTENDANCE_SETTINGS, stored?.attendance);
   // overlayOnDefaults only checks the type; an unknown source falls back to ANY.
   if (
     !Object.values(DailyAttendanceSource).includes(attendance.dailySource as DailyAttendanceSource)
   ) {
-    attendance.dailySource = DEFAULT_ATTENDANCE_SETTINGS.dailySource;
+    // New object: `attendance` may be the shared default, never mutate it.
+    attendance = { ...attendance, dailySource: DEFAULT_ATTENDANCE_SETTINGS.dailySource };
   }
   const organisation = overlayOnDefaults(DEFAULT_ORGANISATION_SETTINGS, stored?.organisation);
   const auth = overlayOnDefaults(DEFAULT_AUTH_SETTINGS, stored?.auth);

@@ -430,6 +430,13 @@ describe('resolveTenantSettings', () => {
     ).toBe('ANY');
   });
 
+  it('dailySource fixup never mutates the shared default', () => {
+    const snapshot = { ...DEFAULT_ATTENDANCE_SETTINGS };
+    const resolved = resolveTenantSettings({ attendance: { dailySource: 'NOPE' } });
+    expect(resolved.attendance).not.toBe(DEFAULT_ATTENDANCE_SETTINGS);
+    expect(DEFAULT_ATTENDANCE_SETTINGS).toEqual(snapshot);
+  });
+
   it('resolves staffSmsFallback as a strict boolean, default false (D29)', () => {
     expect(
       resolveTenantSettings({ attention: { staffSmsFallback: true } }).attention?.staffSmsFallback,

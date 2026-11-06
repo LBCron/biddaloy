@@ -1077,3 +1077,36 @@ no shared tables, no shared code, just the same status enum reused. See
   proof could stay unrun in CI with the suite green. Fix: own data per spec, the
   switch set once by the seed, settings restores merge only their own key. Rule
   candidate: a spec never writes a tenant switch another file depends on.
+- **2026-11-06 · Epic 76 W1 close — partial unique index shape differs per table.**
+  Surprise: `students` has soft delete, `staff_profiles` does not, so
+  `UQ_students_tenant_card_no` ends `AND "deleted_at" IS NULL` and
+  `UQ_staff_profiles_tenant_card_no` cannot. Cost: a staff card number stays
+  taken after the person leaves; a new card must be issued. Fix: documented
+  here, no workaround. Rule candidate: a partial unique index copies the
+  table's own soft-delete column, and a table without one says so in the doc.
+- **2026-11-06 · Epic 76 W1 close — a new column is a catalogue append.**
+  Surprise: `card_no` on students and staff also needed
+  `entity-coverage.ts`, the workbook tabs and their specs. Cost: the workbook
+  round trip would have dropped the column silently. Fix: append the column to
+  the catalogue and both tabs in the same ticket. Rule candidate: a column
+  ticket lists `entity-coverage.ts` and the workbook tab.
+- **2026-11-06 · Epic 76 W1 close — resolver fixup must not mutate shared defaults.**
+  Surprise: the `dailySource` fallback wrote into the object `overlayOnDefaults`
+  returned, which can be the shared `DEFAULT_ATTENDANCE_SETTINGS`. Cost: one
+  bad stored value could change the default for every school in the process.
+  Fix: `attendance = { ...attendance, dailySource }` plus a spec. Rule
+  candidate: a resolver never assigns into an overlay result.
+- **2026-11-06 · Epic 76 W1 close — new entity is `EXEMPT` until its seed slice lands.**
+  Surprise: `AttendanceImport` has no demo-seed slice yet. Cost: the coverage
+  guard would fail. Fix: entry in `demo-seed/slices.ts` `EXEMPT`, owed by #3556
+  (W2 #3550 fills it). Rule candidate: the entity ticket adds the `EXEMPT` line
+  with the owning ticket number.
+- **2026-11-06 · Epic 76 W1 close — `ci:local` on Node 24 stops at the first red step.**
+  Surprise: the server unit step failed on two specs W1 never touched:
+  `sql-interpolation.contract.spec.ts` (unreviewed `${REPORT_DB_ROLE}` in
+  `report-runner.service.ts`, same on `main`) and a 5 s timeout in
+  `config-check.spec.ts` (passes alone). Cost: the later sections never ran.
+  Fix: ran `frontend,landing,audit,infra` with `--only` (all green) and the
+  migration-schema and restore integration specs alone (green); the unrelated
+  reds are reported, not fixed here. Rule candidate: a close ticket runs the
+  remaining sections with `--only` when an unrelated spec blocks the run.
