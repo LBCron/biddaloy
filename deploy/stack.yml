@@ -189,6 +189,12 @@ services:
       SITE_ROOT_DOMAIN: ${ROOT_DOMAIN:?ROOT_DOMAIN must be set}
     expose:
       - '4321'
+    # SSR behind a 30 s nginx cache: small. Same knobs as the other services (SITE_MEM / SITE_CPUS).
+    deploy:
+      resources:
+        limits:
+          memory: ${SITE_MEM:-256m}
+          cpus: ${SITE_CPUS:-0.5}
     depends_on:
       app:
         condition: service_healthy

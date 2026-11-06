@@ -10,7 +10,7 @@ pass() { echo "ok: $1"; }
 
 export APP_VERSION=test POSTGRES_USER=x POSTGRES_PASSWORD=x POSTGRES_DB=x JWT_SECRET=x \
   S3_ACCESS_KEY_ID=x S3_SECRET_ACCESS_KEY=x PG_TLS_DIR=./.pgtls DEMO_PASSWORD=x EDGE_DIR=./.edge \
-  LANDING_VERSION=test EDGE_MODE=tunnel OPS_DIR=./.ops APP_DOMAIN=app.example.test \
+  LANDING_VERSION=test EDGE_MODE=tunnel OPS_DIR=./.ops APP_DOMAIN=app.example.test ROOT_DOMAIN=example.test \
   BACKUP_AGE_PUBLIC_KEY=age1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq
 
 # Dev compose (db, redis, seaweedfs, mailpit) must stay valid.
@@ -37,7 +37,7 @@ docker compose -f deploy/ops.yml config -q \
 # any stack service; no docker socket in the stack (the demo rebuild runs without one, D11).
 stack_json="$(ENV_NAME=prod docker compose "${STACK[@]}" --profile '*' config --format json)"
 on_edge="$(jq -r '.services | to_entries[] | select(.value.networks | has("edge")) | .key' <<<"$stack_json" | sort | tr '\n' ' ')"
-[ "$on_edge" = "app app2 mailpit " ] && pass "only app, app2 and mailpit join the edge network" || fail "edge network members: $on_edge"
+[ "$on_edge" = "app app2 mailpit site " ] && pass "only app, app2, mailpit and site join the edge network" || fail "edge network members: $on_edge"
 # The app must reach its own stack's mailpit by a per-stack name (Epic 87 follow-up): the bare
 # `mailpit` alias sits on the shared edge network for every stack, and demo's mail once landed in
 # staging's inbox. The alias must exist on the stack network too, so the URL resolves on either.

@@ -104,6 +104,21 @@ ssl_reject_handshake on;   # nginx >= 1.19.4; no certificate needed
 EOF
 fi
 
+# School-site host name (Epic 40, site.conf.template): one label of 3-30 characters (the same
+# shape as SITE_SUBDOMAIN_RE in shared/src/types/site.ts) under ROOT_DOMAIN, dots escaped so
+# `rumsc.schoolsXtest` never matches `schools.test`. Built here because the template's envsubst
+# cannot escape a value. Unset ROOT_DOMAIN (an edge with no school sites) = `.invalid`, never resolves.
+# Example: ROOT_DOMAIN=schools.test -> server_name "~^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]\.schools\.test$";
+site_root=$(printf '%s' "${ROOT_DOMAIN:-root.invalid}" | tr 'A-Z' 'a-z')
+case "$site_root" in
+  '' | *[!a-z0-9.-]* | .* | *. | -*) die "ROOT_DOMAIN must be a host name (got '$site_root')" ;;
+esac
+site_root_re=$(printf '%s' "$site_root" | sed 's/\./\\./g')
+{
+  echo '# Written by edge-mode.sh from ROOT_DOMAIN. Do not edit.'
+  printf 'server_name "~^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]\\.%s$";\n' "$site_root_re"
+} >"$ROOT/snippets/site-server-name.conf"
+
 # Ops-less hosts (OPS_UPSTREAM_HOST empty): conf.d/ops.conf is removed by reload-loop.sh,
 # which runs after the templates are rendered; this script runs before.
 echo "edge-mode.sh: wrote $CONF (EDGE_MODE=$MODE)"

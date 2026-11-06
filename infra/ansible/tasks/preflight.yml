@@ -109,10 +109,12 @@
       - SMOKE_SUPER_ADMIN_EMAIL
       - SMOKE_SUPER_ADMIN_PASSWORD
       - HEALTH_TOKEN
+    # ROOT_DOMAIN: deploy/stack.yml's `${ROOT_DOMAIN:?}` (app and site, Epic 40) aborts compose
+    # without it; checked here so the message names the file to fix.
     required_by_stack:
-      prod: '{{ smoke_keys }}'
-      staging: "{{ smoke_keys + ['BACKUP_AGE_PRIVATE_KEY'] }}"
-      demo: [HEALTH_TOKEN]
+      prod: "{{ smoke_keys + ['ROOT_DOMAIN'] }}"
+      staging: "{{ smoke_keys + ['BACKUP_AGE_PRIVATE_KEY', 'ROOT_DOMAIN'] }}"
+      demo: [HEALTH_TOKEN, ROOT_DOMAIN]
       edge: []
       ops: [DOZZLE_USERS_YML]
 - name: Check the keys this stack needs are set

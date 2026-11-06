@@ -2,6 +2,7 @@
 # deploy.yml's `app_services` / `rollback_services`: the services each app-stack `up` names.
 # A profile only makes a service eligible, so staging and demo must name mailpit (Epic 87 test
 # inbox), prod must not, and the rollback (previous compose file, maybe without mailpit) drops it.
+# Prod also names `site` (school websites, Epic 40); its rollback drops it for the same reason.
 # No root, no Docker: the expressions are read out of deploy.yml and rendered by ansible itself.
 # Needs ansible-playbook. Run: bash app-services.infra.test.sh
 set -u
@@ -51,9 +52,9 @@ for stack in staging demo; do
 done
 
 run prod 1
-want "prod never names mailpit" "APP=\[db redis seaweedfs app app2 backup\]"
-want "prod rollback unchanged" "ROLLBACK=\[db redis seaweedfs app app2 backup\]"
+want "prod never names mailpit, names site" "APP=\[db redis seaweedfs app app2 site backup\]"
+want "prod rollback leaves site out (old compose file may predate it)" "ROLLBACK=\[db redis seaweedfs app app2 backup\]"
 run prod 0
-want "fresh prod holds backup back" "APP=\[db redis seaweedfs app app2\]"
+want "fresh prod holds backup back" "APP=\[db redis seaweedfs app app2 site\]"
 
 [ "$fails" -eq 0 ] && echo "all passed" || { echo "$fails failed"; exit 1; }
