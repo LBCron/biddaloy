@@ -35,9 +35,9 @@ flowchart LR
 |---|---|---|
 | `primary/` | সূর্যমুখী শিশু বিদ্যালয় / Surjomukhi Children's School, Dhanmondi | bn |
 | `high-school/` | রামপুরা মডেল উচ্চ বিদ্যালয় / Rampura Model High School, est. 1968 | bn |
-| `college/` | গ্রীন ভ্যালি কলেজ / Green Valley College, est. 1994 | bn |
+| `college/` | স্বপ্নপুর কলেজ / Shopnopur College, est. 1994 | bn |
 | `madrasa/` | জামিয়া দারুল উলূম মাদ্রাসা / Jamia Darul Uloom Madrasa | bn |
-| `international/` | Oakridge International School | en |
+| `international/` | Dreamhill International School | en |
 | `premium/` | কল্পনগর গ্রামার স্কুল / Kalponagar Grammar School, est. 1961 (made-up town) | bn |
 | `basic/` | নবীনগর উচ্চ বিদ্যালয় / Nabinagar High School (the default theme, 7 pages) | bn |
 
@@ -45,6 +45,18 @@ Extra files per theme: `palettes.html` (three palettes, D28). `basic/` and `coll
 `basic/` is built by `python3 basic/build.py` (Python 3.9+, stdlib only) from one shell; edit `build.py`, not the
 generated pages. The same script writes every `data-field` key: `python3 basic/build.py --key <theme>/home.html`
 re-keys a theme page after an edit, and `python3 basic/build.py --check` asserts the shared keys (see NOTES, D25).
+Links and buttons get a fixed key whatever their label says, the same in all seven themes:
+
+| Element                                   | Key                                                     |
+| ----------------------------------------- | ------------------------------------------------------- |
+| main menu link                            | `header.nav.home` … `header.nav.contact`                |
+| first / second hero button                | `hero.cta_primary` / `hero.cta_secondary`               |
+| "all notices" / calendar / blog links     | `notices.see_all` / `events.see_all_calendar` / `blog.see_all` |
+| WhatsApp / show-map buttons               | `contact.whatsapp` / `contact.map`                      |
+| footer column 1 title, footer links       | `footer.school_name`, `footer.links.<role>`             |
+
+`--check` fails on a missing key, a link or button keyed by its label, or a page whose keys are stale.
+Full list in `site/NOTES.md` (D25).
 
 Query switches on any `home.html` (used by `shoot.mjs`, handy in a browser too):
 `?photos=1` one hero photo only · `?palette=1|2` apply an alternate palette · `?skip=news&notag=1` remove one whole section and the tagline · `?marquee=1` announcement bar with one item (a static line).

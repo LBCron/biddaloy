@@ -363,10 +363,14 @@ pages["home-reordered.html"] = ("home.html","হোম","Home",None,"")
 #             heading: hero, announcements, admissions, notices, about, academics, teachers, events,
 #             blog, contact, footer, header, page (inner-page header) ... else the heading's slug
 #   item      a repeated sibling (2+ with the same tag and first class) is numbered from 1:
-#             teachers.3.name. A link or button that holds one text only is named by its English
-#             text instead: header.admissions, footer.notice_board
-#   role      h1/h2 -> title (h3/h4 -> title inside an item), [data-tagline] -> tagline, hero
-#             buttons -> cta_primary / cta_secondary, .seeall -> see_all, time -> date, dt -> <dt>.label,
+#             teachers.3.name. A link or button that holds one text only gets a FIXED role name
+#             from LINKS (header.nav.admissions, notices.see_all, contact.whatsapp, footer.links.notices),
+#             so the key is the same in every theme whatever the label says; hero buttons are
+#             hero.cta_primary / cta_secondary by order; footer column 1 title -> footer.school_name.
+#             A footer link LINKS does not know falls back to its English slug, which --check
+#             rejects: add the role to LINKS instead.
+#   role      h1/h2 -> title (h3/h4 -> title inside an item), [data-tagline] -> tagline,
+#             .seeall -> see_all, time -> date, dt -> <dt>.label,
 #             dd -> <dt>, p -> text, figcaption/.cap -> caption ... ; teachers: title -> name,
 #             first text -> role. A second text with the same key gets _2, _3.
 # ---------------------------------------------------------------------------------------------
@@ -482,6 +486,35 @@ ROLE = {"h1": "title", "h2": "title", "h3": "title", "h4": "title", "h5": "title
         "label": "label", "th": "head", "td": "cell", "blockquote": "quote", "figcaption": "caption", "cite": "cite",
         "button": "button", "summary": "question", "option": "option", "li": "text", "p": "text", "legend": "title"}
 
+# Fixed link/button roles per section, matched on the English label, first hit wins. The label is
+# only used to PICK the role; the key is the role name, so "All notices" and "See all notices" both
+# become notices.see_all.
+NAV_ROLES = list(zip(("home", "about", "academics", "admissions", "news", "results", "teachers", "contact"),
+                     (r"^home$", r"^about", r"academic", r"admission", r"news|notice", r"result", r"teacher|faculty", r"contact")))
+LINKS = {
+    "header": [("portal_login", r"portal|log ?in"), ("menu", r"^menu$"), ("close", r"^close$")] + [("nav." + k, rx) for k, rx in NAV_ROLES],
+    "admissions": [("link", r".")],
+    "notices": [("see_all", r"all notices")],
+    "events": [("see_all_calendar", r"calendar")],
+    "blog": [("see_all", r"post|blog")],
+    "teachers": [("see_all", r"see all|all teachers"), ("directory", r"directory")],
+    "about": [("more", r".")],
+    "academics": [("more", r".")],
+    "contact": [("whatsapp", r"whatsapp"), ("map", r"\bmap\b"), ("enquiry", r"message|enquir")],
+    "footer": [("portal_login", r"portal|log ?in")] + [("links." + k, rx) for k, rx in (
+        ("admission_form", r"admission form"), ("how_to_apply", r"how to apply"), ("fees", r"fee|tuition"),
+        ("notices", r"notice"), ("calendar", r"calendar"), ("class_routine", r"routine"),
+        ("holiday_list", r"holiday"), ("syllabus", r"syllabus"), ("book_list", r"book list"),
+        ("downloads", r"download"), ("governors", r"govern"), ("blog", r"blog"), ("hostel_rules", r"hostel"))] + [("links." + k, rx) for k, rx in NAV_ROLES],
+}
+
+def _link(n):
+    """The nearest <a>/<button> above n if it holds n's text only, else None."""
+    btn = next((a for a in _ups(n) if a.tag in ("a", "button")), None)
+    if btn is None: return None
+    units = [u for u in _walk(btn) if "data-field" in u.attrs]
+    return btn if len(units) <= (1 if any(u.tag == "x-t" for u in units) else 2) else None
+
 def _field(unit, names, used_in_item):
     n = unit[0]
     sec, sname = _section(n, names)
@@ -520,6 +553,18 @@ def _field(unit, names, used_in_item):
     if role in ("link", "button", "text") and btn is not None and len(key) == 1 and sname != "announcements":
         role = "cta" if sname == "hero" and "btn" in btn.cls() else _slug(unit[1], 3)
     if sname == "announcements" and items: role = None
+    if sname == "footer" and role in ("school_name", "title") and key[1:] == ["1"]: return "footer.school_name"
+    # A link/button that holds only its own label: the old rules above named it by its English
+    # slug (key[-1] or role is the slug), which differs per theme. Give it a fixed role instead.
+    slug = _slug(unit[1], 3)
+    link = _link(n)
+    if (link is not None and role != "school_name" and not any("hc-slide" in a.cls() for a in path)
+            and (slug in (key[-1], role) or sname in ("header", "footer"))):
+        if sname == "hero" and any(c.startswith("btn") for c in link.cls()):
+            return "hero.cta"  # key_fields numbers them cta_primary, cta_secondary in page order
+        fixed = next((r for r, rx in LINKS.get(sname, []) if re.search(rx, unit[1], re.I)), None)
+        if fixed is None and sname == "footer": fixed = "links." + _slug(unit[1], 3)
+        if fixed: return sname + "." + fixed
     if sname == "teachers" and items and (role == "title" or n.parent.tag in ("b", "strong")): role = "name"
     if sname == "teachers" and items and role in ("text", "note"): role = "role"
     if role == "date":  # a date tile's parts: day, month
@@ -570,19 +615,42 @@ def key_fields(src):
         src = src[:pos] + tag + src[end:]
     return src, keys
 
-CORE = ["header.home", "header.portal_login", "announcements.label", "announcements.1", "hero.title", "hero.tagline",
+CORE = ["header.portal_login", "announcements.label", "announcements.1", "hero.title", "hero.tagline",
         "notices.title", "teachers.title", "teachers.1.name", "teachers.8.name", "teachers.8.role", "teachers.see_all",
-        "announcements.5", "contact.title", "contact.address"]
+        "announcements.5", "contact.title", "contact.address",
+        # links and buttons: fixed role names, so every theme must carry exactly these keys
+        "header.nav.home", "header.nav.about", "header.nav.academics", "header.nav.admissions",
+        "header.nav.news", "header.nav.contact", "hero.cta_primary", "hero.cta_secondary",
+        "contact.whatsapp", "contact.map", "footer.school_name"]
+# Sections whose links/buttons may only use a fixed name; anything else is a label-derived key.
+LINK_KEYS = {"header": {"school_name", "portal_login", "menu", "close"} | {"nav." + k for k, _ in NAV_ROLES},
+             "hero": {"cta_primary", "cta_secondary", "cta_3"}, "admissions": {"link"},
+             "notices": {"see_all"}, "events": {"see_all_calendar"}, "blog": {"see_all"},
+             "contact": {"whatsapp", "map", "enquiry"}, "teachers": {"see_all", "directory"},
+             "about": {"more"}, "academics": {"more"},
+             "footer": {"school_name", "portal_login"} | {"links." + r[6:] for r, _ in LINKS["footer"] if r.startswith("links.")}}
 
 def check(files):
     bad = 0
     for f in files:
         src = f.read_text(encoding="utf-8")
-        _, keys = key_fields(src)
-        miss = [k for k in CORE if k not in keys]
+        new, keys = key_fields(src)
+        miss = [k for k in CORE if k not in keys] if f.name.startswith("home") else []  # inner pages: links + staleness only
         num = [k for k in keys if re.fullmatch(r"\w+\.\d+(_\d+)?", k) and not k.startswith("announcements.")]
-        if miss or num:
-            bad += 1; print("FAIL", f, "missing", miss, "bare numbers", num[:5])
+        links = set()
+        for n in _walk(_Tree(src).root):
+            if "data-field" in n.attrs and _link(n) is not None:
+                sec, _, rest = n.attrs["data-field"].partition(".")
+                # inner pages have their own controls (filter chips, pagination); only the shared
+                # header and footer are held to the fixed names there
+                home = f.name.startswith("home")
+                if sec in LINK_KEYS and rest not in LINK_KEYS[sec] and (home or sec in ("header", "footer")):
+                    links.add(n.attrs["data-field"])
+        stale = new != src
+        if miss or num or links or stale:
+            bad += 1
+            print("FAIL", f, "missing", miss, "bare numbers", num[:5], "label-named links", sorted(links),
+                  "stale keys (run --key)" if stale else "")
         else:
             print("ok  ", f, len(keys), "keys")
     return bad
@@ -595,7 +663,7 @@ if __name__ == "__main__":
         print("keyed", len(args) - 1)
     elif args[:1] == ["--check"]:
         site = HERE.parent
-        sys.exit(1 if check(sorted(site.glob("*/home.html"))) else 0)
+        sys.exit(1 if check(sorted(set(site.glob("*/home*.html")) | set(HERE.glob("*.html")) - set(HERE.glob("palettes.html")))) else 0)
     else:
         for f, (cur, tb, te, body, css) in pages.items():
             html = shell(cur, tb, te, body if body is not None else HOME, css)

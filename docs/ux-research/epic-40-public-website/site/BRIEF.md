@@ -51,9 +51,9 @@ See the dispatch prompt for the themes you own. Shared demo school names:
 
 - primary: "সূর্যমুখী শিশু বিদ্যালয়" / Surjomukhi Children's School, Dhanmondi, Dhaka. Play group → Class 5.
 - high-school: "রামপুরা মডেল উচ্চ বিদ্যালয়" / Rampura Model High School, est. 1968, Class 6–10, SSC pass 98%.
-- college: "গ্রীন ভ্যালি কলেজ" / Green Valley College, HSC science/business/humanities, est. 1994.
+- college: "স্বপ্নপুর কলেজ" / Shopnopur College, HSC science/business/humanities, est. 1994.
 - madrasa: "জামিয়া দারুল উলূম মাদ্রাসা" / Jamia Darul Uloom Madrasa, Hifz · Kitab · Alia (Dakhil/Alim) — show both Qawmi and Alia content as two variants if time allows, else Alia.
-- international: "Oakridge International School" / ওকরিজ ইন্টারন্যাশনাল স্কুল, Cambridge curriculum, Play → A-Level. English default here (the only theme where en is the default and bn the switch).
+- international: "Dreamhill International School" / ড্রিমহিল ইন্টারন্যাশনাল স্কুল, Cambridge curriculum, Play → A-Level. English default here (the only theme where en is the default and bn the switch).
 - premium: "কল্পনগর গ্রামার স্কুল" / Kalponagar Grammar School (a made-up town), est. 1961, "heritage + modern".
 - basic: "নবীনগর উচ্চ বিদ্যালয়" / Nabinagar High School — the plain default: one accent colour the school picks, clean, fast, zero cleverness, still handsome.
 
