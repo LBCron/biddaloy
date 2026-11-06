@@ -6,7 +6,12 @@ import {
 } from './device-absent-sweep.scheduler';
 import { DailyAttendanceSource } from '@biddaloy/shared';
 
-const settings = (dailySource: DailyAttendanceSource, absentAfter = '00:00') => ({
+vi.mock('./attendance-policy.util', async (orig) => ({
+  ...(await orig<typeof import('./attendance-policy.util')>()),
+  localTimeHHmm: () => '12:00',
+}));
+
+const settings = (dailySource: DailyAttendanceSource, absentAfter = '11:00') => ({
   region: { timezone: 'Asia/Dhaka' },
   attendance: { dailySource, lateAfter: '00:00', absentAfter, weeklyOffDays: [] },
 });
@@ -25,8 +30,8 @@ describe('DeviceAbsentSweepScheduler', () => {
       // 1st query = scan count, 2nd = sections
       query: vi
         .fn()
-        .mockResolvedValueOnce([{ count: scans }])
-        .mockResolvedValueOnce([{ id: 'sec-1', shift_id: null }]),
+        .mockResolvedValueOnce(scans ? [{ '?column?': 1 }] : [])
+        .mockResolvedValueOnce([{ id: 'sec-1', class_id: 'c-1', shift_id: null }]),
       transaction: vi.fn(async (fn: any) => fn({})),
     };
     schoolsService = {
@@ -71,7 +76,25 @@ describe('DeviceAbsentSweepScheduler', () => {
   });
 
   it('skips a section whose shift cut-off has not passed', async () => {
-    build(settings(DailyAttendanceSource.DEVICE, '23:59'));
+    build(settings(DailyAttendanceSource.DEVICE, '13:00'));
+    expect(await scheduler.sweepTenant('t-1')).toBe(0);
+    expect(sweepSection).not.toHaveBeenCalled();
+  });
+
+  it('skips a section of a class on a class-scoped holiday', async () => {
+    calendar.isNonWorkingDay.mockImplementation(async (a: any) => !!a.classId);
+    expect(await scheduler.sweepTenant('t-1')).toBe(0);
+    expect(sweepSection).not.toHaveBeenCalled();
+  });
+
+  it('uses the shift own absentAfter, not the school one', async () => {
+    const s: any = settings(DailyAttendanceSource.DEVICE, '11:00');
+    s.attendance.shiftTimes = [{ shiftId: 'sh-1', lateAfter: '00:00', absentAfter: '13:00' }];
+    build(s);
+    dataSource.query = vi
+      .fn()
+      .mockResolvedValueOnce([{}])
+      .mockResolvedValueOnce([{ id: 'sec-1', class_id: 'c-1', shift_id: 'sh-1' }]);
     expect(await scheduler.sweepTenant('t-1')).toBe(0);
     expect(sweepSection).not.toHaveBeenCalled();
   });
