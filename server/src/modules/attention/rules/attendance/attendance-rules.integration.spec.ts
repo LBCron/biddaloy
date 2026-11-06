@@ -307,9 +307,13 @@ describe('AttendanceNotTakenRule (integration)', () => {
   });
 
   it('does not fire: finalized register, class-scoped holiday, non-working day', async () => {
-    await q(
-      `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'FINALIZED')`,
+    const [{ id: sid }] = await q(
+      `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'FINALIZED') RETURNING id`,
       [A.id, A.sectionId, DAY],
+    );
+    await q(
+      `INSERT INTO attendance_records (tenant_id, session_id, student_id, date, status) VALUES ($1, $2, $3, $4, 'PRESENT')`,
+      [A.id, sid, A.studentId, DAY],
     );
     expect(await rule.evaluate(ctx(A, '08:20'))).toEqual([]);
 
@@ -330,6 +334,21 @@ describe('AttendanceNotTakenRule (integration)', () => {
     expect(await rule.evaluate(ctx(B, '08:20'))).toEqual([]);
 
     expect(await rule.evaluate({ ...ctx(B, '08:20'), isWorkingDay: false })).toEqual([]);
+  });
+
+  it('[76.2.05] unmarked students keep the alert, even on a FINALIZED register; marking them resolves it', async () => {
+    const [{ id: sid }] = await q(
+      `INSERT INTO attendance_sessions (tenant_id, section_id, date, state) VALUES ($1, $2, $3, 'FINALIZED') RETURNING id`,
+      [A.id, A.sectionId, DAY],
+    );
+    const [f] = await rule.evaluate(ctx(A, '08:20'));
+    expect(f.dedupeKey).toBe(`section:${A.sectionId}:${DAY}`);
+    expect(f.params.title_en).toMatch(/^Attendance incomplete: .* — 1 without status$/);
+    await q(
+      `INSERT INTO attendance_records (tenant_id, session_id, student_id, date, status, source) VALUES ($1, $2, $3, $4, 'ABSENT', 'SYSTEM')`,
+      [A.id, sid, A.studentId, DAY],
+    );
+    expect(await rule.evaluate(ctx(A, '08:20'))).toEqual([]);
   });
 
   it("tenant isolation: B's unfinalized section never shows up in A's findings", async () => {
