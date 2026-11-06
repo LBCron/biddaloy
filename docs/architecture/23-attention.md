@@ -176,7 +176,8 @@ The ladder is in `attendanceStep()` in
 `rules/attendance/attendance-not-taken.rule.ts`. `pickEscalation()` in
 `rules/rule.types.ts` picks the highest step reached.
 
-**Unmarked students (Epic 76, D28).** The alert also fires when a day register
+**Unmarked students (Epic 76, D28).** (Who may write the register, and the
+`DEVICE` sweep: [11-attendance.md §4b](11-attendance.md#4b-who-marks-the-day--dailysource).) The alert also fires when a day register
 exists but some students on the section's roll today have no whole-day record,
 even if the register is FINALIZED (a device school can finalize with students
 unmarked). "On the roll" is the same dated roster the register and the device
