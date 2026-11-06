@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Palettes · চট্টগ্রাম গ্রামার স্কুল</title>
+<style>
+body{margin:0;font:16px/1.5 system-ui,-apple-system,"Noto Sans Bengali",sans-serif;background:#f1f2f4;color:#16181d}
+h1{font-size:20px;margin:0;padding:16px;background:#16181d;color:#fff}
+h1 small{display:block;font-weight:400;font-size:14px;opacity:.8;margin-top:2px}
+.pal{margin:0 0 28px;background:#fff;border-bottom:1px solid #d7dae0}
+.pal iframe{display:block;width:100%;height:1000px;border:0}
+.pal figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:14px 16px}
+.pal figcaption b{font-size:17px}
+.sw{display:flex;gap:6px}
+.sw i{width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.25)}
+</style></head><body>
+<h1>চট্টগ্রাম গ্রামার স্কুল<small>Three predefined palettes. Each frame is the live home page (bar, hero and the next sections) with that palette applied.</small></h1>
+<figure class="pal"><iframe src="home.html?crop=1&amp;palette=0" title="চট্টগ্রাম গ্রামার স্কুল, palette 1" scrolling="no"></iframe>
+<figcaption><b>অক্সব্লাড ও পিতল</b><span>Oxblood and brass</span><span class="sw" aria-hidden="true"><i style="background:#5A1E2B" title="primary"></i><i style="background:#8F7A4D" title="secondary"></i><i style="background:#B59F6B" title="accent"></i><i style="background:#F4F1EA" title="surface"></i><i style="background:#2B2520" title="ink"></i></span><span>#5A1E2B #8F7A4D #B59F6B #F4F1EA #2B2520</span></figcaption></figure><figure class="pal"><iframe src="home.html?crop=1&amp;palette=1" title="চট্টগ্রাম গ্রামার স্কুল, palette 2" scrolling="no"></iframe>
+<figcaption><b>বোতল সবুজ ও পিতল</b><span>Bottle green and brass</span><span class="sw" aria-hidden="true"><i style="background:#1F4A3A" title="primary"></i><i style="background:#8F7A4D" title="secondary"></i><i style="background:#B59F6B" title="accent"></i><i style="background:#F3F2EA" title="surface"></i><i style="background:#222820" title="ink"></i></span><span>#1F4A3A #8F7A4D #B59F6B #F3F2EA #222820</span></figcaption></figure><figure class="pal"><iframe src="home.html?crop=1&amp;palette=2" title="চট্টগ্রাম গ্রামার স্কুল, palette 3" scrolling="no"></iframe>
+<figcaption><b>নেভি ও পিতল</b><span>Navy and brass</span><span class="sw" aria-hidden="true"><i style="background:#1D2F55" title="primary"></i><i style="background:#8F7A4D" title="secondary"></i><i style="background:#B59F6B" title="accent"></i><i style="background:#F3F1EB" title="surface"></i><i style="background:#1F2330" title="ink"></i></span><span>#1D2F55 #8F7A4D #B59F6B #F3F1EB #1F2330</span></figcaption></figure>
+<script>
+addEventListener('message',function(e){if(!e.data||!e.data.h)return;
+  document.querySelectorAll('iframe').forEach(function(f){if(f.contentWindow===e.source)f.style.height=e.data.h+'px';});});
+</script>
+</body></html>

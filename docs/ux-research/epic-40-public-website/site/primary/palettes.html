@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Palettes · সূর্যমুখী শিশু বিদ্যালয়</title>
+<style>
+body{margin:0;font:16px/1.5 system-ui,-apple-system,"Noto Sans Bengali",sans-serif;background:#f1f2f4;color:#16181d}
+h1{font-size:20px;margin:0;padding:16px;background:#16181d;color:#fff}
+h1 small{display:block;font-weight:400;font-size:14px;opacity:.8;margin-top:2px}
+.pal{margin:0 0 28px;background:#fff;border-bottom:1px solid #d7dae0}
+.pal iframe{display:block;width:100%;height:1000px;border:0}
+.pal figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:14px 16px}
+.pal figcaption b{font-size:17px}
+.sw{display:flex;gap:6px}
+.sw i{width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.25)}
+</style></head><body>
+<h1>সূর্যমুখী শিশু বিদ্যালয়<small>Three predefined palettes. Each frame is the live home page (bar, hero and the next sections) with that palette applied.</small></h1>
+<figure class="pal"><iframe src="home.html?crop=1&amp;palette=0" title="সূর্যমুখী শিশু বিদ্যালয়, palette 1" scrolling="no"></iframe>
+<figcaption><b>সূর্যমুখী</b><span>Sunflower</span><span class="sw" aria-hidden="true"><i style="background:#3F7A4B" title="primary"></i><i style="background:#3F7FA6" title="secondary"></i><i style="background:#C9532F" title="accent"></i><i style="background:#FFF8EC" title="surface"></i><i style="background:#2E3A33" title="ink"></i></span><span>#3F7A4B #3F7FA6 #C9532F #FFF8EC #2E3A33</span></figcaption></figure><figure class="pal"><iframe src="home.html?crop=1&amp;palette=1" title="সূর্যমুখী শিশু বিদ্যালয়, palette 2" scrolling="no"></iframe>
+<figcaption><b>আকাশ</b><span>Sky</span><span class="sw" aria-hidden="true"><i style="background:#2B6A8C" title="primary"></i><i style="background:#4F8A5B" title="secondary"></i><i style="background:#B8492B" title="accent"></i><i style="background:#F3F9FC" title="surface"></i><i style="background:#1F2E38" title="ink"></i></span><span>#2B6A8C #4F8A5B #B8492B #F3F9FC #1F2E38</span></figcaption></figure><figure class="pal"><iframe src="home.html?crop=1&amp;palette=2" title="সূর্যমুখী শিশু বিদ্যালয়, palette 3" scrolling="no"></iframe>
+<figcaption><b>ডালিম</b><span>Pomegranate</span><span class="sw" aria-hidden="true"><i style="background:#8C3A52" title="primary"></i><i style="background:#B07A1E" title="secondary"></i><i style="background:#2F7A68" title="accent"></i><i style="background:#FFF6F3" title="surface"></i><i style="background:#3A2830" title="ink"></i></span><span>#8C3A52 #B07A1E #2F7A68 #FFF6F3 #3A2830</span></figcaption></figure>
+<script>
+addEventListener('message',function(e){if(!e.data||!e.data.h)return;
+  document.querySelectorAll('iframe').forEach(function(f){if(f.contentWindow===e.source)f.style.height=e.data.h+'px';});});
+</script>
+</body></html>

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Palettes · নবীনগর উচ্চ বিদ্যালয়</title>
+<style>
+body{margin:0;font:16px/1.5 system-ui,-apple-system,"Noto Sans Bengali",sans-serif;background:#f1f2f4;color:#16181d}
+h1{font-size:20px;margin:0;padding:16px;background:#16181d;color:#fff}
+h1 small{display:block;font-weight:400;font-size:14px;opacity:.8;margin-top:2px}
+.pal{margin:0 0 28px;background:#fff;border-bottom:1px solid #d7dae0}
+.pal iframe{display:block;width:100%;height:1000px;border:0}
+.pal figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:14px 16px}
+.pal figcaption b{font-size:17px}
+.sw{display:flex;gap:6px}
+.sw i{width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.25)}
+</style></head><body>
+<h1>নবীনগর উচ্চ বিদ্যালয়<small>Three predefined palettes. Each frame is the live home page (bar, hero and the next sections) with that palette applied.</small></h1>
+<figure class="pal"><iframe src="home.html?crop=1&amp;palette=0" title="নবীনগর উচ্চ বিদ্যালয়, palette 1" scrolling="no"></iframe>
+<figcaption><b>নীল</b><span>Blue</span><span class="sw" aria-hidden="true"><i style="background:#1A4FD6" title="primary"></i><i style="background:#6B7080" title="secondary"></i><i style="background:#B4231A" title="accent"></i><i style="background:#FFFFFF" title="surface"></i><i style="background:#17181C" title="ink"></i></span><span>#1A4FD6 #6B7080 #B4231A #FFFFFF #17181C</span></figcaption></figure><figure class="pal"><iframe src="home.html?crop=1&amp;palette=1" title="নবীনগর উচ্চ বিদ্যালয়, palette 2" scrolling="no"></iframe>
+<figcaption><b>সবুজ</b><span>Green</span><span class="sw" aria-hidden="true"><i style="background:#12703D" title="primary"></i><i style="background:#66706A" title="secondary"></i><i style="background:#B4231A" title="accent"></i><i style="background:#FFFFFF" title="surface"></i><i style="background:#16191A" title="ink"></i></span><span>#12703D #66706A #B4231A #FFFFFF #16191A</span></figcaption></figure><figure class="pal"><iframe src="home.html?crop=1&amp;palette=2" title="নবীনগর উচ্চ বিদ্যালয়, palette 3" scrolling="no"></iframe>
+<figcaption><b>কমলা</b><span>Orange</span><span class="sw" aria-hidden="true"><i style="background:#B34700" title="primary"></i><i style="background:#706A62" title="secondary"></i><i style="background:#A31F1F" title="accent"></i><i style="background:#FFFFFF" title="surface"></i><i style="background:#1B1816" title="ink"></i></span><span>#B34700 #706A62 #A31F1F #FFFFFF #1B1816</span></figcaption></figure>
+<script>
+addEventListener('message',function(e){if(!e.data||!e.data.h)return;
+  document.querySelectorAll('iframe').forEach(function(f){if(f.contentWindow===e.source)f.style.height=e.data.h+'px';});});
+</script>
+</body></html>

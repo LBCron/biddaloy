@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="bn" data-lang="bn" data-theme="college">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>গ্রীন ভ্যালি কলেজ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@400;500;600;700;800&family=Hind+Siliguri:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0E1B2A; --ink-2:#2D3B4C; --mute:#5E6B7A; --paper:#FFFFFF; --paper-2:#F3F5F7; --line:#DCE1E7;
+  --forest:#0F5132; --accent:#E0552C; --accent-2:#FFEFE9;
+  --r:6px; --ease:cubic-bezier(.23,1,.32,1);
+  --d:"Anek Bangla",sans-serif; --b:"Hind Siliguri",sans-serif; --en:"Space Grotesk",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--b);color:var(--ink);background:var(--paper);line-height:1.65;font-size:17px;-webkit-font-smoothing:antialiased}
+html[data-lang=bn] .en{display:none!important}
+html[data-lang=en] .bn{display:none!important}
+html[data-lang=en] body,html[data-lang=en] h1,html[data-lang=en] h2,html[data-lang=en] h3{font-family:var(--en)}
+h1,h2,h3{font-family:var(--d);font-weight:700;line-height:1.12;letter-spacing:-.015em}
+h2{font-size:clamp(30px,4.4vw,56px)}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+svg{display:block}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.wrap{width:min(1240px,100% - 40px);margin-inline:auto}
+@media(max-width:640px){.wrap{width:min(1240px,100% - 32px)}}
+section{padding-block:64px;border-top:1px solid var(--line)}
+@media(min-width:900px){section{padding-block:104px}}
+.kicker{font-family:var(--en);font-weight:500;font-size:14px;color:var(--mute);display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.kicker b{font-family:var(--d);font-weight:600;color:var(--forest);font-size:15px}
+.kicker::after{content:"";flex:1;height:1px;background:var(--line)}
+html[data-lang=en] .kicker b{font-family:var(--en)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:50px;padding:0 24px;border-radius:var(--r);font-weight:600;font-size:16px;transition:transform .16s var(--ease),background .2s}
+.btn:active{transform:scale(.97)}
+.btn-ink{background:var(--ink);color:#fff}
+.btn-ink:hover{background:#1A2B40}
+.btn-acc{background:var(--accent);color:#fff}
+.btn-line{border:1.5px solid var(--ink)}
+.ph{position:relative;background:var(--paper-2);border:1px solid var(--line);display:grid;place-items:center;text-align:center;color:var(--mute);font-size:14px;padding:16px;overflow:hidden;border-radius:var(--r)}
+.ph::before{content:"";position:absolute;inset:0;background:
+  linear-gradient(135deg,transparent 48%,var(--line) 49%,var(--line) 51%,transparent 52%),
+  linear-gradient(45deg,transparent 48%,var(--line) 49%,var(--line) 51%,transparent 52%);opacity:.6}
+.ph > div{position:relative;background:var(--paper);padding:10px 14px;border-radius:var(--r);border:1px solid var(--line)}
+.ph small{display:block;font-family:var(--en);font-size:12px;margin-top:2px}
+
+/* header */
+header{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:14px;min-height:72px}
+.brand{display:flex;align-items:center;gap:12px;font-family:var(--d);font-weight:800;font-size:19px;letter-spacing:-.01em}
+html[data-lang=en] .brand{font-family:var(--en)}
+.logo{width:42px;height:42px;background:var(--forest);color:#fff;display:grid;place-items:center;border-radius:var(--r);font-family:var(--en);font-size:15px;font-weight:700}
+.menu{display:none;gap:2px;margin-left:auto}
+.menu a{padding:10px 12px;font-weight:500;font-size:15.5px;border-bottom:2px solid transparent}
+.menu a:hover{border-color:var(--accent)}
+.lang{display:inline-flex;margin-left:auto;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.lang button{min-width:42px;min-height:38px;font-family:var(--en);font-weight:600;font-size:13.5px;color:var(--mute)}
+.lang button[aria-pressed=true]{background:var(--ink);color:#fff}
+.portal{display:none}
+.burger{width:44px;height:44px;border:1px solid var(--line);border-radius:var(--r);display:grid;place-items:center}
+@media(min-width:1040px){.menu{display:flex}.lang{margin-left:0}.portal{display:inline-flex;min-height:40px;padding:0 16px;border:1.5px solid var(--ink);border-radius:var(--r);font-weight:600;font-size:15px}.burger{display:none}}
+.sheet{position:fixed;inset:0;background:var(--ink);color:#fff;z-index:40;padding:24px;display:none;flex-direction:column;gap:4px;font-size:26px;font-family:var(--d);font-weight:600}
+.sheet[open]{display:flex}
+.sheet a{padding:14px 8px;border-bottom:1px solid rgba(255,255,255,.12)}
+.sheet .close{align-self:flex-end;font-family:var(--en);font-size:16px;padding:10px}
+.sheet .btn{margin-top:auto;background:var(--accent);color:#fff;font-size:18px}
+
+/* hero */
+.hero{padding-block:48px 56px;border-top:0}
+@media(min-width:900px){.hero{padding-block:80px 88px}}
+.hero .grid{display:grid;gap:32px}
+@media(min-width:1000px){.hero .grid{grid-template-columns:1.1fr .9fr;gap:56px;align-items:end}}
+.hero h1{font-size:clamp(44px,8vw,112px);font-weight:800;letter-spacing:-.035em;line-height:.98;max-width:12ch}
+.hero h1 em{font-style:normal;color:var(--forest)}
+.hero p{font-size:clamp(17px,1.4vw,21px);color:var(--ink-2);max-width:48ch;margin-top:26px}
+.hero .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
+.hero .ph{aspect-ratio:4/5;border-radius:0;border:0;background:var(--forest);color:#fff}
+.hero .ph::before{background:
+  linear-gradient(180deg,rgba(255,255,255,.08),transparent 40%),
+  repeating-linear-gradient(90deg,rgba(255,255,255,.06) 0 2px,transparent 2px 72px);opacity:1}
+.hero .ph > div{background:rgba(14,27,42,.55);border-color:rgba(255,255,255,.2);color:#fff;backdrop-filter:blur(4px)}
+.hero figure{position:relative}
+.hero figcaption{position:absolute;left:0;bottom:-30px;font-family:var(--en);font-size:12.5px;color:var(--mute);letter-spacing:.01em}
+@media(min-width:1000px){.hero .ph{aspect-ratio:5/6}}
+.meta-row{display:grid;grid-template-columns:repeat(3,auto);gap:28px;margin-top:40px;padding-top:20px;border-top:1px solid var(--ink);justify-content:start}
+.meta-row b{display:block;font-family:var(--en);font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1}
+.meta-row span{font-size:13.5px;color:var(--mute)}
+
+/* admission strip */
+.strip{background:var(--ink);color:#fff;padding:14px 0}
+.strip .wrap{display:flex;align-items:center;gap:12px 24px;flex-wrap:wrap;font-weight:500}
+.strip .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(224,85,44,.25)}
+.strip a{text-decoration:underline;text-underline-offset:4px}
+.strip .count{margin-left:auto;font-family:var(--en);font-size:14px;border:1px solid rgba(255,255,255,.3);border-radius:var(--r);padding:5px 12px}
+
+/* notices */
+.two{display:grid;gap:40px}
+@media(min-width:1000px){.two{grid-template-columns:.9fr 1.4fr;gap:72px}}
+.two h2{position:sticky;top:96px}
+.notice-list{display:grid;border-top:1px solid var(--ink)}
+.notice{display:grid;grid-template-columns:84px 1fr auto;gap:18px;padding:18px 0;border-bottom:1px solid var(--line);align-items:start;transition:background .2s}
+@media(hover:hover){.notice:hover{background:var(--paper-2)}}
+.notice time{font-family:var(--en);font-size:13px;color:var(--mute);line-height:1.2}
+.notice time b{display:block;font-size:26px;color:var(--ink);font-weight:600;letter-spacing:-.02em}
+.notice h3{font-size:18px;font-weight:600;letter-spacing:0;font-family:var(--b)}
+.notice p{font-size:14.5px;color:var(--mute);margin-top:3px}
+.tag{font-family:var(--en);font-size:11.5px;font-weight:600;letter-spacing:.02em;padding:4px 8px;border-radius:3px;background:var(--paper-2);color:var(--ink-2);white-space:nowrap}
+.tag.urgent{background:var(--accent-2);color:#9A3414}
+.skel{height:14px;border-radius:3px;background:linear-gradient(90deg,var(--line) 25%,var(--paper-2) 50%,var(--line) 75%);background-size:200% 100%;animation:sh 1.2s infinite linear}
+@keyframes sh{to{background-position:-200% 0}}
+.skel.w40{width:40%}.skel.w80{width:80%;margin-top:10px}.skel.tall{height:40px;width:60px}
+.reveal{animation:up .45s var(--ease) both}
+@keyframes up{from{opacity:0;transform:translateY(6px)}}
+.more{display:inline-flex;gap:8px;align-items:center;margin-top:22px;font-weight:600;color:var(--forest)}
+.more svg{transition:transform .2s var(--ease)}
+@media(hover:hover){.more:hover svg{transform:translateX(3px)}}
+
+/* about */
+.about .two h2{position:static}
+.about p+p{margin-top:14px}
+.about .ph{aspect-ratio:3/2;margin-top:28px}
+.proof{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px}
+.proof div{border-top:2px solid var(--forest);padding-top:10px}
+.proof b{display:block;font-family:var(--en);font-size:32px;font-weight:600;letter-spacing:-.02em;line-height:1}
+.proof span{font-size:13.5px;color:var(--mute)}
+
+/* departments */
+.depts{border-top:1px solid var(--ink);margin-top:34px}
+.dept{display:grid;grid-template-columns:1fr;gap:10px;padding:26px 0;border-bottom:1px solid var(--line);align-items:center;position:relative}
+@media(min-width:800px){.dept{grid-template-columns:64px 1.2fr 1.5fr auto;gap:28px}}
+.dept .n{font-family:var(--en);font-size:14px;color:var(--mute)}
+.dept h3{font-size:clamp(26px,3vw,40px);font-weight:700}
+.dept p{color:var(--ink-2);font-size:15.5px}
+.dept .sub{font-family:var(--en);font-size:13px;color:var(--mute);margin-top:4px}
+.dept .go{width:48px;height:48px;border:1.5px solid var(--ink);border-radius:50%;display:grid;place-items:center;justify-self:start;transition:background .2s,color .2s}
+@media(hover:hover){.dept:hover .go{background:var(--ink);color:#fff}}
+
+/* admission timeline (a real sequence) */
+.timeline{display:grid;gap:0;margin-top:34px;counter-reset:s}
+@media(min-width:900px){.timeline{grid-template-columns:repeat(4,1fr)}}
+.step{padding:22px 22px 24px 0;border-top:3px solid var(--line);position:relative}
+.step.done{border-color:var(--forest)}
+.step.now{border-color:var(--accent)}
+.step .num{font-family:var(--en);font-size:13px;color:var(--mute);display:flex;justify-content:space-between}
+.step.now .num{color:var(--accent);font-weight:600}
+.step h3{font-size:22px;margin:8px 0 6px}
+.step p{font-size:14.5px;color:var(--mute)}
+.step time{font-family:var(--en);font-size:13.5px;color:var(--ink-2);display:block;margin-top:8px;font-weight:500}
+
+/* results strip */
+.results{background:var(--forest);color:#fff;border:0}
+.results h2{color:#fff}
+.results .kicker{color:rgba(255,255,255,.7)}
+.results .kicker b{color:#fff}.results .kicker::after{background:rgba(255,255,255,.25)}
+.rgrid{display:grid;gap:22px;margin-top:40px;grid-template-columns:repeat(2,1fr)}
+@media(min-width:900px){.rgrid{grid-template-columns:repeat(4,1fr)}}
+.rgrid b{display:block;font-family:var(--en);font-size:clamp(40px,5vw,72px);font-weight:600;letter-spacing:-.03em;line-height:.95}
+.rgrid span{display:block;margin-top:8px;font-size:15px;color:rgba(255,255,255,.8)}
+.rgrid small{display:block;font-family:var(--en);font-size:12px;color:rgba(255,255,255,.55);margin-top:3px}
+.results .note{margin-top:30px;font-size:14px;color:rgba(255,255,255,.7);max-width:60ch}
+
+/* faculty */
+.fgrid{display:grid;gap:16px;margin-top:34px;grid-template-columns:repeat(2,1fr)}
+@media(min-width:1000px){.fgrid{grid-template-columns:repeat(4,1fr)}}
+.fac .ph{aspect-ratio:1;border-radius:var(--r);background:var(--paper-2)}
+.fac .ph::before{background:radial-gradient(circle at 50% 38%,var(--line) 0 18%,transparent 19%),radial-gradient(ellipse at 50% 100%,var(--line) 0 34%,transparent 35%);opacity:1}
+.fac h3{font-size:17px;margin-top:12px;font-family:var(--b);letter-spacing:0}
+.fac p{font-size:14px;color:var(--mute)}
+.fac .sub{font-family:var(--en);font-size:12.5px;color:var(--forest);font-weight:600;margin-top:2px}
+
+/* events */
+.events{display:grid;gap:0;margin-top:34px;border-top:1px solid var(--ink)}
+@media(min-width:900px){.events{grid-template-columns:repeat(3,1fr);border-top:0}}
+.event{padding:22px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:72px 1fr;gap:16px}
+@media(min-width:900px){.event{border-top:1px solid var(--ink);padding:22px 24px 22px 0}}
+.event time{font-family:var(--en);line-height:1.1}
+.event time b{display:block;font-size:34px;font-weight:600;letter-spacing:-.03em}
+.event time span{font-size:13px;color:var(--mute)}
+.event h3{font-size:18px;font-family:var(--b);letter-spacing:0}
+.event p{font-size:14px;color:var(--mute)}
+
+/* blog */
+.posts{display:grid;gap:28px;margin-top:34px}
+@media(min-width:900px){.posts{grid-template-columns:repeat(3,1fr)}}
+.post .ph{aspect-ratio:1200/630}
+.post time{font-family:var(--en);font-size:13px;color:var(--mute);display:block;margin-top:14px}
+.post h3{font-size:21px;margin-top:6px;font-weight:600}
+
+/* contact */
+.contact{background:var(--paper-2)}
+.contact .two{align-items:start}
+.contact dl{display:grid;grid-template-columns:auto 1fr;gap:12px 22px;margin-top:26px}
+.contact dt{color:var(--mute);font-size:14px;font-family:var(--en)}
+.contact .btns{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.wa{background:#1FAF5A;color:#fff}
+.map{aspect-ratio:16/10;border:1px solid var(--line);background:
+  repeating-linear-gradient(0deg,transparent 0 40px,var(--line) 40px 41px),
+  repeating-linear-gradient(90deg,transparent 0 40px,var(--line) 40px 41px),#E9EDF1;display:grid;place-items:center;border-radius:var(--r)}
+
+/* footer */
+footer{background:var(--ink);color:rgba(255,255,255,.75);padding:48px 0 28px;font-size:14.5px}
+.foot{display:grid;gap:28px}
+@media(min-width:900px){.foot{grid-template-columns:1.5fr 1fr 1fr 1fr}}
+footer h4{color:#fff;font-size:15px;margin-bottom:12px;font-family:var(--d)}
+html[data-lang=en] footer h4{font-family:var(--en)}
+footer ul{list-style:none;display:grid;gap:7px}
+footer .btn{background:#fff;color:var(--ink);margin-top:16px}
+.credit{border-top:1px solid rgba(255,255,255,.14);margin-top:36px;padding-top:18px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 20px;font-family:var(--en);font-size:13px}
+.credit a{color:#fff;font-weight:600}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+<link rel="stylesheet" href="../shared/blocks.css">
+<style>:root{--ann-bg:#0E1B2A;--ann-ink:#fff;--ann-label-bg:#0F5132;--ann-label-ink:#fff;--ann-line:1px solid #2D3B4C;--hc-bg:#0F5132;--hc-ink:#fff;--hc-line:rgba(255,255,255,.35);--hc-cap-bg:rgba(14,27,42,.55);--hc-cap-r:6px;--sa-ink:#0F5132;--sa-r:6px}.hero .grid>*{min-width:0}.hero .hc{height:100%}.hero .hc-ph{aspect-ratio:auto}.ann{font-family:var(--b)}</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#"><span class="logo">GV</span><span><span class="bn" data-field="header.1">গ্রীন ভ্যালি কলেজ</span><span class="en" data-field="header.1">Green Valley College</span></span></a>
+    <nav class="menu" aria-label="প্রধান মেনু">
+      <a href="#"><span class="bn" data-field="header.2">হোম</span><span class="en" data-field="header.2">Home</span></a>
+      <a href="#about"><span class="bn" data-field="header.3">আমাদের কথা</span><span class="en" data-field="header.3">About</span></a>
+      <a href="#depts"><span class="bn" data-field="header.4">একাডেমিক</span><span class="en" data-field="header.4">Academics</span></a>
+      <a href="#adm"><span class="bn" data-field="header.5">ভর্তি</span><span class="en" data-field="header.5">Admission</span></a>
+      <a href="#news"><span class="bn" data-field="header.6">খবর ও ইভেন্ট</span><span class="en" data-field="header.6">News &amp; Events</span></a>
+      <a href="#contact"><span class="bn" data-field="header.7">যোগাযোগ</span><span class="en" data-field="header.7">Contact</span></a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language"><button data-set="bn" aria-pressed="true">বাং</button><button data-set="en" aria-pressed="false">EN</button></div>
+    <a class="portal" href="#"><span class="bn" data-field="header.8">পোর্টালে লগইন</span><span class="en" data-field="header.8">Portal login</span></a>
+    <button class="burger" aria-label="মেনু খুলুন" onclick="document.getElementById('sheet').setAttribute('open','')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+</header>
+<div class="sheet" id="sheet">
+  <button class="close" onclick="this.parentElement.removeAttribute('open')">Close ✕</button>
+  <a href="#"><span class="bn" data-field="header.9">হোম</span><span class="en" data-field="header.9">Home</span></a>
+  <a href="#about"><span class="bn" data-field="header.10">আমাদের কথা</span><span class="en" data-field="header.10">About</span></a>
+  <a href="#depts"><span class="bn" data-field="header.11">একাডেমিক</span><span class="en" data-field="header.11">Academics</span></a>
+  <a href="#adm"><span class="bn" data-field="header.12">ভর্তি</span><span class="en" data-field="header.12">Admission</span></a>
+  <a href="#news"><span class="bn" data-field="header.13">খবর ও ইভেন্ট</span><span class="en" data-field="header.13">News &amp; Events</span></a>
+  <a href="#contact"><span class="bn" data-field="header.14">যোগাযোগ</span><span class="en" data-field="header.14">Contact</span></a>
+  <a class="btn" href="#"><span class="bn" data-field="header.15">পোর্টালে লগইন</span><span class="en" data-field="header.15">Portal login</span></a>
+</div>
+
+<div class="ann" role="region" aria-label="Announcements"><span class="ann-label"><span class="bn" data-field="header.16">ঘোষণা</span><span class="en" data-field="header.16">Notice</span></span><div class="ann-view"><div class="ann-track"><div class="ann-set"><a href="#"><span class="bn" data-field="header.17">২০২৭ শিক্ষাবর্ষে ভর্তি চলছে, শেষ তারিখ ১৫ ডিসেম্বর</span><span class="en" data-field="header.17">Admissions for 2027 are open, last date 15 December</span></a><a href="#"><span class="bn" data-field="header.18">অর্ধবার্ষিক পরীক্ষার ফল প্রকাশ ১৫ নভেম্বর</span><span class="en" data-field="header.18">Half-yearly results out on 15 November</span></a><a href="#"><span class="bn" data-field="header.19">বৃহস্পতিবার অভিভাবক সভা, সকাল ১০টা</span><span class="en" data-field="header.19">Guardian meeting on Thursday, 10 am</span></a><a href="#"><span class="bn" data-field="header.20">২৫ ডিসেম্বর থেকে শীতকালীন ছুটি</span><span class="en" data-field="header.20">Winter break from 25 December</span></a><a href="#"><span class="bn" data-field="header.21">বার্ষিক ক্রীড়া প্রতিযোগিতা ২৪ নভেম্বর</span><span class="en" data-field="header.21">Annual sports day on 24 November</span></a></div><div class="ann-set" aria-hidden="true"><a href="#" tabindex="-1"><span class="bn" data-field="header.22">২০২৭ শিক্ষাবর্ষে ভর্তি চলছে, শেষ তারিখ ১৫ ডিসেম্বর</span><span class="en" data-field="header.22">Admissions for 2027 are open, last date 15 December</span></a><a href="#" tabindex="-1"><span class="bn" data-field="header.23">অর্ধবার্ষিক পরীক্ষার ফল প্রকাশ ১৫ নভেম্বর</span><span class="en" data-field="header.23">Half-yearly results out on 15 November</span></a><a href="#" tabindex="-1"><span class="bn" data-field="header.24">বৃহস্পতিবার অভিভাবক সভা, সকাল ১০টা</span><span class="en" data-field="header.24">Guardian meeting on Thursday, 10 am</span></a><a href="#" tabindex="-1"><span class="bn" data-field="header.25">২৫ ডিসেম্বর থেকে শীতকালীন ছুটি</span><span class="en" data-field="header.25">Winter break from 25 December</span></a><a href="#" tabindex="-1"><span class="bn" data-field="header.26">বার্ষিক ক্রীড়া প্রতিযোগিতা ২৪ নভেম্বর</span><span class="en" data-field="header.26">Annual sports day on 24 November</span></a></div></div></div></div>
+<section class="hero">
+  <div class="wrap grid">
+    <div>
+      <h1><span class="bn" data-field="hero.1">ফলাফল যেখানে <em>অভ্যাস</em>।</span><span class="en" data-field="hero.1">Where results are a <em>habit</em>.</span></h1>
+      <p data-tagline><span class="bn" data-field="hero.2">১৯৯৪ সাল থেকে চট্টগ্রামের গ্রীন ভ্যালি কলেজ এইচএসসি বিজ্ঞান, ব্যবসায় শিক্ষা ও মানবিক বিভাগে পড়ায় — ছোট সেকশন, নিয়মিত মডেল টেস্ট আর বিশ্ববিদ্যালয় ভর্তির প্রস্তুতি দিয়ে।</span><span class="en" data-field="hero.2">Since 1994 Green Valley College has taught HSC Science, Business Studies and Humanities in Chattogram, with small sections, regular model tests and real university-admission preparation.</span></p>
+      <div class="cta">
+        <a class="btn btn-acc" href="#adm"><span class="bn" data-field="hero.3">ভর্তির আবেদন করুন</span><span class="en" data-field="hero.3">Apply for admission</span></a>
+        <a class="btn btn-line" href="#about"><span class="bn" data-field="hero.4">ক্যাম্পাস দেখুন</span><span class="en" data-field="hero.4">See the campus</span></a>
+      </div>
+      <div class="meta-row">
+        <div><b>1994</b><span><span class="bn" data-field="hero.5">প্রতিষ্ঠা</span><span class="en" data-field="hero.5">Founded</span></span></div>
+        <div><b>98.4%</b><span><span class="bn" data-field="hero.6">এইচএসসি পাস ২০২৬</span><span class="en" data-field="hero.6">HSC pass 2026</span></span></div>
+        <div><b>3</b><span><span class="bn" data-field="hero.7">টি বিভাগ</span><span class="en" data-field="hero.7">Departments</span></span></div>
+      </div>
+    </div>
+    <figure>
+      <div class="hc" data-carousel role="group" aria-roledescription="carousel" aria-label="Campus photos"><div class="hc-track"><div class="hc-slide"><div class="ph" role="img" aria-label="কলেজ ভবনের ছবি ১৯২০×১০৮০"><div><span class="bn" data-field="hero.8">মূল ভবন ও মাঠের ছবি</span><span class="en" data-field="hero.8">Main building and field photo</span><small>1920 × 1080 · hero slot</small></div></div></div><div class="hc-slide"><div class="hc-ph" role="img" aria-label="Campus photo 2 placeholder, 1920 by 1080"><svg viewBox="0 0 640 200" preserveAspectRatio="none" aria-hidden="true"><path d="M0 200V140h80V90h50v50h70V50l30-25 30 25v90h90V100h110v40h60V70h50v70h70v60z" fill="currentColor"/></svg><span class="hc-cap"><span><span class="bn" data-field="hero.9">ক্যাম্পাসের ছবি ২</span><span class="en" data-field="hero.9">Campus photo 2</span></span><small>1920 × 1080</small></span></div></div><div class="hc-slide"><div class="hc-ph" role="img" aria-label="Campus photo 3 placeholder, 1920 by 1080"><svg viewBox="0 0 640 200" preserveAspectRatio="none" aria-hidden="true"><path d="M0 200V130h50V100h60v30h40V70h40v60h80V40l35-20 35 20v90h60V110h90v20h50V90h60v110z" fill="currentColor"/></svg><span class="hc-cap"><span><span class="bn" data-field="hero.10">ক্যাম্পাসের ছবি ৩</span><span class="en" data-field="hero.10">Campus photo 3</span></span><small>1920 × 1080</small></span></div></div></div><button class="hc-btn hc-prev" type="button" aria-label="Previous photo">&#8249;</button><button class="hc-btn hc-next" type="button" aria-label="Next photo">&#8250;</button><div class="hc-dots"><button type="button" aria-label="Photo 1"></button><button type="button" aria-label="Photo 2"></button><button type="button" aria-label="Photo 3"></button></div></div>
+      <figcaption><span class="bn" data-field="hero.11">মূল ভবন, পাহাড়তলী ক্যাম্পাস</span><span class="en" data-field="hero.11">Main building, Pahartali campus</span></figcaption>
+    </figure>
+  </div>
+</section>
+
+<div class="strip" id="adm">
+  <div class="wrap">
+    <span class="dot" aria-hidden="true"></span>
+    <span><span class="bn" data-field="hero.12">২০২৬–২৭ একাদশ শ্রেণিতে ভর্তি চলছে</span><span class="en" data-field="hero.12">Class 11 admission open, 2026–27</span></span>
+    <a href="#"><span class="bn" data-field="hero.13">অনলাইনে আবেদন</span><span class="en" data-field="hero.13">Apply online</span></a>
+    <span class="count"><span class="bn" data-field="hero.14">শেষ তারিখ ১৫ ডিসেম্বর · ৩৯ দিন বাকি</span><span class="en" data-field="hero.14">Closes 15 Dec · 39 days left</span></span>
+  </div>
+</div>
+
+<section id="news">
+  <div class="wrap two">
+    <div><div class="kicker"><b><span class="bn" data-field="news.1">নোটিশ</span><span class="en" data-field="news.1">Notices</span></b></div><h2><span class="bn" data-field="news.2">সাম্প্রতিক নোটিশ</span><span class="en" data-field="news.2">Recent notices</span></h2></div>
+    <div>
+      <div class="notice-list" id="notices" aria-busy="true" aria-live="polite">
+        <div class="notice"><div class="skel tall"></div><div><div class="skel w40"></div><div class="skel w80"></div></div><div></div></div>
+        <div class="notice"><div class="skel tall"></div><div><div class="skel w40"></div><div class="skel w80"></div></div><div></div></div>
+        <div class="notice"><div class="skel tall"></div><div><div class="skel w40"></div><div class="skel w80"></div></div><div></div></div>
+        <div class="notice"><div class="skel tall"></div><div><div class="skel w40"></div><div class="skel w80"></div></div><div></div></div>
+      </div>
+      <template id="notice-data">
+        <article class="notice reveal"><time><b>06</b>Nov 2026</time><div><h3><span class="bn" data-field="news.3">একাদশ শ্রেণির প্রথম সাময়িক পরীক্ষার রুটিন</span><span class="en" data-field="news.3">Class 11 first-term exam routine</span></h3><p><span class="bn" data-field="news.4">১২ নভেম্বর থেকে শুরু, সকাল ১০টা। রুটিন PDF সংযুক্ত।</span><span class="en" data-field="news.4">Starts 12 Nov at 10:00. Routine PDF attached.</span></p></div><span class="tag urgent"><span class="bn" data-field="news.5">জরুরি</span><span class="en" data-field="news.5">Urgent</span></span></article>
+        <article class="notice reveal"><time><b>04</b>Nov 2026</time><div><h3><span class="bn" data-field="news.6">ভর্তি ভাইভার তারিখ ও কক্ষ বণ্টন</span><span class="en" data-field="news.6">Admission viva dates and room allocation</span></h3><p><span class="bn" data-field="news.7">আবেদনের ক্রমিক অনুযায়ী ৮–৯ নভেম্বর।</span><span class="en" data-field="news.7">8–9 Nov by application serial.</span></p></div><span class="tag"><span class="bn" data-field="news.8">ভর্তি</span><span class="en" data-field="news.8">Admission</span></span></article>
+        <article class="notice reveal"><time><b>29</b>Oct 2026</time><div><h3><span class="bn" data-field="news.9">বিজ্ঞান বিভাগের ল্যাব মূল্যায়ন সূচি</span><span class="en" data-field="news.9">Science lab assessment schedule</span></h3><p><span class="bn" data-field="news.10">পদার্থ, রসায়ন ও জীববিজ্ঞান — সেকশন অনুযায়ী।</span><span class="en" data-field="news.10">Physics, Chemistry and Biology, by section.</span></p></div><span class="tag"><span class="bn" data-field="news.11">একাডেমিক</span><span class="en" data-field="news.11">Academic</span></span></article>
+        <article class="notice reveal"><time><b>22</b>Oct 2026</time><div><h3><span class="bn" data-field="news.12">বার্ষিক ক্রীড়া প্রতিযোগিতা ও অভিভাবক আমন্ত্রণ</span><span class="en" data-field="news.12">Annual sports day and guardian invitation</span></h3><p><span class="bn" data-field="news.13">২৮ নভেম্বর, কলেজ মাঠ।</span><span class="en" data-field="news.13">28 Nov, college field.</span></p></div><span class="tag"><span class="bn" data-field="news.14">ইভেন্ট</span><span class="en" data-field="news.14">Event</span></span></article>
+      </template>
+      <a class="more" href="#"><span class="bn" data-field="news.15">সব নোটিশ</span><span class="en" data-field="news.15">All notices</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
+  </div>
+</section>
+
+<section class="about" id="about">
+  <div class="wrap two">
+    <div><div class="kicker"><b><span class="bn" data-field="about.1">আমাদের কথা</span><span class="en" data-field="about.1">About</span></b></div><h2><span class="bn" data-field="about.2">বত্রিশ বছর, এক মাঠ, অনেকগুলো প্রথম</span><span class="en" data-field="about.2">Thirty-two years, one field, many firsts</span></h2></div>
+    <div>
+      <p><span class="bn" data-field="about.3">গ্রীন ভ্যালি শুরু হয়েছিল পাহাড়তলীর একটি ভাড়া বাড়িতে, একশো বিশ জন শিক্ষার্থী নিয়ে। আজ নিজস্ব ছয়তলা ভবন, তিনটি বিজ্ঞান ল্যাব, একটি গ্রন্থাগার আর একটি পূর্ণাঙ্গ খেলার মাঠ।</span><span class="en" data-field="about.3">Green Valley started in a rented house in Pahartali with one hundred and twenty students. Today it has its own six-storey building, three science labs, a library and a full playing field.</span></p>
+      <p><span class="bn" data-field="about.4">আমরা বড় নই, আর সেটাই ইচ্ছাকৃত। প্রতিটি সেকশনে পঞ্চাশের কম শিক্ষার্থী, যাতে একজন শিক্ষক প্রত্যেককে নামে চেনেন।</span><span class="en" data-field="about.4">We are not big, and that is deliberate. Every section has fewer than fifty students, so a teacher knows each one by name.</span></p>
+      <div class="proof">
+        <div><b>48</b><span><span class="bn" data-field="about.5">জন শিক্ষক</span><span class="en" data-field="about.5">Teachers</span></span></div>
+        <div><b>1,180</b><span><span class="bn" data-field="about.6">জন শিক্ষার্থী</span><span class="en" data-field="about.6">Students</span></span></div>
+        <div><b>&lt;50</b><span><span class="bn" data-field="about.7">শিক্ষার্থী প্রতি সেকশনে</span><span class="en" data-field="about.7">Students per section</span></span></div>
+      </div>
+      <div class="ph" role="img" aria-label="ক্যাম্পাসের ছবি ১২০০×৮০০"><div><span class="bn" data-field="about.8">গ্রন্থাগার বা ল্যাবের ছবি</span><span class="en" data-field="about.8">Library or lab photo</span><small>1200 × 800</small></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="depts">
+  <div class="wrap">
+    <div class="kicker"><b><span class="bn" data-field="depts.1">একাডেমিক</span><span class="en" data-field="depts.1">Academics</span></b></div>
+    <h2><span class="bn" data-field="depts.2">তিনটি বিভাগ</span><span class="en" data-field="depts.2">Three departments</span></h2>
+    <div class="depts">
+      <a class="dept" href="#"><span class="n">HSC</span><h3><span class="bn" data-field="depts.3">বিজ্ঞান</span><span class="en" data-field="depts.3">Science</span></h3><div><p><span class="bn" data-field="depts.4">পদার্থ, রসায়ন, জীববিজ্ঞান, উচ্চতর গণিত ও আইসিটি। সপ্তাহে দুই দিন ল্যাব।</span><span class="en" data-field="depts.4">Physics, Chemistry, Biology, Higher Math and ICT. Lab twice a week.</span></p><div class="sub">6 sections · 420 students</div></div><span class="go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M8 7h9v9"/></svg></span></a>
+      <a class="dept" href="#"><span class="n">HSC</span><h3><span class="bn" data-field="depts.5">ব্যবসায় শিক্ষা</span><span class="en" data-field="depts.5">Business Studies</span></h3><div><p><span class="bn" data-field="depts.6">হিসাববিজ্ঞান, ব্যবস্থাপনা, ফিন্যান্স ও উৎপাদন বিপণন।</span><span class="en" data-field="depts.6">Accounting, Management, Finance and Production &amp; Marketing.</span></p><div class="sub">4 sections · 390 students</div></div><span class="go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M8 7h9v9"/></svg></span></a>
+      <a class="dept" href="#"><span class="n">HSC</span><h3><span class="bn" data-field="depts.7">মানবিক</span><span class="en" data-field="depts.7">Humanities</span></h3><div><p><span class="bn" data-field="depts.8">ইতিহাস, পৌরনীতি, অর্থনীতি, ইসলামের ইতিহাস ও সমাজকর্ম।</span><span class="en" data-field="depts.8">History, Civics, Economics, Islamic History and Social Work.</span></p><div class="sub">4 sections · 370 students</div></div><span class="go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M8 7h9v9"/></svg></span></a>
+    </div>
+
+    <div class="kicker" style="margin-top:72px"><b><span class="bn" data-field="depts.9">ভর্তি প্রক্রিয়া</span><span class="en" data-field="depts.9">Admission process</span></b></div>
+    <h2 style="font-size:clamp(26px,3vw,40px)"><span class="bn" data-field="depts.10">চার ধাপে ভর্তি</span><span class="en" data-field="depts.10">Admission in four steps</span></h2>
+    <div class="timeline">
+      <div class="step done"><div class="num"><span>1</span><span class="bn" data-field="depts.11">সম্পন্ন</span><span class="en" data-field="depts.11">Done</span></div><h3><span class="bn" data-field="depts.12">অনলাইন ফরম</span><span class="en" data-field="depts.12">Online form</span></h3><p><span class="bn" data-field="depts.13">এসএসসি রোল ও ফল দিয়ে আবেদন।</span><span class="en" data-field="depts.13">Apply with SSC roll and result.</span></p><time>1 – 15 Nov</time></div>
+      <div class="step now"><div class="num"><span>2</span><span class="bn" data-field="depts.14">চলছে</span><span class="en" data-field="depts.14">Now</span></div><h3><span class="bn" data-field="depts.15">ভাইভা</span><span class="en" data-field="depts.15">Viva</span></h3><p><span class="bn" data-field="depts.16">অভিভাবকসহ সাক্ষাৎ, বিভাগ পছন্দ নিশ্চিত।</span><span class="en" data-field="depts.16">Interview with a guardian; confirm department choice.</span></p><time>8 – 9 Nov</time></div>
+      <div class="step"><div class="num"><span>3</span></div><h3><span class="bn" data-field="depts.17">ফল প্রকাশ</span><span class="en" data-field="depts.17">Result</span></h3><p><span class="bn" data-field="depts.18">ওয়েবসাইট ও SMS-এ মেধাতালিকা।</span><span class="en" data-field="depts.18">Merit list on the website and by SMS.</span></p><time>20 Nov</time></div>
+      <div class="step"><div class="num"><span>4</span></div><h3><span class="bn" data-field="depts.19">ভর্তি</span><span class="en" data-field="depts.19">Enrol</span></h3><p><span class="bn" data-field="depts.20">ফি জমা ও কাগজপত্র যাচাই।</span><span class="en" data-field="depts.20">Pay fees and verify documents.</span></p><time>22 Nov – 15 Dec</time></div>
+    </div>
+  </div>
+</section>
+
+<section class="results">
+  <div class="wrap">
+    <div class="kicker"><b><span class="bn" data-field="results.1">ফলাফল</span><span class="en" data-field="results.1">Results</span></b></div>
+    <h2><span class="bn" data-field="results.2">এইচএসসি ২০২৬, এক নজরে</span><span class="en" data-field="results.2">HSC 2026 at a glance</span></h2>
+    <div class="rgrid">
+      <div><b>98.4%</b><span><span class="bn" data-field="results.3">পাসের হার</span><span class="en" data-field="results.3">Pass rate</span></span><small>412 of 419 sat</small></div>
+      <div><b>187</b><span><span class="bn" data-field="results.4">জন জিপিএ-৫</span><span class="en" data-field="results.4">GPA 5 holders</span></span><small>45% of candidates</small></div>
+      <div><b>64</b><span><span class="bn" data-field="results.5">জন পাবলিক বিশ্ববিদ্যালয়ে</span><span class="en" data-field="results.5">Public university placements</span></span><small>incl. 11 medical, 9 BUET/CUET</small></div>
+      <div><b>9</b><span><span class="bn" data-field="results.6">বছর ধরে বোর্ড সেরা দশে</span><span class="en" data-field="results.6">Years in the board top ten</span></span><small>Chattogram board</small></div>
+    </div>
+    <p class="note"><span class="bn" data-field="results.7">সব সংখ্যা চট্টগ্রাম শিক্ষা বোর্ডের প্রকাশিত ফল থেকে। পূর্ণ ফলাফল ওয়েবসাইটের “ফলাফল” পাতায় রোল দিয়ে খোঁজা যায়।</span><span class="en" data-field="results.7">All figures from the Chattogram Education Board’s published results. Full results are searchable by roll on the Results page.</span></p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="kicker"><b><span class="bn" data-field="section.1">শিক্ষকমণ্ডলী</span><span class="en" data-field="section.1">Faculty</span></b></div>
+    <h2><span class="bn" data-field="section.2">যাঁরা পড়ান</span><span class="en" data-field="section.2">Who teaches here</span></h2>
+    <div class="fgrid">
+      <article class="fac"><div class="ph" role="img" aria-label="ছবির জায়গা ৪০০×৪০০"><div><small>400 × 400</small></div></div><h3><span class="bn" data-field="section.3">প্রফেসর নাসরিন আক্তার</span><span class="en" data-field="section.3">Prof. Nasrin Akter</span></h3><p><span class="bn" data-field="section.4">অধ্যক্ষ</span><span class="en" data-field="section.4">Principal</span></p><div class="sub">Chemistry · 26 yrs</div></article>
+      <article class="fac"><div class="ph" role="img" aria-label="ছবির জায়গা ৪০০×৪০০"><div><small>400 × 400</small></div></div><h3><span class="bn" data-field="section.5">মো. তৌহিদুল ইসলাম</span><span class="en" data-field="section.5">Md. Tawhidul Islam</span></h3><p><span class="bn" data-field="section.6">সহকারী অধ্যাপক</span><span class="en" data-field="section.6">Assistant Professor</span></p><div class="sub">Physics · 14 yrs</div></article>
+      <article class="fac"><div class="ph" role="img" aria-label="ছবির জায়গা ৪০০×৪০০"><div><small>400 × 400</small></div></div><h3><span class="bn" data-field="section.7">ফারহানা হক</span><span class="en" data-field="section.7">Farhana Haque</span></h3><p><span class="bn" data-field="section.8">প্রভাষক</span><span class="en" data-field="section.8">Lecturer</span></p><div class="sub">Accounting · 9 yrs</div></article>
+      <article class="fac"><div class="ph" role="img" aria-label="ছবির জায়গা ৪০০×৪০০"><div><small>400 × 400</small></div></div><h3><span class="bn" data-field="section.9">সঞ্জয় বড়ুয়া</span><span class="en" data-field="section.9">Sanjay Barua</span></h3><p><span class="bn" data-field="section.10">প্রভাষক</span><span class="en" data-field="section.10">Lecturer</span></p><div class="sub">Economics · 7 yrs</div></article>
+      <article class="fac"><div class="ph" role="img" aria-label="ছবির জায়গা ৪০০×৪০০"><div><small>400 × 400</small></div></div><h3><span class="bn" data-field="section.11">রফিকুল ইসলাম</span><span class="en" data-field="section.11">Rafiqul Islam</span></h3><p><span class="bn" data-field="section.12">অধ্যক্ষ</span><span class="en" data-field="section.12">Principal</span></p><div class="sub">Chemistry · 26 yrs</div></article>
+      <article class="fac"><div class="ph" role="img" aria-label="ছবির জায়গা ৪০০×৪০০"><div><small>400 × 400</small></div></div><h3><span class="bn" data-field="section.13">সুমাইয়া আক্তার</span><span class="en" data-field="section.13">Sumaiya Akter</span></h3><p><span class="bn" data-field="section.14">সহকারী অধ্যাপক</span><span class="en" data-field="section.14">Assistant Professor</span></p><div class="sub">Physics · 14 yrs</div></article>
+      <article class="fac"><div class="ph" role="img" aria-label="ছবির জায়গা ৪০০×৪০০"><div><small>400 × 400</small></div></div><h3><span class="bn" data-field="section.15">আনোয়ার হোসেন</span><span class="en" data-field="section.15">Anwar Hossain</span></h3><p><span class="bn" data-field="section.16">প্রভাষক</span><span class="en" data-field="section.16">Lecturer</span></p><div class="sub">Accounting · 9 yrs</div></article>
+      <article class="fac"><div class="ph" role="img" aria-label="ছবির জায়গা ৪০০×৪০০"><div><small>400 × 400</small></div></div><h3><span class="bn" data-field="section.17">মাহমুদা বেগম</span><span class="en" data-field="section.17">Mahmuda Begum</span></h3><p><span class="bn" data-field="section.18">প্রভাষক</span><span class="en" data-field="section.18">Lecturer</span></p><div class="sub">Economics · 7 yrs</div></article>
+    </div>
+<p class="seeall" data-field="teachers.seeall"><a href="teachers.html"><span class="bn" data-field="section.19">সবাইকে দেখুন</span><span class="en" data-field="section.19">See all teachers</span></a></p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="kicker"><b><span class="bn" data-field="section.20">ইভেন্ট</span><span class="en" data-field="section.20">Events</span></b></div>
+    <h2><span class="bn" data-field="section.21">আগামী দিনগুলো</span><span class="en" data-field="section.21">The coming days</span></h2>
+    <div class="events" id="events" aria-busy="true">
+      <div class="event"><div class="skel tall"></div><div><div class="skel w40"></div><div class="skel w80"></div></div></div>
+      <div class="event"><div class="skel tall"></div><div><div class="skel w40"></div><div class="skel w80"></div></div></div>
+      <div class="event"><div class="skel tall"></div><div><div class="skel w40"></div><div class="skel w80"></div></div></div>
+    </div>
+    <template id="event-data">
+      <article class="event reveal"><time><b>12</b><span>Nov</span></time><div><h3><span class="bn" data-field="section.22">প্রথম সাময়িক পরীক্ষা শুরু</span><span class="en" data-field="section.22">First-term exams begin</span></h3><p><span class="bn" data-field="section.23">একাদশ শ্রেণি, সব বিভাগ</span><span class="en" data-field="section.23">Class 11, all departments</span></p></div></article>
+      <article class="event reveal"><time><b>20</b><span>Nov</span></time><div><h3><span class="bn" data-field="section.24">ভর্তি মেধাতালিকা প্রকাশ</span><span class="en" data-field="section.24">Admission merit list</span></h3><p><span class="bn" data-field="section.25">ওয়েবসাইট ও SMS</span><span class="en" data-field="section.25">Website and SMS</span></p></div></article>
+      <article class="event reveal"><time><b>28</b><span>Nov</span></time><div><h3><span class="bn" data-field="section.26">বার্ষিক ক্রীড়া প্রতিযোগিতা</span><span class="en" data-field="section.26">Annual sports day</span></h3><p><span class="bn" data-field="section.27">কলেজ মাঠ, সকাল ৯টা</span><span class="en" data-field="section.27">College field, 9:00</span></p></div></article>
+    </template>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="kicker"><b><span class="bn" data-field="section.28">ব্লগ</span><span class="en" data-field="section.28">Blog</span></b></div>
+    <h2><span class="bn" data-field="section.29">কলেজ থেকে</span><span class="en" data-field="section.29">From the college</span></h2>
+    <div class="posts">
+      <article class="post"><div class="ph" role="img" aria-label="কভার ছবি ১২০০×৬৩০"><div><span class="bn" data-field="section.30">কভার ছবি</span><span class="en" data-field="section.30">Cover</span><small>1200 × 630</small></div></div><time>2 Nov 2026</time><h3><span class="bn" data-field="section.31">মেডিকেল ভর্তি: দ্বাদশের শুরু থেকেই কীভাবে প্রস্তুতি নেবেন</span><span class="en" data-field="section.31">Medical admission: how to prepare from the start of Class 12</span></h3></article>
+      <article class="post"><div class="ph" role="img" aria-label="কভার ছবি ১২০০×৬৩০"><div><span class="bn" data-field="section.32">কভার ছবি</span><span class="en" data-field="section.32">Cover</span><small>1200 × 630</small></div></div><time>19 Oct 2026</time><h3><span class="bn" data-field="section.33">আমাদের পদার্থবিজ্ঞান ল্যাব নতুন করে সাজানো হলো</span><span class="en" data-field="section.33">Our physics lab has been refitted</span></h3></article>
+      <article class="post"><div class="ph" role="img" aria-label="কভার ছবি ১২০০×৬৩০"><div><span class="bn" data-field="section.34">কভার ছবি</span><span class="en" data-field="section.34">Cover</span><small>1200 × 630</small></div></div><time>5 Oct 2026</time><h3><span class="bn" data-field="section.35">ব্যবসায় শিক্ষা পড়ে কী হয়? প্রাক্তন তিনজনের উত্তর</span><span class="en" data-field="section.35">What comes after Business Studies? Three alumni answer</span></h3></article>
+    </div>
+  </div>
+</section>
+
+<section class="contact" id="contact">
+  <div class="wrap two">
+    <div>
+      <div class="kicker"><b><span class="bn" data-field="contact.1">যোগাযোগ</span><span class="en" data-field="contact.1">Contact</span></b></div>
+      <h2><span class="bn" data-field="contact.2">কথা বলুন, ঘুরে যান</span><span class="en" data-field="contact.2">Talk to us, visit us</span></h2>
+      <dl>
+        <dt><span class="bn" data-field="contact.3">ঠিকানা</span><span class="en" data-field="contact.3">Address</span></dt><dd><span class="bn" data-field="contact.4">১৮ কলেজ রোড, পাহাড়তলী, চট্টগ্রাম ৪২০২</span><span class="en" data-field="contact.4">18 College Road, Pahartali, Chattogram 4202</span></dd>
+        <dt><span class="bn" data-field="contact.5">ফোন</span><span class="en" data-field="contact.5">Phone</span></dt><dd style="font-family:var(--en)">031-700000 · 01811-000000</dd>
+        <dt><span class="bn" data-field="contact.6">ইমেইল</span><span class="en" data-field="contact.6">Email</span></dt><dd style="font-family:var(--en)">office@greenvalleycollege.edu.bd</dd>
+        <dt><span class="bn" data-field="contact.7">অফিস</span><span class="en" data-field="contact.7">Hours</span></dt><dd><span class="bn" data-field="contact.8">রবি–বৃহস্পতি, সকাল ৯টা – বিকেল ৪টা</span><span class="en" data-field="contact.8">Sun–Thu, 9:00–16:00</span></dd>
+      </dl>
+      <div class="btns">
+        <a class="btn wa" href="#"><span class="bn" data-field="contact.9">হোয়াটসঅ্যাপে লিখুন</span><span class="en" data-field="contact.9">WhatsApp us</span></a>
+        <a class="btn btn-line" href="#"><span class="bn" data-field="contact.10">জিজ্ঞাসা পাঠান</span><span class="en" data-field="contact.10">Send an enquiry</span></a>
+      </div>
+    </div>
+    <div class="map" role="img" aria-label="মানচিত্র, ট্যাপ করলে লোড হবে"><button class="btn btn-ink"><span class="bn" data-field="contact.11">মানচিত্র দেখুন</span><span class="en" data-field="contact.11">Show map</span></button></div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div><h4><span class="bn" data-field="footer.1">গ্রীন ভ্যালি কলেজ</span><span class="en" data-field="footer.1">Green Valley College</span></h4><p><span class="bn" data-field="footer.2">পাহাড়তলী, চট্টগ্রাম · ১৯৯৪ সাল থেকে</span><span class="en" data-field="footer.2">Pahartali, Chattogram · since 1994</span></p><a class="btn" href="#"><span class="bn" data-field="footer.3">পোর্টালে লগইন</span><span class="en" data-field="footer.3">Portal login</span></a></div>
+      <div><h4><span class="bn" data-field="footer.4">দ্রুত লিংক</span><span class="en" data-field="footer.4">Quick links</span></h4><ul><li><a href="#"><span class="bn" data-field="footer.5">ভর্তি</span><span class="en" data-field="footer.5">Admission</span></a></li><li><a href="#"><span class="bn" data-field="footer.6">নোটিশ</span><span class="en" data-field="footer.6">Notices</span></a></li><li><a href="#"><span class="bn" data-field="footer.7">ফলাফল</span><span class="en" data-field="footer.7">Results</span></a></li><li><a href="#"><span class="bn" data-field="footer.8">ক্লাস রুটিন</span><span class="en" data-field="footer.8">Class routine</span></a></li></ul></div>
+      <div><h4><span class="bn" data-field="footer.9">ডাউনলোড</span><span class="en" data-field="footer.9">Downloads</span></h4><ul><li><a href="#"><span class="bn" data-field="footer.10">সিলেবাস (PDF)</span><span class="en" data-field="footer.10">Syllabus (PDF)</span></a></li><li><a href="#"><span class="bn" data-field="footer.11">বইয়ের তালিকা</span><span class="en" data-field="footer.11">Book list</span></a></li><li><a href="#"><span class="bn" data-field="footer.12">ফি কাঠামো</span><span class="en" data-field="footer.12">Fee structure</span></a></li></ul></div>
+      <div><h4><span class="bn" data-field="footer.13">যোগাযোগ</span><span class="en" data-field="footer.13">Contact</span></h4><ul style="font-family:var(--en)"><li>031-700000</li><li>office@greenvalleycollege.edu.bd</li><li><a href="#">Facebook</a></li></ul></div>
+    </div>
+    <div class="credit"><span>© 2026 Green Valley College</span><span>Powered by <a href="#">SchoolManagerP</a></span></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.lang button').forEach(b=>b.addEventListener('click',()=>{
+  const l=b.dataset.set;document.documentElement.dataset.lang=l;document.documentElement.lang=l;
+  document.querySelectorAll('.lang button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+}));
+function island(id,tpl,ms){setTimeout(()=>{const el=document.getElementById(id);el.innerHTML='';el.append(document.getElementById(tpl).content.cloneNode(true));el.removeAttribute('aria-busy');
+  el.querySelectorAll('.reveal').forEach((n,i)=>n.style.animationDelay=(i*60)+'ms');},ms);}
+island('notices','notice-data',1200);island('events','event-data',1500);
+</script>
+<script src="../shared/palettes.js"></script><script src="../shared/blocks.js"></script>
+</body>
+</html>

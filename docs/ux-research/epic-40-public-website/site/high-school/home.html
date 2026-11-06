@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="bn" data-lang="bn" data-theme="high-school">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>রামপুরা মডেল উচ্চ বিদ্যালয় · Rampura Model High School</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@500;700;900&family=Noto+Sans+Bengali:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700;8..60,900&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#0F4D3A; --green-deep:#0A3A2C; --green-soft:#E6F0EB; --gold:#C9A227; --gold-soft:#F6EDCF;
+  --paper:#F7F5EF; --white:#fff; --ink:#15211C; --muted:#50625A; --rule:#D9D4C6; --red:#A2321F;
+  --ease:cubic-bezier(.23,1,.32,1);
+}
+*{box-sizing:border-box} html,body{margin:0}
+body{font-family:'IBM Plex Sans','Noto Sans Bengali',system-ui,sans-serif;background:var(--paper);color:var(--ink);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+html[data-lang=bn] body{font-family:'Noto Sans Bengali','IBM Plex Sans',sans-serif}
+html[data-lang=bn] .en{display:none} html[data-lang=en] .bn{display:none}
+h1,h2,h3{margin:0;line-height:1.15;font-family:'Source Serif 4','Noto Serif Bengali',serif;font-weight:700}
+html[data-lang=bn] h1,html[data-lang=bn] h2,html[data-lang=bn] h3,html[data-lang=bn] .serif{font-family:'Noto Serif Bengali','Source Serif 4',serif}
+.serif{font-family:'Source Serif 4','Noto Serif Bengali',serif}
+p{margin:0} a{color:inherit} svg,img{display:block;max-width:100%}
+.wrap{width:min(1200px,100% - 40px);margin-inline:auto}
+@media(max-width:600px){.wrap{width:min(1200px,100% - 32px)}}
+:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 24px;font-weight:600;text-decoration:none;border:2px solid transparent;cursor:pointer;font-size:16px;font-family:inherit;transition:transform 160ms var(--ease),background 160ms}
+.btn:active{transform:scale(.97)}
+.btn-gold{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.btn-line{background:transparent;color:var(--green);border-color:var(--green)}
+.btn-white{background:#fff;color:var(--green);border-color:#fff}
+@media(hover:hover){.btn-gold:hover{background:#B8921F}.btn-line:hover{background:var(--green);color:#fff}}
+.sec{padding:80px 0}
+@media(max-width:800px){.sec{padding:56px 0}}
+.sec h2{font-size:clamp(30px,4vw,46px);letter-spacing:-.01em}
+.rulehead{display:flex;align-items:center;gap:16px;color:var(--green);font-weight:600;margin-bottom:14px;font-size:15px}
+.rulehead::after{content:"";flex:1;height:2px;background:var(--gold);max-width:64px}
+.lead{font-size:clamp(17px,1.4vw,19px);color:var(--muted);max-width:62ch}
+
+/* header */
+.topbar{background:var(--green-deep);color:#CFE0D6;font-size:14px}
+.topbar .wrap{display:flex;gap:20px;min-height:38px;align-items:center;flex-wrap:wrap}
+.topbar span:last-child{margin-left:auto}
+@media(max-width:700px){.topbar{display:none}}
+header{position:sticky;top:0;z-index:20;background:rgba(247,245,239,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+.nav{display:flex;align-items:center;gap:16px;min-height:80px}
+.brand{display:flex;align-items:center;gap:14px;text-decoration:none}
+.brand b{display:block;font-size:19px;line-height:1.1;font-family:'Noto Serif Bengali','Source Serif 4',serif}
+.brand small{display:block;font-size:12px;color:var(--muted);margin-top:3px;letter-spacing:.02em}
+.crest{width:54px;height:54px;flex:none}
+.menu{display:none;margin-left:auto;gap:2px}
+.menu a{text-decoration:none;padding:10px 14px;font-weight:600;font-size:15px;color:var(--ink);border-bottom:3px solid transparent}
+.menu a[aria-current]{border-color:var(--gold)}
+@media(hover:hover){.menu a:hover{border-color:var(--green)}}
+.tools{display:flex;align-items:center;gap:10px;margin-left:auto}
+.lang{display:inline-flex;border:2px solid var(--green);padding:2px}
+.lang button{border:0;background:transparent;font:inherit;font-weight:700;padding:6px 10px;cursor:pointer;min-width:44px;min-height:38px;color:var(--green);font-size:14px}
+.lang button[aria-pressed=true]{background:var(--green);color:#fff}
+.portal{display:none}
+.burger{width:48px;height:48px;border:2px solid var(--green);background:transparent;display:grid;place-items:center;cursor:pointer}
+@media(min-width:1060px){.menu{display:flex}.tools{margin-left:0}.portal{display:inline-flex;min-height:44px;padding:0 16px;font-size:14px}.burger{display:none}}
+.sheet{position:fixed;inset:0;background:var(--green-deep);color:#fff;z-index:30;padding:24px;display:none;flex-direction:column}
+.sheet[open]{display:flex}
+.sheet a{font-size:28px;font-weight:700;text-decoration:none;padding:14px 4px;border-bottom:1px solid rgba(255,255,255,.15);font-family:'Noto Serif Bengali','Source Serif 4',serif}
+.sheet .close{align-self:flex-end;width:48px;height:48px;border:2px solid #fff;background:transparent;color:#fff;font-size:22px;cursor:pointer}
+
+/* hero: typographic */
+.hero{background:var(--green);color:#fff;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 72px)}
+.hero .wrap{position:relative;padding:72px 0 64px;display:grid;gap:40px}
+@media(min-width:960px){.hero .wrap{grid-template-columns:1.25fr .75fr;align-items:end;padding:96px 0 80px}}
+.est{display:inline-flex;align-items:center;gap:12px;color:var(--gold);font-weight:600;letter-spacing:.04em;font-size:15px}
+.est i{width:40px;height:2px;background:var(--gold)}
+.hero h1{font-size:clamp(44px,7.2vw,96px);letter-spacing:-.02em;line-height:1.02;margin:18px 0 10px;font-weight:900}
+html[data-lang=bn] .hero h1 .bn,html[data-lang=en] .hero h1 .en{display:block}
+.motto{font-family:'Noto Serif Bengali','Source Serif 4',serif;font-size:clamp(20px,2.2vw,28px);color:#DCEBE2;font-style:italic;max-width:30ch}
+html[data-lang=en] .motto{font-family:'Source Serif 4',serif}
+.hero .lead{color:#C9DBD1;margin:22px 0 30px}
+.cta{display:flex;flex-wrap:wrap;gap:14px}
+.year{justify-self:end;text-align:right}
+.year b{display:block;font-family:'Source Serif 4',serif;font-size:clamp(96px,16vw,200px);line-height:.85;color:transparent;-webkit-text-stroke:2px var(--gold);letter-spacing:-.04em}
+.year small{display:block;color:var(--gold);font-weight:600;margin-top:10px;font-size:15px}
+@media(max-width:959px){.year{justify-self:start;text-align:left}.year b{font-size:clamp(88px,22vw,140px)}}
+
+/* results strip */
+.results{background:var(--white);border-bottom:1px solid var(--rule)}
+.results .wrap{display:grid;grid-template-columns:repeat(2,1fr)}
+@media(min-width:900px){.results .wrap{grid-template-columns:repeat(4,1fr)}}
+.stat{padding:28px 20px 24px;border-right:1px solid var(--rule);position:relative}
+.stat:last-child{border-right:0}
+@media(max-width:899px){.stat:nth-child(2){border-right:0}.stat:nth-child(-n+2){border-bottom:1px solid var(--rule)}}
+.stat b{display:block;font-family:'Source Serif 4',serif;font-size:clamp(36px,4vw,52px);line-height:1;color:var(--green);font-weight:900}
+.stat b sup{font-size:.4em;color:var(--gold);vertical-align:top;margin-left:2px}
+.stat span{display:block;color:var(--muted);font-size:14px;margin-top:8px;font-weight:500}
+.bar{height:6px;background:var(--green-soft);margin-top:14px;position:relative;overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--green);width:var(--w)}
+.bar.gold i{background:var(--gold)}
+
+/* admission */
+.admit{background:var(--gold-soft);border-bottom:1px solid var(--rule)}
+.admit .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:14px 28px;padding:20px 0}
+.admit strong{font-family:'Noto Serif Bengali','Source Serif 4',serif;font-size:clamp(18px,2vw,22px)}
+.admit .meta{color:var(--muted);font-size:15px}
+.count{display:flex;gap:10px;align-items:baseline;margin-left:auto;font-family:'Source Serif 4',serif}
+.count b{font-size:40px;line-height:1;color:var(--green)}
+.count small{font-size:13px;color:var(--muted);font-weight:600}
+@media(max-width:700px){.count{margin-left:0}}
+
+/* notices */
+.grid2{display:grid;gap:40px}
+@media(min-width:960px){.grid2{grid-template-columns:.9fr 1.1fr}}
+.board{background:#fff;border:1px solid var(--rule);border-top:4px solid var(--green)}
+.notice{display:grid;grid-template-columns:72px 1fr;gap:16px;padding:18px 20px;border-bottom:1px solid var(--rule);text-decoration:none;align-items:start}
+.notice:last-child{border-bottom:0}
+.date{text-align:center;border-right:1px solid var(--rule);padding-right:12px;font-family:'Source Serif 4',serif;line-height:1}
+.date b{display:block;font-size:30px;color:var(--green)}
+.date small{display:block;font-size:12px;color:var(--muted);margin-top:4px;font-family:'Noto Sans Bengali',sans-serif}
+.notice h3{font-size:18px;font-weight:700}
+.notice p{font-size:14px;color:var(--muted);margin-top:4px}
+.tag{display:inline-block;background:var(--red);color:#fff;font-size:11px;padding:2px 8px;margin-left:8px;vertical-align:middle;font-family:'Noto Sans Bengali',sans-serif;font-weight:700;letter-spacing:.02em}
+.skel .notice>*,.skel .ev>*{color:transparent!important}
+.skel .tag{visibility:hidden}
+.skel .date b,.skel .date small{color:transparent!important}
+.skel .sk{display:block;height:13px;background:linear-gradient(90deg,#ECE8DC 25%,#F7F5EF 50%,#ECE8DC 75%);background-size:200% 100%;animation:sh 1.1s linear infinite;margin:6px 0}
+@keyframes sh{to{background-position:-200% 0}}
+.more{display:inline-flex;align-items:center;gap:10px;margin-top:22px;font-weight:600;text-decoration:none;color:var(--green);border-bottom:2px solid var(--gold);padding-bottom:2px}
+
+/* about */
+.about{background:#fff}
+.about .wrap{display:grid;gap:40px;align-items:center}
+@media(min-width:960px){.about .wrap{grid-template-columns:1fr 1fr}}
+.photo{aspect-ratio:16/10;border:1px solid var(--rule);padding:14px;background:var(--paper);position:relative}
+.photo>div{height:100%;border:1px solid var(--rule);background:
+ linear-gradient(135deg,var(--green-soft) 25%,transparent 25%) 0 0/28px 28px,linear-gradient(225deg,var(--green-soft) 25%,transparent 25%) 0 0/28px 28px,#fff;
+ display:grid;place-items:center;text-align:center;color:var(--muted);font-size:14px;font-weight:600}
+.photo>div span{background:#fff;padding:8px 14px;border:1px solid var(--rule)}
+.photo figcaption{position:absolute;left:14px;bottom:-14px;background:var(--green);color:#fff;font-size:13px;padding:4px 12px;font-weight:600}
+.proof{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:30px;border-top:1px solid var(--rule)}
+.proof div{padding:18px 16px 0;border-right:1px solid var(--rule)}
+.proof div:last-child{border-right:0}
+.proof b{display:block;font-family:'Source Serif 4',serif;font-size:32px;color:var(--green);line-height:1}
+.proof small{display:block;color:var(--muted);font-size:13px;margin-top:6px}
+
+/* academics */
+.classes{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule)}
+@media(min-width:700px){.classes{grid-template-columns:repeat(5,1fr)}}
+.cls{background:#fff;padding:24px 20px;text-decoration:none;display:block;min-height:150px;position:relative;transition:background 160ms}
+.cls b{display:block;font-family:'Source Serif 4',serif;font-size:44px;line-height:1;color:var(--green)}
+.cls h3{font-size:16px;margin-top:10px}
+.cls p{font-size:13px;color:var(--muted);margin-top:4px}
+@media(hover:hover){.cls:hover{background:var(--green-soft)}}
+.groups{display:grid;gap:20px;margin-top:40px}
+@media(min-width:800px){.groups{grid-template-columns:repeat(3,1fr)}}
+.group{border-left:4px solid var(--green);padding:6px 0 6px 20px}
+.group:nth-child(2){border-color:var(--gold)}.group:nth-child(3){border-color:var(--red)}
+.group h3{font-size:20px}.group p{color:var(--muted);font-size:15px;margin-top:6px}
+.group ul{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px}
+.group li{font-size:13px;background:var(--paper);border:1px solid var(--rule);padding:3px 10px}
+
+/* teachers */
+.people{display:grid;gap:20px;grid-template-columns:repeat(2,1fr)}
+@media(min-width:960px){.people{grid-template-columns:repeat(4,1fr)}}
+.person{background:#fff;border:1px solid var(--rule);padding:18px}
+.avatar{aspect-ratio:1;background:var(--green-soft);display:grid;place-items:center;margin-bottom:14px;border:1px solid var(--rule)}
+.avatar svg{width:56%;height:56%}
+.person h3{font-size:17px}.person p{font-size:14px;color:var(--muted)}
+.person .sub{display:inline-block;margin-top:8px;font-size:13px;color:var(--green);font-weight:600;border-bottom:2px solid var(--gold)}
+
+/* events */
+.events{background:var(--green);color:#fff}
+.events h2{color:#fff}
+.evs{display:grid;gap:1px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.14);margin-top:30px}
+@media(min-width:800px){.evs{grid-template-columns:repeat(3,1fr)}}
+.ev{background:var(--green);padding:22px;display:grid;grid-template-columns:72px 1fr;gap:16px;align-items:start}
+.ev .date{border-right-color:rgba(255,255,255,.2)}.ev .date b{color:var(--gold)}.ev .date small{color:#C9DBD1}
+.ev h3{font-size:18px}.ev p{font-size:14px;color:#C9DBD1;margin-top:4px}
+.ev .sk{background:linear-gradient(90deg,rgba(255,255,255,.12) 25%,rgba(255,255,255,.22) 50%,rgba(255,255,255,.12) 75%);background-size:200% 100%}
+
+/* blog */
+.posts{display:grid;gap:24px}
+@media(min-width:800px){.posts{grid-template-columns:repeat(3,1fr)}}
+.post{text-decoration:none;display:block;background:#fff;border:1px solid var(--rule)}
+.cover{aspect-ratio:1200/630;display:grid;place-items:center;color:var(--muted);font-size:13px;font-weight:600;border-bottom:1px solid var(--rule)}
+.c1{background:linear-gradient(160deg,var(--green-soft),#fff)}
+.c2{background:linear-gradient(160deg,var(--gold-soft),#fff)}
+.c3{background:linear-gradient(160deg,#EADFD9,#fff)}
+.post .body{padding:18px 20px 22px}
+.post time{font-size:13px;color:var(--green);font-weight:600}
+.post h3{font-size:19px;margin-top:6px;line-height:1.3}
+
+/* contact */
+.contact{background:#fff}
+.contact .wrap{display:grid;gap:32px}
+@media(min-width:960px){.contact .wrap{grid-template-columns:1fr 1fr}}
+.card dl{margin:22px 0 0;display:grid;gap:14px}
+.card dt{font-size:13px;color:var(--muted);font-weight:600}.card dd{margin:0;font-weight:600}
+.map{aspect-ratio:4/3;border:1px solid var(--rule);background:
+  linear-gradient(var(--rule) 1px,transparent 1px) 0 0/36px 36px,linear-gradient(90deg,var(--rule) 1px,transparent 1px) 0 0/36px 36px,var(--paper);
+  display:grid;place-items:center;position:relative}
+.map .pin{position:absolute;left:50%;top:42%;width:18px;height:18px;background:var(--red);border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 0 0 8px rgba(162,50,31,.18)}
+.wa{display:inline-flex;align-items:center;gap:10px;margin-top:20px;background:#25D366;color:#fff;padding:12px 20px;text-decoration:none;font-weight:600}
+
+/* footer */
+footer{background:var(--green-deep);color:#C9DBD1;padding:60px 0 28px}
+footer .cols{display:grid;gap:30px}
+@media(min-width:800px){footer .cols{grid-template-columns:1.5fr 1fr 1fr}}
+footer h3{color:#fff;font-size:18px;margin-bottom:10px}
+footer a{color:#C9DBD1;text-decoration:none;display:block;padding:4px 0}
+footer .portal-f{display:inline-flex;align-items:center;margin-top:14px;background:var(--gold);color:var(--ink);min-height:48px;padding:0 20px;font-weight:600}
+.credit{border-top:1px solid rgba(255,255,255,.15);margin-top:36px;padding-top:18px;font-size:14px;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between;color:#8FA89B}
+.credit a{display:inline;color:#fff;font-weight:600}
+
+@media(prefers-reduced-motion:no-preference){
+  .hero .est,.hero h1,.hero .motto,.hero .lead,.hero .cta,.year{animation:up .8s var(--ease) both}
+  .hero h1{animation-delay:.06s}.hero .motto{animation-delay:.12s}.hero .lead{animation-delay:.18s}.hero .cta{animation-delay:.24s}.year{animation-delay:.3s}
+  .bar i{animation:grow 1.2s var(--ease) .4s both}
+}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes grow{from{width:0}}
+</style>
+<link rel="stylesheet" href="../shared/blocks.css">
+<style>:root{--ann-bg:#0A3A2C;--ann-ink:#fff;--ann-label-bg:#C9A227;--ann-label-ink:#15211C;--ann-line:1px solid #C9A227;--hc-bg:#E6F0EB;--hc-ink:#0F4D3A;--hc-line:#0F4D3A;--hc-cap-r:0;--hc-band-r:0;--sa-ink:#0F4D3A;--sa-r:0}</style>
+</head>
+<body>
+<div class="topbar"><div class="wrap">
+  <span>☎ ০১৭১১-০০০০০০</span><span>✉ office@rmhs.example</span>
+  <span><span class="bn" data-field="top.1">অফিস: রবি–বৃহস্পতি, সকাল ৮টা – বিকেল ৪টা</span><span class="en" data-field="top.1">Office: Sun–Thu, 8 am – 4 pm</span></span>
+</div></div>
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#">
+      <svg class="crest" viewBox="0 0 54 54" aria-hidden="true"><path d="M27 2 L50 10 V28 C50 40 38 48 27 52 C16 48 4 40 4 28 V10 Z" fill="#0F4D3A"/><path d="M27 7 L45 13.5 V28 C45 37 36 43.5 27 47 C18 43.5 9 37 9 28 V13.5 Z" fill="none" stroke="#C9A227" stroke-width="1.5"/><path d="M17 30 h20 M27 18 v22 M20 24 h14" stroke="#C9A227" stroke-width="2.5" stroke-linecap="round"/><text x="27" y="15.5" text-anchor="middle" font-size="6" fill="#C9A227" font-family="serif" font-weight="700">1968</text></svg>
+      <span><b><span class="bn" data-field="header.1">রামপুরা মডেল উচ্চ বিদ্যালয়</span><span class="en" data-field="header.1">Rampura Model High School</span></b><small><span class="bn" data-field="header.2">প্রতিষ্ঠিত ১৯৬৮ · রামপুরা, ঢাকা</span><span class="en" data-field="header.2">Est. 1968 · Rampura, Dhaka</span></small></span>
+    </a>
+    <nav class="menu" aria-label="প্রধান মেনু">
+      <a href="#" aria-current="page"><span class="bn" data-field="header.3">হোম</span><span class="en" data-field="header.3">Home</span></a>
+      <a href="#about"><span class="bn" data-field="header.4">আমাদের কথা</span><span class="en" data-field="header.4">About</span></a>
+      <a href="#academics"><span class="bn" data-field="header.5">একাডেমিক</span><span class="en" data-field="header.5">Academics</span></a>
+      <a href="#admission"><span class="bn" data-field="header.6">ভর্তি</span><span class="en" data-field="header.6">Admissions</span></a>
+      <a href="#news"><span class="bn" data-field="header.7">খবর ও ইভেন্ট</span><span class="en" data-field="header.7">News &amp; Events</span></a>
+      <a href="#contact"><span class="bn" data-field="header.8">যোগাযোগ</span><span class="en" data-field="header.8">Contact</span></a>
+    </nav>
+    <div class="tools">
+      <div class="lang" role="group" aria-label="ভাষা / Language"><button type="button" data-set="bn" aria-pressed="true">বাং</button><button type="button" data-set="en" aria-pressed="false">EN</button></div>
+      <a class="btn btn-line portal" href="#"><span class="bn" data-field="header.9">পোর্টালে লগইন</span><span class="en" data-field="header.9">Portal login</span></a>
+      <button class="burger" type="button" aria-label="মেনু খুলুন" id="open"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0F4D3A" stroke-width="2.5" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
+    </div>
+  </div>
+</header>
+<div class="sheet" id="sheet" role="dialog" aria-label="মেনু">
+  <button class="close" type="button" id="close" aria-label="বন্ধ করুন">✕</button>
+  <a href="#"><span class="bn" data-field="header.10">হোম</span><span class="en" data-field="header.10">Home</span></a>
+  <a href="#about"><span class="bn" data-field="header.11">আমাদের কথা</span><span class="en" data-field="header.11">About</span></a>
+  <a href="#academics"><span class="bn" data-field="header.12">একাডেমিক</span><span class="en" data-field="header.12">Academics</span></a>
+  <a href="#admission"><span class="bn" data-field="header.13">ভর্তি</span><span class="en" data-field="header.13">Admissions</span></a>
+  <a href="#news"><span class="bn" data-field="header.14">খবর ও ইভেন্ট</span><span class="en" data-field="header.14">News &amp; Events</span></a>
+  <a href="#contact"><span class="bn" data-field="header.15">যোগাযোগ</span><span class="en" data-field="header.15">Contact</span></a>
+  <a href="#" style="border:0;margin-top:16px"><span class="btn btn-gold"><span class="bn" data-field="header.16">পোর্টালে লগইন</span><span class="en" data-field="header.16">Portal login</span></span></a>
+</div>
+
+<main>
+<div class="ann" role="region" aria-label="Announcements"><span class="ann-label"><span class="bn" data-field="header.17">ঘোষণা</span><span class="en" data-field="header.17">Notice</span></span><div class="ann-view"><div class="ann-track"><div class="ann-set"><a href="#"><span class="bn" data-field="header.18">২০২৭ শিক্ষাবর্ষে ভর্তি চলছে, শেষ তারিখ ১৫ ডিসেম্বর</span><span class="en" data-field="header.18">Admissions for 2027 are open, last date 15 December</span></a><a href="#"><span class="bn" data-field="header.19">অর্ধবার্ষিক পরীক্ষার ফল প্রকাশ ১৫ নভেম্বর</span><span class="en" data-field="header.19">Half-yearly results out on 15 November</span></a><a href="#"><span class="bn" data-field="header.20">বৃহস্পতিবার অভিভাবক সভা, সকাল ১০টা</span><span class="en" data-field="header.20">Guardian meeting on Thursday, 10 am</span></a><a href="#"><span class="bn" data-field="header.21">২৫ ডিসেম্বর থেকে শীতকালীন ছুটি</span><span class="en" data-field="header.21">Winter break from 25 December</span></a><a href="#"><span class="bn" data-field="header.22">বার্ষিক ক্রীড়া প্রতিযোগিতা ২৪ নভেম্বর</span><span class="en" data-field="header.22">Annual sports day on 24 November</span></a></div><div class="ann-set" aria-hidden="true"><a href="#" tabindex="-1"><span class="bn" data-field="header.23">২০২৭ শিক্ষাবর্ষে ভর্তি চলছে, শেষ তারিখ ১৫ ডিসেম্বর</span><span class="en" data-field="header.23">Admissions for 2027 are open, last date 15 December</span></a><a href="#" tabindex="-1"><span class="bn" data-field="header.24">অর্ধবার্ষিক পরীক্ষার ফল প্রকাশ ১৫ নভেম্বর</span><span class="en" data-field="header.24">Half-yearly results out on 15 November</span></a><a href="#" tabindex="-1"><span class="bn" data-field="header.25">বৃহস্পতিবার অভিভাবক সভা, সকাল ১০টা</span><span class="en" data-field="header.25">Guardian meeting on Thursday, 10 am</span></a><a href="#" tabindex="-1"><span class="bn" data-field="header.26">২৫ ডিসেম্বর থেকে শীতকালীন ছুটি</span><span class="en" data-field="header.26">Winter break from 25 December</span></a><a href="#" tabindex="-1"><span class="bn" data-field="header.27">বার্ষিক ক্রীড়া প্রতিযোগিতা ২৪ নভেম্বর</span><span class="en" data-field="header.27">Annual sports day on 24 November</span></a></div></div></div></div>
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <span class="est"><i></i><span class="bn" data-field="hero.1">প্রতিষ্ঠিত ১৯৬৮ · ষষ্ঠ থেকে দশম শ্রেণি</span><span class="en" data-field="hero.1">Established 1968 · Class 6 to 10</span></span>
+      <h1><span class="bn" data-field="hero.2">শৃঙ্খলা, শ্রম,<br>সাফল্য।</span><span class="en" data-field="hero.2">Discipline. Effort.<br>Achievement.</span></h1>
+      <p data-tagline class="motto"><span class="bn" data-field="hero.3">“জ্ঞানই শক্তি, চরিত্রই সম্পদ” — ৫৮ বছর ধরে রামপুরার প্রতিটি পরিবারের বিদ্যালয়।</span><span class="en" data-field="hero.3">“Knowledge is strength, character is wealth.” Rampura's own school for 58 years.</span></p>
+      <p class="lead"><span class="bn" data-field="hero.4">বিজ্ঞান, মানবিক ও ব্যবসায় শাখা। প্রতি বছর এসএসসিতে জেলার সেরা দশে। ভর্তি পরীক্ষা, ফল ও নোটিশ, সব এই সাইটে।</span><span class="en" data-field="hero.4">Science, humanities and business groups. In the district's top ten at SSC every year. Admission tests, results and notices, all on this site.</span></p>
+      <div class="cta">
+        <a class="btn btn-gold" href="#admission"><span class="bn" data-field="hero.5">ভর্তির আবেদন করুন</span><span class="en" data-field="hero.5">Apply for admission</span></a>
+        <a class="btn btn-white" href="#"><span class="bn" data-field="hero.6">ফলাফল দেখুন</span><span class="en" data-field="hero.6">Check results</span></a>
+      </div>
+    </div>
+    <div class="year" aria-hidden="true"><b>১৯৬৮</b><small><span class="bn" data-field="hero.7">যাত্রা শুরু</span><span class="en" data-field="hero.7">The year we began</span></small></div>
+  </div>
+</section>
+<section class="hc-band"><div class="hc-in"><div class="hc" data-carousel role="group" aria-roledescription="carousel" aria-label="Campus photos"><div class="hc-track"><div class="hc-slide"><div class="hc-ph" role="img" aria-label="Campus photo 1 placeholder, 1920 by 1080"><svg viewBox="0 0 640 200" preserveAspectRatio="none" aria-hidden="true"><path d="M0 200V120h60V80h40v40h30V60l40-30 40 30v60h60V90h120v30h50V70h40v50h60V40h40v160z" fill="currentColor"/></svg><span class="hc-cap"><span><span class="bn" data-field="hc-band.1">ক্যাম্পাসের ছবি ১</span><span class="en" data-field="hc-band.1">Campus photo 1</span></span><small>1920 × 1080</small></span></div></div><div class="hc-slide"><div class="hc-ph" role="img" aria-label="Campus photo 2 placeholder, 1920 by 1080"><svg viewBox="0 0 640 200" preserveAspectRatio="none" aria-hidden="true"><path d="M0 200V140h80V90h50v50h70V50l30-25 30 25v90h90V100h110v40h60V70h50v70h70v60z" fill="currentColor"/></svg><span class="hc-cap"><span><span class="bn" data-field="hc-band.2">ক্যাম্পাসের ছবি ২</span><span class="en" data-field="hc-band.2">Campus photo 2</span></span><small>1920 × 1080</small></span></div></div><div class="hc-slide"><div class="hc-ph" role="img" aria-label="Campus photo 3 placeholder, 1920 by 1080"><svg viewBox="0 0 640 200" preserveAspectRatio="none" aria-hidden="true"><path d="M0 200V130h50V100h60v30h40V70h40v60h80V40l35-20 35 20v90h60V110h90v20h50V90h60v110z" fill="currentColor"/></svg><span class="hc-cap"><span><span class="bn" data-field="hc-band.3">ক্যাম্পাসের ছবি ৩</span><span class="en" data-field="hc-band.3">Campus photo 3</span></span><small>1920 × 1080</small></span></div></div></div><button class="hc-btn hc-prev" type="button" aria-label="Previous photo">&#8249;</button><button class="hc-btn hc-next" type="button" aria-label="Next photo">&#8250;</button><div class="hc-dots"><button type="button" aria-label="Photo 1"></button><button type="button" aria-label="Photo 2"></button><button type="button" aria-label="Photo 3"></button></div></div></div></section>
+
+
+<section class="results" aria-label="ফলাফল">
+  <div class="wrap">
+    <div class="stat"><b>৯৮<sup>%</sup></b><span><span class="bn" data-field="results.1">এসএসসি ২০২৬ পাসের হার</span><span class="en" data-field="results.1">SSC 2026 pass rate</span></span><div class="bar"><i style="--w:98%"></i></div></div>
+    <div class="stat"><b>১৪২</b><span><span class="bn" data-field="results.2">জিপিএ-৫, ৩৬০ জন পরীক্ষার্থীর মধ্যে</span><span class="en" data-field="results.2">GPA-5 out of 360 candidates</span></span><div class="bar gold"><i style="--w:39%"></i></div></div>
+    <div class="stat"><b>১,৮৪০</b><span><span class="bn" data-field="results.3">বর্তমান শিক্ষার্থী</span><span class="en" data-field="results.3">Current students</span></span><div class="bar"><i style="--w:72%"></i></div></div>
+    <div class="stat"><b>৬৪</b><span><span class="bn" data-field="results.4">জন শিক্ষক, ১:২৯ অনুপাত</span><span class="en" data-field="results.4">Teachers, 1:29 ratio</span></span><div class="bar gold"><i style="--w:60%"></i></div></div>
+  </div>
+</section>
+
+<section class="admit" id="admission" aria-label="ভর্তি তথ্য">
+  <div class="wrap">
+    <div>
+      <strong><span class="bn" data-field="admission.1">২০২৭ শিক্ষাবর্ষে ষষ্ঠ শ্রেণিতে ভর্তি চলছে</span><span class="en" data-field="admission.1">Class 6 admissions open for 2027</span></strong>
+      <p class="meta"><span class="bn" data-field="admission.2">অনলাইন আবেদন ১৫ ডিসেম্বর পর্যন্ত · ভর্তি পরীক্ষা ২০ ডিসেম্বর, সকাল ১০টা</span><span class="en" data-field="admission.2">Apply online until 15 December · admission test 20 December, 10 am</span></p>
+    </div>
+    <div class="count"><b>৩৯</b><small><span class="bn" data-field="admission.3">দিন বাকি</span><span class="en" data-field="admission.3">days left</span></small></div>
+    <a class="btn btn-line" href="#"><span class="bn" data-field="admission.4">অনলাইনে আবেদন</span><span class="en" data-field="admission.4">Apply online</span></a>
+  </div>
+</section>
+
+<section class="sec" id="news">
+  <div class="wrap grid2">
+    <div>
+      <div class="rulehead"><span class="bn" data-field="news.1">নোটিশ বোর্ড</span><span class="en" data-field="news.1">Notice board</span></div>
+      <h2><span class="bn" data-field="news.2">বিদ্যালয়ের ঘোষণা</span><span class="en" data-field="news.2">School announcements</span></h2>
+      <p class="lead" style="margin-top:14px"><span class="bn" data-field="news.3">পরীক্ষার রুটিন, ছুটি, ফল প্রকাশ ও অভিভাবক সভার সব নোটিশ এখানে প্রথম প্রকাশিত হয়।</span><span class="en" data-field="news.3">Exam routines, holidays, result publication and parent meetings are announced here first.</span></p>
+      <a class="more" href="#"><span class="bn" data-field="news.4">সব নোটিশ</span><span class="en" data-field="news.4">All notices</span></a>
+    </div>
+    <div class="board skel" id="board" aria-busy="true" aria-live="polite">
+      <a class="notice" href="#"><span class="date"><b>১২</b><small>নভে</small></span><span><h3><span class="bn" data-field="news.5">বার্ষিক পরীক্ষা ২০২৬-এর রুটিন</span><span class="en" data-field="news.5">Annual exam 2026 routine</span><span class="tag"><span class="bn" data-field="news.6">জরুরি</span><span class="en" data-field="news.6">Urgent</span></span></h3><p><span class="bn" data-field="news.7">৬ষ্ঠ–৯ম শ্রেণি, ২৪ নভেম্বর থেকে শুরু। পিডিএফ সংযুক্ত।</span><span class="en" data-field="news.7">Class 6–9, from 24 November. PDF attached.</span></p></span></a>
+      <a class="notice" href="#"><span class="date"><b>১০</b><small>নভে</small></span><span><h3><span class="bn" data-field="news.8">এসএসসি ২০২৭ ফরম পূরণ</span><span class="en" data-field="news.8">SSC 2027 form fill-up</span></h3><p><span class="bn" data-field="news.9">শেষ তারিখ ২০ নভেম্বর, বিলম্ব ফি ছাড়া।</span><span class="en" data-field="news.9">Deadline 20 November without late fee.</span></p></span></a>
+      <a class="notice" href="#"><span class="date"><b>০৫</b><small>নভে</small></span><span><h3><span class="bn" data-field="news.10">অভিভাবক সভা, দশম শ্রেণি</span><span class="en" data-field="news.10">Parent meeting, class 10</span></h3><p><span class="bn" data-field="news.11">শনিবার সকাল ১০টা, অডিটোরিয়াম।</span><span class="en" data-field="news.11">Saturday 10 am, auditorium.</span></p></span></a>
+      <a class="notice" href="#"><span class="date"><b>০১</b><small>নভে</small></span><span><h3><span class="bn" data-field="news.12">বিজ্ঞান মেলায় অংশগ্রহণের আহ্বান</span><span class="en" data-field="news.12">Call for science fair projects</span></h3><p><span class="bn" data-field="news.13">দল গঠন ১৫ নভেম্বরের মধ্যে।</span><span class="en" data-field="news.13">Form teams by 15 November.</span></p></span></a>
+    </div>
+  </div>
+</section>
+
+<section class="sec about" id="about">
+  <div class="wrap">
+    <div>
+      <div class="rulehead"><span class="bn" data-field="about.1">আমাদের কথা</span><span class="en" data-field="about.1">About the school</span></div>
+      <h2><span class="bn" data-field="about.2">একটি পাড়ার বিদ্যালয়, যা জেলার গর্ব</span><span class="en" data-field="about.2">A neighbourhood school the district is proud of</span></h2>
+      <p class="lead" style="margin-top:16px"><span class="bn" data-field="about.3">১৯৬৮ সালে টিনের ঘরে ৬০ জন ছাত্র নিয়ে শুরু। আজ তিনটি ভবন, দুটি বিজ্ঞানাগার, একটি কম্পিউটার ল্যাব এবং ১২ হাজার বইয়ের লাইব্রেরি।</span><span class="en" data-field="about.3">Started in 1968 in a tin-roofed room with 60 boys. Today: three buildings, two science labs, a computer lab and a 12,000-book library.</span></p>
+      <p class="lead" style="margin-top:10px"><span class="bn" data-field="about.4">আমরা মনে করি, ভালো ফল আসে নিয়মিত ক্লাস, সময়মতো পরীক্ষা আর প্রতিটি শিক্ষার্থীর দিকে আলাদা নজর থেকে। তাই প্রতি শ্রেণিতে শ্রেণিশিক্ষক মাসে একবার অভিভাবকের সঙ্গে কথা বলেন।</span><span class="en" data-field="about.4">Good results come from regular classes, exams on time and attention to each student. So every class teacher speaks with every guardian once a month.</span></p>
+      <div class="proof">
+        <div><b>১৯৬৮</b><small><span class="bn" data-field="about.5">প্রতিষ্ঠা</span><span class="en" data-field="about.5">Founded</span></small></div>
+        <div><b>৫৮</b><small><span class="bn" data-field="about.6">বছরের ঐতিহ্য</span><span class="en" data-field="about.6">Years of tradition</span></small></div>
+        <div><b>১৪</b><small><span class="bn" data-field="about.7">বার জেলার সেরা দশে</span><span class="en" data-field="about.7">Times in district top 10</span></small></div>
+      </div>
+    </div>
+    <figure class="photo" style="margin:0"><div><span><span class="bn" data-field="about.8">ক্যাম্পাসের ছবি · ১৯২০×১০৮০</span><span class="en" data-field="about.8">Campus photo · 1920×1080</span></span></div><figcaption><span class="bn" data-field="about.9">মূল ভবন, ১৯৯২</span><span class="en" data-field="about.9">Main building, 1992</span></figcaption></figure>
+  </div>
+</section>
+
+<section class="sec" id="academics">
+  <div class="wrap">
+    <div class="rulehead"><span class="bn" data-field="academics.1">একাডেমিক</span><span class="en" data-field="academics.1">Academics</span></div>
+    <h2><span class="bn" data-field="academics.2">ষষ্ঠ থেকে দশম, প্রতিটি ধাপের নিজস্ব লক্ষ্য</span><span class="en" data-field="academics.2">Class 6 to 10, each stage with its own goal</span></h2>
+    <p class="lead" style="margin:14px 0 32px"><span class="bn" data-field="academics.3">জাতীয় শিক্ষাক্রম। নবম শ্রেণি থেকে বিজ্ঞান, মানবিক বা ব্যবসায় শাখা। প্রতি শ্রেণির সিলেবাস ও সাপ্তাহিক রুটিন নিচের লিংকে।</span><span class="en" data-field="academics.3">National curriculum. Science, humanities or business from class 9. Each class's syllabus and weekly routine is linked below.</span></p>
+    <div class="classes">
+      <a class="cls" href="#"><b>৬</b><h3><span class="bn" data-field="academics.4">ষষ্ঠ শ্রেণি</span><span class="en" data-field="academics.4">Class 6</span></h3><p><span class="bn" data-field="academics.5">৫ শাখা · ২৪০ জন</span><span class="en" data-field="academics.5">5 sections · 240 students</span></p></a>
+      <a class="cls" href="#"><b>৭</b><h3><span class="bn" data-field="academics.6">সপ্তম শ্রেণি</span><span class="en" data-field="academics.6">Class 7</span></h3><p><span class="bn" data-field="academics.7">৫ শাখা · ২৩৫ জন</span><span class="en" data-field="academics.7">5 sections · 235 students</span></p></a>
+      <a class="cls" href="#"><b>৮</b><h3><span class="bn" data-field="academics.8">অষ্টম শ্রেণি</span><span class="en" data-field="academics.8">Class 8</span></h3><p><span class="bn" data-field="academics.9">৫ শাখা · বৃত্তি প্রস্তুতি</span><span class="en" data-field="academics.9">5 sections · scholarship prep</span></p></a>
+      <a class="cls" href="#"><b>৯</b><h3><span class="bn" data-field="academics.10">নবম শ্রেণি</span><span class="en" data-field="academics.10">Class 9</span></h3><p><span class="bn" data-field="academics.11">শাখা নির্বাচন</span><span class="en" data-field="academics.11">Group selection</span></p></a>
+      <a class="cls" href="#"><b>১০</b><h3><span class="bn" data-field="academics.12">দশম শ্রেণি</span><span class="en" data-field="academics.12">Class 10</span></h3><p><span class="bn" data-field="academics.13">এসএসসি প্রস্তুতি</span><span class="en" data-field="academics.13">SSC preparation</span></p></a>
+    </div>
+    <div class="groups">
+      <div class="group"><h3><span class="bn" data-field="academics.14">বিজ্ঞান</span><span class="en" data-field="academics.14">Science</span></h3><p><span class="bn" data-field="academics.15">দুটি আধুনিক ল্যাব, সপ্তাহে চারটি ব্যবহারিক ক্লাস।</span><span class="en" data-field="academics.15">Two modern labs, four practical classes a week.</span></p><ul><li><span class="bn" data-field="academics.16">পদার্থ</span><span class="en" data-field="academics.16">Physics</span></li><li><span class="bn" data-field="academics.17">রসায়ন</span><span class="en" data-field="academics.17">Chemistry</span></li><li><span class="bn" data-field="academics.18">জীববিজ্ঞান</span><span class="en" data-field="academics.18">Biology</span></li><li><span class="bn" data-field="academics.19">উচ্চতর গণিত</span><span class="en" data-field="academics.19">Higher maths</span></li></ul></div>
+      <div class="group"><h3><span class="bn" data-field="academics.20">মানবিক</span><span class="en" data-field="academics.20">Humanities</span></h3><p><span class="bn" data-field="academics.21">বিতর্ক ক্লাব ও সাপ্তাহিক পত্রিকা পাঠ।</span><span class="en" data-field="academics.21">Debate club and weekly newspaper reading.</span></p><ul><li><span class="bn" data-field="academics.22">ইতিহাস</span><span class="en" data-field="academics.22">History</span></li><li><span class="bn" data-field="academics.23">ভূগোল</span><span class="en" data-field="academics.23">Geography</span></li><li><span class="bn" data-field="academics.24">পৌরনীতি</span><span class="en" data-field="academics.24">Civics</span></li><li><span class="bn" data-field="academics.25">অর্থনীতি</span><span class="en" data-field="academics.25">Economics</span></li></ul></div>
+      <div class="group"><h3><span class="bn" data-field="academics.26">ব্যবসায় শিক্ষা</span><span class="en" data-field="academics.26">Business studies</span></h3><p><span class="bn" data-field="academics.27">হিসাব বিজ্ঞানে হাতে-কলমে লেজার অনুশীলন।</span><span class="en" data-field="academics.27">Hands-on ledger practice in accounting.</span></p><ul><li><span class="bn" data-field="academics.28">হিসাববিজ্ঞান</span><span class="en" data-field="academics.28">Accounting</span></li><li><span class="bn" data-field="academics.29">ফিন্যান্স</span><span class="en" data-field="academics.29">Finance</span></li><li><span class="bn" data-field="academics.30">ব্যবসায় উদ্যোগ</span><span class="en" data-field="academics.30">Entrepreneurship</span></li></ul></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec about">
+  <div class="wrap" style="display:block">
+    <div class="rulehead"><span class="bn" data-field="sec.1">শিক্ষকমণ্ডলী</span><span class="en" data-field="sec.1">Faculty</span></div>
+    <h2><span class="bn" data-field="sec.2">যাঁরা পড়ান</span><span class="en" data-field="sec.2">The people who teach</span></h2>
+    <div class="people" style="margin-top:32px">
+      <div class="person"><div class="avatar" aria-hidden="true"><svg viewBox="0 0 80 80"><circle cx="40" cy="30" r="16" fill="#0F4D3A"/><path d="M12 76 q28 -30 56 0z" fill="#0F4D3A"/></svg></div><h3>মো. আব্দুল কাদের</h3><p><span class="bn" data-field="sec.3">প্রধান শিক্ষক</span><span class="en" data-field="sec.3">Headmaster</span></p><span class="sub"><span class="bn" data-field="sec.4">এমএসসি (গণিত), বিএড</span><span class="en" data-field="sec.4">MSc (Maths), BEd</span></span></div>
+      <div class="person"><div class="avatar" aria-hidden="true"><svg viewBox="0 0 80 80"><circle cx="40" cy="30" r="16" fill="#0F4D3A"/><path d="M12 76 q28 -30 56 0z" fill="#0F4D3A"/></svg></div><h3>শাহনাজ পারভীন</h3><p><span class="bn" data-field="sec.5">সহকারী প্রধান শিক্ষক</span><span class="en" data-field="sec.5">Assistant headmistress</span></p><span class="sub"><span class="bn" data-field="sec.6">বাংলা</span><span class="en" data-field="sec.6">Bangla</span></span></div>
+      <div class="person"><div class="avatar" aria-hidden="true"><svg viewBox="0 0 80 80"><circle cx="40" cy="30" r="16" fill="#0F4D3A"/><path d="M12 76 q28 -30 56 0z" fill="#0F4D3A"/></svg></div><h3>রফিকুল ইসলাম</h3><p><span class="bn" data-field="sec.7">সিনিয়র শিক্ষক</span><span class="en" data-field="sec.7">Senior teacher</span></p><span class="sub"><span class="bn" data-field="sec.8">পদার্থবিজ্ঞান</span><span class="en" data-field="sec.8">Physics</span></span></div>
+      <div class="person"><div class="avatar" aria-hidden="true"><svg viewBox="0 0 80 80"><circle cx="40" cy="30" r="16" fill="#0F4D3A"/><path d="M12 76 q28 -30 56 0z" fill="#0F4D3A"/></svg></div><h3>সাবিনা ইয়াসমিন</h3><p><span class="bn" data-field="sec.9">সহকারী শিক্ষক</span><span class="en" data-field="sec.9">Assistant teacher</span></p><span class="sub"><span class="bn" data-field="sec.10">ইংরেজি</span><span class="en" data-field="sec.10">English</span></span></div>
+      <div class="person"><div class="avatar" aria-hidden="true"><svg viewBox="0 0 80 80"><circle cx="40" cy="30" r="16" fill="#0F4D3A"/><path d="M12 76 q28 -30 56 0z" fill="#0F4D3A"/></svg></div><h3><span class="bn" data-field="sec.11">রফিকুল ইসলাম</span><span class="en" data-field="sec.11">Rafiqul Islam</span></h3><p><span class="bn" data-field="sec.12">প্রধান শিক্ষক</span><span class="en" data-field="sec.12">Headmaster</span></p><span class="sub"><span class="bn" data-field="sec.13">এমএসসি (গণিত), বিএড</span><span class="en" data-field="sec.13">MSc (Maths), BEd</span></span></div>
+      <div class="person"><div class="avatar" aria-hidden="true"><svg viewBox="0 0 80 80"><circle cx="40" cy="30" r="16" fill="#0F4D3A"/><path d="M12 76 q28 -30 56 0z" fill="#0F4D3A"/></svg></div><h3><span class="bn" data-field="sec.14">সুমাইয়া আক্তার</span><span class="en" data-field="sec.14">Sumaiya Akter</span></h3><p><span class="bn" data-field="sec.15">সহকারী প্রধান শিক্ষক</span><span class="en" data-field="sec.15">Assistant headmistress</span></p><span class="sub"><span class="bn" data-field="sec.16">বাংলা</span><span class="en" data-field="sec.16">Bangla</span></span></div>
+      <div class="person"><div class="avatar" aria-hidden="true"><svg viewBox="0 0 80 80"><circle cx="40" cy="30" r="16" fill="#0F4D3A"/><path d="M12 76 q28 -30 56 0z" fill="#0F4D3A"/></svg></div><h3><span class="bn" data-field="sec.17">আনোয়ার হোসেন</span><span class="en" data-field="sec.17">Anwar Hossain</span></h3><p><span class="bn" data-field="sec.18">সিনিয়র শিক্ষক</span><span class="en" data-field="sec.18">Senior teacher</span></p><span class="sub"><span class="bn" data-field="sec.19">পদার্থবিজ্ঞান</span><span class="en" data-field="sec.19">Physics</span></span></div>
+      <div class="person"><div class="avatar" aria-hidden="true"><svg viewBox="0 0 80 80"><circle cx="40" cy="30" r="16" fill="#0F4D3A"/><path d="M12 76 q28 -30 56 0z" fill="#0F4D3A"/></svg></div><h3><span class="bn" data-field="sec.20">মাহমুদা বেগম</span><span class="en" data-field="sec.20">Mahmuda Begum</span></h3><p><span class="bn" data-field="sec.21">সহকারী শিক্ষক</span><span class="en" data-field="sec.21">Assistant teacher</span></p><span class="sub"><span class="bn" data-field="sec.22">ইংরেজি</span><span class="en" data-field="sec.22">English</span></span></div>
+    </div>
+<p class="seeall" data-field="teachers.seeall"><a href="teachers.html"><span class="bn" data-field="sec.23">সবাইকে দেখুন</span><span class="en" data-field="sec.23">See all teachers</span></a></p>
+  </div>
+</section>
+
+<section class="sec events">
+  <div class="wrap">
+    <div class="rulehead" style="color:var(--gold)"><span class="bn" data-field="sec.24">আসন্ন</span><span class="en" data-field="sec.24">Upcoming</span></div>
+    <h2><span class="bn" data-field="sec.25">ক্যালেন্ডার</span><span class="en" data-field="sec.25">Calendar</span></h2>
+    <div class="evs skel" id="evs" aria-busy="true">
+      <div class="ev"><span class="date"><b>২৪</b><small>নভে</small></span><div><h3><span class="bn" data-field="sec.26">বার্ষিক পরীক্ষা শুরু</span><span class="en" data-field="sec.26">Annual exams begin</span></h3><p><span class="bn" data-field="sec.27">৬ষ্ঠ–৯ম শ্রেণি · সকাল ১০টা</span><span class="en" data-field="sec.27">Class 6–9 · 10 am</span></p></div></div>
+      <div class="ev"><span class="date"><b>১৬</b><small>ডিসে</small></span><div><h3><span class="bn" data-field="sec.28">বিজয় দিবস ও পুরস্কার বিতরণ</span><span class="en" data-field="sec.28">Victory Day and prize giving</span></h3><p><span class="bn" data-field="sec.29">সকাল ৯টা · মাঠ</span><span class="en" data-field="sec.29">9 am · field</span></p></div></div>
+      <div class="ev"><span class="date"><b>২০</b><small>ডিসে</small></span><div><h3><span class="bn" data-field="sec.30">ষষ্ঠ শ্রেণির ভর্তি পরীক্ষা</span><span class="en" data-field="sec.30">Class 6 admission test</span></h3><p><span class="bn" data-field="sec.31">সকাল ১০টা · মূল ভবন</span><span class="en" data-field="sec.31">10 am · main building</span></p></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="rulehead"><span class="bn" data-field="sec.32">ব্লগ</span><span class="en" data-field="sec.32">Blog</span></div>
+    <h2><span class="bn" data-field="sec.33">বিদ্যালয় থেকে লেখা</span><span class="en" data-field="sec.33">Written from the school</span></h2>
+    <div class="posts" style="margin-top:30px">
+      <a class="post" href="#"><div class="cover c1"><span class="bn" data-field="sec.34">কভার ছবি · ১২০০×৬৩০</span><span class="en" data-field="sec.34">Cover · 1200×630</span></div><div class="body"><time>৩০ অক্টোবর ২০২৬</time><h3><span class="bn" data-field="sec.35">এসএসসি ২০২৬: আমাদের ১৪২ জন জিপিএ-৫ পেছনের গল্প</span><span class="en" data-field="sec.35">SSC 2026: the story behind our 142 GPA-5s</span></h3></div></a>
+      <a class="post" href="#"><div class="cover c2"><span class="bn" data-field="sec.36">কভার ছবি · ১২০০×৬৩০</span><span class="en" data-field="sec.36">Cover · 1200×630</span></div><div class="body"><time>১৮ অক্টোবর ২০২৬</time><h3><span class="bn" data-field="sec.37">নতুন কম্পিউটার ল্যাব: ৪০টি মেশিন, প্রতি শ্রেণিতে সপ্তাহে দুই ক্লাস</span><span class="en" data-field="sec.37">The new computer lab: 40 machines, two classes a week</span></h3></div></a>
+      <a class="post" href="#"><div class="cover c3"><span class="bn" data-field="sec.38">কভার ছবি · ১২০০×৬৩০</span><span class="en" data-field="sec.38">Cover · 1200×630</span></div><div class="body"><time>৪ অক্টোবর ২০২৬</time><h3><span class="bn" data-field="sec.39">প্রাক্তন ছাত্র সম্মেলন ২০২৬: ৫৮ ব্যাচের মিলনমেলা</span><span class="en" data-field="sec.39">Alumni reunion 2026: 58 batches in one field</span></h3></div></a>
+    </div>
+  </div>
+</section>
+
+<section class="sec contact" id="contact">
+  <div class="wrap">
+    <div class="card">
+      <div class="rulehead"><span class="bn" data-field="contact.1">যোগাযোগ</span><span class="en" data-field="contact.1">Contact</span></div>
+      <h2 style="font-size:32px"><span class="bn" data-field="contact.2">অফিসে আসুন বা ফোন করুন</span><span class="en" data-field="contact.2">Visit the office or call</span></h2>
+      <dl>
+        <div><dt><span class="bn" data-field="contact.3">ঠিকানা</span><span class="en" data-field="contact.3">Address</span></dt><dd><span class="bn" data-field="contact.4">৩৪/১ পশ্চিম রামপুরা, ডিআইটি রোড, ঢাকা ১২১৯</span><span class="en" data-field="contact.4">34/1 West Rampura, DIT Road, Dhaka 1219</span></dd></div>
+        <div><dt><span class="bn" data-field="contact.5">ফোন</span><span class="en" data-field="contact.5">Phone</span></dt><dd>০১৭১১-০০০০০০ · ০২-৫৫১২০০০০</dd></div>
+        <div><dt><span class="bn" data-field="contact.6">অফিস সময়</span><span class="en" data-field="contact.6">Office hours</span></dt><dd><span class="bn" data-field="contact.7">রবি–বৃহস্পতি, সকাল ৮টা – বিকেল ৪টা</span><span class="en" data-field="contact.7">Sun–Thu, 8 am – 4 pm</span></dd></div>
+        <div><dt><span class="bn" data-field="contact.8">ইমেইল</span><span class="en" data-field="contact.8">Email</span></dt><dd>office@rmhs.example</dd></div>
+      </dl>
+      <a class="wa" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 2a8 8 0 1 1-4.2 14.8l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 0 1 12 4zm-3 4.5c-.2 0-.5 0-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.2 5 4.4 2.5 1 3 .8 3.5.7.5 0 1.7-.7 2-1.4.2-.7.2-1.3.1-1.4l-.5-.3-1.8-.9c-.2-.1-.4-.1-.6.1l-.8 1c-.2.2-.3.2-.6.1a6.6 6.6 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.4 0-.5l-.9-2c-.2-.5-.4-.4-.6-.4z"/></svg><span class="bn" data-field="contact.9">হোয়াটসঅ্যাপে লিখুন</span><span class="en" data-field="contact.9">Message on WhatsApp</span></a>
+    </div>
+    <div class="map" aria-label="মানচিত্র"><span class="pin" aria-hidden="true"></span><button class="btn btn-line" type="button" style="background:#fff"><span class="bn" data-field="contact.10">মানচিত্র দেখুন</span><span class="en" data-field="contact.10">Show map</span></button></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <h3><span class="bn" data-field="footer.1">রামপুরা মডেল উচ্চ বিদ্যালয়</span><span class="en" data-field="footer.1">Rampura Model High School</span></h3>
+        <p><span class="bn" data-field="footer.2">৩৪/১ পশ্চিম রামপুরা, ডিআইটি রোড, ঢাকা ১২১৯<br>EIIN ১০৮xxx · ০১৭১১-০০০০০০</span><span class="en" data-field="footer.2">34/1 West Rampura, DIT Road, Dhaka 1219<br>EIIN 108xxx · 01711-000000</span></p>
+        <a class="portal-f" href="#"><span class="bn" data-field="footer.3">পোর্টালে লগইন</span><span class="en" data-field="footer.3">Portal login</span></a>
+      </div>
+      <div>
+        <h3><span class="bn" data-field="footer.4">দ্রুত লিংক</span><span class="en" data-field="footer.4">Quick links</span></h3>
+        <a href="#"><span class="bn" data-field="footer.5">ভর্তির নিয়ম</span><span class="en" data-field="footer.5">How to apply</span></a>
+        <a href="#"><span class="bn" data-field="footer.6">বেতন ও ফি</span><span class="en" data-field="footer.6">Tuition and fees</span></a>
+        <a href="#"><span class="bn" data-field="footer.7">শ্রেণি রুটিন</span><span class="en" data-field="footer.7">Class routine</span></a>
+        <a href="#"><span class="bn" data-field="footer.8">সিলেবাস (পিডিএফ)</span><span class="en" data-field="footer.8">Syllabus (PDF)</span></a>
+      </div>
+      <div>
+        <h3><span class="bn" data-field="footer.9">খবর</span><span class="en" data-field="footer.9">News</span></h3>
+        <a href="#"><span class="bn" data-field="footer.10">নোটিশ বোর্ড</span><span class="en" data-field="footer.10">Notice board</span></a>
+        <a href="#"><span class="bn" data-field="footer.11">ফলাফল</span><span class="en" data-field="footer.11">Results</span></a>
+        <a href="#"><span class="bn" data-field="footer.12">ক্যালেন্ডার</span><span class="en" data-field="footer.12">Calendar</span></a>
+        <a href="#">Facebook</a>
+      </div>
+    </div>
+    <div class="credit">
+      <span>© ২০২৬ <span class="bn" data-field="footer.13">রামপুরা মডেল উচ্চ বিদ্যালয়</span><span class="en" data-field="footer.13">Rampura Model High School</span></span>
+      <span>Powered by <a href="#">SchoolManagerP</a></span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const html=document.documentElement;
+  document.querySelectorAll('.lang button').forEach(b=>b.addEventListener('click',()=>{
+    html.dataset.lang=b.dataset.set;html.lang=b.dataset.set;
+    document.querySelectorAll('.lang button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  }));
+  const sheet=document.getElementById('sheet');
+  document.getElementById('open').onclick=()=>sheet.setAttribute('open','');
+  document.getElementById('close').onclick=()=>sheet.removeAttribute('open');
+  sheet.querySelectorAll('a').forEach(a=>a.onclick=()=>sheet.removeAttribute('open'));
+  for(const id of ['board','evs']){const el=document.getElementById(id);
+    el.querySelectorAll('h3,p').forEach(n=>{const s=document.createElement('span');s.className='sk';s.style.width=(n.tagName==='H3'?'70%':'50%');n.appendChild(s)});
+    setTimeout(()=>{el.classList.remove('skel');el.removeAttribute('aria-busy');el.querySelectorAll('.sk').forEach(s=>s.remove())},1200);}
+</script>
+<script src="../shared/palettes.js"></script><script src="../shared/blocks.js"></script>
+</body>
+</html>

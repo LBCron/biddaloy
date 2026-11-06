@@ -1,0 +1,52 @@
+/* Shared blocks for every theme mockup: announcement bar (D30), hero carousel (D26),
+   "see all teachers" link (D27). Each theme sets the --ann-*, --hc-*, --sa-* variables
+   in its own <style> so the block wears the theme's idiom. */
+
+/* ---- announcement bar ---- */
+.ann{display:flex;align-items:stretch;overflow:hidden;max-width:100%;min-height:44px;background:var(--ann-bg,#eee);color:var(--ann-ink,#111);border-bottom:var(--ann-line,0);font-size:14.5px;line-height:1.4}
+.ann-label{flex:none;display:flex;align-items:center;padding:0 14px;background:var(--ann-label-bg,#111);color:var(--ann-label-ink,#fff);font-weight:700;border-radius:var(--ann-r,0);margin:var(--ann-m,0)}
+.ann-view{flex:1;min-width:0;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent)}
+.ann-track{display:inline-flex;white-space:nowrap;animation:ann-scroll 40s linear infinite;will-change:transform}
+.ann-set{display:inline-flex}
+.ann:hover .ann-track,.ann:focus-within .ann-track{animation-play-state:paused}
+.ann-set a{display:inline-flex;align-items:center;min-height:44px;padding:0 26px;color:inherit;text-decoration:none}
+.ann-set a::after{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.45;margin-left:26px}
+.ann-set a:focus-visible{outline:2px solid currentColor;outline-offset:-4px}
+@media (hover:hover){.ann-set a:hover{text-decoration:underline}}
+@keyframes ann-scroll{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){
+  .ann-track{animation:none}
+  .ann-set+.ann-set{display:none}
+  .ann-set a:nth-child(n+2){display:none}
+  .ann-set a::after{display:none}
+}
+
+/* ---- hero carousel ---- */
+.hc{position:relative;overflow:hidden;min-width:0;touch-action:pan-y}
+.hc-track{display:flex;height:100%;transition:transform .6s cubic-bezier(.23,1,.32,1)}
+.hc-slide{flex:0 0 100%;min-width:0;display:flex}
+.hc-slide>*{flex:1;min-width:0}
+.hc-ph{position:relative;display:grid;place-items:center;overflow:hidden;background:var(--hc-bg,#e9eef5);color:var(--hc-ink,#223);border:1px dashed var(--hc-line,#9ab);aspect-ratio:var(--hc-ratio,16/9)}
+.hc-ph svg{position:absolute;inset:auto 0 0 0;width:100%;height:46%;opacity:.6}
+.hc-cap{position:relative;z-index:1;display:grid;gap:2px;justify-items:center;text-align:center;padding:8px 14px;background:var(--hc-cap-bg,rgba(255,255,255,.85));border:1px solid var(--hc-line,#9ab);border-radius:var(--hc-cap-r,6px);font-size:14px;font-weight:600}
+.hc-cap small{font-size:12px;font-weight:500}
+.hc-btn{position:absolute;top:50%;translate:0 -50%;z-index:3;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#111;font:700 24px/1 system-ui,sans-serif;cursor:pointer;display:grid;place-items:center;padding:0 0 3px;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.hc-prev{left:8px}.hc-next{right:8px}
+.hc-btn:active{transform:scale(.97)}
+.hc-btn:focus-visible,.hc-dots button:focus-visible{outline:3px solid var(--hc-focus,#0a58ff);outline-offset:2px}
+.hc-dots{position:absolute;left:0;right:0;bottom:2px;z-index:3;display:flex;justify-content:center}
+.hc-dots button{width:44px;height:44px;border:0;background:none;padding:0;cursor:pointer;display:grid;place-items:center}
+.hc-dots button::before{content:"";width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.7);box-shadow:0 0 0 1.5px rgba(0,0,0,.5)}
+.hc-dots button[aria-current=true]::before{background:#fff;box-shadow:0 0 0 1.5px #000;width:22px;border-radius:6px}
+.hc[data-single] .hc-btn,.hc[data-single] .hc-dots{display:none}
+.hc-band{padding:clamp(20px,3vw,40px) 0}
+.hc-band .hc-in{width:min(980px,100% - 32px);margin-inline:auto}
+.hc-band .hc{border-radius:var(--hc-band-r,12px)}
+@media (prefers-reduced-motion:reduce){.hc-track{transition:none}}
+
+/* ---- see-all teachers ---- */
+.seeall{margin:28px 0 0;text-align:center;grid-column:1/-1}
+.seeall a{display:inline-flex;align-items:center;min-height:44px;padding:0 22px;font-weight:600;color:var(--sa-ink,currentColor);border:1.5px solid currentColor;border-radius:var(--sa-r,8px);text-decoration:none}
+.seeall a:focus-visible{outline:3px solid var(--hc-focus,#0a58ff);outline-offset:2px}
+.seeall a:active{transform:scale(.97)}
+@media (hover:hover){.seeall a:hover{background:var(--sa-ink,currentColor);color:var(--sa-hover-ink,#fff)}}
