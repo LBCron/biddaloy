@@ -1,4 +1,4 @@
-import type { ApprovalMode, TermLabel } from '../enums';
+import type { ApprovalMode, DailyAttendanceSource, TermLabel } from '../enums';
 import type { AttentionSettings } from './attention';
 import type { ConductItem } from './report-card-note.types';
 
@@ -130,6 +130,8 @@ export interface AttendancePolicySettings {
   }>;
   /** Period-by-period attendance on top of the daily register. */
   periodAttendance?: { enabled: boolean };
+  /** Who may write the daily register. Default ANY. A write gate only; reads are unchanged (D2). */
+  dailySource?: DailyAttendanceSource;
 }
 
 /**

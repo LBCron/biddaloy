@@ -80,6 +80,7 @@ export interface AlertRuleMeta {
   pushable: boolean;
   canDisable: boolean;
   guardianSmsFallback: boolean;
+  staffSmsFallback: boolean;
   ownerEpic?: '#1828' | '#1752' | '#1726' | '#1373' | '#1649' | '#169';
 }
 
@@ -99,6 +100,7 @@ type Row = [
   canDisable: boolean,
   guardianSmsFallback: boolean,
   ownerEpic?: AlertRuleMeta['ownerEpic'],
+  staffSmsFallback?: boolean,
 ];
 
 // prettier-ignore
@@ -115,7 +117,7 @@ const ROWS: Row[] = [
   ['section.no_class_teacher', C.STRUCTURE, S.WARNING, [K.DAILY, K.ON_CHANGE], [R.ADMIN], true, true, false],
   ['routine.subject_no_teacher', C.STRUCTURE, S.WARNING, [K.DAILY], [R.ADMIN], true, true, false],
   ['guardian.contact_missing', C.STRUCTURE, S.WARNING, [K.DAILY], [R.ADMIN], true, true, false],
-  ['attendance.not_taken', C.ATTENDANCE, S.REMINDER, [K.FAST, K.ON_CHANGE], [R.TEACHER, R.EXECUTIVE, R.ADMIN], true, false, false],
+  ['attendance.not_taken', C.ATTENDANCE, S.REMINDER, [K.FAST, K.ON_CHANGE], [R.TEACHER, R.EXECUTIVE, R.ADMIN], true, false, false, undefined, true],
   ['class.starting', C.PERIOD, S.REMINDER, [K.FAST], [R.TEACHER], true, true, false],
   ['routine.substitution_today', C.PERIOD, S.REMINDER, [K.DAILY, K.ON_CHANGE], [R.TEACHER], true, true, false],
   ['routine.uncovered_periods', C.PERIOD, S.WARNING, [K.FAST], [R.EXECUTIVE, R.ADMIN], true, true, false],
@@ -181,6 +183,7 @@ export const ALERT_RULES: readonly AlertRuleMeta[] = ROWS.map(
     canDisable,
     guardianSmsFallback,
     ownerEpic,
+    staffSmsFallback,
   ]) => ({
     key,
     category,
@@ -190,6 +193,7 @@ export const ALERT_RULES: readonly AlertRuleMeta[] = ROWS.map(
     pushable,
     canDisable,
     guardianSmsFallback,
+    staffSmsFallback: staffSmsFallback ?? false,
     ...(ownerEpic ? { ownerEpic } : {}),
   }),
 );
