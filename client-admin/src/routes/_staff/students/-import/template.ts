@@ -20,6 +20,8 @@ export const TEMPLATE_HEADERS = [
   'guardian2_email',
   'home_address',
   'preferred_communication',
+  // [76.5.07] Optional; the server parser reads it when present (`OPTIONAL_HEADERS`).
+  'card_no',
 ] as const;
 
 export type TemplateHeader = (typeof TEMPLATE_HEADERS)[number];
@@ -50,6 +52,7 @@ const TEMPLATE_EXAMPLE_ROW: Record<TemplateHeader, string> = {
   guardian2_email: '',
   home_address: 'ধানমন্ডি, ঢাকা',
   preferred_communication: 'SMS',
+  card_no: '',
 };
 
 export function downloadTemplate(): void {
