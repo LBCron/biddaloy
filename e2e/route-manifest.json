@@ -854,6 +854,28 @@
       "archetype": "list"
     },
     {
+      "path": "/attendance/import",
+      "role": "admin",
+      "archetype": "wizard",
+      "overlays": ["upload-step", "review-step", "done-step"]
+    },
+
+    {
+      "path": "/attendance/imports",
+      "role": "admin",
+      "archetype": "list"
+    },
+
+    {
+      "path": "/attendance/imports/$importId",
+      "params": {
+        "importId": "seeded"
+      },
+      "role": "admin",
+      "archetype": "detail"
+    },
+
+    {
       "path": "/attendance/staff",
       "role": "admin",
       "archetype": "list"
