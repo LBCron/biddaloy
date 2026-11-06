@@ -19,6 +19,7 @@ import enAttendanceImport from '../../../ui/src/i18n/locales/en/attendanceImport
 import enDashboard from '../../../ui/src/i18n/locales/en/dashboard.json';
 import enNav from '../../../ui/src/i18n/locales/en/nav.json';
 import { beat, guideLang, imgDir, loginAs, prepare, recordGif, shoot } from '../helpers/capture';
+import { tr } from '../helpers/nav';
 
 const DAY = process.env.GUIDE_DAY ?? '2026-10-22';
 const OLD_DAY = process.env.GUIDE_OLD_DAY ?? '2026-10-15';
@@ -306,9 +307,9 @@ test('evidence: admin edit of an old register', async ({ page }, info) => {
 });
 
 // [76.6.01] Upload an attendance sheet: pick, download, drop a filled file, review, save, detail.
-// Last in the file on purpose: saving writes the capture day's register of SHOT_SECTION, and the
-// earlier shots of that section need it unmarked (`resetCaptureDay` clears it on the next run).
-// Shot 04 (the sheet open in Excel) is not made here; take it by hand.
+// Last in the file on purpose: the sheet is for DAY, so saving writes DAY's register of
+// SHOT_SECTION, and the earlier shots of that section need it unmarked (`resetCaptureDay` clears
+// it before the next run). Shot 04 (the sheet open in Excel) is not made here; take it by hand.
 test('desktop: upload an attendance sheet', async ({ page }, info) => {
   test.skip(info.project.metadata.device !== 'desktop');
   test.setTimeout(120_000);
@@ -316,17 +317,28 @@ test('desktop: upload an attendance sheet', async ({ page }, info) => {
   await loginAs(page, 'class-teacher-8a');
   await page.goto(`/attendance?date=${DAY}`);
 
-  // 01 — where Upload sheet sits in the menu.
+  // 01 — the way in: Attendance > Uploaded sheets in the menu, then the page's upload button.
+  // There is no menu item for the wizard itself (D14); the palette is the other way in.
   const sidebar = page.getByRole('complementary').getByRole('navigation');
   await sidebar.getByRole('button', { name: nav.groups.attendance, exact: true }).click();
-  const menuLink = sidebar.getByRole('link', { name: nav.items.upload, exact: true });
-  await expect(menuLink).toBeVisible();
-  await shoot(page, file('uploads-01-menu.png'), [{ target: menuLink }]);
+  const menuLink = sidebar.getByRole('link', { name: nav.items.uploads, exact: true });
   await menuLink.click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(up.history.title);
+  const uploadNew = page.getByRole('button', { name: up.history.uploadNew, exact: true });
+  await shoot(page, file('uploads-01-menu.png'), [{ target: menuLink }, { target: uploadNew }]);
+  await uploadNew.click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(up.pageTitle);
 
-  // 02 — pick the section. The date stays on today; the filled sheet sets its own date below.
+  // 02 — pick the section and DAY (the wizard starts on the real today).
   await page.getByLabel(SHOT_SECTION).check();
+  await page.getByLabel(up.pick.date, { exact: true }).click();
+  await expect(page.getByRole('grid', { name: tr('common', 'date.calendar') })).toBeVisible();
+  const dayCell = page.locator(`[role="grid"] [data-date="${DAY}"]`);
+  for (let i = 0; i < 12 && !(await dayCell.isVisible()); i++) {
+    await page.getByRole('button', { name: tr('common', 'date.previousMonth') }).click();
+  }
+  await dayCell.click();
+  await expect(dayCell).toBeHidden();
   await shoot(page, file('uploads-02-pick.png'), [
     { target: page.getByRole('group', { name: up.pick.sections }) },
     { target: page.getByLabel(up.pick.date) },

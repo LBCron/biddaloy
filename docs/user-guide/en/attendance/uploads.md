@@ -11,7 +11,7 @@ sources:
   - client-admin/src/routes/_staff/attendance/imports/index.tsx
   - client-admin/src/routes/_staff/attendance/imports/$importId.tsx
   - client-admin/src/routes/_staff/attendance/-imports/import-rows-table.tsx
-  - server/src/modules/attendance/attendance-import.controller.ts
+  - server/src/modules/attendance/import/attendance-import.controller.ts
 labels:
   [
     attendanceImport:pick.*,
@@ -39,7 +39,7 @@ knownIssues: []
 
 Fill in attendance for one or more sections on an Excel sheet, upload it, check what will change, and save. See every uploaded sheet afterwards and fix a mistake with a corrected file.
 
-**Go to:** **Attendance → Upload sheet** in the left menu. The list of past uploads is under **Attendance → Uploaded sheets**. Do this on a computer.
+**Go to:** **Attendance → Uploaded sheets** in the left menu, then press **Upload attendance sheet**. Or type **Upload attendance sheet** in the search box at the top (Ctrl+K). Do this on a computer.
 **Before you start:** you must be allowed to take attendance for the section (a teacher for their own sections, or an admin). Have the filled-in attendance of the day ready, for example from a paper register.
 
 A **sheet** is an Excel file the app makes for you with your students already listed. You only type a short code beside each name. Nothing is saved until you press **Save** at the end, so you can look before anything changes.
@@ -62,15 +62,15 @@ A **sheet** is an Excel file the app makes for you with your students already li
 
 ## Upload a sheet <a href="#task-main" id="task-main"></a>
 
-1. In the left menu press **Attendance**, then **Upload sheet**. The page says **Upload attendance sheet** and **Step 1 of 3**: **Choose what to fill in**.
-   <!-- shot: attendance-uploads-01-menu.png — menu with Upload sheet (tour step "uploads: menu") -->
+1. In the left menu press **Attendance**, then **Uploaded sheets**. On that page press **Upload attendance sheet** at the top. You can also type **Upload attendance sheet** in the search box at the top (Ctrl+K). The page says **Upload attendance sheet** and **Step 1 of 3**: **Choose what to fill in**.
+   <!-- shot: attendance-uploads-01-menu.png — Uploaded sheets in the menu and the Upload attendance sheet button (tour step "uploads: menu") -->
 2. Under **Section**, tick the sections you want. You can pick up to 10 at a time. Under **Date**, choose the day.
    <!-- shot: attendance-uploads-02-pick.png — sections ticked, date chosen (tour step "uploads: pick") -->
-3. Press **Download sheet**. A file named like `হাজিরা_<class>_<section>_<date>.xlsx` is saved on your computer. Only sections you are allowed to take attendance for are in it. The page moves on by itself to **Step 2 of 3**.
+3. Press **Download sheet**. A file named like `হাজিরা_<class>_<section>_<date>.xlsx` is saved on your computer. Tick only sections you take attendance for: if even one is not yours to fill, no sheet is made and the page says **Could not make the sheet. Try again.** The page moves on by itself to **Step 2 of 3**.
    <!-- shot: attendance-uploads-03-download.png — download button (tour step "uploads: download") -->
 4. Open the file. For every student, type a code in the last column: `P`, `A`, `L` or `LV`. The table below explains each. Leave a cell empty to keep that student's mark as it is. Save the file.
    <!-- shot: attendance-uploads-04-sheet.png — the sheet in Excel (manual capture, not the app) -->
-5. Back in the app, on **Upload your filled sheet**, drop the file on the box that says **Drop the sheet here, or choose a file**, or press **Choose file** and pick it. The file must be .xlsx and under 5 MB.
+5. Back in the app, on **Upload your filled sheet**, drop the file on the box that says **Drop the sheet here, or choose a file**, or press **Choose file** and pick it. The file must be .xlsx or .csv and under 5 MB.
    <!-- shot: attendance-uploads-05-drop.png — the drop box (tour step "uploads: drop") -->
 6. Press **Review changes**. Wait for **Checking your sheet…**. **Step 3 of 3**, **Review before saving**, opens.
 7. Read the yellow banner and the table. See [Read the review before saving](#task-review).
@@ -148,20 +148,20 @@ There is no "undo the whole upload" button. Correct only what is wrong.
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                                                                                                                 | What to do                                                             | Who can help |
-| ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------ |
-| **This file type is not supported — choose an .xlsx file.**                                                                  | Save the sheet as Excel (.xlsx), not CSV or PDF.                       | —            |
-| **This file is too large — choose a file under 5 MB.**                                                                       | Remove empty rows or pictures from the file.                           | —            |
-| **This sheet has more than … rows — split it and upload in parts.**                                                          | Make two sheets, with fewer sections each.                             | —            |
-| **You can pick up to 10 sections at a time.**                                                                                | Do the rest in a second sheet.                                         | —            |
-| Row error: **This roll is not in … — check the roll.**                                                                       | The roll is wrong or the student moved. Correct the roll in the sheet. | —            |
-| Row error: **This section was not found — check the section name.**                                                          | The section name was changed. Download a fresh sheet.                  | —            |
-| Row error: **You do not take attendance for this section.**                                                                  | The section is not in your name.                                       | Admin        |
-| Row error: **This date is outside the school year**, **The school is closed on this date** or **This date has not come yet** | Pick a school day of this year that is not in the future.              | —            |
-| Row error: **You can only fill new days. To change a recorded day, ask an admin.**                                           | The day is already finalized or older than the correction window.      | Admin        |
-| Row error: **This status is not understood — use P, A, L or LV, or leave it empty.**                                         | Use only the codes in the table above.                                 | —            |
-| Row error: **This student and date appear twice — keep one row.**                                                            | Delete one of the two rows.                                            | —            |
-| Row error: **The name does not match this roll — check the roll.**                                                           | The roll belongs to another student. Check the roll.                   | —            |
+| What you see                                                                                                                 | What to do                                                                                                                                           | Who can help |
+| ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| **This file type is not supported — choose an .xlsx or .csv file.**                                                          | Save the sheet as Excel (.xlsx) or CSV (.csv), not PDF.                                                                                              | —            |
+| **This file is too large — choose a file under 5 MB.**                                                                       | Remove empty rows or pictures from the file.                                                                                                         | —            |
+| **This sheet has more than … rows — split it and upload in parts.**                                                          | Make two sheets, with fewer sections each.                                                                                                           | —            |
+| **You can pick up to 10 sections at a time.**                                                                                | Do the rest in a second sheet.                                                                                                                       | —            |
+| Row error: **This roll is not in … — check the roll.**                                                                       | The roll is wrong or the student moved. Correct the roll in the sheet.                                                                               | —            |
+| Row error: **This section was not found — check the section name.**                                                          | The section name was changed, two sections share the name, or the section is not in this school year. Download a fresh sheet.                        | —            |
+| Row error: **You do not take attendance for this section.**                                                                  | The section is not in your name.                                                                                                                     | Admin        |
+| Row error: **This date is outside the school year**, **The school is closed on this date** or **This date has not come yet** | Pick a school day of this year that is not in the future. Write the date the way the downloaded sheet does.                                          | —            |
+| Row error: **You can only fill new days. To change a recorded day, ask an admin.**                                           | The day is already finalized or older than the correction window.                                                                                    | Admin        |
+| Row error: **This status is not understood — use P, A, L or LV, or leave it empty.**                                         | Use only the codes in the table above.                                                                                                               | —            |
+| Row error: **This student and date appear twice — keep one row.**                                                            | Delete one of the two rows.                                                                                                                          | —            |
+| Warning, the row still saves: **The name does not match this roll — check the roll.**                                        | The roll belongs to another student, so that student got the mark. If the roll is wrong, change the mark in the register or upload a corrected file. | —            |
 
 ---
 

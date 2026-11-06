@@ -263,7 +263,7 @@ Under **Attendance policy** the card **Attendance machines** lists the fingerpri
 **Add a machine**
 
 1. Press **Add machine**.
-2. Write a **Name**, for example "Gate 1". Choose the **Kind**: **Fingerprint**, **Face**, **Card (RFID)** or **Other**. Choose a **Section** only if the machine belongs to one section; leave it empty for the whole school.
+2. Write a **Name**, for example "Gate 1". Choose the **Kind**: **Fingerprint**, **Face**, **Card** or **Other**. Choose a **Section** only if the machine belongs to one section; leave it empty for the whole school.
 3. Tick **Roster access** only if the machine should download the student list.
 4. Press **Add machine**. → A box opens: **Copy the key now — it is shown once**.
 5. Press **Copy**. You see **Key copied**. Put the key into the machine (the person who installs the machine does this).
