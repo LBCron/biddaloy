@@ -315,6 +315,19 @@ export default defineConfig({
           maxWorkers: PROJECT_MAX_WORKERS,
         },
       },
+      // [40.1.03] Site theme manifests + config validator: pure TypeScript.
+      {
+        resolve: { alias: { '@biddaloy/shared': resolve(__dirname, 'shared/src') } },
+        test: {
+          name: 'site-themes:node',
+          root: 'site-themes',
+          environment: 'node',
+          include: ['src/**/*.spec.ts'],
+          testTimeout: PROJECT_TEST_TIMEOUT,
+          pool: PROJECT_POOL,
+          maxWorkers: PROJECT_MAX_WORKERS,
+        },
+      },
       // [50.2] Astro landing site: pure logic (i18n parity, helpers), no DOM.
       {
         test: {
