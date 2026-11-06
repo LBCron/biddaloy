@@ -1,0 +1,17 @@
+{
+  "name": "@biddaloy/site-themes",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "cd .. && vitest run --project site-themes:node"
+  },
+  "dependencies": {
+    "@biddaloy/shared": "*"
+  },
+  "devDependencies": {
+    "typescript": "^6"
+  }
+}
