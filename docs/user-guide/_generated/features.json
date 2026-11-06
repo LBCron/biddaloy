@@ -233,7 +233,7 @@
     "path": "attendance/attendance",
     "route": "/attendance",
     "roles": ["ADMIN", "ACCOUNTANT", "TEACHER", "EXECUTIVE", "OFFICE_STAFF", "EXAM_CONTROLLER"],
-    "routes": ["/attendance", "/attendance/$sectionId"]
+    "routes": ["/attendance", "/attendance/$sectionId", "/attendance/import"]
   },
   {
     "id": "attendance.attendanceReports",
@@ -250,6 +250,14 @@
     "route": "/attendance/register",
     "roles": ["ADMIN", "ACCOUNTANT", "TEACHER", "EXECUTIVE", "OFFICE_STAFF", "EXAM_CONTROLLER"],
     "routes": ["/attendance/register"]
+  },
+  {
+    "id": "attendance.uploads",
+    "kind": "nav",
+    "path": "attendance/uploads",
+    "route": "/attendance/imports",
+    "roles": ["ADMIN", "ACCOUNTANT", "TEACHER", "EXECUTIVE", "OFFICE_STAFF", "EXAM_CONTROLLER"],
+    "routes": ["/attendance/imports", "/attendance/imports/$importId"]
   },
   {
     "id": "attendance.staffAttendance",

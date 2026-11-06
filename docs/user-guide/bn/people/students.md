@@ -51,6 +51,7 @@ helpIds:
     people.students.action.sendReminder,
     people.students.field.rollNumber,
     people.students.field.bloodGroup,
+    people.students.field.cardNo,
     people.students.field.preferredCommunication,
     people.students.section.statement#task-fees,
   ]
@@ -594,6 +595,7 @@ knownIssues: []
 | রোল নম্বর              | একটি ধনাত্মক পূর্ণ সংখ্যা। ফাঁকা রাখলে শাখার পরের রোল নম্বর বসে।      | না           |
 | রক্তের গ্রুপ           | তালিকা থেকে একটি বাছুন, বা "দেওয়া নেই" রাখুন।                        | না           |
 | পছন্দের যোগাযোগ মাধ্যম | এসএমএস, হোয়াটসঅ্যাপ, ইমেইল, ফোন কল বা মেসেঞ্জার। শুরুতে এসএমএস থাকে। | না           |
+| কার্ড নম্বর            | শিক্ষার্থীর হাজিরা কার্ডে লেখা নম্বর। প্রত্যেকের নম্বর আলাদা হতে হবে। | না           |
 
 <!-- /guide:generated -->
 

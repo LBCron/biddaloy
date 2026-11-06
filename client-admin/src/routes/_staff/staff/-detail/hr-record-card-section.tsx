@@ -8,13 +8,17 @@ import { useStaffHrRecord, useUpdateStaffHrRecord } from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
 import * as React from 'react';
 
+import { MutationErrorMessage } from '../../../../components/MutationErrorMessage';
+
+/** Same rule as the student form. */
+const CARD_NO_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
+
 export function HrRecordCardSection({ userId }: { userId: string }) {
   const { t } = useTranslation('staff');
   const recordQuery = useStaffHrRecord(userId);
   const record = recordQuery.data ?? null;
   const update = useUpdateStaffHrRecord(record?.id ?? '', userId);
-  // `card_no` is on the API record but not yet on the hook's `StaffHrRecord` type.
-  const saved = (record as { card_no?: string | null } | null)?.card_no ?? '';
+  const saved = record?.card_no ?? '';
   const [value, setValue] = React.useState(saved);
   React.useEffect(() => setValue(saved), [saved]);
 
@@ -26,12 +30,14 @@ export function HrRecordCardSection({ userId }: { userId: string }) {
     update.error.statusCode === 409 &&
     update.error.details?.code === 'CARD_NO_TAKEN';
   const trimmed = value.trim();
+  const invalid = trimmed !== '' && !CARD_NO_PATTERN.test(trimmed);
   return (
     <form
       className="flex flex-col gap-3"
       onSubmit={(e) => {
         e.preventDefault();
-        update.mutate({ card_no: trimmed === '' ? null : trimmed } as never);
+        if (invalid) return;
+        update.mutate({ card_no: trimmed === '' ? null : trimmed });
       }}
     >
       <ScanCardField
@@ -41,8 +47,9 @@ export function HrRecordCardSection({ userId }: { userId: string }) {
         scanLabel={t('cardNo.scan')}
         scanHint={t('cardNo.help')}
         helpKey="people.staff.field.cardNo"
-        error={duplicate ? t('cardNo.duplicate') : undefined}
+        error={invalid ? t('cardNo.invalid') : duplicate ? t('cardNo.duplicate') : undefined}
       />
+      {update.isError && !duplicate ? <MutationErrorMessage error={update.error} /> : null}
       <div className="flex md:justify-end">
         <Button type="submit" disabled={update.isPending || trimmed === saved}>
           {update.isPending ? t('hrRecord.job.saving') : t('hrRecord.job.save')}

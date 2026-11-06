@@ -121,10 +121,18 @@ describe('AttendanceDevicesSection', () => {
     await waitFor(() => expect(screen.getByText('Add attendance machine')).toBeTruthy());
   });
 
-  it('renders nothing without the permission', async () => {
-    list([device()]);
+  it('renders nothing and sends no request without the permission', async () => {
+    let requested = false;
+    server.use(
+      http.get('/api/v1/attendance/devices', () => {
+        requested = true;
+        return HttpResponse.json([device()]);
+      }),
+      http.get('/api/v1/classes', () => HttpResponse.json({ data: [], total: 0 })),
+    );
     const { container } = render({}, 'TEACHER');
     await new Promise((r) => setTimeout(r, 50));
     expect(container.textContent).toBe('');
+    expect(requested).toBe(false);
   });
 });

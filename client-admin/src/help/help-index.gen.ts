@@ -232,6 +232,17 @@ export const HELP_INDEX: HelpIndex = {
     knownIssues: 0,
     field: { ns: 'students', key: 'bloodGroup' },
   },
+  'people.students.field.cardNo': {
+    title: {
+      bn: 'শিক্ষার্থী যোগ করা ও তাদের তথ্য দেখা',
+      en: 'Adding students and viewing their details',
+    },
+    summary: { bn: '', en: '' },
+    path: 'people/students',
+    anchor: 'more',
+    knownIssues: 0,
+    field: { ns: 'students', key: 'cardNo' },
+  },
   'people.students.field.preferredCommunication': {
     title: {
       bn: 'শিক্ষার্থী যোগ করা ও তাদের তথ্য দেখা',
@@ -551,6 +562,14 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'more',
     knownIssues: 0,
     field: { ns: 'staff', key: 'designations' },
+  },
+  'people.staff.field.cardNo': {
+    title: { bn: 'কর্মী যোগ করা ও পরিচালনা', en: 'Adding and managing staff' },
+    summary: { bn: '', en: '' },
+    path: 'people/staff',
+    anchor: 'more',
+    knownIssues: 0,
+    field: { ns: 'staff', key: 'cardNo' },
   },
   'people.staff.action.edit': {
     title: { bn: 'কর্মী যোগ করা ও পরিচালনা', en: 'Adding and managing staff' },
@@ -5115,8 +5134,11 @@ export const HELP_ROUTES = {
   '/academics/syllabus': 'academics.syllabus',
   '/attendance': 'attendance.attendance',
   '/attendance/$sectionId': 'attendance.attendance',
+  '/attendance/import': 'attendance.attendance',
   '/attendance/reports': 'attendance.attendanceReports',
   '/attendance/register': 'attendance.attendanceRegister',
+  '/attendance/imports': 'attendance.uploads',
+  '/attendance/imports/$importId': 'attendance.uploads',
   '/attendance/staff': 'attendance.staffAttendance',
   '/attendance/staff/leave': 'attendance.staffAttendance',
   '/exams': 'examsResults.exams',

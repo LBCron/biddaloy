@@ -25,7 +25,8 @@
       "guardian2_phone": "দ্বিতীয় অভিভাবকের নাম থাকলে আবশ্যক। ফোন নম্বরের ফরম্যাট প্রথম অভিভাবকের মতোই।",
       "guardian2_email": "দ্বিতীয় অভিভাবকের ইমেইল। ফাঁকা রাখলে বাদ যাবে।",
       "home_address": "শিক্ষার্থীর বাসার ঠিকানা। ফাঁকা রাখলে বাদ যাবে।",
-      "preferred_communication": "SMS, WHATSAPP, EMAIL, PHONE_CALL, MESSENGER — এর যেকোনো একটি। ফাঁকা রাখলে বাদ যাবে।"
+      "preferred_communication": "SMS, WHATSAPP, EMAIL, PHONE_CALL, MESSENGER — এর যেকোনো একটি। ফাঁকা রাখলে বাদ যাবে।",
+      "card_no": "হাজিরা কার্ডে লেখা নম্বর। প্রত্যেক শিক্ষার্থীর আলাদা হতে হবে। বাদ দিতে চাইলে খালি রাখুন।"
     },
     "toggle": "কোন কলামে কী লিখবেন",
     "count_one": "{{count}}টি কলাম",
@@ -44,7 +45,8 @@
       "guardian2_phone": "দ্বিতীয় অভিভাবকের ফোন",
       "guardian2_email": "দ্বিতীয় অভিভাবকের ইমেইল",
       "home_address": "বাড়ির ঠিকানা",
-      "preferred_communication": "পছন্দের যোগাযোগ মাধ্যম"
+      "preferred_communication": "পছন্দের যোগাযোগ মাধ্যম",
+      "card_no": "কার্ড নম্বর"
     }
   },
   "upload": {
