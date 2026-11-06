@@ -6,6 +6,7 @@ import { Queue } from 'bullmq';
 import { DataSource } from 'typeorm';
 import {
   ALERT_RULES,
+  AlertSeverity,
   CommunicationMedium,
   CommunicationStatus,
   CommunicationTrigger,
@@ -23,7 +24,7 @@ import { ATTENTION_RULE_LOCK_NAMESPACE } from '../engine/alert-writer.service';
 import { RuleRegistryService } from '../rules/rule-registry.service';
 import { localDateTimeToUtc, localTimeHHmm } from '../rules/rule-context.service';
 import { localDate } from '../../attendance/attendance-policy.util';
-import { render } from '../rules/messages';
+import { render, resolveLocale, toBanglaDigits } from '../rules/messages';
 import { isInQuietHours } from './alert-delivery.service';
 
 const FALLBACK_RULES = ALERT_RULES.filter((r) => r.guardianSmsFallback).map((r) => r.key);
@@ -51,6 +52,13 @@ export function toldAboutStudent(
       (l.student_id === studentId ||
         (Array.isArray(l.metadata?.student_ids) && l.metadata.student_ids.includes(studentId))),
   );
+}
+
+/** [76.2.05] D29 fixed wording; digits in the label follow `render`'s bn convention. */
+export function staffSmsText(locale: 'bn' | 'en', sectionLabel: string): string {
+  return locale === 'bn'
+    ? `কিছু ছাত্রের হাজিরার অবস্থা বদলাচ্ছে না — ${toBanglaDigits(sectionLabel)}। দেখুন।`
+    : `Some students' attendance is not updating — ${sectionLabel}. Please check.`;
 }
 
 interface SchoolRow {
@@ -186,20 +194,19 @@ export class GuardianSmsFallbackService implements OnModuleInit, OnModuleDestroy
          JOIN users u ON u.id = r.user_id AND u.deleted_at IS NULL AND u.status = 'ACTIVE'
               AND NULLIF(btrim(u.phone), '') IS NOT NULL
         WHERE a.tenant_id = $1 AND a.status = 'ACTIVE' AND a.source = 'RULE'
-          AND a.severity = 'CRITICAL' AND a.raised_at >= $2
+          AND a.severity = $4 AND a.raised_at >= $2
           AND a.rule_key = ANY($3::text[])
         ORDER BY a.raised_at, a.id, u.id`,
-      [tenantId, midnight, STAFF_FALLBACK_RULES],
+      [tenantId, midnight, STAFF_FALLBACK_RULES, AlertSeverity.CRITICAL],
     );
     const todo = rows.filter((r) => !r.sent);
     if (!todo.length) return 0;
     const metered = await this.credits.isMetered(tenantId);
-    const schoolName = school.name_bn || school.name;
+    const locale = resolveLocale(settings.region?.locale);
     let queued = 0;
+    // D14: "today" = raised since local midnight; the key is per alert and user, so one SMS per alert at most.
     for (const r of todo) {
-      const rule = this.registry.get(r.rule_key);
-      if (!rule) continue;
-      const text = `${schoolName}: ${render(rule.messages, 'bn', r.params).title}`;
+      const text = staffSmsText(locale, String(r.params.sectionLabel ?? ''));
       const segments = countSmsSegments(text).segments;
       const ref = randomUUID();
       const batchId = `attention:${r.id}:${ref}`;

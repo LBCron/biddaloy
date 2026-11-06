@@ -216,7 +216,7 @@ describe('AttendanceNotTakenRule', () => {
 
   describe('unmarked students (76.2.05)', () => {
     const finalized = [{ section_id: 'S1', period_no: null, state: 'FINALIZED' }];
-    const open = [{ section_id: 'S1', period_no: null, state: 'OPEN' }];
+    const open = [{ section_id: 'S1', period_no: null, state: 'DRAFT' }];
 
     it('12 unmarked after grace on an open register: WARNING with the incomplete title', async () => {
       const { rule } = build({ sessions: open, unmarked: 12 });
