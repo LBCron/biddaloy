@@ -40,6 +40,7 @@ export function studentFactory(overrides: Partial<Student> = {}, script?: Script
     enrollment_status: EnrollmentStatus.ACTIVE,
     religion: null,
     birth_reg_no: null,
+    card_no: null,
     health_notes: null,
     father_name: null,
     mother_name: null,

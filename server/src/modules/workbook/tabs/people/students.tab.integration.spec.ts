@@ -169,6 +169,7 @@ describe('studentsTab (integration)', () => {
       home_address: null,
       religion: null,
       birth_reg_no: null,
+      card_no: null,
       health_notes: null,
       father_name: null,
       mother_name: null,
@@ -276,6 +277,25 @@ describe('studentsTab (integration)', () => {
           ),
         ).resolves.toBeDefined();
       });
+    });
+
+    it('stores card_no and keeps a null card null (real DB)', async () => {
+      const chain = await seedChain(TENANT_A, 'card');
+      const withCard = await studentsTab.upsert(
+        rowFor(chain, { card_no: 'C-42' }),
+        null,
+        TENANT_A,
+        dataSource.manager,
+      );
+      expect((await studentRepo.findOneByOrFail({ id: withCard.id })).card_no).toBe('C-42');
+
+      const noCard = await studentsTab.upsert(
+        rowFor(chain, { registration_number: 'STU-002', roll_number: 2 }),
+        null,
+        TENANT_A,
+        dataSource.manager,
+      );
+      expect((await studentRepo.findOneByOrFail({ id: noCard.id })).card_no).toBeNull();
     });
 
     it('creates a new student with the right class_section_id and join rows', async () => {

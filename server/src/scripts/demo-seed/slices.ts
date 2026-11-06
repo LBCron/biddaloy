@@ -46,5 +46,6 @@ export const EXEMPT: Record<string, string> = {
   WorkbookJob: 'backups are off in the demo (D2)',
   AuditLog: 'written by services as a side effect, never seeded directly',
   ReportSnapshot: 'runtime output: a stored copy of one run (Epic 8.15)',
+  AttendanceImport: 'seeded with the attendance upload history in #3556 (Epic 76 W1 close)',
   ReportSchedule: 'runtime output: schedules are set up by the school (Epic 8.15)',
 };

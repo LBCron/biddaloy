@@ -190,6 +190,7 @@ import { RefreshToken } from './modules/auth/entities/refresh-token.entity';
 import { AttendanceSession } from './modules/attendance/entities/attendance-session.entity';
 import { AttendanceRecord } from './modules/attendance/entities/attendance-record.entity';
 import { AttendanceDevice } from './modules/attendance/entities/attendance-device.entity';
+import { AttendanceImport } from './modules/attendance/entities/attendance-import.entity';
 import { AttendanceDeviceEvent } from './modules/attendance/entities/attendance-device-event.entity';
 import { ArrivalNoticeSubscription } from './modules/attendance/entities/arrival-notice-subscription.entity';
 import { Shift } from './modules/routines/entities/shift.entity';
@@ -308,6 +309,7 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
             AttendanceRecord,
             AttendanceDevice,
             AttendanceDeviceEvent,
+            AttendanceImport,
             ArrivalNoticeSubscription,
             AuthToken,
             UserIdentity,

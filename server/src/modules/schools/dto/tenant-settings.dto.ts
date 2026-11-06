@@ -755,7 +755,7 @@ export class AttentionSettingsDto {
   guardianSmsFallback?: boolean;
 
   @ApiPropertyOptional({ description: 'Text staff when an app alert is not read. Default off.' })
-  @IsOptional()
+  @OptionalSetting()
   @IsBoolean()
   staffSmsFallback?: boolean;
 

@@ -62,6 +62,12 @@ describe('Attendance source settings (e2e)', () => {
     return { ...rest, ...extra };
   };
 
+  // What this spec created or overwrote, so afterAll can put everything back.
+  let snapshot: Array<{ id: string; settings: unknown }> = [];
+  let createdOtherSchool = false;
+  const addedRoles: string[] = [];
+  let addedOtherMembership = false;
+
   const clearStored = () =>
     dataSource.query(
       `UPDATE schools SET settings = jsonb_set(jsonb_set(settings, '{attendance}', COALESCE(settings->'attendance','{}') - 'dailySource'), '{attention}', COALESCE(settings->'attention','{}') - 'staffSmsFallback') WHERE id = ANY($1)`,
@@ -78,24 +84,34 @@ describe('Attendance source settings (e2e)', () => {
     await app.init();
     dataSource = app.get(DataSource);
 
-    await dataSource.query(
-      `INSERT INTO schools (id, name, slug, created_at, updated_at)
-       VALUES ($1, 'Other Attendance Source School', 'other-attendance-source-school', NOW(), NOW())
-       ON CONFLICT DO NOTHING`,
-      [OTHER_TENANT_ID],
-    );
-    await dataSource.query(
-      `INSERT INTO user_tenants (user_id, tenant_id, role, created_at, updated_at)
-       VALUES ($1, $2, $3, NOW(), NOW()) ON CONFLICT DO NOTHING`,
-      [SEED_ADMIN_USER_ID, OTHER_TENANT_ID, UserRole.ADMIN],
-    );
+    createdOtherSchool =
+      (
+        await dataSource.query(
+          `INSERT INTO schools (id, name, slug, created_at, updated_at)
+           VALUES ($1, 'Other Attendance Source School', 'other-attendance-source-school', NOW(), NOW())
+           ON CONFLICT DO NOTHING RETURNING id`,
+          [OTHER_TENANT_ID],
+        )
+      ).length > 0;
+    snapshot = await dataSource.query(`SELECT id, settings FROM schools WHERE id = ANY($1)`, [
+      [TENANT_ID, OTHER_TENANT_ID],
+    ]);
+    addedOtherMembership =
+      (
+        await dataSource.query(
+          `INSERT INTO user_tenants (user_id, tenant_id, role, created_at, updated_at)
+           VALUES ($1, $2, $3, NOW(), NOW()) ON CONFLICT DO NOTHING RETURNING role`,
+          [SEED_ADMIN_USER_ID, OTHER_TENANT_ID, UserRole.ADMIN],
+        )
+      ).length > 0;
     // Same user holds every role on the seed tenant so `X-Role` can probe the matrix.
     for (const role of [...DENIED_ROLES, UserRole.SUPER_ADMIN]) {
-      await dataSource.query(
+      const added = await dataSource.query(
         `INSERT INTO user_tenants (user_id, tenant_id, role, created_at, updated_at)
-         VALUES ($1, $2, $3, NOW(), NOW()) ON CONFLICT DO NOTHING`,
+         VALUES ($1, $2, $3, NOW(), NOW()) ON CONFLICT DO NOTHING RETURNING role`,
         [SEED_ADMIN_USER_ID, TENANT_ID, role],
       );
+      if (added.length > 0) addedRoles.push(role);
     }
 
     const loginRes = await supertest(app.getHttpServer())
@@ -107,12 +123,27 @@ describe('Attendance source settings (e2e)', () => {
   }, 60000);
 
   afterAll(async () => {
-    await clearStored();
-    // Remove the extra role memberships added in beforeAll so other specs see the seed admin unchanged.
+    // Put both schools' settings back exactly as found (this spec edits lateAfter too).
+    for (const row of snapshot) {
+      await dataSource.query(`UPDATE schools SET settings = $2 WHERE id = $1`, [
+        row.id,
+        JSON.stringify(row.settings),
+      ]);
+    }
+    // Delete only the memberships and school this spec inserted.
     await dataSource.query(
       `DELETE FROM user_tenants WHERE user_id = $1 AND tenant_id = $2 AND role = ANY($3)`,
-      [SEED_ADMIN_USER_ID, TENANT_ID, [...DENIED_ROLES, UserRole.SUPER_ADMIN]],
+      [SEED_ADMIN_USER_ID, TENANT_ID, addedRoles],
     );
+    if (addedOtherMembership) {
+      await dataSource.query(`DELETE FROM user_tenants WHERE user_id = $1 AND tenant_id = $2`, [
+        SEED_ADMIN_USER_ID,
+        OTHER_TENANT_ID,
+      ]);
+    }
+    if (createdOtherSchool) {
+      await dataSource.query(`DELETE FROM schools WHERE id = $1`, [OTHER_TENANT_ID]);
+    }
     await app.close();
   });
 
@@ -133,7 +164,10 @@ describe('Attendance source settings (e2e)', () => {
   });
 
   it('rejects an unknown source with 400', async () => {
-    await patch({ attendance: { dailySource: 'EVERYONE' } }).expect(400);
+    const before = (await get().expect(200)).body.attendance.dailySource;
+    await patch({ attendance: await attendanceWith({ dailySource: 'EVERYONE' }) }).expect(400);
+    // The rejected write stored nothing.
+    expect((await get().expect(200)).body.attendance.dailySource).toBe(before);
   });
 
   it('lets ADMIN change it and denies TEACHER with 403', async () => {
@@ -141,7 +175,12 @@ describe('Attendance source settings (e2e)', () => {
       { attendance: await attendanceWith({ dailySource: 'ANY' }) },
       { role: UserRole.ADMIN },
     ).expect(200);
-    await patch({ attendance: { dailySource: 'DEVICE' } }, { role: UserRole.TEACHER }).expect(403);
+    const before = (await get().expect(200)).body.attendance.dailySource;
+    await patch(
+      { attendance: await attendanceWith({ dailySource: 'DEVICE' }) },
+      { role: UserRole.TEACHER },
+    ).expect(403);
+    expect((await get().expect(200)).body.attendance.dailySource).toBe(before);
   });
 
   it('blocks cross-tenant writes and does not leak values across tenants', async () => {
@@ -150,6 +189,20 @@ describe('Attendance source settings (e2e)', () => {
       { tenant: OTHER_TENANT_ID, schoolId: TENANT_ID },
     ).expect(403);
     expect((await get(OTHER_TENANT_ID).expect(200)).body.attendance.dailySource).toBe('ANY');
+  });
+
+  it('rejects a malformed or unknown X-Tenant-ID', async () => {
+    const send = (tenant: string) =>
+      supertest(app.getHttpServer())
+        .get(settingsUrl(TENANT_ID))
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Tenant-ID', tenant);
+    expect([400, 401, 403, 404]).toContain((await send('not-a-uuid')).status);
+    expect([400, 401, 403, 404]).toContain(
+      (await send('00000000-0000-4000-8000-00000000dead')).status,
+    );
+    expect((await send('not-a-uuid')).status).not.toBe(200);
+    expect((await send('00000000-0000-4000-8000-00000000dead')).status).not.toBe(200);
   });
 
   it('401s without X-Tenant-ID', async () => {
