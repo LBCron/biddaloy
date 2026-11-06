@@ -97,6 +97,7 @@ const NAV_PATH_TO_ROUTE_ID: Record<string, string> = {
   '/settings?section=backup': '/_staff/settings',
   '/settings?section=billing': '/_staff/settings',
   '/settings?section=billing&buy=1': '/_staff/settings',
+  '/settings?section=academics&devices=new': '/_staff/settings',
   '/students?openPerformance=1': '/_staff/students/',
   '/fees/fines?logFine=1': '/_staff/fees/fines/',
   '/fees/fines?generateFines=1': '/_staff/fees/fines/',
@@ -159,6 +160,7 @@ const REGISTERED_ACTION_FILES: Record<string, string> = {
   'fines.log': `${R}_staff/fees/fines/-modals/log-fine-modal.tsx`,
   'fines.generate': `${R}_staff/fees/fines/-modals/generate-fines-modal.tsx`,
   'fines.waive': `${R}_staff/fees/fines/-modals/waive-fine-dialog.tsx`,
+  'settings.attendanceDevices.add': 'client-admin/src/pages/settings/attendance-device-dialog.tsx',
   'programs.add': `${R}_staff/programs/-program-form-dialog.tsx`,
   'programs.enrol': `${R}_staff/programs/-enrol-dialog.tsx`,
   'programs.recordMilestone': `${R}_staff/programs/-record-dialog.tsx`,
@@ -326,6 +328,8 @@ describe('action-registry.ts', () => {
   // `/_staff/fees/fines/`'s own FEE_READ gate on purpose — see
   // `action-registry.ts`'s comment on those three entries.
   const ROUTE_PERMISSION_EXCEPTIONS = new Set([
+    // [76.5.02] ATTENDANCE_DEVICE_MANAGE is stricter than the settings page's SETTINGS_MANAGE gate.
+    'settings.attendanceDevices.add',
     'programs.add',
     'programs.enrol',
     'fines.log',
