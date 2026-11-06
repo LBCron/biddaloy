@@ -263,5 +263,21 @@
   "helpRequired": {
     "date": "Yes",
     "statusEachStudent": "No — the app asks if any are left"
-  }
+  },
+  "registerBanner": {
+    "CLASS_TEACHER_ONLY": "Only the class teacher saves this register. You can look, but not change it.",
+    "FIRST_PERIOD_ONLY": "Only the first-period teacher saves this register. You can look, but not change it.",
+    "DEVICE_SCHOOL": "This school takes attendance from the attendance machine. The class teacher can still correct a mark."
+  },
+  "firstPeriod": {
+    "title": "You take the whole-day attendance",
+    "hint": "You teach the first period, so you mark the whole day for this section.",
+    "checklistTitle": "Before you save",
+    "checklistMarked": "Everyone is marked present, absent, late or on leave",
+    "checklistLate": "Late students have their minutes filled in",
+    "checklistAbsent": "Absent students are right — guardians may get a message"
+  },
+  "markRestAbsent": "Mark the rest absent",
+  "scannedBadge": "Scanned {{time}}",
+  "fromSheetBadge": "From sheet"
 }
