@@ -9,6 +9,7 @@
 import { Button, Card, Checkbox, StatusBadge } from '@biddaloy/ui/components';
 import {
   importFileErrorKey,
+  useAttendanceImport,
   useCommitAttendanceSheet,
   useDownloadAttendanceSheet,
   useMySections,
@@ -98,6 +99,18 @@ function AttendanceImportPage() {
   // Why the user is back on the upload step after Save failed with the stage gone (or null).
   const [restart, setRestart] = React.useState<Restart | null>(null);
   const [supersedesGone, setSupersedesGone] = React.useState(false);
+  // The server 404s a missing `supersedes` before it uses the stage, and an expired stage the
+  // same way. Check the earlier upload up front (same scope as the server) so a commit 404 only
+  // ever means "expired": a gone one is dropped now, with a sentence, before any Save.
+  const earlier = useAttendanceImport(search.supersedes);
+  const earlierMissing =
+    search.supersedes !== undefined &&
+    (earlier.error as { statusCode?: number } | null)?.statusCode === 404;
+  React.useEffect(() => {
+    if (!earlierMissing) return;
+    setSupersedesGone(true);
+    void navigate({ search: (prev) => ({ ...prev, supersedes: undefined }), replace: true });
+  }, [earlierMissing, navigate]);
 
   const download = useDownloadAttendanceSheet();
   const validate = useValidateAttendanceSheet();
@@ -124,7 +137,6 @@ function AttendanceImportPage() {
       onSuccess: (data) => {
         setResult(data);
         setRestart(null);
-        setSupersedesGone(false);
         setStep('preview');
       },
       onError: (error) => {
@@ -150,18 +162,6 @@ function AttendanceImportPage() {
         onSuccess: ({ import_id }) =>
           void navigate({ to: '/attendance/imports/$importId', params: { importId: import_id } }),
         onError: (error) => {
-          const status = (error as { statusCode?: number }).statusCode;
-          // The server checks `supersedes` before it uses up the stage, so with one sent a 404
-          // may mean only "earlier upload not found": drop it and let the user press Save again.
-          // A second 404 has no `supersedes` and falls through to "expired". No auto-retry.
-          if (status === 404 && search.supersedes) {
-            setSupersedesGone(true);
-            void navigate({
-              search: (prev) => ({ ...prev, supersedes: undefined }),
-              replace: true,
-            });
-            return;
-          }
           const reason = restartReason(error);
           if (reason) {
             setRestart(reason);

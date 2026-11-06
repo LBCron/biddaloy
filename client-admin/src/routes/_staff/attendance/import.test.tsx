@@ -282,31 +282,48 @@ describe('/attendance/import', () => {
     expect(await screen.findByText(/You cannot save one of these days now/)).toBeTruthy();
   });
 
-  // [review] With `supersedes`, a 404 may mean only "earlier upload not found" (checked before the
-  // stage is used): stay on review, drop it, and let the next Save go without it. No auto-retry.
-  it('drops a missing supersedes on 404 and the next Save goes without it', async () => {
-    const bodies: unknown[] = [];
+  // [review] The server 404s a missing `supersedes` and an expired stage alike, so the wizard
+  // checks the earlier upload up front: a gone one is dropped before Save, never on a commit 404.
+  it('drops a missing supersedes before Save and saves as a new upload', async () => {
+    let body: unknown;
     server.use(
+      http.get(`*/attendance/imports/${IMPORT_ID}`, () =>
+        HttpResponse.json(
+          { statusCode: 404, message: 'x', requestId: 'r', path: '/', timestamp: 't' },
+          { status: 404 },
+        ),
+      ),
       http.post('/api/v1/attendance/import/commit', async ({ request }) => {
-        bodies.push(await request.json());
-        if (bodies.length === 1) {
-          return HttpResponse.json(
-            { statusCode: 404, message: 'x', requestId: 'r', path: '/', timestamp: 't' },
-            { status: 404 },
-          );
-        }
+        body = await request.json();
         return HttpResponse.json({ import_id: IMPORT_ID }, { status: 201 });
       }),
     );
     const { router } = renderPage(`?supersedes=${IMPORT_ID}`);
+    await waitFor(() => expect(router.state.location.search).not.toHaveProperty('supersedes'));
+    const user = await toReview();
+    expect(screen.getByText(/The earlier upload was not found/)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Save 2 changes' }));
+    await waitFor(() => expect(body).toEqual({ staging_id: STAGING_ID }));
+  });
+
+  // A commit 404 with a real earlier upload is an expired review: `supersedes` stays.
+  it('keeps supersedes when the commit 404 is an expired review', async () => {
+    server.use(
+      http.get(`*/attendance/imports/${IMPORT_ID}`, () =>
+        HttpResponse.json({ id: IMPORT_ID, rows: [], counts: {}, file_name: 'a.xlsx' }),
+      ),
+      http.post('/api/v1/attendance/import/commit', () =>
+        HttpResponse.json(
+          { statusCode: 404, message: 'x', requestId: 'r', path: '/', timestamp: 't' },
+          { status: 404 },
+        ),
+      ),
+    );
+    const { router } = renderPage(`?supersedes=${IMPORT_ID}`);
     const user = await toReview();
     await user.click(screen.getByRole('button', { name: 'Save 2 changes' }));
-    expect(await screen.findByText(/The earlier upload was not found/)).toBeTruthy();
-    expect(bodies).toHaveLength(1);
-    await waitFor(() => expect(router.state.location.search).not.toHaveProperty('supersedes'));
-    await user.click(screen.getByRole('button', { name: 'Save 2 changes' }));
-    await waitFor(() => expect(bodies).toHaveLength(2));
-    expect(bodies[1]).toEqual({ staging_id: STAGING_ID });
+    expect(await screen.findByText('This review has expired')).toBeTruthy();
+    expect(router.state.location.search).toHaveProperty('supersedes', IMPORT_ID);
   });
 
   // [review] A failed section list says so and offers a retry, not just "Pick at least one section".
