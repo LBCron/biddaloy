@@ -523,6 +523,14 @@ palette action navigates to.
 - **A host-confirm page needs its own "nothing to save" and "list is locked" states (2026-11-06, #3478).** Save shows `Save {n}` and turns off at 0; a 409 shows the page's own sentence plus a "Back to grid" button, not the server's English. -> no rule.
 - **Match alert text by role (2026-11-06, #3478).** `BulkUploadPreview` also announces errors in an `sr-only` live region, so `getByText(sentence)` matches two nodes; use `getByRole('alert').filter({ hasText })`. -> no rule.
 
+### Attendance sheet and source learnings (Epic #2429, Wave 5, 2026-11-06)
+
+- **A key used with `defaultValue` still counts as missing.** Three W5 lanes shipped `t('x', { defaultValue })` while the i18n keys were pending, and nothing failed. `check:i18n` only flags plain `t('key')` calls, so those keys stayed absent until the close ticket. Land the en + bn keys in the same PR as the call. -> no rule.
+- **Dynamic keys are invisible to `check:i18n`.** A key built as `reference.labels.<header>` on the student import page needs a `card_no` label and column text, and the checker cannot see that. Add the key when you add a column to the template. -> no rule.
+- **A permission gate belongs above the data hook.** `if (!canManage) return null` placed after `useAttendanceDevices()` still sends the request, and the user gets a 403. Split into an outer gate and an inner component that owns the queries. -> no rule.
+- **`ScanCardField` already strips characters outside `A-Z a-z 0-9 -`.** A client-side pattern check on its value can only fail for a value loaded from the server, so test the failure path with a 500, not a bad string.
+- **Breadcrumb entity names come from `ENTITY_RESOLVERS`, keyed by the crumb's own label key** (`uploadDetail`), reading the query cache the page already filled.
+
 ### UX lint stragglers
 
 `ui/eslint-rules/ux-guards.mjs` holds four rules (`no-native-picker`,
