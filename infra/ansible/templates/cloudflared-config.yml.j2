@@ -27,7 +27,7 @@ ingress:
 {% endfor %}
 {% endfor %}
 {# No '*.<root>' rule here, on purpose (Epic 40, runbook part 17a). cloudflared matches hostnames
-   case-sensitively, so 'STAGING.<root>' (or 'staging.<root>.') would miss the staging rule above,
-   fall into a wildcard and skip the Access check. School sites get a catch-all to a SEPARATE nginx
+   case-sensitively, so 'STAGING.<root>' would miss the staging rule above, fall into a wildcard
+   and skip the Access check. (A trailing-dot name matches no hostname rule and falls to the last one.) School sites get a catch-all to a SEPARATE nginx
    listener that holds no fixed host (#3620 / #3655, runbook part 17d). #}
   - service: http_status:404

@@ -1,10 +1,16 @@
-# builds the 7 basic-theme pages from one shell; run: python3 build.py
-import pathlib
+# -*- coding: utf-8 -*-
+# Builds the 8 basic-theme pages (7 + home-reordered.html) from one shell. Python 3.9+, stdlib only.
+#   python3 build.py              rebuild basic/*.html (keys every text with data-field, see key_fields)
+#   python3 build.py --key FILE…  re-key other themes' pages in place (their <span class="bn|en" data-field>)
+#   python3 build.py --check      key the 7 theme home pages in memory and assert the key contract
+import pathlib, re, sys
+from html.parser import HTMLParser
 HERE = pathlib.Path(__file__).parent
 NAV = [("home.html","হোম","Home"),("about","আমাদের কথা","About"),("academics","একাডেমিক","Academics"),("admissions.html","ভর্তি","Admissions"),("notices.html","খবর ও নোটিশ","News & Notices"),("results.html","ফলাফল","Results"),("teachers.html","শিক্ষকমণ্ডলী","Teachers"),("contact.html","যোগাযোগ","Contact")]
-def t(bn,en): return f'<x-t bn="{bn}" en="{en}"></x-t>'
+def t(bn,en): return f'<x-t data-field="" bn="{bn}" en="{en}"></x-t>'
 def nav(cur):
-    return "".join(f'<a href="{h}"{" aria-current=\"page\"" if h==cur else ""}>{t(b,e)}</a>' for h,b,e in NAV)
+    cur_attr = ' aria-current="page"'
+    return "".join(f'<a href="{h}"{cur_attr if h==cur else ""}>{t(b,e)}</a>' for h,b,e in NAV)
 def shell(cur,title_bn,title_en,body,extra_css=""):
     return f'''<!doctype html>
 <html lang="bn" data-lang="bn" data-theme="basic">
@@ -37,7 +43,7 @@ def shell(cur,title_bn,title_en,body,extra_css=""):
 </main>
 <footer class="foot"><div class="wrap">
   <div class="grid g4">
-    <div><h4>{t("নবীনগর উচ্চ বিদ্যালয়","Nabinagar High School")}</h4><p class="small">{t("কলেজ রোড, নবীনগর, ব্রাহ্মণবাড়িয়া ৩৪১০","College Road, Nabinagar, Brahmanbaria 3410")}<br>০১৭১১-০০০০০০ · office@nabinagarhs.edu.bd</p></div>
+    <div><h4>{t("নবীনগর উচ্চ বিদ্যালয়","Nabinagar High School")}</h4><p class="small">{t("কলেজ রোড, নবীনগর, ব্রাহ্মণবাড়িয়া ৩৪১০","College Road, Nabinagar, Brahmanbaria 3410")}<br>০১X০০-০০০০০০ · office@nabinagarhs.example</p></div>
     <div><h4>{t("দ্রুত লিংক","Quick links")}</h4><a href="admissions.html">{t("ভর্তি তথ্য","Admissions")}</a><a href="notices.html">{t("নোটিশ বোর্ড","Notice board")}</a><a href="results.html">{t("ফলাফল","Results")}</a><a href="#">{t("ক্লাস রুটিন","Class routine")}</a><a href="#">{t("ছুটির তালিকা","Holiday list")}</a></div>
     <div><h4>{t("ডাউনলোড","Downloads")}</h4><a href="#">{t("ভর্তি ফরম (PDF)","Admission form (PDF)")}</a><a href="#">{t("বইয়ের তালিকা ২০২৭","Book list 2027")}</a><a href="#">{t("সিলেবাস","Syllabus")}</a></div>
     <div><h4>{t("অভিভাবক ও শিক্ষার্থী","Guardians & students")}</h4><p class="small" style="margin-bottom:12px">{t("ফি, উপস্থিতি ও ফলাফল দেখতে পোর্টালে ঢুকুন।","Sign in to see fees, attendance and results.")}</p><a class="btn btn-primary" id="portal" href="#">{t("পোর্টালে লগইন","Portal login")}</a></div>
@@ -108,7 +114,7 @@ HOME = f'''
     <div class="card tcard"><div class="avatar" role="img" aria-label="Photo slot 400×400"></div><b>{t("আনোয়ার হোসেন","Anwar Hossain")}</b><span class="small">{t("সহকারী শিক্ষক · পদার্থবিজ্ঞান","Assistant Teacher · Physics")}</span></div>
     <div class="card tcard"><div class="avatar" role="img" aria-label="Photo slot 400×400"></div><b>{t("মাহমুদা বেগম","Mahmuda Begum")}</b><span class="small">{t("সহকারী শিক্ষক · ইংরেজি","Assistant Teacher · English")}</span></div>
   </div>
-<p class="seeall" data-field="teachers.seeall"><a href="teachers.html">{t("সবাইকে দেখুন","See all teachers")}</a></p>
+<p class="seeall"><a href="teachers.html">{t("সবাইকে দেখুন","See all teachers")}</a></p>
 </div></section>
 
 <section class="sec"><div class="wrap">
@@ -132,14 +138,14 @@ HOME = f'''
 
 <section class="sec"><div class="wrap contact">
   <div><h2>{t("যোগাযোগ","Contact")}</h2>
-    <dl class="kv" style="margin:16px 0 20px"><dt>{t("ঠিকানা","Address")}</dt><dd>{t("কলেজ রোড, নবীনগর, ব্রাহ্মণবাড়িয়া ৩৪১০","College Road, Nabinagar, Brahmanbaria 3410")}</dd><dt>{t("ফোন","Phone")}</dt><dd>০১৭১১-০০০০০০</dd><dt>{t("ইমেইল","Email")}</dt><dd>office@nabinagarhs.edu.bd</dd><dt>{t("অফিস সময়","Office hours")}</dt><dd>{t("রবি–বৃহস্পতি, সকাল ৯টা – বিকেল ৪টা","Sun–Thu, 9:00 am – 4:00 pm")}</dd></dl>
-    <div class="cta"><a class="btn wa" href="https://wa.me/8801711000000">{t("WhatsApp-এ লিখুন","Message on WhatsApp")}</a><a class="btn btn-ghost" href="contact.html">{t("বার্তা পাঠান","Send a message")}</a></div></div>
+    <dl class="kv" style="margin:16px 0 20px"><dt>{t("ঠিকানা","Address")}</dt><dd>{t("কলেজ রোড, নবীনগর, ব্রাহ্মণবাড়িয়া ৩৪১০","College Road, Nabinagar, Brahmanbaria 3410")}</dd><dt>{t("ফোন","Phone")}</dt><dd>০১X০০-০০০০০০</dd><dt>{t("ইমেইল","Email")}</dt><dd>office@nabinagarhs.example</dd><dt>{t("অফিস সময়","Office hours")}</dt><dd>{t("রবি–বৃহস্পতি, সকাল ৯টা – বিকেল ৪টা","Sun–Thu, 9:00 am – 4:00 pm")}</dd></dl>
+    <div class="cta"><a class="btn wa" href="#">{t("WhatsApp-এ লিখুন","Message on WhatsApp")}</a><a class="btn btn-ghost" href="contact.html">{t("বার্তা পাঠান","Send a message")}</a></div></div>
   <div class="map"><button class="btn btn-ghost" type="button">{t("মানচিত্র দেখুন","Show map")}</button></div>
 </div></section>
 '''
 
 ADMISSIONS = ph("ভর্তি","Admissions","ভর্তি তথ্য ২০২৭","Admissions 2027","ষষ্ঠ ও নবম শ্রেণিতে আসন খালি আছে। নিচের ধাপগুলো অনুসরণ করুন; অনলাইনে আবেদন করতে ১০ মিনিট লাগে।","Seats are open in Classes 6 and 9. Follow the steps below; the online application takes about 10 minutes.") + f'''
-<section class="sec"><div class="wrap grid g2" style="gap:40px">
+<section id="steps" class="sec"><div class="wrap grid g2" style="gap:40px">
   <div>
     <h2>{t("কীভাবে আবেদন করবেন","How to apply")}</h2>
     <ol class="steps" style="margin-top:12px">
@@ -162,7 +168,7 @@ ADMISSIONS = ph("ভর্তি","Admissions","ভর্তি তথ্য ২
   </div>
 </div></section>
 
-<section class="sec sec-alt"><div class="wrap">
+<section id="fees" class="sec sec-alt"><div class="wrap">
   <div class="sec-head"><div><h2>{t("ফি কাঠামো ২০২৭","Fee structure 2027")}</h2><p class="muted">{t("সব অঙ্ক টাকায়; ভর্তি ফি এককালীন।","All amounts in BDT; admission fee is one-time.")}</p></div></div>
   <div class="tbl-wrap"><table class="tbl"><thead><tr><th>{t("শ্রেণি","Class")}</th><th class="num">{t("ভর্তি ফি","Admission")}</th><th class="num">{t("মাসিক বেতন","Monthly tuition")}</th><th class="num">{t("পরীক্ষা ফি (বার্ষিক)","Exam fee (yearly)")}</th><th class="num">{t("বই ও খাতা","Books & copies")}</th></tr></thead>
   <tbody><tr><td>{t("ষষ্ঠ","Class 6")}</td><td class="num">৩,০০০</td><td class="num">৬০০</td><td class="num">১,২০০</td><td class="num">{t("সরকারি বই বিনামূল্যে","Govt books free")}</td></tr>
@@ -172,7 +178,7 @@ ADMISSIONS = ph("ভর্তি","Admissions","ভর্তি তথ্য ২
   <p class="tiny" style="margin-top:10px">{t("মুক্তিযোদ্ধা পরিবার ও একই পরিবারের দ্বিতীয় সন্তানের বেতনে ৫০% ছাড়। অফিসে কথা বলুন।","50% tuition waiver for freedom-fighter families and a second child from the same family. Talk to the office.")}</p>
 </div></section>
 
-<section class="sec"><div class="wrap grid g2" style="gap:40px">
+<section id="faq" class="sec"><div class="wrap grid g2" style="gap:40px">
   <div><h2>{t("প্রায়ই জিজ্ঞাসিত প্রশ্ন","Frequently asked")}</h2>
     <div style="margin-top:8px">
     <details open><summary>{t("ভর্তি পরীক্ষায় কী আসে?","What is on the admission test?")}</summary><p>{t("আগের শ্রেণির বাংলা, ইংরেজি ও গণিত বই থেকে। কোনো গাইড বই লাগে না।","Bangla, English and Maths from the previous class's textbooks. No guidebook needed.")}</p></details>
@@ -192,14 +198,14 @@ ADMISSIONS = ph("ভর্তি","Admissions","ভর্তি তথ্য ২
 '''
 
 NOTICES_PAGE = ph("খবর ও নোটিশ","News & Notices","নোটিশ বোর্ড","Notice board","অফিস থেকে প্রকাশিত সব ঘোষণা। জরুরি নোটিশ লাল চিহ্নে।","Every announcement from the office. Urgent ones are marked in red.") + f'''
-<section class="sec"><div class="wrap" style="display:grid;gap:28px">
+<section id="notices" class="sec"><div class="wrap" style="display:grid;gap:28px">
   <div class="filters" role="group" aria-label="Filter"><button type="button" aria-pressed="true">{t("সব","All")}</button><button type="button" aria-pressed="false">{t("জরুরি","Urgent")}</button><button type="button" aria-pressed="false">{t("পরীক্ষা","Exams")}</button><button type="button" aria-pressed="false">{t("ভর্তি","Admission")}</button><button type="button" aria-pressed="false">{t("ছুটি","Holiday")}</button></div>
   <div class="grid" style="grid-template-columns:1fr;gap:28px" id="nl">
     <div class="island" data-loading aria-busy="true"><div class="sk" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="ready notice-list">{notice_rows(4)}<a class="notice" href="#"><span class="date"><b>২৮</b><span>{t("অক্টো","Oct")}</span></span><span><h4>{t("অভিভাবক সভা ৩০ অক্টোবর, সকাল ১০টা","Guardian meeting 30 October, 10 am")}</h4><div class="meta">{t("প্রধান শিক্ষক","Headmaster")}</div></span><span class="chip">{t("সভা","Meeting")}</span></a><a class="notice" href="#"><span class="date"><b>২০</b><span>{t("অক্টো","Oct")}</span></span><span><h4>{t("ষষ্ঠ শ্রেণির বার্ষিক পরীক্ষার রুটিন","Class 6 annual exam routine")}</h4><div class="meta">{t("পরীক্ষা কমিটি · PDF সংযুক্ত","Exam committee · PDF attached")}</div></span><span class="chip chip-accent">{t("পরীক্ষা","Exams")}</span></a></div></div>
     <div class="cta" style="justify-content:center"><button class="btn btn-ghost" type="button">{t("আরও পুরোনো নোটিশ","Older notices")}</button></div>
   </div>
 </div></section>
-<section class="sec sec-alt"><div class="wrap">
+<section id="reader" class="sec sec-alt"><div class="wrap">
   <p class="tiny" style="margin-bottom:10px">{t("একটি নোটিশ খুললে এমন দেখায়","What an opened notice looks like")}</p>
   <article class="card" style="padding:24px;display:grid;gap:16px;max-width:860px">
     <div><span class="chip chip-warn">{t("জরুরি","Urgent")}</span> <span class="tiny" style="margin-left:8px">{t("১২ নভেম্বর ২০২৬ · প্রধান শিক্ষক","12 November 2026 · Headmaster")}</span><h2 style="margin-top:10px">{t("১৬ নভেম্বর স্কুল বন্ধ: স্থানীয় নির্বাচন","School closed on 16 November: local election")}</h2></div>
@@ -211,12 +217,12 @@ NOTICES_PAGE = ph("খবর ও নোটিশ","News & Notices","নোটি
 '''
 
 RESULTS = ph("ফলাফল","Results","পরীক্ষার ফলাফল","Exam results","পরীক্ষা ও শ্রেণি বেছে নিন। রোল দিলে শুধু সেই শিক্ষার্থীর ফল দেখাবে; না দিলে পুরো শাখার তালিকা।","Pick the exam and class. Enter a roll to see one student; leave it blank for the whole section.") + f'''
-<section class="sec"><div class="wrap" style="display:grid;gap:28px">
+<section id="results" class="sec"><div class="wrap" style="display:grid;gap:28px">
   <form class="card" style="padding:20px;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));align-items:end" onsubmit="return false">
-    <div class="field"><label for="ex">{t("পরীক্ষা","Exam")}</label><select id="ex"><option data-bn="অর্ধবার্ষিক পরীক্ষা ২০২৬" data-en="Half-yearly 2026">অর্ধবার্ষিক পরীক্ষা ২০২৬</option><option data-bn="প্রথম সাময়িক ২০২৬" data-en="First term 2026">প্রথম সাময়িক ২০২৬</option></select></div>
-    <div class="field"><label for="cl">{t("শ্রেণি","Class")}</label><select id="cl"><option data-bn="অষ্টম" data-en="Class 8">অষ্টম</option></select></div>
-    <div class="field"><label for="se">{t("শাখা","Section")}</label><select id="se"><option data-bn="ক" data-en="A">ক</option><option data-bn="খ" data-en="B">খ</option></select></div>
-    <div class="field"><label for="ro">{t("রোল (ঐচ্ছিক)","Roll (optional)")}</label><input id="ro" inputmode="numeric" data-ph-bn="যেমন ১২" data-ph-en="e.g. 12" placeholder="যেমন ১২"></div>
+    <div class="field"><label for="ex">{t("পরীক্ষা","Exam")}</label><select id="ex"><option data-field="" data-bn="অর্ধবার্ষিক পরীক্ষা ২০২৬" data-en="Half-yearly 2026">অর্ধবার্ষিক পরীক্ষা ২০২৬</option><option data-field="" data-bn="প্রথম সাময়িক ২০২৬" data-en="First term 2026">প্রথম সাময়িক ২০২৬</option></select></div>
+    <div class="field"><label for="cl">{t("শ্রেণি","Class")}</label><select id="cl"><option data-field="" data-bn="অষ্টম" data-en="Class 8">অষ্টম</option></select></div>
+    <div class="field"><label for="se">{t("শাখা","Section")}</label><select id="se"><option data-field="" data-bn="ক" data-en="A">ক</option><option data-field="" data-bn="খ" data-en="B">খ</option></select></div>
+    <div class="field"><label for="ro">{t("রোল (ঐচ্ছিক)","Roll (optional)")}</label><input id="ro" inputmode="numeric" data-field="" data-ph-bn="যেমন ১২" data-ph-en="e.g. 12" placeholder="যেমন ১২"></div>
     <div class="turnstile" style="grid-column:1/-1"><i></i>{t("রোবট নয় যাচাই (Turnstile)","Not-a-robot check (Turnstile)")}</div>
     <button class="btn btn-primary" type="submit" style="grid-column:1/-1;justify-self:start">{t("ফল দেখুন","Show results")}</button>
   </form>
@@ -231,7 +237,7 @@ RESULTS = ph("ফলাফল","Results","পরীক্ষার ফলাফ�
       <tr id="r2" class="detail" hidden><td colspan="6"><div class="subj"><span><b>{t("বাংলা","Bangla")}</b> ৭৯</span><span><b>{t("ইংরেজি","English")}</b> ৭২</span><span><b>{t("গণিত","Maths")}</b> ৮৮</span></div></td></tr>
       <tr><td class="num" data-l="রোল">৩</td><td data-l="নাম">{t("মারিয়া আক্তার","Maria Akter")}</td><td class="num" data-l="GPA">৪.৫০</td><td data-l="গ্রেড">A</td><td data-l="ফলাফল"><span class="chip chip-ok">{t("উত্তীর্ণ","Pass")}</span></td><td><button class="btn btn-ghost btn-sm" type="button" data-expand="r3" aria-expanded="false">{t("বিষয়ভিত্তিক","Subjects")}</button></td></tr>
       <tr id="r3" class="detail" hidden><td colspan="6"><div class="subj"><span><b>{t("বাংলা","Bangla")}</b> ৭০</span></div></td></tr>
-      <tr><td class="num" data-l="রোল">৪</td><td data-l="নাম">{t("তামিম ইকবাল","Tamim Iqbal")}</td><td class="num" data-l="GPA">—</td><td data-l="গ্রেড">F</td><td data-l="ফলাফল"><span class="chip chip-warn">{t("অকৃতকার্য (গণিত)","Fail (Maths)")}</span></td><td><button class="btn btn-ghost btn-sm" type="button" data-expand="r4" aria-expanded="false">{t("বিষয়ভিত্তিক","Subjects")}</button></td></tr>
+      <tr><td class="num" data-l="রোল">৪</td><td data-l="নাম">{t("তানিম হাসান","Tanim Hasan")}</td><td class="num" data-l="GPA">—</td><td data-l="গ্রেড">F</td><td data-l="ফলাফল"><span class="chip chip-warn">{t("অকৃতকার্য (গণিত)","Fail (Maths)")}</span></td><td><button class="btn btn-ghost btn-sm" type="button" data-expand="r4" aria-expanded="false">{t("বিষয়ভিত্তিক","Subjects")}</button></td></tr>
       <tr id="r4" class="detail" hidden><td colspan="6"><div class="subj"><span><b>{t("গণিত","Maths")}</b> ২৮</span></div></td></tr>
       <tr><td class="num" data-l="রোল">৫</td><td data-l="নাম">{t("জান্নাতুল ফেরদৌস","Jannatul Ferdous")}</td><td class="num" data-l="GPA">৪.০০</td><td data-l="গ্রেড">A-</td><td data-l="ফলাফল"><span class="chip chip-ok">{t("উত্তীর্ণ","Pass")}</span></td><td><button class="btn btn-ghost btn-sm" type="button" data-expand="r5" aria-expanded="false">{t("বিষয়ভিত্তিক","Subjects")}</button></td></tr>
       <tr id="r5" class="detail" hidden><td colspan="6"><div class="subj"><span><b>{t("বাংলা","Bangla")}</b> ৬৫</span></div></td></tr>
@@ -260,14 +266,14 @@ tr.detail td{background:var(--bg-2)}
 }'''
 
 TEACHERS = ph("শিক্ষকমণ্ডলী","Teachers","শিক্ষকমণ্ডলী","Our teachers","৪২ জন শিক্ষক ও ৯ জন কর্মচারী। বিভাগ অনুযায়ী দেখুন।","42 teachers and 9 staff. Filter by department.") + f'''
-<section class="sec"><div class="wrap" style="display:grid;gap:24px">
+<section id="teachers" class="sec"><div class="wrap" style="display:grid;gap:24px">
   <div class="filters" role="group" aria-label="Department"><button type="button" aria-pressed="true">{t("সবাই","Everyone")}</button><button type="button" aria-pressed="false">{t("প্রশাসন","Administration")}</button><button type="button" aria-pressed="false">{t("বিজ্ঞান","Science")}</button><button type="button" aria-pressed="false">{t("ভাষা","Languages")}</button><button type="button" aria-pressed="false">{t("মানবিক ও ব্যবসায়","Humanities & Business")}</button></div>
   <div class="grid g4">''' + "".join(f'''<div class="card tcard"><div class="avatar" role="img" aria-label="Photo slot 400×400"></div><b>{t(n,ne)}</b><span class="small">{t(d,de)}</span><span class="tiny">{t(s,se)} · {t("কর্মরত "+y+" সাল থেকে","Since "+ye)}</span></div>''' for n,ne,d,de,s,se,y,ye in [
  ("মোঃ আব্দুল করিম","Md. Abdul Karim","প্রধান শিক্ষক","Headmaster","গণিত, এম.এসসি","Mathematics, MSc","২০০৪","2004"),
  ("শাহানা পারভীন","Shahana Parveen","সহকারী প্রধান শিক্ষক","Assistant Headmaster","বাংলা, এম.এ, বি.এড","Bangla, MA, BEd","২০০৯","2009"),
  ("তানভীর হাসান","Tanvir Hasan","সহকারী শিক্ষক","Assistant Teacher","পদার্থবিজ্ঞান, বি.এসসি (অনার্স)","Physics, BSc Hons","২০১৬","2016"),
  ("নাসরিন আক্তার","Nasrin Akter","সহকারী শিক্ষক","Assistant Teacher","ইংরেজি, এম.এ","English, MA","২০১২","2012"),
- ("আবু সাঈদ","Abu Sayeed","সহকারী শিক্ষক","Assistant Teacher","রসায়ন, এম.এসসি","Chemistry, MSc","২০১৮","2018"),
+ ("মিজানুর রহমান","Mizanur Rahman","সহকারী শিক্ষক","Assistant Teacher","রসায়ন, এম.এসসি","Chemistry, MSc","২০১৮","2018"),
  ("রোকেয়া বেগম","Rokeya Begum","সহকারী শিক্ষক","Assistant Teacher","জীববিজ্ঞান, বি.এসসি, বি.এড","Biology, BSc, BEd","২০১০","2010"),
  ("মাহবুব আলম","Mahbub Alam","সহকারী শিক্ষক","Assistant Teacher","হিসাববিজ্ঞান, এম.কম","Accounting, MCom","২০১৫","2015"),
  ("ফারহানা ইয়াসমিন","Farhana Yasmin","সহকারী শিক্ষক","Assistant Teacher","আইসিটি, বি.এসসি (সিএসই)","ICT, BSc CSE","২০২১","2021"),
@@ -277,13 +283,13 @@ TEACHERS = ph("শিক্ষকমণ্ডলী","Teachers","শিক্ষ
 '''
 
 CONTACT = ph("যোগাযোগ","Contact","যোগাযোগ ও ঠিকানা","Contact & location","অফিস সময়ে ফোন করুন বা নিচে লিখুন। মূল ক্যাম্পাস ছাড়াও একটি শাখা আছে।","Call during office hours or write below. There is one branch besides the main campus.") + f'''
-<section class="sec"><div class="wrap contact" style="gap:32px">
+<section id="contact" class="sec"><div class="wrap contact" style="gap:32px">
   <div style="display:grid;gap:22px">
     <div><h2 style="font-size:22px">{t("মূল ক্যাম্পাস","Main campus")}</h2>
-    <dl class="kv" style="margin-top:12px"><dt>{t("ঠিকানা","Address")}</dt><dd>{t("কলেজ রোড, নবীনগর, ব্রাহ্মণবাড়িয়া ৩৪১০","College Road, Nabinagar, Brahmanbaria 3410")}</dd><dt>{t("অফিস","Office")}</dt><dd>০১৭১১-০০০০০০</dd><dt>{t("প্রধান শিক্ষক","Headmaster")}</dt><dd>০১৭১১-০০০০০১</dd><dt>{t("ইমেইল","Email")}</dt><dd>office@nabinagarhs.edu.bd<br>admission@nabinagarhs.edu.bd</dd></dl></div>
+    <dl class="kv" style="margin-top:12px"><dt>{t("ঠিকানা","Address")}</dt><dd>{t("কলেজ রোড, নবীনগর, ব্রাহ্মণবাড়িয়া ৩৪১০","College Road, Nabinagar, Brahmanbaria 3410")}</dd><dt>{t("অফিস","Office")}</dt><dd>০১X০০-০০০০০০</dd><dt>{t("প্রধান শিক্ষক","Headmaster")}</dt><dd>০১X০০-০০০০০১</dd><dt>{t("ইমেইল","Email")}</dt><dd>office@nabinagarhs.example<br>admission@nabinagarhs.example</dd></dl></div>
     <div><h3>{t("অফিস সময়","Office hours")}</h3>
     <div class="tbl-wrap" style="margin-top:8px"><table class="tbl"><tbody><tr><td>{t("রবি – বৃহস্পতি","Sun – Thu")}</td><td class="num">{t("সকাল ৯:০০ – বিকেল ৪:০০","9:00 am – 4:00 pm")}</td></tr><tr><td>{t("শুক্রবার","Friday")}</td><td class="num">{t("বন্ধ","Closed")}</td></tr><tr><td>{t("শনিবার","Saturday")}</td><td class="num">{t("সকাল ৯:০০ – দুপুর ১:০০","9:00 am – 1:00 pm")}</td></tr></tbody></table></div></div>
-    <div class="cta"><a class="btn wa" href="https://wa.me/8801711000000">{t("WhatsApp-এ লিখুন","Message on WhatsApp")}</a><a class="btn btn-ghost" href="#">{t("ফেসবুক পেজ","Facebook page")}</a></div>
+    <div class="cta"><a class="btn wa" href="#">{t("WhatsApp-এ লিখুন","Message on WhatsApp")}</a><a class="btn btn-ghost" href="#">{t("ফেসবুক পেজ","Facebook page")}</a></div>
     <div><h3>{t("শাখা ক্যাম্পাস","Branch campus")}</h3><div class="card" style="padding:16px;margin-top:8px;display:grid;gap:4px"><b>{t("নবীনগর উচ্চ বিদ্যালয় · বিদ্যাকুট শাখা","Nabinagar High School · Bidyakut branch")}</b><span class="small muted">{t("বিদ্যাকুট বাজার, নবীনগর · ষষ্ঠ–অষ্টম শ্রেণি","Bidyakut Bazar, Nabinagar · Classes 6–8")}</span><a class="small" href="#">{t("শাখার ওয়েবসাইট","Branch website")}</a></div></div>
   </div>
   <div style="display:grid;gap:22px">
@@ -337,6 +343,262 @@ pages = {
  "contact.html": ("contact.html","যোগাযোগ","Contact",CONTACT,""),
  "blog-post.html": ("notices.html","ব্লগ","Blog",BLOG,BLOG_CSS),
 }
-for f,(cur,tb,te,body,css) in pages.items():
-    (HERE/f).write_text(shell(cur,tb,te,body,css),encoding="utf-8")
-print("built",len(pages))
+def reordered(html):
+    # D31: home-reordered.html = home.html with every section after the hero in reverse order
+    head, rest = html.split('<section class="hero">', 1)
+    hero_end = rest.index('</section>') + len('</section>')
+    hero, rest = rest[:hero_end], rest[hero_end:]
+    body, tail = rest[:rest.rindex('</section>') + len('</section>')], rest[rest.rindex('</section>') + len('</section>'):]
+    secs = ['<section' + x.rstrip() for x in body.split('<section') if x.strip()]
+    return head + '<section class="hero">' + hero + '\n\n' + '\n'.join(reversed(secs)) + tail
+
+pages["home-reordered.html"] = ("home.html","হোম","Home",None,"")
+
+
+# ---------------------------------------------------------------------------------------------
+# data-field keys (D25). Every bn/en text carries data-field="<section>.<field>". The key comes
+# from WHERE the text sits, never from a counter, so moving a section or adding a card does not
+# rename the others, and the same block gets the same key in every theme. Rules, in order:
+#   section   nearest <section>/<header>/<footer>/.ann/#menu/#sheet; named by id, class or its
+#             heading: hero, announcements, admissions, notices, about, academics, teachers, events,
+#             blog, contact, footer, header, page (inner-page header) ... else the heading's slug
+#   item      a repeated sibling (2+ with the same tag and first class) is numbered from 1:
+#             teachers.3.name. A link or button that holds one text only is named by its English
+#             text instead: header.admissions, footer.notice_board
+#   role      h1/h2 -> title (h3/h4 -> title inside an item), [data-tagline] -> tagline, hero
+#             buttons -> cta_primary / cta_secondary, .seeall -> see_all, time -> date, dt -> <dt>.label,
+#             dd -> <dt>, p -> text, figcaption/.cap -> caption ... ; teachers: title -> name,
+#             first text -> role. A second text with the same key gets _2, _3.
+# ---------------------------------------------------------------------------------------------
+VOID = {"area","base","br","col","embed","hr","img","input","link","meta","source","track","wbr"}
+
+class _Node:
+    def __init__(self, tag, attrs, parent, pos):
+        self.tag, self.attrs, self.parent, self.pos, self.kids = tag, dict(attrs), parent, pos, []
+    def cls(self): return (self.attrs.get("class") or "").split()
+    def text(self):
+        return "".join(k if isinstance(k, str) else k.text() for k in self.kids)
+
+class _Tree(HTMLParser):
+    def __init__(self, src):
+        super().__init__(convert_charrefs=True)
+        self.starts = [0] + [m.end() for m in re.finditer("\n", src)]
+        self.root = self.cur = _Node("#root", {}, None, 0)
+        self.feed(src); self.close()
+    def _add(self, tag, attrs):
+        line, col = self.getpos()
+        n = _Node(tag, attrs, self.cur, self.starts[line - 1] + col)
+        self.cur.kids.append(n)
+        return n
+    def handle_starttag(self, tag, attrs):
+        n = self._add(tag, attrs)
+        if tag not in VOID: self.cur = n
+    def handle_startendtag(self, tag, attrs): self._add(tag, attrs)
+    def handle_endtag(self, tag):
+        c = self.cur
+        while c is not self.root and c.tag != tag: c = c.parent
+        if c is not self.root: self.cur = c.parent
+    def handle_data(self, d): self.cur.kids.append(d)
+
+def _walk(n):
+    for k in n.kids:
+        if not isinstance(k, str):
+            yield k
+            yield from _walk(k)
+
+def _ups(n):
+    n = n.parent
+    while n is not None and n.tag != "#root":
+        yield n
+        n = n.parent
+
+def _slug(s, words=4):
+    w = re.findall(r"[a-z0-9]+", re.sub(r"<[^>]+>", " ", s).lower().replace("’", "").replace("'", ""))
+    return "_".join(w[:words]) or "x"
+
+def _en(n):
+    for a in ("en", "data-en", "data-ph-en"):
+        if a in n.attrs: return n.attrs[a]
+    sub = next((k for k in _walk(n) if k.tag == "x-t" or "en" in k.cls()), None)
+    return _en(sub) if sub is not None else re.sub(r"\s+", " ", n.text()).strip()
+
+SECTION_WORDS = [  # checked against id, class, aria-label and heading text, first hit wins
+    ("notices", r"\bnotice|\bnews\b"), ("teachers", r"teach|faculty|\bteam\b|people"),
+    ("events", r"event|coming|calendar"), ("blog", r"\bblog|stories|from the|written|writing|journal"),
+    ("contact", r"contact|visit us|find us"), ("results", r"result"), ("admissions", r"admission|\bstrip\b"),
+    ("principal", r"principal|message"), ("alumni", r"alumni"), ("houses", r"house"),
+    ("about", r"\babout|history|our story"), ("academics", r"academic|programme|program|\bprog\b|class|curriculum|pathway|dept|\bpath\b"),
+]
+
+def _heading(sec):
+    for n in _walk(sec):
+        if n.tag in ("h1", "h2"):
+            en = [k for k in _walk(n) if "en" in k.cls() or k.tag == "x-t"]
+            return _en(en[0]) if en else _en(n)
+    return ""
+
+def _section(n, names):
+    for a in _ups(n):
+        c, i = a.cls(), a.attrs.get("id", "")
+        if "ann" in c: return a, "announcements"
+        if "topbar" in c: return a, "topbar"
+        if a.tag != "section" and ("strip" in c or i in ("adm", "admissions")): return a, "admissions"
+        if a.tag == "header" or i in ("menu", "sheet") or "sheet" in c: return a, "header"
+        if a.tag == "footer": return a, "footer"
+        if a.tag == "dialog": return a, _slug(i or _heading(a), 2)
+        if a.tag == "article" and "sec" in c: return a, "post"  # basic/blog-post.html
+        if a.tag == "section":
+            if a not in names:
+                if "hero" in c or "hc-band" in c: nm = "hero"
+                elif "ph" in c: nm = "page"
+                else:
+                    head = _heading(a)
+                    nm = None
+                    for probe in (i, head, a.attrs.get("aria-label", ""), " ".join(c)):
+                        nm = next((k for k, rx in SECTION_WORDS if re.search(rx, probe, re.I)), None)
+                        if nm: break
+                    nm = nm or i.replace("-", "_") or _slug(head, 2) or "section"
+                    if nm in names.values() and nm != "hero": nm = _slug(head, 2) or nm + "_2"
+                names[a] = nm
+            return a, names[a]
+    return None, "page"
+
+def _sig(n): return (n.tag, (n.cls() or [""])[0])
+
+def _is_item(n):
+    if n.tag in ("p", "span", "b", "i", "em", "strong", "small", "br", "h1", "h2", "h3", "h4", "x-t", "dt", "dd", "td", "th", "time", "label"):
+        return False
+    if n.attrs.get("aria-hidden") == "true" or n.parent is None: return False
+    same = [k for k in n.parent.kids if not isinstance(k, str) and _sig(k) == _sig(n) and k.attrs.get("aria-hidden") != "true"]
+    # a layout column (one of them holds the section's h1/h2) and a dt/dd row are not list items
+    if any(k.tag in ("h1", "h2", "dt") for x in same for k in _walk(x)): return False
+    return len(same) >= 2
+
+def _index(n):
+    same = [k for k in n.parent.kids if not isinstance(k, str) and _sig(k) == _sig(n) and k.attrs.get("aria-hidden") != "true"]
+    return same.index(n) + 1 if n in same else 1
+
+ROLE = {"h1": "title", "h2": "title", "h3": "title", "h4": "title", "h5": "title", "time": "date", "small": "note",
+        "label": "label", "th": "head", "td": "cell", "blockquote": "quote", "figcaption": "caption", "cite": "cite",
+        "button": "button", "summary": "question", "option": "option", "li": "text", "p": "text", "legend": "title"}
+
+def _field(unit, names, used_in_item):
+    n = unit[0]
+    sec, sname = _section(n, names)
+    path = [a for a in _ups(n)]
+    path = path[:path.index(sec)] if sec in path else path
+    items = [a for a in reversed(path) if _is_item(a)]
+    role = None
+    for a in path:  # innermost first
+        c = a.cls()
+        if "seeall" in c: role = "see_all"; break
+        if "ann-label" in c: role = "label"; break
+        if "brand" in c: role = "school_name"; break
+        if "data-tagline" in a.attrs: role = "tagline"; break
+        if a.tag == "dd" or a.tag == "dt":
+            dt = a if a.tag == "dt" else next((k for k in reversed(a.parent.kids[:a.parent.kids.index(a)]) if not isinstance(k, str) and k.tag == "dt"), None)
+            lab = _slug(_en(dt), 2) if dt is not None else "value"
+            role = lab + (".label" if a.tag == "dt" else ""); break
+        if "tag" in c or "chip" in c: role = "tag"; break
+        if "date" in c: role = "date"; break
+        if "cap" in c or "hc-cap" in c: role = "caption"; break
+        if a.tag in ROLE: role = ROLE[a.tag]; break
+        if a.tag == "a" and ("btn" in c or "more" in c): role = "link"; break
+    if n.tag == "option": role = "option"
+    if n.tag == "input": role = "placeholder"
+    if role is None: role = "text"
+    key = [sname]
+    for it in items:
+        units_in = [u for u in _walk(it) if "data-field" in u.attrs]
+        langs = {("x" if u.tag == "x-t" or u.tag in ("option", "input") else ("bn" if "bn" in u.cls() else "en")) for u in units_in}
+        single = len(units_in) <= (1 if "x" in langs else 2)
+        if single and it.tag in ("a", "button", "li") and sname not in ("announcements",):
+            key.append(_slug(unit[1], 3)); role = None
+        else:
+            key.append(("slide." if "hc-slide" in it.cls() else "") + str(_index(it)))
+    btn = next((a for a in path if a.tag in ("a", "button")), None)
+    if role in ("link", "button", "text") and btn is not None and len(key) == 1 and sname != "announcements":
+        role = "cta" if sname == "hero" and "btn" in btn.cls() else _slug(unit[1], 3)
+    if sname == "announcements" and items: role = None
+    if sname == "teachers" and items and (role == "title" or n.parent.tag in ("b", "strong")): role = "name"
+    if sname == "teachers" and items and role in ("text", "note"): role = "role"
+    if role == "date":  # a date tile's parts: day, month
+        tile = next(a for a in path if a.tag == "time" or "date" in a.cls())
+        parts = [u for u in _walk(tile) if "data-field" in u.attrs and "bn" not in u.cls()]
+        if len(parts) > 1: role = "date." + ("day", "month", "year")[min(parts.index(n) if n in parts else 0, 2)]
+    if role: key.append(role)
+    return ".".join(key)
+
+def _units(root):
+    occ = [n for n in _walk(root) if "data-field" in n.attrs]
+    units, i = [], 0
+    while i < len(occ):
+        n = occ[i]
+        lang = "bn" if "bn" in n.cls() else "en" if "en" in n.cls() else "x"
+        if lang == "x":
+            units.append(([n], _en(n), n.attrs.get("bn") or n.attrs.get("data-bn") or n.attrs.get("data-ph-bn") or "")); i += 1; continue
+        m = occ[i + 1] if i + 1 < len(occ) else None
+        ok = m is not None and m.attrs["data-field"] == n.attrs["data-field"] and ({"bn", "en"} == {lang, "bn" if "bn" in m.cls() else "en"})
+        assert ok, f"unpaired bn/en text at {n.pos}: {n.text()[:40]!r}"
+        en, bn = (m, n) if lang == "bn" else (n, m)
+        units.append(([n, m], re.sub(r"\s+", " ", en.text()).strip(), re.sub(r"\s+", " ", bn.text()).strip())); i += 2
+    return units
+
+def key_fields(src):
+    """Return src with every data-field value replaced by its <section>.<field> key, plus the key map."""
+    root = _Tree(src).root
+    names, keys, out, edits = {}, {}, {}, []
+    for unit in _units(root):
+        nodes, en, bn = unit
+        base = _field((nodes[0], en), names, None)
+        k, j = base, 1
+        if k in keys and keys[k] != (bn, en) and base.endswith(".role"): base = k = base[:-5] + ".detail"
+        if base.endswith(".cta"):
+            ctas = [x for x in keys if x.startswith(base) and keys[x] != (bn, en)]
+            if (bn, en) not in [keys[x] for x in keys if x.startswith(base)]:
+                k = base + ("_primary", "_secondary", "_3", "_4")[len(ctas)]
+            else:
+                k = next(x for x in keys if x.startswith(base) and keys[x] == (bn, en))
+        while k in keys and keys[k] != (bn, en):
+            j += 1; k = f"{base}_{j}"
+        keys[k] = (bn, en)
+        for n in nodes: edits.append((n.pos, k))
+    assert len(edits) == len(re.findall(r'data-field="', src)), "data-field outside the parsed tree (script?)"
+    for pos, k in sorted(edits, reverse=True):
+        end = src.index(">", pos)
+        tag = re.sub(r'data-field="[^"]*"', f'data-field="{k}"', src[pos:end], count=1)
+        src = src[:pos] + tag + src[end:]
+    return src, keys
+
+CORE = ["header.home", "header.portal_login", "announcements.label", "announcements.1", "hero.title", "hero.tagline",
+        "notices.title", "teachers.title", "teachers.1.name", "teachers.8.name", "teachers.8.role", "teachers.see_all",
+        "announcements.5", "contact.title", "contact.address"]
+
+def check(files):
+    bad = 0
+    for f in files:
+        src = f.read_text(encoding="utf-8")
+        _, keys = key_fields(src)
+        miss = [k for k in CORE if k not in keys]
+        num = [k for k in keys if re.fullmatch(r"\w+\.\d+(_\d+)?", k) and not k.startswith("announcements.")]
+        if miss or num:
+            bad += 1; print("FAIL", f, "missing", miss, "bare numbers", num[:5])
+        else:
+            print("ok  ", f, len(keys), "keys")
+    return bad
+
+if __name__ == "__main__":
+    args = sys.argv[1:]
+    if args[:1] == ["--key"]:
+        for f in args[1:]:
+            p = pathlib.Path(f); p.write_text(key_fields(p.read_text(encoding="utf-8"))[0], encoding="utf-8")
+        print("keyed", len(args) - 1)
+    elif args[:1] == ["--check"]:
+        site = HERE.parent
+        sys.exit(1 if check(sorted(site.glob("*/home.html"))) else 0)
+    else:
+        for f, (cur, tb, te, body, css) in pages.items():
+            html = shell(cur, tb, te, body if body is not None else HOME, css)
+            if f == "home-reordered.html": html = reordered(html)
+            (HERE / f).write_text(key_fields(html)[0], encoding="utf-8")
+        print("built", len(pages))

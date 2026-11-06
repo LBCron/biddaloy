@@ -1,82 +1,272 @@
 /* Palette sets per theme (D28). Set 0 is the theme's own colours, sets 1 and 2 are the alternates a school can pick.
    map: which of the theme's CSS variables follow each token. "name:k30" = 30% black mixed in, "name:w88" = 88% white mixed in.
-   contrast.mjs reads this file and fails the build when a pair drops under WCAG AA. */
+   Run contrast.mjs by hand (nothing calls it in CI): it exits 1 when a base pair drops under WCAG AA.
+   It checks the 5 base tokens only, not the mixed text colours (--muted:w30, --ink-2:w25); W4 should check those too. */
 window.SITE_PALETTES = {
-  "primary": {
-    "map": {
-      "primary": ["--sage-deep", "--sage:w40"], "secondary": ["--sky-deep", "--sky:w40"], "accent": ["--coral-deep", "--coral:w25"],
-      "surface": ["--cream", "--paper:w50", "--line:k8"], "ink": ["--ink", "--ink-soft:w25"]
+  primary: {
+    map: {
+      primary: ['--sage-deep', '--sage:w40'],
+      secondary: ['--sky-deep', '--sky:w40'],
+      accent: ['--coral-deep', '--coral:w25'],
+      surface: ['--cream', '--paper:w50', '--line:k8'],
+      ink: ['--ink', '--ink-soft:w25'],
     },
-    "sets": [
-      { "bn": "সূর্যমুখী", "en": "Sunflower", "primary": "#3F7A4B", "secondary": "#3F7FA6", "accent": "#C9532F", "surface": "#FFF8EC", "ink": "#2E3A33" },
-      { "bn": "আকাশ", "en": "Sky", "primary": "#2B6A8C", "secondary": "#4F8A5B", "accent": "#B8492B", "surface": "#F3F9FC", "ink": "#1F2E38" },
-      { "bn": "ডালিম", "en": "Pomegranate", "primary": "#8C3A52", "secondary": "#B07A1E", "accent": "#2F7A68", "surface": "#FFF6F3", "ink": "#3A2830" }
-    ]
+    sets: [
+      {
+        bn: 'সূর্যমুখী',
+        en: 'Sunflower',
+        primary: '#3F7A4B',
+        secondary: '#3F7FA6',
+        accent: '#C9532F',
+        surface: '#FFF8EC',
+        ink: '#2E3A33',
+      },
+      {
+        bn: 'আকাশ',
+        en: 'Sky',
+        primary: '#2B6A8C',
+        secondary: '#4F8A5B',
+        accent: '#B8492B',
+        surface: '#F3F9FC',
+        ink: '#1F2E38',
+      },
+      {
+        bn: 'ডালিম',
+        en: 'Pomegranate',
+        primary: '#8C3A52',
+        secondary: '#B07A1E',
+        accent: '#2F7A68',
+        surface: '#FFF6F3',
+        ink: '#3A2830',
+      },
+    ],
   },
-  "high-school": {
-    "map": {
-      "primary": ["--green", "--green-deep:k30", "--green-soft:w90"], "secondary": ["--gold", "--gold-soft:w75"], "accent": ["--red"],
-      "surface": ["--paper", "--rule:k8"], "ink": ["--ink", "--muted:w30"]
+  'high-school': {
+    map: {
+      primary: ['--green', '--green-deep:k30', '--green-soft:w90'],
+      secondary: ['--gold', '--gold-soft:w75'],
+      accent: ['--red'],
+      surface: ['--paper', '--rule:k8'],
+      ink: ['--ink', '--muted:w30'],
     },
-    "sets": [
-      { "bn": "সবুজ ও সোনালি", "en": "Green and gold", "primary": "#0F4D3A", "secondary": "#C9A227", "accent": "#A2321F", "surface": "#F7F5EF", "ink": "#15211C" },
-      { "bn": "নীল ও সোনালি", "en": "Blue and gold", "primary": "#1B3F77", "secondary": "#C9A227", "accent": "#A2321F", "surface": "#F6F6F2", "ink": "#141C2B" },
-      { "bn": "মেরুন ও সোনালি", "en": "Maroon and gold", "primary": "#6B1F2E", "secondary": "#C9A227", "accent": "#1F5F4A", "surface": "#F8F4EE", "ink": "#2A1A1E" }
-    ]
+    sets: [
+      {
+        bn: 'সবুজ ও সোনালি',
+        en: 'Green and gold',
+        primary: '#0F4D3A',
+        secondary: '#C9A227',
+        accent: '#A2321F',
+        surface: '#F7F5EF',
+        ink: '#15211C',
+      },
+      {
+        bn: 'নীল ও সোনালি',
+        en: 'Blue and gold',
+        primary: '#1B3F77',
+        secondary: '#C9A227',
+        accent: '#A2321F',
+        surface: '#F6F6F2',
+        ink: '#141C2B',
+      },
+      {
+        bn: 'মেরুন ও সোনালি',
+        en: 'Maroon and gold',
+        primary: '#6B1F2E',
+        secondary: '#C9A227',
+        accent: '#1F5F4A',
+        surface: '#F8F4EE',
+        ink: '#2A1A1E',
+      },
+    ],
   },
-  "college": {
-    "map": {
-      "primary": ["--forest"], "secondary": ["--mute"], "accent": ["--accent", "--accent-2:w90"],
-      "surface": ["--paper", "--paper-2:k4", "--line:k12"], "ink": ["--ink", "--ink-2:w20"]
+  college: {
+    map: {
+      primary: ['--forest'],
+      secondary: ['--mute'],
+      accent: ['--accent', '--accent-2:w90'],
+      surface: ['--paper', '--paper-2:k4', '--line:k12'],
+      ink: ['--ink', '--ink-2:w20'],
     },
-    "sets": [
-      { "bn": "বন সবুজ", "en": "Forest", "primary": "#0F5132", "secondary": "#5E6B7A", "accent": "#E0552C", "surface": "#FFFFFF", "ink": "#0E1B2A" },
-      { "bn": "গভীর নীল", "en": "Deep blue", "primary": "#173F7A", "secondary": "#566274", "accent": "#C2410C", "surface": "#FFFFFF", "ink": "#0E1B2A" },
-      { "bn": "বেগুনি", "en": "Plum", "primary": "#5B2A7A", "secondary": "#5E6670", "accent": "#B4380F", "surface": "#FFFFFF", "ink": "#1A1224" }
-    ]
+    sets: [
+      {
+        bn: 'বন সবুজ',
+        en: 'Forest',
+        primary: '#0F5132',
+        secondary: '#5E6B7A',
+        accent: '#E0552C',
+        surface: '#FFFFFF',
+        ink: '#0E1B2A',
+      },
+      {
+        bn: 'গভীর নীল',
+        en: 'Deep blue',
+        primary: '#173F7A',
+        secondary: '#566274',
+        accent: '#C2410C',
+        surface: '#FFFFFF',
+        ink: '#0E1B2A',
+      },
+      {
+        bn: 'বেগুনি',
+        en: 'Plum',
+        primary: '#5B2A7A',
+        secondary: '#5E6670',
+        accent: '#B4380F',
+        surface: '#FFFFFF',
+        ink: '#1A1224',
+      },
+    ],
   },
-  "madrasa": {
-    "map": {
-      "primary": ["--green", "--green-2:w12", "--green-3:w22"], "secondary": ["--gold"], "accent": ["--gold-2"],
-      "surface": ["--cream", "--sand:k4", "--sand-2:k9", "--line:k10"], "ink": ["--ink", "--ink-2:w25"]
+  madrasa: {
+    map: {
+      primary: ['--green', '--green-2:w12', '--green-3:w22'],
+      secondary: ['--gold'],
+      accent: ['--gold-2'],
+      surface: ['--cream', '--sand:k4', '--sand-2:k9', '--line:k10'],
+      ink: ['--ink', '--ink-2:w25'],
     },
-    "sets": [
-      { "bn": "সবুজ ও সোনালি", "en": "Green and gold", "primary": "#0F3D2E", "secondary": "#B8903F", "accent": "#D5B36A", "surface": "#FBF7EE", "ink": "#1D2A24" },
-      { "bn": "গাঢ় নীল", "en": "Midnight blue", "primary": "#12324F", "secondary": "#B8903F", "accent": "#D5B36A", "surface": "#F8F7F2", "ink": "#17222C" },
-      { "bn": "খেজুর বাদামি", "en": "Date brown", "primary": "#4A2E1C", "secondary": "#B8903F", "accent": "#D5B36A", "surface": "#FAF5EC", "ink": "#2A1E16" }
-    ]
+    sets: [
+      {
+        bn: 'সবুজ ও সোনালি',
+        en: 'Green and gold',
+        primary: '#0F3D2E',
+        secondary: '#B8903F',
+        accent: '#D5B36A',
+        surface: '#FBF7EE',
+        ink: '#1D2A24',
+      },
+      {
+        bn: 'গাঢ় নীল',
+        en: 'Midnight blue',
+        primary: '#12324F',
+        secondary: '#B8903F',
+        accent: '#D5B36A',
+        surface: '#F8F7F2',
+        ink: '#17222C',
+      },
+      {
+        bn: 'খেজুর বাদামি',
+        en: 'Date brown',
+        primary: '#4A2E1C',
+        secondary: '#B8903F',
+        accent: '#D5B36A',
+        surface: '#FAF5EC',
+        ink: '#2A1E16',
+      },
+    ],
   },
-  "international": {
-    "map": {
-      "primary": ["--navy", "--navy-2:w10"], "secondary": ["--gold-ink"], "accent": ["--gold"],
-      "surface": ["--paper", "--paper-2:k4", "--line:k6"], "ink": ["--ink", "--mute:w25"]
+  international: {
+    map: {
+      primary: ['--navy', '--navy-2:w10'],
+      secondary: ['--gold-ink'],
+      accent: ['--gold'],
+      surface: ['--paper', '--paper-2:k4', '--line:k6'],
+      ink: ['--ink', '--mute:w25'],
     },
-    "sets": [
-      { "bn": "নেভি ও সোনালি", "en": "Navy and gold", "primary": "#0A1E3C", "secondary": "#7A5600", "accent": "#F0B429", "surface": "#F5F3EC", "ink": "#15213A" },
-      { "bn": "পাইন ও সোনালি", "en": "Pine and gold", "primary": "#0C3B33", "secondary": "#7A5600", "accent": "#F0B429", "surface": "#F4F4EE", "ink": "#12251F" },
-      { "bn": "বেগুনি ও সোনালি", "en": "Aubergine and gold", "primary": "#2E1A47", "secondary": "#7A5600", "accent": "#F0B429", "surface": "#F6F3EE", "ink": "#1E1530" }
-    ]
+    sets: [
+      {
+        bn: 'নেভি ও সোনালি',
+        en: 'Navy and gold',
+        primary: '#0A1E3C',
+        secondary: '#7A5600',
+        accent: '#F0B429',
+        surface: '#F5F3EC',
+        ink: '#15213A',
+      },
+      {
+        bn: 'পাইন ও সোনালি',
+        en: 'Pine and gold',
+        primary: '#0C3B33',
+        secondary: '#7A5600',
+        accent: '#F0B429',
+        surface: '#F4F4EE',
+        ink: '#12251F',
+      },
+      {
+        bn: 'বেগুনি ও সোনালি',
+        en: 'Aubergine and gold',
+        primary: '#2E1A47',
+        secondary: '#7A5600',
+        accent: '#F0B429',
+        surface: '#F6F3EE',
+        ink: '#1E1530',
+      },
+    ],
   },
-  "premium": {
-    "map": {
-      "primary": ["--oxblood", "--oxblood-2:w10"], "secondary": ["--brass", "--brass-2:w25"], "accent": ["--brass-2"],
-      "surface": ["--ivory", "--stone:k5", "--stone-2:k11", "--rule:k14"], "ink": ["--ink", "--mute:w30"]
+  premium: {
+    map: {
+      primary: ['--oxblood', '--oxblood-2:w10'],
+      secondary: ['--brass', '--brass-2:w25'],
+      accent: ['--brass-2'],
+      surface: ['--ivory', '--stone:k5', '--stone-2:k11', '--rule:k14'],
+      ink: ['--ink', '--mute:w30'],
     },
-    "sets": [
-      { "bn": "অক্সব্লাড ও পিতল", "en": "Oxblood and brass", "primary": "#5A1E2B", "secondary": "#8F7A4D", "accent": "#B59F6B", "surface": "#F4F1EA", "ink": "#2B2520" },
-      { "bn": "বোতল সবুজ ও পিতল", "en": "Bottle green and brass", "primary": "#1F4A3A", "secondary": "#8F7A4D", "accent": "#B59F6B", "surface": "#F3F2EA", "ink": "#222820" },
-      { "bn": "নেভি ও পিতল", "en": "Navy and brass", "primary": "#1D2F55", "secondary": "#8F7A4D", "accent": "#B59F6B", "surface": "#F3F1EB", "ink": "#1F2330" }
-    ]
+    sets: [
+      {
+        bn: 'অক্সব্লাড ও পিতল',
+        en: 'Oxblood and brass',
+        primary: '#5A1E2B',
+        secondary: '#8F7A4D',
+        accent: '#B59F6B',
+        surface: '#F4F1EA',
+        ink: '#2B2520',
+      },
+      {
+        bn: 'বোতল সবুজ ও পিতল',
+        en: 'Bottle green and brass',
+        primary: '#1F4A3A',
+        secondary: '#8F7A4D',
+        accent: '#B59F6B',
+        surface: '#F3F2EA',
+        ink: '#222820',
+      },
+      {
+        bn: 'নেভি ও পিতল',
+        en: 'Navy and brass',
+        primary: '#1D2F55',
+        secondary: '#8F7A4D',
+        accent: '#B59F6B',
+        surface: '#F3F1EB',
+        ink: '#1F2330',
+      },
+    ],
   },
-  "basic": {
-    "map": {
-      "primary": ["--accent", "--accent-ink:k22", "--accent-soft:w90", "--accent-line:w78"], "secondary": ["--ink-3"], "accent": ["--warn"],
-      "surface": ["--bg", "--bg-2:k3", "--line:k10"], "ink": ["--ink", "--ink-2:w25"]
+  basic: {
+    map: {
+      primary: ['--accent', '--accent-ink:k22', '--accent-soft:w90', '--accent-line:w78'],
+      secondary: ['--ink-3'],
+      accent: ['--warn'],
+      surface: ['--bg', '--bg-2:k3', '--line:k10'],
+      ink: ['--ink', '--ink-2:w25'],
     },
-    "sets": [
-      { "bn": "নীল", "en": "Blue", "primary": "#1A4FD6", "secondary": "#6B7080", "accent": "#B4231A", "surface": "#FFFFFF", "ink": "#17181C" },
-      { "bn": "সবুজ", "en": "Green", "primary": "#12703D", "secondary": "#66706A", "accent": "#B4231A", "surface": "#FFFFFF", "ink": "#16191A" },
-      { "bn": "কমলা", "en": "Orange", "primary": "#B34700", "secondary": "#706A62", "accent": "#A31F1F", "surface": "#FFFFFF", "ink": "#1B1816" }
-    ]
-  }
+    sets: [
+      {
+        bn: 'নীল',
+        en: 'Blue',
+        primary: '#1A4FD6',
+        secondary: '#6B7080',
+        accent: '#B4231A',
+        surface: '#FFFFFF',
+        ink: '#17181C',
+      },
+      {
+        bn: 'সবুজ',
+        en: 'Green',
+        primary: '#12703D',
+        secondary: '#66706A',
+        accent: '#B4231A',
+        surface: '#FFFFFF',
+        ink: '#16191A',
+      },
+      {
+        bn: 'কমলা',
+        en: 'Orange',
+        primary: '#B34700',
+        secondary: '#706A62',
+        accent: '#A31F1F',
+        surface: '#FFFFFF',
+        ink: '#1B1816',
+      },
+    ],
+  },
 };
