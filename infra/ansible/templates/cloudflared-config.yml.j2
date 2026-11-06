@@ -26,10 +26,8 @@ ingress:
         audTag: ["{{ group[1] }}"]
 {% endfor %}
 {% endfor %}
-{# School websites (Epic 40, runbook part 17a). LAST on purpose: cloudflared takes the first rule that
-   matches, so every fixed host above (staging and ops carry the Access check) must win over the wildcard.
-   ROOT_DOMAIN falls back to LANDING_DOMAIN (the apex) until the owner adds the key to edge.enc.env.
-   nginx still answers 444 for a name it does not know (Rule 12). #}
-  - hostname: '*.{{ secret_env.edge.ROOT_DOMAIN | default(secret_env.edge.LANDING_DOMAIN) }}'
-    service: http://nginx:80
+{# No '*.<root>' rule here, on purpose (Epic 40, runbook part 17a). cloudflared matches hostnames
+   case-sensitively, so 'STAGING.<root>' (or 'staging.<root>.') would miss the staging rule above,
+   fall into a wildcard and skip the Access check. School sites get a catch-all to a SEPARATE nginx
+   listener that holds no fixed host (#3620 / #3655, runbook part 17d). #}
   - service: http_status:404

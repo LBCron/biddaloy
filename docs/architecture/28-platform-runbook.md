@@ -78,17 +78,24 @@ needs every value.
 ### Hostnames
 
 The default domain in the repo is `schoolmanagerp.com`
-(`infra/ansible/inventory/prod.yml`). Seven names are served:
+(`infra/ansible/inventory/prod.yml`). Ten names are served today:
 
-| Name                         | Goes to | Login in front of it                |
-| ---------------------------- | ------- | ----------------------------------- |
-| `schoolmanagerp.com`         | landing | none                                |
-| `app.schoolmanagerp.com`     | prod    | none (the app's own login)          |
-| `demo.schoolmanagerp.com`    | demo    | none                                |
-| `staging.schoolmanagerp.com` | staging | Cloudflare Access (+ the app login) |
-| `kuma.schoolmanagerp.com`    | Kuma    | Cloudflare Access (+ Kuma login)    |
-| `beszel.schoolmanagerp.com`  | Beszel  | Cloudflare Access (+ Beszel login)  |
-| `logs.schoolmanagerp.com`    | Dozzle  | Cloudflare Access (+ Dozzle login)  |
+| Name                               | Goes to                      | Login in front of it                |
+| ---------------------------------- | ---------------------------- | ----------------------------------- |
+| `schoolmanagerp.com`               | landing                      | none                                |
+| `www.schoolmanagerp.com`           | redirect to the apex         | none                                |
+| `app.schoolmanagerp.com`           | prod                         | none (the app's own login)          |
+| `demo.schoolmanagerp.com`          | demo                         | none                                |
+| `inbox-demo.schoolmanagerp.com`    | demo test inbox (Mailpit)    | none (public on purpose, noindex)   |
+| `staging.schoolmanagerp.com`       | staging                      | Cloudflare Access (+ the app login) |
+| `inbox-staging.schoolmanagerp.com` | staging test inbox (Mailpit) | Cloudflare Access only              |
+| `kuma.schoolmanagerp.com`          | Kuma                         | Cloudflare Access (+ Kuma login)    |
+| `beszel.schoolmanagerp.com`        | Beszel                       | Cloudflare Access (+ Beszel login)  |
+| `logs.schoolmanagerp.com`          | Dozzle                       | Cloudflare Access (+ Dozzle login)  |
+
+School websites (Epic 40) add more: `<school>.schoolmanagerp.com`, `sites.` (custom-domain
+fallback) and `site-test.` (staging test host). They are not served yet; see
+[Part 17](#part-17-school-websites).
 
 ## Part 1. Laptop tools
 
@@ -1978,8 +1985,9 @@ staging's private key, redeploy. New backups use the new key. Keep two offline c
 
 Epic 40 gives every school a public website at `<school>.schoolmanagerp.com`, and
 later a school's own domain (for example `www.rumsc.edu`). This part is the Cloudflare
-and tunnel groundwork. It is owner-run and **UNVERIFIED on a real VM**. Nothing here
-deploys site code; it only makes the names reach nginx, so later waves can serve them.
+groundwork: DNS names, reserved names, Turnstile. It is owner-run and **UNVERIFIED on a
+real VM**. Nothing here deploys site code, and **no tunnel rule sends school names to nginx
+yet**. That rule lands with the site itself (#3620 / #3655, see [17d](#17d-site-container-devops-2)).
 
 > Numbering note: the epic text calls this "Part 8". Part 8 is already Secrets, so this
 > part is 17 and its sections are 17a to 17d. Anchors of Parts 1 to 16 do not move.
@@ -1987,9 +1995,11 @@ deploys site code; it only makes the names reach nginx, so later waves can serve
 ```mermaid
 flowchart LR
   B["Browser<br/>rumsc.schoolmanagerp.com"] -->|"wildcard cert"| CF["Cloudflare<br/>CNAME * (proxied)"]
-  CF -->|tunnel| CD["cloudflared<br/>last ingress rule: *.schoolmanagerp.com"]
-  CD --> N["nginx<br/>known shape, else 444"]
-  N -.->|"written in #3655 (40.5.07)"| S["site container"]
+  CF -->|tunnel| CD["cloudflared<br/>fixed-host rules, then the last rule"]
+  CD -->|"fixed hosts (app., staging., ...)"| N80["nginx :80<br/>fixed hosts, else 444"]
+  CD -->|"today: last rule"| X["404 from cloudflared"]
+  CD -.->|"later, #3620 / #3655: last rule"| N81["separate nginx listener, e.g. :8081<br/>site server{} + default 444 only"]
+  N81 -.-> S["site container"]
 ```
 
 ### 17a. Wildcard host
@@ -1997,63 +2007,97 @@ flowchart LR
 1. Dashboard > your zone > **DNS > Records > Add record**.
 2. Type `CNAME`, name `*`, target `<CLOUDFLARE_TUNNEL_ID>.cfargotunnel.com` (the same
    target as in [4c](#4c-dns-one-cname-per-hostname)), **Proxied** on. Save.
-3. Add `ROOT_DOMAIN=schoolmanagerp.com` (no scheme, the apex) to `infra/secrets/edge.enc.env`
-   with `sops infra/secrets/edge.enc.env`, next to `APP_DOMAIN`. The cloudflared template
-   reads it. Until you add it, the template falls back to `LANDING_DOMAIN`, which holds the
-   same apex, so a deploy does not break either way.
-4. Deploy the edge (part 12). The rendered `config.yml` now ends with one wildcard rule,
-   after every fixed host:
 
-   ```yaml
-   - hostname: '*.schoolmanagerp.com'
-     service: http://nginx:80
-   - service: http_status:404
-   ```
+That is all for now. There is **no `*.schoolmanagerp.com` rule** in
+`cloudflared-config.yml.j2`, and none must be added in front of the fixed hosts. Why:
 
-   The order matters: cloudflared uses the first rule that matches, so `staging.`, `kuma.`
-   and the other fixed hosts keep their own rules (and their Access check) and never fall
-   into the wildcard.
+- cloudflared matches the `Host` name **case-sensitively** and does not strip a trailing dot.
+  `STAGING.schoolmanagerp.com` or `staging.schoolmanagerp.com.` does not match the
+  `staging.schoolmanagerp.com` rule.
+- With a wildcard rule, such a name would fall into it and reach nginx with no in-VM Access
+  check. nginx matches names case-insensitively, so it would serve staging.
+- So the school-site route (#3620 / #3655) is a catch-all that points at a **separate nginx
+  listener** (for example `http://nginx:8081`). That listener holds only the site `server{}`
+  and a default `444`, never a fixed host. A case trick then ends at the site listener (a
+  "no site" page or `444`), never in staging.
+
+| Name the visitor sends               | Rule it hits today       | Rule it hits after #3620 / #3655 |
+| ------------------------------------ | ------------------------ | -------------------------------- |
+| `staging.schoolmanagerp.com`         | staging (Access checked) | staging (Access checked)         |
+| `STAGING.schoolmanagerp.com`         | last rule: 404           | site listener, never staging     |
+| `rumsc.schoolmanagerp.com`           | last rule: 404           | site listener: the school's site |
+| `www.rumsc.edu` (custom domain, 17d) | last rule: 404           | site listener: the school's site |
 
 Why one label only: Cloudflare's free Universal certificate covers `*.schoolmanagerp.com`
 and nothing deeper. `rumsc.schoolmanagerp.com` works; `rumsc.staging.schoolmanagerp.com`
 fails TLS. This is the same reason given for the single-level inbox names in
 [4d](#4d-zero-trust-the-access-login-staging-and-ops) (D5).
 
-**Check.** Until the site ships in wave 1, a made-up name reaches nginx, which does not
-know it:
+**Check.** A made-up name resolves and ends in cloudflared's last rule:
 
 ```bash
 curl -sI https://anything.schoolmanagerp.com
-# HTTP/2 520   <- nginx's empty 444 reply (Rule 12), which Cloudflare shows as 520.
+# HTTP/2 404   <- cloudflared's `http_status:404` (no rule matched). Expected until #3620.
 ```
 
-A Cloudflare 1033 page (tunnel not found) or a TLS error instead means the tunnel did not pick up the wildcard rule:
-re-check step 4 (rendered `config.yml`) and that cloudflared restarted.
+What another answer means:
 
-**Rollback.** Delete the `*` DNS record. Redeploy the edge from the previous commit to drop the
-ingress rule. Fixed hosts are untouched.
+| You see                    | Meaning                                 | Next                                        |
+| -------------------------- | --------------------------------------- | ------------------------------------------- |
+| `Could not resolve host`   | the `*` record is missing or not saved  | redo step 2                                 |
+| Cloudflare error page 1033 | the tunnel is not connected             | `biddaloy-doctor edge`, restart cloudflared |
+| `502`                      | cloudflared runs but cannot reach nginx | `docker ps` on the VM: is nginx up?         |
+| `520`                      | nginx's empty `444` (Rule 12)           | only after #3620 adds a rule to nginx       |
+
+The case check. The Cloudflare edge must still ask for the Access login when the name is
+written in capitals:
+
+```bash
+curl -sI -H 'Host: STAGING.schoolmanagerp.com' https://staging.schoolmanagerp.com/
+# HTTP/2 302, location: https://<team>.cloudflareaccess.com/...   <- right
+# HTTP/2 200 or any page                                           <- stop, report it
+```
+
+Run it again after #3620 / #3655 deploy. It must still give the `302`.
+
+**Rollback.** Delete the `*` DNS record. Fixed hosts are untouched.
 
 ### 17b. Reserved names and the test host
 
-1. Reserved names. School subdomains must not collide with platform names. The code
-   side (`RESERVED_SUBDOMAINS`, which also blocks `app`, `demo`, `staging`, `kuma`,
-   `beszel`, `logs`, `www`, `sites`, `site-test`) lands in #3615. Nothing to do here but know the list.
+1. Reserved names. A school subdomain must not take a platform name. The code side,
+   `RESERVED_SUBDOMAINS`, lands in #3615 and blocks:
+
+   `app`, `api`, `www`, `stats`, `sites`, `mail`, `admin`, `demo`, `staging`, `dev`, `docs`,
+   `status`, `cdn`, `kuma`, `beszel`, `logs`, `ops`, `inbox`, `inbox-demo`, `inbox-staging`,
+   `site-test`, plus every `server_name` in `nginx/templates/*.conf.template`.
+
+   The rule: **a PR that adds a fixed host adds it to `RESERVED_SUBDOMAINS` in the same PR.**
+   Otherwise a school could claim the name first.
+
 2. `sites.schoolmanagerp.com` is held now for later: it will be the Cloudflare for SaaS fallback origin
    that custom domains CNAME to (#3646, 40.4.08). Add a **proxied** CNAME `sites` to the tunnel target,
-   exactly as in 17a step 2. Until #3646 it ends in nginx's 444.
+   exactly as in 17a step 2. Until then it ends in cloudflared's 404.
 3. `site-test.schoolmanagerp.com` is the staging test host. Add a **proxied** CNAME `site-test` to the
-   tunnel target. The staging demo school gets this name as its `custom_domain` in the staging seed
-   (#3621, 40.1.08 reads it from `SITE_TEST_HOST`). Set `SITE_TEST_HOST=site-test.schoolmanagerp.com`
-   in `staging.enc.env` once #3621 lands; the key is not read before then.
-4. Put `site-test` behind the `Staging` Access app only if you want it closed to the public
-   ([4d](#4d-zero-trust-the-access-login-staging-and-ops) step 3: add it to the hostnames). It is a
-   single-level name, so the free certificate covers it.
+   tunnel target now. The staging demo school gets this name as its `custom_domain` in the staging seed
+   (#3621, 40.1.08, reads it from `SITE_TEST_HOST`). The key is not read before #3621.
+4. `site-test` is staging, so it sits behind the `Staging` Access app like `staging.` does. This is
+   **not optional**. When #3621 lands, it and you do these together:
+   - #3621 adds `SITE_TEST_HOST` as a fixed host in the **staging group** of
+     `cloudflared-config.yml.j2` (the group with `originRequest.access`), so cloudflared checks the
+     Access token. The template reads only `edge.enc.env`, so the key goes in `edge.enc.env`
+     **and** in the preflight `edge_domain_keys` list, not only in `staging.enc.env`.
+   - You add `site-test.schoolmanagerp.com` to the hostnames of the `Staging` Access app
+     ([4d](#4d-zero-trust-the-access-login-staging-and-ops) step 3).
+   - You set `SITE_TEST_HOST=site-test.schoolmanagerp.com` with `sops` where #3621 says.
+
+   It is a single-level name, so the free certificate covers it.
 
 **Check.**
 
 ```bash
 dig +short sites.schoolmanagerp.com site-test.schoolmanagerp.com   # Cloudflare IPs
-curl -sI https://sites.schoolmanagerp.com                           # 520 (nginx 444) until #3646
+curl -sI https://sites.schoolmanagerp.com                           # 404 (cloudflared) until #3646
+curl -sI https://site-test.schoolmanagerp.com                       # after #3621: 302 to <team>.cloudflareaccess.com
 ```
 
 **Rollback.** Delete the two CNAME records.
@@ -2070,6 +2114,15 @@ School sites carry public write forms (Rule 22), so the widget must render on ev
    `server/src/modules/registration/turnstile.service.ts`: `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`.
    Needed by #3628 (40.3.01) and #3649 (40.5.01).
 
+> Two side effects to know:
+>
+> - "Include subdomains" also covers `demo.` and `staging.`. So the **prod** widget now accepts
+>   those hosts too, and "each widget lists only its own hostname"
+>   ([25-cloudflare](25-cloudflare.md#checklist) row 14) no longer holds for it. The demo and
+>   staging widgets are unchanged.
+> - A school's own domain (`www.rumsc.edu`) is **not** covered. Forms on custom domains fail the
+>   hostname check until #3649 / #3655 decide how (an open gap).
+
 **Check.** Dashboard > Turnstile > the widget lists `schoolmanagerp.com` with subdomains. The widget
 test itself waits for #3628.
 
@@ -2077,8 +2130,19 @@ test itself waits for #3628.
 
 ### 17d. Site container (DevOps-2)
 
-Written in #3655 (40.5.07): the site container, its nginx `server{}` for the wildcard, custom
-domains through Cloudflare for SaaS, health checks.
+Written in #3655 (40.5.07): the site container, its nginx `server{}`, custom domains through
+Cloudflare for SaaS, health checks. Work this part already owes to the tickets that write it:
+
+- **School-site route (#3620 / #3655).** Turn cloudflared's last rule into a host-agnostic
+  catch-all to a **separate** nginx listener (for example `service: http://nginx:8081`). That
+  listener holds only the site `server{}` and a default `444`, never a fixed host (17a, why).
+  Host-agnostic because a custom domain arrives with the school's own name as `Host`
+  (`www.rumsc.edu`), not `sites.schoolmanagerp.com`, so no `*.schoolmanagerp.com` rule would
+  catch it. Do not add a `*.schoolmanagerp.com` rule that points at `nginx:80`.
+- **`ROOT_DOMAIN`, if needed (#3655).** Add it in one PR to every place that reads it:
+  `cloudflared-config.yml.j2` (or the nginx site template), the preflight `edge_domain_keys`
+  list in `infra/ansible/tasks/preflight.yml`, and `infra/secrets/edge.example.env`.
+- **The case check** in 17a must still give `302` after the deploy.
 
 ## Known gaps
 
