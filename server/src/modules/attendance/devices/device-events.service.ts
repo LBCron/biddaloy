@@ -101,6 +101,7 @@ export class DeviceEventsService {
     return students.map((s) => ({
       student_id: s.id,
       registration_number: s.registration_number,
+      card_no: s.card_no ?? null,
       roll_number: s.roll_number,
       full_name: s.full_name,
       section_id: effectiveSectionId,
@@ -382,13 +383,17 @@ export class DeviceEventsService {
       });
     }
     if (event.external_ref) {
-      return studentRepo.findOne({
-        where: {
-          registration_number: event.external_ref,
-          tenant_id: tenantId,
-          deleted_at: IsNull(),
-        },
+      // One query, both columns (D9): the ref is a registration number or a card number.
+      // If two rows match (one's reg number is another's card), the registration number wins.
+      const ref = event.external_ref;
+      const rows = await studentRepo.find({
+        where: [
+          { registration_number: ref, tenant_id: tenantId, deleted_at: IsNull() },
+          { card_no: ref, tenant_id: tenantId, deleted_at: IsNull() },
+        ],
+        take: 2,
       });
+      return rows.find((r) => r.registration_number === ref) ?? rows[0] ?? null;
     }
     return null;
   }
@@ -645,9 +650,16 @@ export class DeviceEventsService {
       });
     }
     if (event.external_ref) {
-      return staffProfileRepo.findOne({
-        where: { employee_id: event.external_ref, tenant_id: tenantId },
+      // Staff namespace is separate (D37): only staff cards resolve here, never a student's.
+      const ref = event.external_ref;
+      const rows = await staffProfileRepo.find({
+        where: [
+          { employee_id: ref, tenant_id: tenantId },
+          { card_no: ref, tenant_id: tenantId },
+        ],
+        take: 2,
       });
+      return rows.find((r) => r.employee_id === ref) ?? rows[0] ?? null;
     }
     return null;
   }

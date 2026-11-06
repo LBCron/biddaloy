@@ -528,6 +528,49 @@ describe('DeviceEventsService (integration)', () => {
     expect(roster.map((r) => r.student_id)).toEqual([stayer.id]);
   });
 
+  it('resolves a student scan whose external_ref is a card_no, and still resolves by registration number', async () => {
+    const device = await createActiveDevice();
+    const card = `CARD-${Date.now()}`;
+    const repo = dataSource.getRepository(Student);
+    await repo.update({ id: studentId }, { card_no: card });
+    const reg = (await repo.findOneOrFail({ where: { id: studentId } })).registration_number;
+
+    const byCard = await service.ingest(device, [inEvent({ external_ref: card })]);
+    expect(byCard.results[0].outcome).toBe('accepted');
+    const byReg = await service.ingest(device, [inEvent({ external_ref: reg })]);
+    // Same student, same day: resolved (not unknown_student).
+    expect(byReg.results[0].outcome).not.toBe('unknown_student');
+  });
+
+  it("reports unknown_student for another tenant's card_no (tenant isolation)", async () => {
+    const device = await createActiveDevice(); // bound to TENANT_ID
+    const card = `OTHER-CARD-${Date.now()}`;
+    await dataSource.getRepository(Student).update({ id: otherTenantStudentId }, { card_no: card });
+
+    const result = await service.ingest(device, [inEvent({ external_ref: card })]);
+
+    expect(result.results[0].outcome).toBe('unknown_student');
+  });
+
+  it('getRoster lists card_no, null for a student without a card', async () => {
+    const device = await createActiveDevice({ roster_access: true, section_id: sectionId });
+    await dataSource
+      .getRepository(Student)
+      .update({ id: studentId }, { card_no: `RC-${Date.now()}` });
+    const nocard = await dataSource.getRepository(Student).save({
+      full_name: 'No Card',
+      registration_number: `DEV-NOCARD-${Date.now()}`,
+      roll_number: 3,
+      class_section_id: sectionId,
+      tenant_id: TENANT_ID,
+    });
+
+    const roster = await service.getRoster(device);
+
+    expect(roster.find((r) => r.student_id === nocard.id)?.card_no).toBeNull();
+    expect(roster.find((r) => r.student_id === studentId)?.card_no).toMatch(/^RC-/);
+  });
+
   it('reports unknown_student when neither student_id nor external_ref is given', async () => {
     const device = await createActiveDevice();
 
@@ -660,6 +703,26 @@ describe('DeviceEventsService (integration)', () => {
       const result = await service.ingest(device, [inEvent({ student_id: studentId })]);
 
       expect(result.results[0].outcome).toBe('accepted');
+    });
+
+    it('resolves a staff scan by card_no, but never by a student card_no (D37)', async () => {
+      const device = await createActiveDevice();
+      const staffCard = `SCARD-${Date.now()}`;
+      await dataSource
+        .getRepository(StaffProfile)
+        .update({ id: staffProfileId }, { card_no: staffCard });
+      const studentCard = `STUCARD-${Date.now()}`;
+      await dataSource.getRepository(Student).update({ id: studentId }, { card_no: studentCard });
+
+      const ok = await service.ingest(device, [
+        inEvent({ subject_type: AttendanceSubjectType.STAFF, external_ref: staffCard }),
+      ]);
+      expect(ok.results[0].outcome).toBe('accepted');
+
+      const bad = await service.ingest(device, [
+        inEvent({ subject_type: AttendanceSubjectType.STAFF, external_ref: studentCard }),
+      ]);
+      expect(bad.results[0].outcome).toBe('unknown_staff');
     });
 
     it("reports unknown_staff for another tenant's employee_id (tenant isolation)", async () => {
