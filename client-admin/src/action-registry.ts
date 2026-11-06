@@ -44,6 +44,8 @@ export interface ActionRunContext {
   /** Ids of the current route, when it has them (the palette's context). */
   readonly params?: {
     readonly studentId?: string | undefined;
+    /** [76.4.03] Section of the current page, when it has one (prefills the import wizard). */
+    readonly sectionId?: string | undefined;
     readonly examId?: string | undefined;
   };
   /** [44.2.01] The guide URL of the current page, or null when it has none (E17). */
@@ -247,6 +249,28 @@ export const ACTIONS: readonly PaletteAction[] = [
     kind: 'navigate',
     group: 'attendance',
     run: (ctx) => ctx.navigate({ to: '/attendance' }),
+  },
+  // [76.4.03] Attendance sheet import (D15). `sectionId` rides along only when the page has one.
+  {
+    id: 'attendance.import',
+    label: { en: 'Import attendance', bn: 'উপস্থিতি আমদানি করুন' },
+    permission: Permission.ATTENDANCE_MARK,
+    kind: 'navigate',
+    group: 'attendance',
+    run: (ctx) =>
+      ctx.navigate({
+        to: ctx.params?.sectionId
+          ? `/attendance/import?sectionId=${ctx.params.sectionId}`
+          : '/attendance/import',
+      }),
+  },
+  {
+    id: 'attendance.imports',
+    label: { en: 'Attendance uploads', bn: 'উপস্থিতির আপলোড' },
+    permission: Permission.ATTENDANCE_READ,
+    kind: 'navigate',
+    group: 'attendance',
+    run: (ctx) => ctx.navigate({ to: '/attendance/imports' }),
   },
   // [41.4.7] Both land on a filtered/edit-mode view of an existing route
   // (`ctx.navigate` only takes a `to` string, so the search rides in it,
@@ -914,6 +938,22 @@ export const ACTIONS: readonly PaletteAction[] = [
     kind: 'modal',
     group: 'people',
     run: (ctx) => ctx.navigate({ to: '/calendar?panel=clone' }),
+  },
+  // [76.4.03] Card assignment (D15): the edit route autofocuses the card field on `?focus=card`
+  // (#3570 declares it). Without a student in context, the list is the honest fallback.
+  {
+    id: 'students.assignCard',
+    label: { en: 'Assign ID card', bn: 'আইডি কার্ড নির্ধারণ করুন' },
+    permission: Permission.STUDENT_UPDATE,
+    kind: 'navigate',
+    group: 'people',
+    context: ['student'],
+    run: (ctx) =>
+      ctx.navigate({
+        to: ctx.params?.studentId
+          ? `/students/${ctx.params.studentId}/edit?focus=card`
+          : '/students',
+      }),
   },
   {
     id: 'calendar.import',

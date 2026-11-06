@@ -231,6 +231,10 @@ export const STAFF_ROUTE_PERMISSIONS: Record<string, Permission> = {
   // reasoning as the two entries above, not a new permission.
   '/_staff/attendance/reports': Permission.ATTENDANCE_READ,
   '/_staff/attendance/register': Permission.ATTENDANCE_READ,
+  // [76.4.03] Uploading needs MARK; the history list and detail are READ (D13).
+  '/_staff/attendance/import': Permission.ATTENDANCE_MARK,
+  '/_staff/attendance/imports/': Permission.ATTENDANCE_READ,
+  '/_staff/attendance/imports/$importId': Permission.ATTENDANCE_READ,
   // [36.4] Staff attendance/leave — READ, not MARK/APPROVE, matching the
   // "may you see this route" reasoning above. The leave page's approve
   // panel gates itself further on `LEAVE_APPROVE` inside the component.

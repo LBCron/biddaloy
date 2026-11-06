@@ -24,8 +24,7 @@ export const NOT_IN_NAV: Record<string, string> = {
   '/select-school': 'tenant/role switcher, reached before the staff sidebar itself renders',
   '/i/$token': 'invitation-accept route reached via a tokenized email link, not signed-in nav',
   '/v/$token': "[32.3.9] public verify page opened by scanning an ID card's QR code, signed-out",
-  '/n/$token':
-    '[53] public notice page, opened signed-out via a shared link, not in any nav',
+  '/n/$token': '[53] public notice page, opened signed-out via a shared link, not in any nav',
   '/admission/$slug/':
     '[27.11] public admission-form route, opened signed-out via a school-specific link',
   '/admission/$slug/status':
@@ -71,6 +70,9 @@ export const NOT_IN_NAV: Record<string, string> = {
   '/_staff/security': 'reached from the account menu, not the sidebar',
   '/_staff/academic-years/$academicYearId': 'detail route reached from the academic years list',
   '/_staff/attendance/$sectionId': 'detail route reached from the attendance list',
+  '/_staff/attendance/import':
+    '[76.4.03] full-page wizard opened from the Uploads page button or the palette',
+  '/_staff/attendance/imports/$importId': '[76.4.03] detail route reached from the Uploads list',
   '/_staff/attendance/staff/leave':
     '[36.4] reached from the staff attendance page link, palette (Record leave), or the staff detail Attendance & Leave tab, not its own sidebar item',
   '/_staff/calendar/import': 'action reached from the calendar page, not its own nav item',
