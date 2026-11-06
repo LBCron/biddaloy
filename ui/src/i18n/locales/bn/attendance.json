@@ -61,7 +61,7 @@
     "reset": "রিসেট",
     "undo": "পূর্বাবস্থায় ফেরান",
     "undoToast": "উপস্থিতি রিসেট হয়েছে",
-    "shortcutHint": "শর্টকাট: P উপস্থিত · A অনুপস্থিত · L বিলম্বে · V ছুটি · Space টগল · Shift+P সবাই উপস্থিত · Ctrl/Cmd+Enter জমা দিন",
+    "shortcutHint": "শর্টকাট: P উপস্থিত · A অনুপস্থিত · L বিলম্বে · V ছুটি · Space টগল · Shift+P সবাই উপস্থিত · Shift+A বাকিরা অনুপস্থিত · Ctrl/Cmd+Enter জমা দিন",
     "submitOnline": "উপস্থিতি জমা দিন",
     "submitOffline": "ডিভাইসে সংরক্ষণ করুন",
     "submitting": "জমা হচ্ছে…",

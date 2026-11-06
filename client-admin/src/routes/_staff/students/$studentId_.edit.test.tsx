@@ -293,5 +293,11 @@ describe('/students/$studentId/edit', () => {
       (await screen.findAllByText('This card number already belongs to another student.')).length,
     ).toBeGreaterThan(0);
     expect(patchBody).toEqual({ card_no: 'AB-7' });
+    // [review] The input carries the form's field id, so the error summary link can reach it.
+    expect(input.id).toBe('student-form-card_no');
+    // [review] Editing the number after the 409 must not bring the stale error back as a generic one.
+    await user.type(input, '8');
+    // MutationErrorMessage maps a 409 to common:errors.conflict.
+    expect(screen.queryByText(/clashes with a record that already exists/)).toBeNull();
   });
 });

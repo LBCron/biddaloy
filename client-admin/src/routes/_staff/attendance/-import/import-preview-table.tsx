@@ -5,7 +5,7 @@
  */
 import { DataTable, StatusBadge, type StatusTone } from '@biddaloy/ui/components';
 import type { AttendanceSheetValidateResult } from '@biddaloy/ui/hooks';
-import { useRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
+import { useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { formatDate, formatNumber } from '@biddaloy/ui/utils';
 
 export type PreviewRow = AttendanceSheetValidateResult['rows'][number];
@@ -27,7 +27,8 @@ export function sortPreviewRows(rows: PreviewRow[]): PreviewRow[] {
 
 export function ImportPreviewTable({ rows }: { rows: PreviewRow[] }) {
   const { t } = useTranslation('attendanceImport');
-  const regionConfig = useRegionConfig();
+  // No ambient region provider above the route: read the tenant's own.
+  const regionConfig = useTenantRegionConfig();
 
   const status = (value: PreviewRow['before']) => (value ? t(`status.${value}`) : t('status.none'));
 

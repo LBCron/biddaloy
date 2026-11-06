@@ -31,6 +31,12 @@ export interface ScanCardFieldProps {
   disabled?: boolean | undefined;
   name?: string | undefined;
   className?: string | undefined;
+  /** The host form's field id (error summary links and focus target here); generated if absent. */
+  id?: string | undefined;
+  /** The host form's ref (React Hook Form focuses the field after a failed submit). */
+  inputRef?: React.Ref<HTMLInputElement> | undefined;
+  /** The host form's blur handler (touched state). */
+  onBlur?: (() => void) | undefined;
 }
 
 export function ScanCardField({
@@ -45,10 +51,22 @@ export function ScanCardField({
   disabled,
   name,
   className,
+  id: idProp,
+  inputRef: hostRef,
+  onBlur,
 }: ScanCardFieldProps) {
-  const id = React.useId();
+  const generatedId = React.useId();
+  const id = idProp ?? generatedId;
   const errorId = `${id}-error`;
-  const inputRef = React.useRef<HTMLInputElement>(null);
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const setInputRef = React.useCallback(
+    (node: HTMLInputElement | null) => {
+      inputRef.current = node;
+      if (typeof hostRef === 'function') hostRef(node);
+      else if (hostRef) hostRef.current = node;
+    },
+    [hostRef],
+  );
   const [scanning, setScanning] = React.useState(false);
 
   return (
@@ -58,7 +76,7 @@ export function ScanCardField({
       </Label>
       <div className="flex gap-2">
         <Input
-          ref={inputRef}
+          ref={setInputRef}
           id={id}
           name={name}
           value={value}
@@ -77,7 +95,10 @@ export function ScanCardField({
               setScanning(false);
             }
           }}
-          onBlur={() => setScanning(false)}
+          onBlur={() => {
+            setScanning(false);
+            onBlur?.();
+          }}
         />
         <Button
           type="button"

@@ -87,6 +87,12 @@ export interface StudentFormProps<TInput> {
   focusCard?: boolean;
 }
 
+function isCardTaken(error: unknown): boolean {
+  return (
+    error instanceof ApiError && error.statusCode === 409 && error.details?.code === 'CARD_NO_TAKEN'
+  );
+}
+
 function fieldId(field: string): string {
   return `student-form-${field}`;
 }
@@ -186,7 +192,7 @@ export function StudentForm<TInput>({
       onError: (error) => {
         if (error instanceof ApiError) {
           // [76.5.07] Fixed sentence under the field; the server's text and the typed value stay out (Rule 23).
-          if (error.statusCode === 409 && error.details?.code === 'CARD_NO_TAKEN') {
+          if (isCardTaken(error)) {
             form.setError('card_no', { type: 'server', message: t('cardNo.duplicate') });
             return;
           }
@@ -516,6 +522,9 @@ export function StudentForm<TInput>({
               render={({ field, fieldState }) => (
                 <FormItem>
                   <ScanCardField
+                    id={fieldId('card_no')}
+                    inputRef={field.ref}
+                    onBlur={field.onBlur}
                     name={field.name}
                     value={field.value}
                     onChange={field.onChange}
@@ -603,7 +612,9 @@ export function StudentForm<TInput>({
             />
           </FormSection>
 
-          {mutation.isError && !form.formState.errors.card_no && (
+          {/* The taken-card 409 shows only under its field; the field state alone would let it
+              come back as a generic error once the user edits the number. */}
+          {mutation.isError && !isCardTaken(mutation.error) && (
             <MutationErrorMessage error={mutation.error} />
           )}
         </FormShell>

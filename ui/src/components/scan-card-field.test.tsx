@@ -60,4 +60,32 @@ describe('ScanCardField', () => {
     expect(input.getAttribute('aria-invalid')).toBe('true');
     expect(screen.getByText('Card already in use').id).toBe(input.getAttribute('aria-describedby'));
   });
+
+  // [review] A host form (React Hook Form) needs its own id, ref and blur on the input.
+  it('uses the host id, ref and onBlur when given', async () => {
+    const user = userEvent.setup();
+    const ref = React.createRef<HTMLInputElement>();
+    const onBlur = vi.fn();
+    renderWithProviders(
+      <ScanCardField
+        id="host-card"
+        inputRef={ref}
+        onBlur={onBlur}
+        value=""
+        onChange={() => undefined}
+        label="Card number"
+        scanLabel="Scan card"
+        scanHint="Tap the card on the reader"
+        error="Bad number"
+      />,
+      { locale: 'en' },
+    );
+    const input = screen.getByLabelText('Card number');
+    expect(input.id).toBe('host-card');
+    expect(ref.current).toBe(input);
+    expect(input.getAttribute('aria-describedby')).toBe('host-card-error');
+    await user.click(input);
+    await user.tab();
+    expect(onBlur).toHaveBeenCalledTimes(1);
+  });
 });

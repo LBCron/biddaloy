@@ -41,6 +41,24 @@ export const Route = createFileRoute('/_staff/attendance/import')({
 });
 
 type Step = 'pick' | 'upload' | 'preview';
+type Restart = 'expired' | 'stale' | 'failed' | 'denied';
+
+/**
+ * Save failed and the stage is gone: the server uses it up before its transaction, so a 409
+ * (marks changed / save failed) or the day gate's 403 burns it like an expiry does.
+ */
+function restartReason(error: unknown): Restart | null {
+  const { statusCode, details } = error as {
+    statusCode?: number;
+    details?: { code?: string } | undefined;
+  };
+  if (statusCode === 410 || statusCode === 404) return 'expired';
+  if (statusCode === 403) return 'denied';
+  if (statusCode !== 409) return null;
+  if (details?.code === 'ATTENDANCE_IMPORT_STALE') return 'stale';
+  if (details?.code === 'ATTENDANCE_IMPORT_FAILED') return 'failed';
+  return null;
+}
 
 function StepHeading({ current, title }: { current: number; title: string }) {
   const { t } = useTranslation('attendanceImport');
@@ -77,7 +95,9 @@ function AttendanceImportPage() {
   const [result, setResult] = React.useState<AttendanceSheetValidateResult | undefined>(undefined);
   const [skipErrors, setSkipErrors] = React.useState(false);
   const [uploadError, setUploadError] = React.useState<string | undefined>(undefined);
-  const [expired, setExpired] = React.useState(false);
+  // Why the user is back on the upload step after Save failed with the stage gone (or null).
+  const [restart, setRestart] = React.useState<Restart | null>(null);
+  const [supersedesGone, setSupersedesGone] = React.useState(false);
 
   const download = useDownloadAttendanceSheet();
   const validate = useValidateAttendanceSheet();
@@ -103,7 +123,8 @@ function AttendanceImportPage() {
     validate.mutate(file, {
       onSuccess: (data) => {
         setResult(data);
-        setExpired(false);
+        setRestart(null);
+        setSupersedesGone(false);
         setStep('preview');
       },
       onError: (error) => {
@@ -130,8 +151,20 @@ function AttendanceImportPage() {
           void navigate({ to: '/attendance/imports/$importId', params: { importId: import_id } }),
         onError: (error) => {
           const status = (error as { statusCode?: number }).statusCode;
-          if (status === 410 || status === 404) {
-            setExpired(true);
+          // The server checks `supersedes` before it uses up the stage, so with one sent a 404
+          // may mean only "earlier upload not found": drop it and let the user press Save again.
+          // A second 404 has no `supersedes` and falls through to "expired". No auto-retry.
+          if (status === 404 && search.supersedes) {
+            setSupersedesGone(true);
+            void navigate({
+              search: (prev) => ({ ...prev, supersedes: undefined }),
+              replace: true,
+            });
+            return;
+          }
+          const reason = restartReason(error);
+          if (reason) {
+            setRestart(reason);
             toUpload();
           }
         },
@@ -165,7 +198,7 @@ function AttendanceImportPage() {
         title={t('pageTitle')}
         size="wide"
         onClose={close}
-        secondary={{ label: tc('actions.back'), onClick: () => setStep('pick') }}
+        secondary={{ label: tc('wizard.back'), onClick: () => setStep('pick') }}
         primary={{
           label: t('upload.reviewChanges'),
           onClick: handleValidate,
@@ -174,10 +207,14 @@ function AttendanceImportPage() {
         }}
       >
         <StepHeading current={2} title={t('upload.title')} />
-        {expired && (
+        {restart && (
           <Card role="alert" className="p-4">
-            <h3 className="text-h3">{t('expired.title')}</h3>
-            <p className="text-text-secondary">{t('expired.message')}</p>
+            <h3 className="text-h3">
+              {restart === 'expired' ? t('expired.title') : t('restart.title')}
+            </h3>
+            <p className="text-text-secondary">
+              {restart === 'expired' ? t('expired.message') : t(`restart.${restart}`)}
+            </p>
           </Card>
         )}
         <ImportDropzone
@@ -212,11 +249,15 @@ function AttendanceImportPage() {
     >
       <StepHeading current={3} title={t('review.title')} />
       {file && <p className="text-text-secondary">{t('review.fileName', { name: file.name })}</p>}
-      {commit.isError && !expired && (
+      {supersedesGone ? (
+        <p role="alert" className="text-destructive">
+          {t('review.earlierGone')}
+        </p>
+      ) : commit.isError && !restart ? (
         <p role="alert" className="text-destructive">
           {t('review.saveFailed')}
         </p>
-      )}
+      ) : null}
       {counts && (
         <div className="flex flex-wrap gap-2">
           <StatusBadge tone="danger" label={t('review.summaryError', { count: counts.error })} />

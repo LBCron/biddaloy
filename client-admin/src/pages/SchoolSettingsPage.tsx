@@ -179,16 +179,20 @@ export function SchoolSettingsPage({ backupJobId }: SchoolSettingsPageProps = {}
             {loaded && (
               <>
                 <AttendanceSection schoolId={loaded.schoolId} attendance={loaded.data.attendance} />
-                <AttendanceDevicesSection
-                  openAdd={devices === 'new'}
-                  onAddClosed={() =>
-                    void navigate({
-                      to: '/settings',
-                      search: (prev) => ({ ...prev, devices: undefined }),
-                      replace: true,
-                    })
-                  }
-                />
+                {/* Machine requests go to the active school (X-Tenant-ID), not the picked one:
+                    a SUPER_ADMIN viewing another school must not change that school's machines. */}
+                {(!isSuperAdmin || loaded.schoolId === ownSchoolId) && (
+                  <AttendanceDevicesSection
+                    openAdd={devices === 'new'}
+                    onAddClosed={() =>
+                      void navigate({
+                        to: '/settings',
+                        search: (prev) => ({ ...prev, devices: undefined }),
+                        replace: true,
+                      })
+                    }
+                  />
+                )}
                 <EvaluationsSection
                   key={loaded.schoolId}
                   schoolId={loaded.schoolId}
