@@ -10,7 +10,7 @@ const { createRequire, builtinModules } = require('node:module');
 
 // The compiled server, and the shared workspace it imports (/app/node_modules/@biddaloy/shared -> /app/shared).
 const roots =
-  process.argv.length > 2 ? process.argv.slice(2) : ['/app/server/dist', '/app/shared/dist'];
+  process.argv.length > 2 ? process.argv.slice(2) : ['/app/server/dist', '/app/shared/dist', '/app/site-themes/dist'];
 // Test-only files are compiled too but never loaded in production.
 const skip = /\.(spec|e2e-spec|integration\.spec|test-helper)\.js$/;
 const builtins = new Set(builtinModules);

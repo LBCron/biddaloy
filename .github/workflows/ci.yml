@@ -46,6 +46,7 @@ jobs:
       ui: ${{ github.event_name == 'merge_group' && 'true' || steps.filter.outputs.ui }}
       infra: ${{ github.event_name == 'merge_group' && 'true' || steps.filter.outputs.infra }}
       landing: ${{ github.event_name == 'merge_group' && 'true' || steps.filter.outputs.landing }}
+      site: ${{ github.event_name == 'merge_group' && 'true' || steps.filter.outputs.site }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -119,6 +120,14 @@ jobs:
             api-surface:
               - 'server/src/**'
               - 'ui/src/api/**'
+            # [Epic 40 #3620] School websites (Astro SSR, site/).
+            site:
+              - 'site/**'
+              - 'site-themes/**'
+              - 'shared/src/**'
+              - 'yarn.lock'
+              - 'package.json'
+              - '.github/workflows/ci.yml'
             # [75.4] nginx/compose behaviour tests (`*.infra.test.sh`).
             infra:
               - 'nginx/**'
@@ -1194,6 +1203,27 @@ jobs:
           name: storybook-static
           path: ui/storybook-static/
           retention-days: 14
+
+  # [Epic 40 #3620] School websites: build the Astro SSR site and run its unit tests. The
+  # nginx route for it is covered by nginx/test/site.infra.test.sh in the `infra` job.
+  site:
+    name: Site build and test
+    runs-on: ubuntu-latest
+    needs: changes
+    if: github.event_name == 'push' || github.event_name == 'merge_group' || needs.changes.outputs.site == 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup
+
+      - run: yarn build:shared
+      - run: yarn build:site-themes
+      - name: Build site
+        run: yarn workspace @biddaloy/site build
+      - name: Site unit tests
+        run: yarn workspace @biddaloy/site test
 
   # [50.2] Static marketing site (D20). Builds landing/, checks its tokens
   # against the app's, and keeps dist/ as an artifact for the deploy step.

@@ -4,7 +4,7 @@ name: Publish images
 # with the commit SHA and `main`, so the production VM only ever pulls.
 # GITHUB_TOKEN pushes; SENTRY_AUTH_TOKEN (optional) uploads source maps.
 # The app image is built, checked for SPA source maps, and only then pushed.
-# [Epic 79 #2794] Four images: app, backup, demo-reset, landing.
+# [Epic 79 #2794] Four images: app, backup, demo-reset, landing. [Epic 40 #3620] + site.
 # A manual run (workflow_dispatch) on any other branch publishes only the
 # `<sha>` tags, so a branch can be deployed to a test VM before it merges.
 # `:main` is written only by main.
@@ -154,3 +154,29 @@ jobs:
             ${{ env.REGISTRY }}/biddaloy-landing:${{ github.sha }}
             ${{ github.ref == 'refs/heads/main' && format('{0}/biddaloy-landing:main', env.REGISTRY) || '' }}
           labels: org.opencontainers.image.revision=${{ github.sha }}
+
+  # School websites (Epic 40): Astro SSR, built inside site/Dockerfile (context = repo root).
+  site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: site/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/biddaloy-site:${{ github.sha }}
+            ${{ github.ref == 'refs/heads/main' && format('{0}/biddaloy-site:main', env.REGISTRY) || '' }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=biddaloy-site
+          cache-to: type=gha,scope=biddaloy-site,mode=max

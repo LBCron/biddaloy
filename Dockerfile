@@ -19,6 +19,7 @@ WORKDIR /app
 FROM base AS deps
 COPY package.json yarn.lock ./
 COPY shared/package.json shared/package.json
+COPY site-themes/package.json site-themes/package.json
 COPY server/package.json server/package.json
 COPY ui/package.json ui/package.json
 COPY client-admin/package.json client-admin/package.json
@@ -33,6 +34,7 @@ RUN yarn install --frozen-lockfile --network-timeout 600000
 FROM base AS prod-deps
 COPY package.json yarn.lock ./
 COPY shared/package.json shared/package.json
+COPY site-themes/package.json site-themes/package.json
 COPY server/package.json server/package.json
 COPY ui/package.json ui/package.json
 COPY client-admin/package.json client-admin/package.json
@@ -51,7 +53,7 @@ ARG SENTRY_PROJECT
 # Vite inlines this at build time; empty = every in-app help (?) and F1 stay hidden (#3045).
 ARG VITE_HANDBOOK_URL=https://schoolmanagerp.gitbook.io/schoolmanagerp-docs
 RUN --mount=type=secret,id=sentry_auth_token,required=false \
-    yarn build:shared && yarn build:server \
+    yarn build:shared && yarn build:site-themes && yarn build:server \
     && export SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token 2>/dev/null || true)" \
        SENTRY_RELEASE="$APP_VERSION" SENTRY_ORG="$SENTRY_ORG" SENTRY_PROJECT="$SENTRY_PROJECT" \
        VITE_HANDBOOK_URL="$VITE_HANDBOOK_URL" \
@@ -72,6 +74,9 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=prod-deps --chown=app:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=app:nodejs /app/shared/dist ./shared/dist
 COPY --from=builder --chown=app:nodejs /app/shared/package.json ./shared/package.json
+# Same for @biddaloy/site-themes (the server imports it).
+COPY --from=builder --chown=app:nodejs /app/site-themes/dist ./site-themes/dist
+COPY --from=builder --chown=app:nodejs /app/site-themes/package.json ./site-themes/package.json
 COPY --from=builder --chown=app:nodejs /app/server/dist ./server/dist
 COPY --from=builder --chown=app:nodejs /app/server/package.json ./server/package.json
 

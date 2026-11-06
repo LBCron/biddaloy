@@ -1,0 +1,100 @@
+# School websites (Epic 40, #3620): <school>.${ROOT_DOMAIN}, e.g. rumsc.schoolmanagerp.com.
+#
+# They live on their OWN listener, :8081, which holds nothing but this server{} and a default
+# that answers 444. No fixed host (app, staging, ops, ...) is ever served here, and the school
+# host is not served on :80. Why: cloudflared matches host names case-sensitively, so a name like
+# STAGING.<root> skips the staging rule; the cloudflared catch-all that points at :8081 then lands
+# it on a listener with no staging block, never on one that serves staging
+# (runbook part 17a, docs/architecture/25-cloudflare.md). Do not add a fixed host to this file. (A fixed name that fits the one-label shape, such as
+# app.<root>, would still be proxied to the site container, which answers 404: those names are in
+# RESERVED_SUBDOMAINS, #3615, so no school can own them.)
+# :8081 is published nowhere: only cloudflared reaches it over the `biddaloy-edge` network.
+# Direct mode (D5) has no wildcard certificate here and no published port: school sites are
+# tunnel-only for now, the listener still boots so both modes share one config.
+#
+# Production only: the upstream names are the `prod-*` aliases (deploy/stack.yml), as in
+# default.conf.template. No cookie ever reaches the site container (it is anonymous), and
+# X-Site-Preview is dropped on every public request (the site container trusts that header,
+# only the app-host preview route in default.conf.template may set it).
+
+proxy_cache_path /var/cache/nginx/site levels=1:2 keys_zone=site_cache:10m max_size=200m inactive=2h;
+
+upstream site_upstream {
+    zone site_upstream 256k;
+    server prod-site:4321 max_fails=1 fail_timeout=5s resolve;
+}
+
+# Unknown or fixed host on :8081: answer nothing (Rule 12).
+server {
+    listen 8081 default_server;
+    access_log /var/log/nginx/access.log redacted;
+    return 444;
+}
+
+server {
+    listen 8081;
+    access_log /var/log/nginx/access.log redacted;
+    # One label only (D5). Quoted: the pattern holds braces. nginx picks exact names before
+    # regex ones, so even on a shared listener a fixed host would win; it is on a separate
+    # listener so it cannot be reached here at all.
+    server_name "~^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?\.${ROOT_DOMAIN}$";
+
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $edge_proto;
+    proxy_set_header Cookie "";
+    proxy_set_header X-Site-Preview "";
+    proxy_connect_timeout 2s;
+    proxy_read_timeout 30s;
+    # Pages are anonymous: nothing from upstream may set a cookie on a school host.
+    proxy_hide_header Set-Cookie;
+    # The default cache key holds the upstream name, the same for every school: add the host.
+    proxy_cache_key $host$request_uri;
+
+    # Pages: 30 s micro-cache; an hour of stale pages if the site container is down (D32).
+    location / {
+        proxy_pass http://site_upstream;
+        proxy_cache site_cache;
+        proxy_cache_valid 200 30s;
+        proxy_cache_valid 404 10s;
+        proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+        proxy_cache_background_update on;
+        proxy_cache_lock on;
+        # Draft pages (?preview=<token>) are never stored or served from the cache.
+        proxy_cache_bypass $arg_preview;
+        proxy_no_cache $arg_preview;
+        add_header X-Cache-Status $upstream_cache_status;
+        add_header Strict-Transport-Security $edge_hsts always;
+        error_page 502 503 504 =503 /maintenance.html;
+    }
+
+    # File shipped in the site image (site/public/maintenance.html) and mounted by deploy/edge.yml.
+    location = /maintenance.html {
+        internal;
+        root /usr/share/nginx/site-static;
+        add_header Cache-Control "no-store";
+        add_header Strict-Transport-Security $edge_hsts always;
+    }
+
+    # Media: the API answers `no-store` (Rule 14); this is the one documented long-cache response.
+    # Safe because keys are content-addressed; only a 200 is cached (1 day on the nginx side).
+    location /media/ {
+        rewrite ^/media/(.+)$ /api/v1/public/site/by-host/$host/media/$1 break;
+        proxy_pass http://app_upstream;
+        proxy_hide_header Cache-Control;
+        proxy_ignore_headers Cache-Control Expires Set-Cookie;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header Strict-Transport-Security $edge_hsts always;
+        proxy_cache site_cache;
+        proxy_cache_valid 200 1d;
+    }
+
+    # Islands (D21): straight to the by-host API, never cached. rewrite keeps the query string.
+    location /_api/ {
+        rewrite ^/_api/(.*)$ /api/v1/public/site/by-host/$host/$1 break;
+        proxy_pass http://app_upstream;
+        add_header Strict-Transport-Security $edge_hsts always;
+    }
+}

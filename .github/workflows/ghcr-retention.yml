@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [biddaloy-app, biddaloy-backup, biddaloy-demo-reset, biddaloy-landing]
+        package: [biddaloy-app, biddaloy-backup, biddaloy-demo-reset, biddaloy-landing, biddaloy-site]
     steps:
       - uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1.2.2
         with:
