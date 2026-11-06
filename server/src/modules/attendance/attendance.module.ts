@@ -38,6 +38,10 @@ import { AbsenceNoticeService } from './absence-notice.service';
 import { ArrivalNoticeService } from './arrival-notice.service';
 import { AbsenceNoticeController } from './absence-notice.controller';
 import { AbsenceNoticeScheduler, ABSENCE_NOTICE_SWEEP_QUEUE } from './absence-notice.scheduler';
+import {
+  DeviceAbsentSweepScheduler,
+  DEVICE_ABSENT_SWEEP_QUEUE,
+} from './device-absent-sweep.scheduler';
 import { ArrivalSubscriptionsService } from './arrival-subscriptions.service';
 import {
   ArrivalSubscriptionsController,
@@ -108,6 +112,7 @@ import { DeviceIngestController } from './devices/device-ingest.controller';
       defaultJobOptions: COMMUNICATIONS_QUEUE_JOB_OPTIONS,
     }),
     BullModule.registerQueue({ name: ABSENCE_NOTICE_SWEEP_QUEUE }),
+    BullModule.registerQueue({ name: DEVICE_ABSENT_SWEEP_QUEUE }),
     BullModule.registerQueue({ name: ATTENDANCE_SERIES_QUEUE }),
   ],
   providers: [
@@ -117,6 +122,7 @@ import { DeviceIngestController } from './devices/device-ingest.controller';
     AbsenceNoticeService,
     ArrivalNoticeService,
     AbsenceNoticeScheduler,
+    DeviceAbsentSweepScheduler,
     AttendanceDashboardService,
     AttendanceSeriesScheduler,
     ArrivalSubscriptionsService,
