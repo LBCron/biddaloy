@@ -50,6 +50,41 @@ describe('validateSiteConfig', () => {
     expect(errorsOf(c)).toContain('announcements.tooMany');
   });
 
+  it('accepts the shipped defaults', () => {
+    expect(validateSiteConfig(fresh(), BASIC).ok).toBe(true);
+  });
+
+  const item = (href: unknown) => ({ id: 'a1', text: { bn: 'ক', en: 'a' }, href, enabled: true });
+
+  it('keeps a site-relative announcement link', () => {
+    const c = fresh();
+    c.announcements.items = [item('/notices')];
+    const r = validateSiteConfig(c, BASIC);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.announcements.items[0].href).toBe('/notices');
+  });
+
+  // An off-site or script link in the bar is an open redirect or XSS on every page.
+  it('rejects javascript:, protocol-relative and absolute announcement links', () => {
+    for (const href of ['javascript:alert(1)', '//evil.com', 'https://evil.com']) {
+      const c = fresh();
+      c.announcements.items = [item(href)];
+      const e = errorsOf(c);
+      expect(e).toContain('href.invalid');
+      expect(JSON.stringify(e)).not.toContain('evil');
+    }
+  });
+
+  it('rejects a broken announcement date and drops unknown item keys', () => {
+    const c = fresh();
+    c.announcements.items = [{ ...item(undefined), from: 'soon' }];
+    expect(errorsOf(c)).toContain('date.invalid');
+    c.announcements.items = [{ ...item(undefined), onclick: 'x' }];
+    const r = validateSiteConfig(c, BASIC);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.announcements.items[0]).not.toHaveProperty('onclick');
+  });
+
   it('drops unknown keys', () => {
     const c = fresh();
     c.pages[0].sections[0].data.bogus = { bn: 'a', en: 'b' };

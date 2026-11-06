@@ -1,7 +1,7 @@
 ---
 import { SiteAnnouncementStyle } from '@biddaloy/shared';
 import { t } from '../i18n/t';
-import { pick } from '../lib/pick';
+import { barItems } from '../lib/announcements';
 import type { Lang, SiteManifest } from '../lib/types';
 
 interface Props {
@@ -10,12 +10,8 @@ interface Props {
 }
 const { bar, lang } = Astro.props;
 const DUR = { SLOW: '40s', NORMAL: '25s', FAST: '15s' } as const;
-const now = Date.now();
-// Only enabled items inside their date window, with text.
-const items = (bar?.items ?? [])
-  .filter((i) => i.enabled && (!i.from || Date.parse(i.from) <= now) && (!i.until || Date.parse(i.until) >= now))
-  .map((i) => ({ text: pick(i.text, lang), href: i.href }))
-  .filter((i): i is { text: string; href: string | undefined } => !!i.text);
+// Enabled, in-window items; an off-site or script href is dropped (lib/announcements.ts).
+const items = barItems(bar, lang, Date.now());
 const isStatic = bar?.style !== SiteAnnouncementStyle.MARQUEE || items.length < 2;
 ---
 {items.length > 0 && (

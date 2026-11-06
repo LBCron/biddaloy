@@ -2,10 +2,18 @@ import {
   SITE_ANNOUNCEMENTS_MAX,
   SITE_HERO_MAX_PHOTOS,
   SITE_POST_BODY_MAX_CHARS,
+  SiteAnnouncementStyle,
+  SiteMarqueeSpeed,
   SitePage,
   SiteSectionKey,
+  isSiteRelativeHref,
 } from '@biddaloy/shared';
-import type { SiteConfig, SitePageConfig, SiteSectionConfig } from '@biddaloy/shared';
+import type {
+  SiteAnnouncement,
+  SiteConfig,
+  SitePageConfig,
+  SiteSectionConfig,
+} from '@biddaloy/shared';
 import type { ThemeManifest } from './manifest';
 
 export const SITE_TEXT_MAX_CHARS = 2000;
@@ -43,9 +51,37 @@ export function validateSiteConfig(config: unknown, manifest: ThemeManifest): Va
   const typography = { bn: pick('bn'), en: pick('en') };
 
   const bar = isObj(config.announcements) ? config.announcements : {};
-  const items = Array.isArray(bar.items) ? bar.items : [];
-  if (items.length > SITE_ANNOUNCEMENTS_MAX) bad('announcements.tooMany');
-  const announcements = { ...(bar as object), items } as SiteConfig['announcements'];
+  const rawItems = Array.isArray(bar.items) ? bar.items : [];
+  if (rawItems.length > SITE_ANNOUNCEMENTS_MAX) bad('announcements.tooMany');
+  const isDate = (v: unknown) => v === undefined || (isStr(v) && !Number.isNaN(Date.parse(v)));
+  const items: SiteAnnouncement[] = [];
+  for (const i of rawItems) {
+    const text = isObj(i) && isObj(i.text) ? i.text : null;
+    if (!isObj(i) || !isStr(i.id) || !text || !isStr(text.bn) || !isStr(text.en)) {
+      bad('announcement.invalid');
+      continue;
+    }
+    if (text.bn.length > SITE_TEXT_MAX_CHARS || text.en.length > SITE_TEXT_MAX_CHARS)
+      bad('text.tooLong');
+    // Site-relative only: a `javascript:` or `//other-host` link would be XSS / an open redirect.
+    if (i.href !== undefined && i.href !== '' && !isSiteRelativeHref(i.href)) bad('href.invalid');
+    if (!isDate(i.from) || !isDate(i.until)) bad('date.invalid');
+    items.push({
+      id: i.id,
+      text: { bn: text.bn, en: text.en },
+      ...(isStr(i.href) && i.href !== '' ? { href: i.href } : {}),
+      ...(isStr(i.from) ? { from: i.from } : {}),
+      ...(isStr(i.until) ? { until: i.until } : {}),
+      enabled: i.enabled !== false,
+    });
+  }
+  const style = (Object.values(SiteAnnouncementStyle) as unknown[]).includes(bar.style)
+    ? (bar.style as SiteAnnouncementStyle)
+    : SiteAnnouncementStyle.STATIC;
+  const speed = (Object.values(SiteMarqueeSpeed) as unknown[]).includes(bar.speed)
+    ? (bar.speed as SiteMarqueeSpeed)
+    : SiteMarqueeSpeed.NORMAL;
+  const announcements: SiteConfig['announcements'] = { style, speed, items };
 
   const pageKeys = new Set<string>(Object.values(SitePage));
   const rawPages = Array.isArray(config.pages) ? config.pages : [];
