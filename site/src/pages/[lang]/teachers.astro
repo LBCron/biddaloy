@@ -1,0 +1,18 @@
+---
+import { SitePage } from '@biddaloy/shared';
+import SectionRenderer from '../../components/SectionRenderer.astro';
+import { t } from '../../i18n/t';
+import { loadPage } from '../../lib/page';
+import type { Lang } from '../../lib/types';
+import { themes } from '../../themes';
+
+const { site } = Astro.locals;
+const lang = Astro.params.lang as Lang;
+if (!site) return new Response(null, { status: 404 });
+const r = await loadPage(Astro.locals, SitePage.TEACHERS);
+if (r.rewrite) return Astro.rewrite(r.rewrite);
+const { Layout } = themes[site.theme] ?? themes.basic;
+---
+<Layout manifest={site} lang={lang} rest="teachers/" title={t(lang, 'nav.teachers')}>
+  <SectionRenderer manifest={site} page={r.page} lang={lang} />
+</Layout>

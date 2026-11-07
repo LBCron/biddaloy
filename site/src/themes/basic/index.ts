@@ -1,6 +1,8 @@
 import { SiteSectionKey } from '@biddaloy/shared';
 import type { AstroComponentFactory } from 'astro/runtime/server/index.js';
 import about from './sections/about.astro';
+import academics from './sections/academics.astro';
+import routine from './sections/routine.astro';
 import admissions from './sections/admissions.astro';
 import blog from './sections/blog.astro';
 import contact from './sections/contact.astro';
@@ -20,6 +22,8 @@ export default {
   sections: {
     [SiteSectionKey.HERO]: hero,
     [SiteSectionKey.ABOUT]: about,
+    [SiteSectionKey.ACADEMICS]: academics,
+    [SiteSectionKey.ROUTINE]: routine,
     [SiteSectionKey.ADMISSIONS]: admissions,
     [SiteSectionKey.TEACHERS]: teachers,
     [SiteSectionKey.NOTICES]: notices,

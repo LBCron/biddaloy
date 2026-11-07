@@ -1,5 +1,6 @@
 ---
 import { themes } from '../themes';
+import { orderSections } from '../lib/sections';
 import { textStyleVars, toStyle } from '../lib/css-vars';
 import type { Lang, SiteManifest, SitePageData } from '../lib/types';
 
@@ -13,8 +14,8 @@ interface Props {
 const { manifest, page, lang, skip = [] } = Astro.props;
 const theme = themes[manifest.theme] ?? themes.basic;
 // Sections render in config order; unknown keys have no component and are dropped.
-const rows = page.sections
-  .filter((s) => s.enabled !== false && !skip.includes(s.key) && theme.sections[s.key])
+const rows = orderSections(page, skip)
+  .filter((s) => theme.sections[s.key])
   .map((s) => ({
     Comp: theme.sections[s.key]!,
     s,
@@ -23,6 +24,6 @@ const rows = page.sections
 ---
 {rows.map(({ Comp, s, style }) => (
   <div style={`display:contents;${style}`}>
-    <Comp data={s.data} lang={lang} feed={s.feed ?? []} manifest={manifest} />
+    <Comp data={s.data} lang={lang} feed={s.feed ?? []} manifest={manifest} page={page.page} />
   </div>
 ))}

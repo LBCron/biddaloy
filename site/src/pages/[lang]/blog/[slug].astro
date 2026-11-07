@@ -1,0 +1,32 @@
+---
+import { SitePage, SiteSectionKey } from '@biddaloy/shared';
+import { t } from '../../../i18n/t';
+import { loadPage } from '../../../lib/page';
+import { field } from '../../../lib/pick';
+import type { Lang } from '../../../lib/types';
+import { themes } from '../../../themes';
+
+const { site } = Astro.locals;
+const lang = Astro.params.lang as Lang;
+if (!site) return new Response(null, { status: 404 });
+const r = await loadPage(Astro.locals, SitePage.BLOG);
+if (r.rewrite) return Astro.rewrite(r.rewrite);
+// ponytail: the blog feed carries the 12 newest posts; an older one is a 404 until a one-post read exists.
+const feed = r.page.sections.find((s) => s.key === SiteSectionKey.BLOG)?.feed ?? [];
+const post = feed.find((p) => p.slug === Astro.params.slug);
+if (!post) return Astro.rewrite('/404/');
+const s = (v: unknown) => (typeof v === 'string' ? v : undefined);
+const title = field(post.title, lang) ?? s(post.title) ?? '';
+const when = s(post.publishedAt) ? new Date(s(post.publishedAt)!) : undefined;
+const { Layout } = themes[site.theme] ?? themes.basic;
+---
+<Layout manifest={site} lang={lang} rest={`blog/${Astro.params.slug}/`} title={title}>
+  <article class="sec"><div class="wrap post-page">
+    <h1>{title}</h1>
+    {when && !Number.isNaN(when.getTime()) && <p class="tiny"><time datetime={when.toISOString()}>{when.toLocaleDateString(lang === 'en' ? 'en-GB' : 'bn-BD', { dateStyle: 'long' })}</time></p>}
+    {s(post.cover) && <img src={`/media/${s(post.cover)}`} alt="" width="1200" height="630" style="aspect-ratio:1200/630;object-fit:cover;width:100%;border-radius:var(--r)" />}
+    {/* Sanitised on the server (renderSlate); the only raw HTML the site prints. */}
+    <div class="prose" set:html={s(post.html) ?? ''}></div>
+    <p><a href={`/${lang}/blog/`}>{t(lang, 'nav.blog')}</a></p>
+  </div></article>
+</Layout>

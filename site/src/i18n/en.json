@@ -13,7 +13,11 @@
     "results": "Results",
     "contact": "Contact"
   },
-  "lang": { "label": "Language", "bn": "বাং", "en": "EN" },
+  "lang": {
+    "label": "Language",
+    "bn": "বাং",
+    "en": "EN"
+  },
   "hero": {
     "prev": "Previous photo",
     "next": "Next photo",
@@ -40,13 +44,72 @@
     "title": "Please try again in a moment",
     "body": "This site is not opening right now."
   },
-  "contact": { "address": "Address", "phone": "Phone", "email": "Email", "hours": "Office hours" },
+  "contact": {
+    "address": "Address",
+    "phone": "Phone",
+    "email": "Email",
+    "hours": "Office hours"
+  },
   "section": {
     "teachers": "Our teachers",
     "events": "Upcoming days",
     "blog": "School blog",
     "admissions": "Admissions",
-    "contact": "Contact"
+    "contact": "Contact",
+    "routine": "Class routine",
+    "about": "About us",
+    "academics": "Academics"
   },
-  "empty": "Coming soon."
+  "empty": "Coming soon.",
+  "teachers": {
+    "all": "See everyone",
+    "subjects": "Teaches",
+    "credentials": "Qualifications"
+  },
+  "blog": {
+    "back": "All posts"
+  },
+  "events": {
+    "empty": "No upcoming events.",
+    "error": "Could not load events. Please try again in a moment.",
+    "loading": "Loading events"
+  },
+  "routine": {
+    "class": "Class and section",
+    "pick": "Choose",
+    "empty": "This section's routine is not published yet.",
+    "error": "Could not load the routine. Please try again in a moment.",
+    "loading": "Loading routine",
+    "d0": "Sunday",
+    "d1": "Monday",
+    "d2": "Tuesday",
+    "d3": "Wednesday",
+    "d4": "Thursday",
+    "d5": "Friday",
+    "d6": "Saturday"
+  },
+  "enquiry": {
+    "title": "Write to us",
+    "name": "Your name",
+    "phone": "Mobile number",
+    "message": "Your message",
+    "send": "Send",
+    "nokey": "The form is not available right now. Please phone the school.",
+    "submitting": "Sending…",
+    "success": "Thank you. Your message has arrived and the school will get in touch soon.",
+    "captcha": "We could not confirm you are a person. Tick the box again.",
+    "invalid": "The name, mobile number or message is not right. Check and send again.",
+    "closed": "Messages are not being accepted right now.",
+    "rate": "Too many tries. Please send again in a minute.",
+    "error": "The message could not be sent. Please try again in a moment."
+  },
+  "links": {
+    "whatsapp": "WhatsApp",
+    "facebook": "Facebook",
+    "map": "School location"
+  },
+  "admissions": {
+    "deadline": "Last date",
+    "apply": "Apply"
+  }
 }

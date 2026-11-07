@@ -31,6 +31,8 @@ export interface SitePageData {
   page: SitePage;
   sections: (Pick<SiteSectionConfig, 'key' | 'data' | 'typography'> & {
     enabled?: boolean;
+    /** True when a system-fed section had nothing to show: the site hides it (D12). */
+    empty?: boolean;
     /** System-fed rows (teachers, events, blog); `[]` until their feeds exist. */
     feed?: Record<string, unknown>[];
   })[];
@@ -41,6 +43,8 @@ export interface SectionProps {
   lang: Lang;
   feed: Record<string, unknown>[];
   manifest: SiteManifest;
+  /** The page being rendered (`home` shows featured teachers + the see-all link). */
+  page?: SitePage;
 }
 
 export type FetchResult<T> =

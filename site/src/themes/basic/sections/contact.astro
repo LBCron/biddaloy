@@ -1,17 +1,27 @@
 ---
 import { t } from '../../../i18n/t';
+import { httpsLink, mapEmbed, whatsappLink } from '../../../lib/contact';
 import { field, pick } from '../../../lib/pick';
 import type { SectionProps } from '../../../lib/types';
 
 const { data, lang, manifest } = Astro.props as SectionProps;
 const title = field(data.title, lang) ?? t(lang, 'section.contact');
 const c = manifest.contact;
+const address = field(data.address, lang) ?? pick(c?.address, lang);
 const rows = [
-  ['contact.address', field(data.address, lang) ?? pick(c?.address, lang)],
+  ['contact.address', address],
   ['contact.phone', c?.phone],
   ['contact.email', c?.email],
   ['contact.hours', pick(c?.hours, lang)],
 ].filter((r): r is [string, string] => !!r[1]);
+const map = mapEmbed(data.lat, data.lng, address);
+const links = [
+  ['links.whatsapp', whatsappLink(data.whatsapp)],
+  ['links.facebook', httpsLink(data.facebook)],
+].filter((l): l is [string, string] => !!l[1]);
+// The Turnstile site key is public; the site container carries it in its own env.
+const siteKey = process.env.TURNSTILE_SITE_KEY ?? import.meta.env?.TURNSTILE_SITE_KEY ?? '';
+const m = (k: string) => t(lang, `enquiry.${k}`);
 ---
 <section class="sec" id="contact"><div class="wrap contact">
   <div>
@@ -19,5 +29,27 @@ const rows = [
     <dl class="kv" style="margin:16px 0 20px">
       {rows.map(([k, v]) => <><dt>{t(lang, k)}</dt><dd>{v}</dd></>)}
     </dl>
+    {links.length > 0 && (
+      <p class="cta">{links.map(([k, href]) => <a class="btn btn-ghost btn-sm" href={href} rel="noopener noreferrer" target="_blank">{t(lang, k)}</a>)}</p>
+    )}
+    {map && <iframe class="mapframe" title={t(lang, 'links.map')} src={map} loading="lazy" referrerpolicy="no-referrer" width="600" height="320"></iframe>}
+  </div>
+  <div>
+    <h3>{m('title')}</h3>
+    {!siteKey ? <p class="empty">{m('nokey')}</p> : (
+      <form class="enquiry" data-enquiry data-sitekey={siteKey} data-state="idle"
+        data-m-submitting={m('submitting')} data-m-success={m('success')} data-m-captcha={m('captcha')}
+        data-m-invalid={m('invalid')} data-m-closed={m('closed')} data-m-rate={m('rate')} data-m-error={m('error')}>
+        <label class="field"><span>{m('name')}</span><input name="name" required maxlength="80" autocomplete="name" /></label>
+        <label class="field"><span>{m('phone')}</span><input name="phone" type="tel" inputmode="tel" required maxlength="20" pattern="(\+?88)?01[3-9][0-9]{8}" autocomplete="tel" /></label>
+        <label class="field"><span>{m('message')}</span><textarea name="message" required maxlength="1000" rows="4"></textarea></label>
+        <div data-captcha></div>
+        <button class="btn" type="submit">{m('send')}</button>
+        <p data-status role="status" aria-live="polite"></p>
+      </form>
+    )}
   </div>
 </div></section>
+<script>
+  import '../../../islands/enquiry';
+</script>
