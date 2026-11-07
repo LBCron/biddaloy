@@ -2,8 +2,9 @@
 
 Playwright `toHaveScreenshot`, no Chromatic/Percy. **Baselines are
 Linux-only** — macOS renders fonts differently, so the suite refuses to
-run outside Linux (`determinism.ts`'s `assertLinux`), and baselines are
-only ever written inside the pinned Playwright Docker image.
+run outside Linux (`determinism.ts`'s `assertLinux`; `ALLOW_NON_LINUX_VISUAL=1`
+overrides it, but its output is not a valid baseline). The supported way to
+write baselines is the pinned Playwright Docker image (`yarn e2e:visual:update`).
 
 ## What gets captured
 

@@ -19,9 +19,21 @@ const KILL_MOTION_CSS = `
   }
 `;
 
+const prepared = new WeakSet<Page>();
+
+/** Idempotent per page: the clock and the CSS are init scripts, so they
+ * survive every later navigation (addStyleTag would not). */
 export async function applyDeterminism(page: Page): Promise<void> {
+  if (prepared.has(page)) return;
+  prepared.add(page);
   await page.clock.install({ time: FROZEN_TIME });
-  await page.addStyleTag({ content: KILL_MOTION_CSS });
+  await page.addInitScript((css) => {
+    document.addEventListener('DOMContentLoaded', () => {
+      const style = document.createElement('style');
+      style.textContent = css;
+      document.head.appendChild(style);
+    });
+  }, KILL_MOTION_CSS);
 }
 
 /** Call after navigation, immediately before the capture. */

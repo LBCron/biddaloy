@@ -21,6 +21,8 @@ echo "Updating visual baselines in ${IMAGE} (E2E_BROWSERS=${E2E_BROWSERS:-chromi
 # publishes ports on 127.0.0.1 only, so host.docker.internal can't work.
 docker run --rm \
   --network "${COMPOSE_NETWORK:-biddaloy_default}" \
+  --user "$(id -u):$(id -g)" \
+  -e HOME=/tmp \
   -e CI=1 \
   -e E2E_BROWSERS="${E2E_BROWSERS:-chromium}" \
   -e SEED_ADMIN_PASSWORD="${SEED_ADMIN_PASSWORD:?export SEED_ADMIN_PASSWORD first}" \
