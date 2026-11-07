@@ -32,12 +32,33 @@ for (const [name, size] of [
 
 test('marquee pauses on hover; carousel advances; disabled item hidden', async ({ page }) => {
   await stubIsland(page);
+  // The site server has no /media route (the proxy owns it), so serve a 1x1 PNG for the fixture ids.
+  await page.route('**/media/*', (route) =>
+    route.fulfill({
+      contentType: 'image/png',
+      body: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==',
+        'base64',
+      ),
+    }),
+  );
   await page.goto('/bn/');
   const track = page.locator('.ann-track');
   await expect(track).toHaveCSS('animation-play-state', 'running');
   await page.locator('.ann').hover();
   await expect(track).toHaveCSS('animation-play-state', 'paused');
   await expect(page.locator('.ann-set').first().locator('li')).toHaveCount(2);
+  await expect
+    .poll(() =>
+      page
+        .locator('.hc-slide img')
+        .evaluateAll((els) =>
+          els.every(
+            (i) => (i as HTMLImageElement).complete && (i as HTMLImageElement).naturalWidth > 0,
+          ),
+        ),
+    )
+    .toBe(true);
   await page.locator('.hc-next').click();
   await expect(page.locator('.hc-dots button').nth(1)).toHaveAttribute('aria-current', 'true');
 });
