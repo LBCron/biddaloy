@@ -119,9 +119,9 @@ describe('/website/pages unsaved work', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Save draft' }));
     await waitFor(() => expect(refused).toBe(true));
     await waitFor(() =>
-      expect(
-        (screen.getByRole('button', { name: 'Save draft' }) as HTMLButtonElement).disabled,
-      ).toBe(false),
+      expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Save draft' }).disabled).toBe(
+        false,
+      ),
     );
     expect(
       screen
