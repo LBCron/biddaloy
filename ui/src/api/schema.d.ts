@@ -19721,8 +19721,7 @@ export interface components {
             page: number;
         };
         WebsiteResultRowDto: {
-            /** Format: uuid */
-            id: string;
+            handle: string;
             roll: number;
             name: string | null;
             gpa: number;
@@ -19737,13 +19736,8 @@ export interface components {
             rows: components["schemas"]["WebsiteResultRowDto"][];
         };
         ResultsDetailQueryDto: {
-            /** Format: uuid */
-            exam_id: string;
-            /**
-             * Format: uuid
-             * @description The `id` of a row the table answer returned.
-             */
-            result_id: string;
+            /** @description The `handle` of a row the table answer returned (30 minutes). */
+            handle: string;
         };
         WebsiteResultSubjectDto: {
             name: {
