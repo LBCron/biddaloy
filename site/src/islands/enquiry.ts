@@ -30,6 +30,9 @@ async function init(form: HTMLFormElement) {
   const status = form.querySelector<HTMLElement>('[data-status]')!;
   const button = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
   const box = form.querySelector<HTMLElement>('[data-captcha]')!;
+  // Without this a click before the widget is ready submits natively as a GET and puts the
+  // visitor's phone and message in the URL.
+  form.addEventListener('submit', (e) => e.preventDefault());
   let token = '';
   let widget: string | undefined;
 
@@ -39,7 +42,7 @@ async function init(form: HTMLFormElement) {
       state === 'idle' ? '' : (form.dataset[`m${state[0].toUpperCase()}${state.slice(1)}`] ?? '');
     status.className =
       state === 'success' ? 'ok' : state === 'idle' || state === 'submitting' ? '' : 'bad';
-    button.disabled = state === 'submitting';
+    button.disabled = state === 'submitting' || state === 'unavailable';
   };
 
   const ts = await loadTurnstile();

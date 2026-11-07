@@ -17,7 +17,11 @@ async function load(root: HTMLElement) {
   let inflight: AbortController | undefined;
   async function show() {
     inflight?.abort(); // a quick second pick cancels the first, so an old answer never paints over it
-    if (!select.value) return;
+    if (!select.value) {
+      // Nothing chosen: clear the grid and drop the loading state the aborted request left on.
+      out.replaceChildren();
+      return settle(root, out, '');
+    }
     const mine = (inflight = new AbortController());
     root.setAttribute('data-loading', '');
     root.setAttribute('aria-busy', 'true');

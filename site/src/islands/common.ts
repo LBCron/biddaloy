@@ -18,11 +18,18 @@ export async function loadRows<T>(
 ): Promise<T[] | undefined> {
   const started = Date.now();
   let rows: T[] | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const signals = [AbortSignal.timeout(FETCH_DEADLINE_MS), ...(cancel ? [cancel] : [])];
+    // Plain controller + timer: AbortSignal.any / .timeout are missing on older school-site WebViews.
+    const ctl = new AbortController();
+    timer = setTimeout(() => ctl.abort(), FETCH_DEADLINE_MS);
+    if (cancel) {
+      if (cancel.aborted) ctl.abort();
+      else cancel.addEventListener('abort', () => ctl.abort(), { once: true });
+    }
     const res = await fetchImpl(path, {
       headers: { accept: 'application/json' },
-      signal: AbortSignal.any(signals),
+      signal: ctl.signal,
     });
     if (res.ok) {
       const body = (await res.json()) as T[] | { items?: T[] };
@@ -30,6 +37,8 @@ export async function loadRows<T>(
     }
   } catch {
     /* the caller shows its error line */
+  } finally {
+    clearTimeout(timer);
   }
   await new Promise((r) => setTimeout(r, Math.max(0, MIN_SKELETON_MS - (Date.now() - started))));
   return rows;
