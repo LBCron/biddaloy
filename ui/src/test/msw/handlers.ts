@@ -7,7 +7,6 @@ import { attentionDefaultHandlers } from './handlers/attention';
 import { auditLogDefaultHandlers } from './handlers/audit-logs';
 import { authDefaultHandlers } from './handlers/auth';
 import { backupDefaultHandlers } from './handlers/backup';
-import { websiteDefaultHandlers } from './handlers/website';
 import { billingDefaultHandlers } from './handlers/billing';
 import { classDefaultHandlers } from './handlers/classes';
 import { communicationDefaultHandlers } from './handlers/communications';
@@ -26,6 +25,7 @@ import { studentDefaultHandlers } from './handlers/students';
 import { surveyDefaultHandlers } from './handlers/surveys';
 import { teacherDefaultHandlers } from './handlers/teachers';
 import { userDefaultHandlers } from './handlers/users';
+import { websiteDefaultHandlers } from './handlers/website';
 
 /**
  * The shared handler library — the "happy path" default for every

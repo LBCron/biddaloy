@@ -142,4 +142,13 @@ export const NOT_IN_NAV: Record<string, string> = {
   '/_staff/fees/fines/rules':
     "[38.4.3] Rules tab reached from the Fines page's own tab bar, not a separate nav item",
   '/_staff/programs/$programId': 'detail route reached from the programs list',
+  '/_staff/website/pages':
+    "[40] Pages tab, reached from the Website page's own tab bar, not a separate nav item",
+  '/_staff/website/design':
+    "[40] Design tab, reached from the Website page's own tab bar, not a separate nav item",
+  '/_staff/website/enquiries':
+    "[40] Enquiries tab, reached from the Website page's own tab bar, not a separate nav item",
+  '/_staff/website/blog/':
+    "[40] Blog tab, reached from the Website page's own tab bar, not a separate nav item",
+  '/_staff/website/blog/$postId': '[40] blog post editor, reached from the Blog tab list',
 };

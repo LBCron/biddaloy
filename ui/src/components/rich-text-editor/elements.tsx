@@ -1,8 +1,9 @@
 import { ImageIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import type { RenderElementProps, RenderLeafProps } from 'slate-react';
 
 export function renderLeaf({ attributes, children, leaf }: RenderLeafProps) {
-  let out = children;
+  let out = children as ReactNode;
   if (leaf.bold) out = <strong>{out}</strong>;
   if (leaf.italic) out = <em>{out}</em>;
   return <span {...attributes}>{out}</span>;
