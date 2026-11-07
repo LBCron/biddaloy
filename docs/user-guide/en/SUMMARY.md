@@ -100,6 +100,7 @@
   - [Roles and permissions](administration/roles.md)
   - [Activity log](administration/audit-logs.md)
   - [Ready-made curriculum](administration/curriculum-preset.md)
+  - [School website](administration/website.md)
   - [Printing ID cards, certificates and exam papers](administration/print-templates.md)
     - [Designer's guide](administration/print-templates/designer-guide.md)
     - [Printers and calibration](administration/print-templates/printers-and-calibration.md)

@@ -148,6 +148,8 @@
     "pinOnHome": "হোমপেজে পিন করো"
   },
   "filters": {
-    "onWebsite": "ওয়েবসাইটে আছে"
+    "onWebsite": "ওয়েবসাইটে আছে",
+    "onWebsiteLabel": "ওয়েবসাইট",
+    "allNotices": "সব নোটিশ"
   }
 }

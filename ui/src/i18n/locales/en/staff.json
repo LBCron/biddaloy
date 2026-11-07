@@ -615,6 +615,11 @@
         "tooLarge": "This photo is too big. Use one under 20 MB.",
         "unreadable": "We could not read this photo.",
         "pan": "Use the arrow keys to move the photo and plus or minus to zoom."
+      },
+      "errors": {
+        "order": "Order must be a whole number from 0 to {{max}}.",
+        "subjects": "Give up to {{count}} subjects, each up to {{max}} letters.",
+        "text": "Each text can be up to {{max}} letters."
       }
     }
   }

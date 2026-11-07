@@ -25,6 +25,8 @@ export interface NoticeListParams {
   limit: number;
   status?: NoticeStatus | undefined;
   q?: string | undefined;
+  /** `true`: only notices that are on the school website. */
+  isPublic?: boolean | undefined;
 }
 
 export interface NoticeReportParams {

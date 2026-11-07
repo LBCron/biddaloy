@@ -121,4 +121,77 @@ describe('/website/blog/$postId', () => {
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toMatch(/title or the text is not valid/);
   });
+
+  const refuse = (status: number, code: string) =>
+    HttpResponse.json(
+      {
+        statusCode: status,
+        message: code,
+        error: 'x',
+        requestId: 'r1',
+        path: '/api/v1/website/posts',
+        timestamp: '2026-11-07T00:00:00.000Z',
+      },
+      { status },
+    );
+
+  it('creates one post only, even when publish fails and Publish is clicked again', async () => {
+    mockWebsite();
+    const calls = mockPosts();
+    server.use(
+      http.post('/api/v1/website/posts/:id/:action', () => {
+        calls.push('publish');
+        return refuse(500, 'boom');
+      }),
+    );
+    render('/website/blog/new');
+    await userEvent.type(await screen.findByLabelText(/Title \(বাংলা\)/), 'ক');
+    await userEvent.click(screen.getByRole('button', { name: 'Publish' }));
+    await waitFor(() => expect(calls).toEqual(['create:POST:ক', 'publish']));
+    await screen.findByRole('alert');
+    await userEvent.click(screen.getByRole('button', { name: 'Publish' }));
+    await waitFor(() => expect(calls).toEqual(['create:POST:ক', 'publish', 'update:ক', 'publish']));
+    expect(calls.filter((c) => c.startsWith('create'))).toHaveLength(1);
+  });
+
+  it('tells a taken address, a post in use and any other 409 apart', async () => {
+    mockWebsite();
+    mockPosts();
+    server.use(http.post('/api/v1/website/posts', () => refuse(409, 'site.post_slug_taken')));
+    render('/website/blog/new');
+    await userEvent.type(await screen.findByLabelText(/Title \(বাংলা\)/), 'ক');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect((await screen.findByRole('alert')).textContent).toMatch(/address is already used/);
+  });
+
+  it('says a post is in use when delete is refused with post_in_use', async () => {
+    mockWebsite();
+    mockPosts();
+    server.use(http.delete('/api/v1/website/posts/p1', () => refuse(409, 'site.post_in_use')));
+    render('/website/blog/p1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Delete post' }));
+    const buttons = screen.getAllByRole('button', { name: 'Delete post' });
+    await userEvent.click(buttons[buttons.length - 1]!);
+    expect((await screen.findByRole('alert')).textContent).toMatch(/used on your home page/);
+  });
+
+  it('says a post is in use when publish is refused with post_in_use', async () => {
+    mockWebsite();
+    mockPosts();
+    server.use(
+      http.post('/api/v1/website/posts/:id/:action', () => refuse(409, 'site.post_in_use')),
+    );
+    render('/website/blog/p1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Publish' }));
+    expect((await screen.findByRole('alert')).textContent).toMatch(/used on your home page/);
+  });
+
+  it('shows the generic message for any other 409', async () => {
+    mockWebsite();
+    mockPosts();
+    server.use(http.put('/api/v1/website/posts/p1', () => refuse(409, 'site.something_else')));
+    render('/website/blog/p1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Save' }));
+    expect((await screen.findByRole('alert')).textContent).toMatch(/could not do that/);
+  });
 });

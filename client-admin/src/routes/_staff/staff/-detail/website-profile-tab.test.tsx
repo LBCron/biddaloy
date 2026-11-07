@@ -66,4 +66,17 @@ describe('WebsiteProfileTab', () => {
       }),
     );
   });
+
+  it('refuses 11 subjects before sending anything', async () => {
+    let sent = false;
+    setup([person(1)], () => (sent = true));
+    const user = userEvent.setup();
+    await user.type(
+      await screen.findByLabelText('Subjects'),
+      Array.from({ length: 11 }, (_, i) => `S${i}`).join(','),
+    );
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(sent).toBe(false);
+  });
 });
