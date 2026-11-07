@@ -76,6 +76,14 @@ export function CollectionMonthView({
         : diff < 0
           ? 'warn'
           : 'ok';
+  const levelSignal = level
+    ? {
+        signal: level,
+        signalLabel: t(
+          `signal:${level === 'ok' ? (diff! > 0 ? 'ahead' : 'onTrack') : level === 'warn' ? 'behind' : 'needsAction'}`,
+        ),
+      }
+    : {};
   const value = data?.received_pct != null ? pct(data.received_pct) : undefined;
 
   const delta = diff == null ? undefined : tw('compactDelta', { diff: diffText });
@@ -85,6 +93,7 @@ export function CollectionMonthView({
       <StatTile
         label={tw('compactTitle')}
         value={value}
+        {...levelSignal}
         {...(diff != null && delta
           ? {
               trend: {
@@ -153,14 +162,7 @@ export function CollectionMonthView({
       {...(data && !empty ? { value: variant === 'full' ? received : (value ?? received) } : {})}
       {...(summary && !empty ? { summary } : {})}
       loading={loading}
-      {...(level
-        ? {
-            signal: level,
-            signalLabel: t(
-              `signal:${level === 'ok' ? (diff! > 0 ? 'ahead' : 'onTrack') : level === 'warn' ? 'behind' : 'needsAction'}`,
-            ),
-          }
-        : {})}
+      {...levelSignal}
       loadingLabel={t('states.loading', { title })}
       {...(failed && onRetry
         ? { error: { message: t('states.error'), retryLabel: t('states.retry'), onRetry } }

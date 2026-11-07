@@ -77,11 +77,18 @@ export function AtRiskView({
   const value =
     data && ready ? tw('value', { count: data.total, value: n(data.total) }) : undefined;
 
+  // Computed before the tile return so the phone tile carries the same signal (#3594).
+  const riskSignal =
+    !failed && ready && !empty && !!data
+      ? { signal: 'critical' as const, signalLabel: t('needsAction', { ns: 'signal' }) }
+      : {};
+
   if (variant === 'tile' && data && ready && !empty) {
     return (
       <StatTile
         label={title}
         value={n(data.total)}
+        {...riskSignal}
         {...(diff != null && trend
           ? {
               trend: {
@@ -161,8 +168,6 @@ export function AtRiskView({
       </div>
     ) : null;
 
-  const sigOn = !failed && ready && !empty && !!data;
-
   return (
     <WidgetCard
       title={title}
@@ -172,7 +177,7 @@ export function AtRiskView({
       {...(data?.computed_at && variant === 'full'
         ? { updatedLabel: tw('computedAt', { time: formatTime(data.computed_at, region) }) }
         : {})}
-      {...(sigOn ? { signal: 'critical' as const, signalLabel: t('needsAction', { ns: 'signal' }) } : {})}
+      {...riskSignal}
       loading={loading}
       loadingLabel={t('states.loading', { title })}
       {...(failed && onRetry

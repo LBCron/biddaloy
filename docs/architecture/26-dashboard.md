@@ -363,19 +363,31 @@ flowchart LR
 **Rules.**
 
 - **Colour is never the only cue (D8).** Every signalled card shows colour, an icon and text. The text is `sr-only` (read by screen readers) and comes from the `signal` i18n namespace (`signal:needsAction`, `signal:onTrack` ...).
-- **Fail open.** A widget that is loading, errored, empty or has no data sets **no** signal. The card then renders exactly as before. A missing signal never means "all good".
+- **Fail open.** A widget that is loading, errored, empty or has no data sets **no** signal. The card then renders exactly as before. A missing signal never means "all good". `WidgetCard` enforces it too: with `loading` or `error` set it drops any `signal` it was given.
+- **Read order.** The marker (`<span data-signal="warn">` = icon + `sr-only` label) sits after the heading in the DOM and is moved before it with `order-first`. A screen reader lands on the title, then hears the level. The card's accessible name stays just the title. On the compact (phone) card the label is the toggle button's `aria-describedby`, not part of its name.
+- **Phone tiles too.** A widget that returns a `StatTile` for the phone key numbers passes the same `signal` / `signalLabel` to it.
+- **Briefing line (D12).** Any critical alert = needs action; else any warning = watch; reminders only = no signal.
 - **`neutral` and a missing signal draw nothing.** The healthy card must not shout.
 - **A widget picks its own level.** It passes `signal` and `signalLabel` to `WidgetCard`. Wiring and thresholds today:
 
-| Widget                                                 | critical                     | warn                       | ok                  |
-| ------------------------------------------------------ | ---------------------------- | -------------------------- | ------------------- |
-| `collection-month`                                     | 10+ points behind last month | behind last month          | level with or ahead |
-| `sms-balance`                                          | balance 0 or less            | below 200 (server default) | otherwise           |
-| `failed-messages`                                      | any failed                   | none                       | none failed         |
-| `mark-entry-progress`                                  | past the deadline            | deadline within 3 days     | 100 percent done    |
-| `syllabus-progress`                                    | none                         | any class behind the plan  | on pace             |
-| `at-risk-students`                                     | any at-risk student          | none                       | none                |
-| `setup-checklist` (onboarding card, not a grid widget) | none                         | unfinished                 | none                |
+| Widget                                                 | critical                     | warn                        | ok                  |
+| ------------------------------------------------------ | ---------------------------- | --------------------------- | ------------------- |
+| `collection-month`                                     | 10+ points behind last month | behind last month           | level with or ahead |
+| `sms-balance`                                          | balance 0 or less            | below 200 (server default)  | none (see below)    |
+| `failed-messages`                                      | any failed                   | none                        | none failed         |
+| `approvals-pending`                                    | any waiting                  | none                        | none waiting        |
+| `attendance-today`                                     | none                         | below 75% today             | none                |
+| `staff-today`                                          | none                         | anyone absent without leave | none                |
+| `mark-entry-progress`                                  | past the deadline            | deadline within 3 days      | 100 percent done    |
+| `syllabus-progress`                                    | none                         | any class behind the plan   | on pace             |
+| `at-risk-students`                                     | any at-risk student          | none                        | none                |
+| `setup-checklist` (onboarding card, not a grid widget) | none                         | unfinished                  | none                |
+
+**Thresholds the widget cannot see.** The DTOs carry no per-school threshold (D9), and the school's settings read is ADMIN-only (`SETTINGS_MANAGE`), so EXECUTIVE cannot use it.
+
+- `sms-balance` uses the server default 200. The school can set its own `smsCreditLowThreshold`, maybe higher. So the card never shows `ok`: "All good" could contradict the school's own `sms_credit_low` alert.
+- `attendance-today` uses a fixed 75% of the whole school **today**. That is not `risk.monthlyAttendancePct`, which is one student's attendance over a month (same default, different measure).
+- `failed-messages` is critical at **any** failed SMS on purpose: one failed absence notice is a parent who was not told. The server alert waits for `failedMessagesThreshold` (10).
 
 Example: `collection-month` is 12 points behind last month at this point. It passes `signal: 'critical'` and `signalLabel: t('signal:needsAction')`. The user sees a red bar, a triangle icon, and a screen reader says "Needs action".
 
@@ -383,7 +395,7 @@ Example: `collection-month` is 12 points behind last month at this point. It pas
 
 Demo seed: `DEMO_SEED_EXEMPT` (no entry needed in the slices). Epic #3592 adds no table or column. Signals are computed from data the demo seed already creates (fees, exam deadlines, SMS balance, failed messages). Reason recorded here per [22-demo-seed.md](22-demo-seed.md) rule 10.
 
-Test: `e2e/journeys/dashboard-signal.spec.ts` (every accented card has an icon and level text; an unwired card has no accent). The errored-widget case is a unit test in `widget-card.test.tsx`.
+Test: `e2e/journeys/dashboard-signal.spec.ts` checks every `[data-signal]` marker on the desktop grid: it holds one `aria-hidden` icon, and its `sr-only` text is a signal label. The errored and loading cases (no signal) are unit tests in `widget-card.test.tsx`; the service worker stops e2e from forcing a failed route.
 
 ### Learning (Epic #3592)
 

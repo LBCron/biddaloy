@@ -133,9 +133,9 @@ This page saves nothing. Each widget loads on its own, so you can tell the state
 
 ## What the colours mean <a href="#colours" id="colours"></a>
 
-Some widgets have a coloured bar on the left edge and a small mark beside the title. The colour tells you how much a widget needs you. **The colour is never alone:** every one also has a mark and a short text (screen readers read the text), so you can read the page in black and white.
+Some widgets have a coloured bar on the left edge and a small mark beside the title. On a phone, the mark sits beside the number on the small tiles at the top. The colour tells you how much a widget needs you. **The colour is never alone:** the mark (triangle, clock or tick) means the same thing, so you can tell the levels apart even without colour. Each mark also has hidden text that only a screen reader says aloud.
 
-| Colour    | Mark                | Short text on the card                                        | What to do                                    |
+| Colour    | Mark                | What a screen reader says                                     | What to do                                    |
 | --------- | ------------------- | ------------------------------------------------------------- | --------------------------------------------- |
 | **Red**   | Triangle with **!** | **Needs action**                                              | Open it now.                                  |
 | **Amber** | Clock               | **Keep an eye on this** (or a closer word such as **Behind**) | Look today; it is not urgent yet.             |
@@ -143,6 +143,8 @@ Some widgets have a coloured bar on the left edge and a small mark beside the ti
 | **Plain** | No mark             | none                                                          | Nothing to do. The widget is for information. |
 
 Not every widget has a colour. A widget with no data, or one that did not load, has none.
+
+The banner at the top of the page uses the same marks: a red triangle when any to-do item is urgent, an amber clock when the worst one is a warning.
 
 **When the colour turns on**
 
@@ -155,9 +157,15 @@ Not every widget has a colour. A widget with no data, or one that did not load, 
 | Mark entry progress       | Deadline has passed, not finished   | Deadline within 3 days           | Finished                       |
 | Syllabus progress         |                                     | A class is behind the study plan | On the study plan              |
 | Fee collection this month | 10 points or more behind last month | Behind last month                | Same as or ahead of last month |
-| SMS balance               | Balance is 0                        | Under 200                        | 200 or more                    |
+| SMS balance               | Balance is 0                        | Under 200                        | Never (see note)               |
 | Failed messages           | One or more failed                  |                                  | None failed                    |
 | Finish setting up (admin) |                                     | Setup is not finished yet        |                                |
+
+Notes:
+
+- **SMS balance** never turns green. Your school can set its own "low SMS" level in Settings, maybe higher than 200, and the card cannot see it. So a plain card means "not under 200", not "all good".
+- **Today's attendance** compares the whole school today with 75%. It is not the per-student monthly attendance level in the at-risk settings.
+- **Failed messages** turns red at even one failed SMS: one failed absence notice is a parent who was not told. The to-do alert waits for 10.
 
 For example, if this month's fee collection is 62% and last month at this point was 70%, the card is amber (8 points behind). At 58% it is red (12 points behind).
 

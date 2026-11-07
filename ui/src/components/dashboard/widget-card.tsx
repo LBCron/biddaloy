@@ -83,13 +83,9 @@ export function WidgetCard({
   const helpEl = <HelpHint size="sm" helpId={helpId ?? ctxHelpId} label={title} />;
   const [inner, setInner] = React.useState(defaultExpanded ?? false);
   const open = expanded ?? inner;
-  const sig = signal && signal !== 'neutral' ? SIGNAL[signal] : null;
-  const sigEl = sig ? (
-    <span className={cn('inline-flex shrink-0 items-center', sig.text)}>
-      <sig.Icon aria-hidden="true" className="size-4" />
-      {signalLabel ? <span className="sr-only">{signalLabel}</span> : null}
-    </span>
-  ) : null;
+  // Fail-open (D9): a loading or errored card never shows a signal, whatever the widget passed.
+  const sig = !loading && !error && signal && signal !== 'neutral' ? SIGNAL[signal] : null;
+  const sigLabelId = `${id}-signal`;
   const Heading: 'h2' | 'h3' = headingLevel === 3 ? 'h3' : 'h2';
 
   const body = loading ? (
@@ -134,13 +130,14 @@ export function WidgetCard({
               <button
                 type="button"
                 aria-expanded={open}
+                {...(sig && signalLabel ? { 'aria-describedby': sigLabelId } : {})}
                 onClick={toggle}
                 className="flex min-h-11 w-full items-center gap-3 rounded-lg p-3 text-start outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span className="flex min-w-0 flex-1 flex-col">
                   {sig ? (
                     <span className="flex items-center gap-1 text-label text-text-secondary">
-                      {sigEl}
+                      <sig.Icon aria-hidden="true" className={cn('size-4 shrink-0', sig.text)} />
                       <span className="truncate">{title}</span>
                     </span>
                   ) : (
@@ -169,6 +166,12 @@ export function WidgetCard({
                 />
               </button>
             </Heading>
+            {/* Outside the button and heading: the level is read as a description, not the name. */}
+            {sig && signalLabel ? (
+              <span id={sigLabelId} className="sr-only">
+                {signalLabel}
+              </span>
+            ) : null}
             {helpEl}
           </div>
           {open ? (
@@ -191,11 +194,20 @@ export function WidgetCard({
             sig?.band && `-mx-2 rounded-md px-2 py-1 ${sig.band}`,
           )}
         >
-          {/* Beside (not inside) the heading: the section's accessible name stays just the title. */}
-          {sigEl}
           <Heading id={id} className="me-auto text-h3">
             {title}
           </Heading>
+          {/* After the heading in reading order (title first, then level), shown before it;
+              outside it, so the section's accessible name stays just the title. */}
+          {sig ? (
+            <span
+              data-signal={signal}
+              className={cn('order-first inline-flex shrink-0 items-center', sig.text)}
+            >
+              <sig.Icon aria-hidden="true" className="size-4" />
+              {signalLabel ? <span className="sr-only">{signalLabel}</span> : null}
+            </span>
+          ) : null}
           {helpEl}
           {menu ? (
             <Menu>

@@ -14,7 +14,7 @@
  */
 
 const HEX_RE = /^#[0-9a-f]{6}$/i;
-const OKLCH_RE = /^oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\)$/i;
+const OKLCH_RE = /^oklch\(\s*(\d*\.?\d+)\s+(\d*\.?\d+)\s+(\d*\.?\d+)\s*\)$/i;
 const SHORT_HEX_RE = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i;
 
 /**
@@ -59,13 +59,18 @@ function oklchToLinear(L: number, C: number, hDeg: number): [number, number, num
 export function relativeLuminance(hex: string): number {
   const ok = OKLCH_RE.exec(hex);
   if (ok) {
-    const [r, g, b] = oklchToLinear(Number(ok[1]), Number(ok[2]), Number(ok[3]));
+    const [L, C, h] = [Number(ok[1]), Number(ok[2]), Number(ok[3])];
+    // A NaN would pass every ratio check (NaN < min is false), so refuse it.
+    if (![L, C, h].every(Number.isFinite)) {
+      throw new TypeError(`malformed oklch() colour: ${JSON.stringify(hex)}`);
+    }
+    const [r, g, b] = oklchToLinear(L, C, h);
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
   }
   if (!HEX_RE.test(hex)) {
     // NaN < min is false, so an unvalidated bad value would silently pass
     // every ratio check below it — fail loudly instead, same as the script.
-    throw new TypeError(`expected a #RRGGBB colour, got ${JSON.stringify(hex)}`);
+    throw new TypeError(`expected a #RRGGBB or oklch() colour, got ${JSON.stringify(hex)}`);
   }
   const clean = hex.replace('#', '');
   const r = parseInt(clean.slice(0, 2), 16);

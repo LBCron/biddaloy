@@ -187,4 +187,17 @@ describe('at-risk-students widget', () => {
     await screen.findByRole('heading');
     expect(screen.queryByText('Needs action')).toBeNull();
   });
+
+  it('tile carries the signal too (phone key numbers, #3594)', async () => {
+    serve(BASE);
+    renderWidget('tile');
+    const marker = await waitFor(() => {
+      const el = document.querySelector('[data-signal]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    expect(marker.getAttribute('data-signal')).toBe('critical');
+    expect(marker.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
+    expect(marker.querySelector('.sr-only')!.textContent).toBe('Needs action');
+  });
 });

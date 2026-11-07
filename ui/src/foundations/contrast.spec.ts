@@ -33,6 +33,14 @@ describe('contrastRatio (WCAG 2.2 relative-luminance math)', () => {
     expect(() => relativeLuminance('#fff')).toThrow(TypeError);
   });
 
+  it('rejects a malformed oklch() instead of returning NaN (NaN would pass every gate)', () => {
+    expect(() => relativeLuminance('oklch(0.5. 0.1 30)')).toThrow(TypeError);
+    expect(() => relativeLuminance('oklch(. 0.1 30)')).toThrow(TypeError);
+    expect(() => relativeLuminance('oklch(0.5 0.1)')).toThrow(TypeError);
+    expect(Number.isFinite(relativeLuminance('oklch(0.5 0.1 30)'))).toBe(true);
+    expect(Number.isFinite(relativeLuminance('oklch(.5 .1 30)'))).toBe(true);
+  });
+
   it.each(CONTRAST_PAIRS)('clears its documented WCAG minimum: $name', ({ fg, bg, min }) => {
     expect(contrastRatio(fg, bg)).toBeGreaterThanOrEqual(min);
   });

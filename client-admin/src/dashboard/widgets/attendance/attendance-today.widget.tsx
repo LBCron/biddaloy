@@ -18,7 +18,8 @@ export const widgetKey = DashboardWidgetKey.ATTENDANCE_TODAY;
 export type AttendanceTodayDto = components['schemas']['AttendanceTodayWidgetDto'];
 
 const K = widgetKey;
-/** Same default as the at-risk rule (monthlyAttendancePct); the DTO carries no tenant value (D9). */
+/** ponytail: fixed daily whole-school heuristic, NOT the per-student monthly
+ * `risk.monthlyAttendancePct` (same 75 default, different measure). Make it a setting if a school asks. */
 const LOW_ATTENDANCE_PCT = 75;
 
 function useAttendanceToday() {
@@ -82,21 +83,26 @@ export function AttendanceTodayView({
   const sparkLabel = tw('sparkLabel', { min, max });
   const spark = <Sparkline values={values} label={sparkLabel} showLastDot />;
 
-  if (variant === 'tile' && data && value && !empty) {
-    return (
-      <StatTile label={tw('compactTitle')} value={value}>
-        {spark}
-      </StatTile>
-    );
-  }
-
-  const pending = data?.pending_sections.length ?? 0;
+  // Computed before the tile return so the phone tile carries the same signal (#3594).
   const low =
     !failed &&
     !closed &&
     !empty &&
     data?.percentage != null &&
     data.percentage < LOW_ATTENDANCE_PCT;
+  const lowSignal = low
+    ? { signal: 'warn' as const, signalLabel: t('watch', { ns: 'signal' }) }
+    : {};
+
+  if (variant === 'tile' && data && value && !empty) {
+    return (
+      <StatTile label={tw('compactTitle')} value={value} {...lowSignal}>
+        {spark}
+      </StatTile>
+    );
+  }
+
+  const pending = data?.pending_sections.length ?? 0;
   const linkClass = 'text-primary underline';
   const body = data ? (
     <ChartTableToggle
@@ -130,7 +136,7 @@ export function AttendanceTodayView({
       {...(value ? { value } : {})}
       {...(summary ? { summary } : {})}
       {...(updatedLabel && variant === 'full' ? { updatedLabel } : {})}
-      {...(low ? { signal: 'warn' as const, signalLabel: t('watch', { ns: 'signal' }) } : {})}
+      {...lowSignal}
       loading={loading}
       loadingLabel={t('states.loading', { title })}
       {...(failed && onRetry

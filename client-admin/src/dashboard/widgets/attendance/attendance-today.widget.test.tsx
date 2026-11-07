@@ -147,4 +147,17 @@ describe('attendance-today widget', () => {
     await screen.findByText('91.4%');
     expect(screen.queryByText('Keep an eye on this')).toBeNull();
   });
+
+  it('tile carries the signal too (phone key numbers, #3594)', async () => {
+    serve({ ...BASE, percentage: 60 });
+    renderWidget('tile');
+    const marker = await waitFor(() => {
+      const el = document.querySelector('[data-signal]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    expect(marker.getAttribute('data-signal')).toBe('warn');
+    expect(marker.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
+    expect(marker.querySelector('.sr-only')!.textContent).toBe('Keep an eye on this');
+  });
 });

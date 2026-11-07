@@ -235,4 +235,49 @@ describe('WidgetCard signal (#3594)', () => {
     rerender(<WidgetCard {...base} />);
     expect(screen.getByRole('region').className).not.toContain('signal');
   });
+
+  it('fail-open (D9): an errored or loading card shows no bar, icon or label', () => {
+    const sig = { signal: 'critical' as const, signalLabel: 'Needs action' };
+    const error = { message: 'Could not load', retryLabel: 'Try again', onRetry: () => {} };
+    for (const variant of ['full', 'compact'] as const) {
+      const { container, unmount } = render(
+        <WidgetCard {...base} {...sig} variant={variant} error={error} />,
+      );
+      expect(screen.getByRole('region').className).not.toContain('border-s-');
+      expect(container.querySelector('[data-signal]')).toBeNull();
+      expect(container.querySelector('.text-signal-critical-fg')).toBeNull();
+      expect(screen.queryByText('Needs action')).toBeNull();
+      unmount();
+      const loading = render(
+        <WidgetCard {...base} {...sig} variant={variant} loading loadingLabel="Loading" />,
+      );
+      expect(screen.getByRole('region').className).not.toContain('border-s-');
+      expect(loading.container.querySelector('.text-signal-critical-fg')).toBeNull();
+      expect(screen.queryByText('Needs action')).toBeNull();
+      loading.unmount();
+    }
+  });
+
+  it('full: the marker follows the heading in reading order; the name stays the title', () => {
+    render(<WidgetCard {...base} signal="warn" signalLabel="Keep an eye on this" />);
+    const heading = screen.getByRole('heading', { name: 'Student attendance' });
+    const marker = document.querySelector('[data-signal="warn"]')!;
+    expect(heading.compareDocumentPosition(marker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(marker.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
+    expect(marker.querySelector('.sr-only')!.textContent).toBe('Keep an eye on this');
+    expect(screen.getByRole('region', { name: 'Student attendance' })).toBeTruthy();
+  });
+
+  it('compact: the level is the button description, not part of its name', () => {
+    render(<WidgetCard {...base} variant="compact" signal="critical" signalLabel="Needs action" />);
+    const btn = screen.getByRole('button', { name: 'Student attendance' });
+    expect(btn.getAttribute('aria-describedby')).toBeTruthy();
+    expect(document.getElementById(btn.getAttribute('aria-describedby')!)!.textContent).toBe(
+      'Needs action',
+    );
+    expect(btn.querySelector('svg.text-signal-critical-fg')!.getAttribute('aria-hidden')).toBe(
+      'true',
+    );
+    expect(screen.getByRole('region', { name: 'Student attendance' })).toBeTruthy();
+  });
 });

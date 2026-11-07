@@ -18,6 +18,8 @@ export const widgetKey = DashboardWidgetKey.SMS_BALANCE;
 export type SmsBalanceDto = components['schemas']['SmsBalanceWidgetDto'];
 
 const K = widgetKey;
+/** Server default of `smsCreditLowThreshold`. The school's own value is in the ADMIN-only
+ * settings read (SETTINGS_MANAGE), which EXECUTIVE cannot call, and D9 adds no DTO field. */
 const SMS_LOW = 200;
 
 function useSmsBalance() {
@@ -52,7 +54,8 @@ export function SmsBalanceView({
   const n = (v: number) => formatNumber(v, region);
   const title = tw('title');
   const metered = !!data && data.metering !== 'OFF';
-  // Mirrors the server default smsCreditLowThreshold (200); the DTO carries no threshold (D9).
+  // ponytail: no `ok` level — the school may set its low mark above 200, and "All good" must not
+  // contradict its own sms_credit_low alert. Add `ok` once the DTO carries the school's threshold.
   const level: SignalLevel | undefined =
     !metered || failed
       ? undefined
@@ -60,7 +63,7 @@ export function SmsBalanceView({
         ? 'critical'
         : data.available < SMS_LOW
           ? 'warn'
-          : 'ok';
+          : undefined;
 
   return (
     <WidgetCard
@@ -77,9 +80,7 @@ export function SmsBalanceView({
       {...(level
         ? {
             signal: level,
-            signalLabel: t(
-              `signal:${level === 'ok' ? 'healthy' : level === 'warn' ? 'low' : 'needsAction'}`,
-            ),
+            signalLabel: t(`signal:${level === 'warn' ? 'low' : 'needsAction'}`),
           }
         : {})}
       loadingLabel={t('states.loading', { title })}

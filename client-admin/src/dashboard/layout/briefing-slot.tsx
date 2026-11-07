@@ -13,6 +13,7 @@ import { BellIcon } from 'lucide-react';
 
 export function BriefingSlot() {
   const { t } = useTranslation('attention');
+  useTranslation('signal'); // [#3592] separate binding: check-i18n-keys reads the first single-quoted call
   const region = useTenantRegionConfig();
   const { data, isLoading } = useAttentionSummary();
   if (isLoading) return <BriefingLine headline="" loading />;
@@ -21,6 +22,8 @@ export function BriefingSlot() {
   const open = data.critical + data.warning + data.reminder;
   if (open === 0) return <BriefingLine headline={t('modal.empty')} />;
 
+  // [#3594] D12: same scale as the widgets — any critical = needs action, else any warning = watch.
+  const signal = data.critical > 0 ? 'critical' : data.warning > 0 ? 'warn' : undefined;
   const n = { format: (v: number) => formatNumber(v, region) };
   const parts = (['critical', 'warning', 'reminder'] as const)
     .filter((k) => data[k] > 0)
@@ -29,6 +32,12 @@ export function BriefingSlot() {
     <BriefingLine
       icon={<BellIcon className="size-5" />}
       headline={parts.join(' · ')}
+      {...(signal
+        ? {
+            signal,
+            signalLabel: t(signal === 'critical' ? 'needsAction' : 'watch', { ns: 'signal' }),
+          }
+        : {})}
       {...(data.top ? { mostUrgent: t('bar.mostUrgent', { title: data.top.title }) } : {})}
       action={
         <Button asChild>

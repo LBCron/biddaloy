@@ -142,4 +142,17 @@ describe('collection-month widget', () => {
     await screen.findByText('No fees billed this month yet.');
     expect(document.querySelector('.sr-only')).toBeNull();
   });
+
+  it('tile carries the signal too (phone key numbers, #3594)', async () => {
+    serve({ ...BASE, received_pct: 60 });
+    renderWidget('tile');
+    const marker = await waitFor(() => {
+      const el = document.querySelector('[data-signal]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    expect(marker.getAttribute('data-signal')).toBe('warn');
+    expect(marker.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
+    expect(marker.querySelector('.sr-only')!.textContent).toBe('Behind');
+  });
 });

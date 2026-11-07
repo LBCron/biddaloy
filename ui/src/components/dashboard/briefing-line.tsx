@@ -95,6 +95,7 @@ export function BriefingLine({
         <div className="flex min-w-0 items-start gap-3">
           {sig ? (
             <span
+              data-signal={signal}
               className={cn(
                 'inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-surface',
                 sig.text,

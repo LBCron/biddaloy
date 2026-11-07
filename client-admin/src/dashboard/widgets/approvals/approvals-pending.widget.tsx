@@ -46,7 +46,7 @@ export function ApprovalsPendingView({
   onRetry,
 }: ApprovalsPendingViewProps) {
   const { t } = useTranslation('dashboard');
-  useTranslation('applications');  // [#3592] load namespace before first render
+  useTranslation('applications'); // [#3592] load namespace before first render
   useTranslation('signal'); // [#3592] separate binding: check-i18n-keys reads the first single-quoted call
   const region = useTenantRegionConfig();
   const tw = (key: string, opts: Record<string, unknown> = {}) =>
@@ -63,17 +63,24 @@ export function ApprovalsPendingView({
       })
     : '';
 
+  // Computed before the tile return so the phone tile carries the same signal (#3594).
+  const urgentSignal =
+    !data || failed
+      ? {}
+      : data.total > 0
+        ? { signal: 'critical' as const, signalLabel: t('needsAction', { ns: 'signal' }) }
+        : { signal: 'ok' as const, signalLabel: t('healthy', { ns: 'signal' }) };
+
   if (variant === 'tile' && data && !failed) {
     return (
       <StatTile
         label={tw('tileLabel')}
         value={formatNumber(data.total, region)}
         note={oldest || tw('none')}
+        {...urgentSignal}
       />
     );
   }
-
-  const urgent = data ? data.total > 0 : null;
 
   return (
     <WidgetCard
@@ -81,11 +88,7 @@ export function ApprovalsPendingView({
       variant={full ? 'full' : 'compact'}
       {...(data ? { value: tw('value', { count: data.total }) } : {})}
       {...(data ? { summary: data.total === 0 ? tw('none') : oldest } : {})}
-      {...(!failed && urgent != null
-        ? urgent
-          ? { signal: 'critical' as const, signalLabel: t('needsAction', { ns: 'signal' }) }
-          : { signal: 'ok' as const, signalLabel: t('healthy', { ns: 'signal' }) }
-        : {})}
+      {...urgentSignal}
       loading={loading}
       loadingLabel={t('states.loading', { ns: 'dashboard', title })}
       {...(failed && onRetry

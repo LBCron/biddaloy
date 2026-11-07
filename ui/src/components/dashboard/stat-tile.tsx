@@ -50,7 +50,10 @@ export function StatTile({
   const tile = (extra: React.ReactNode) => (
     <>
       <span className="truncate text-label text-text-secondary">{label}</span>
-      <span className={cn('flex items-center gap-2 text-h1 tabular-nums', sig?.text)}>
+      <span
+        data-signal={sig ? signal : undefined}
+        className={cn('flex items-center gap-2 text-h1 tabular-nums', sig?.text)}
+      >
         {sig ? <sig.Icon aria-hidden="true" className="size-5 shrink-0" /> : null}
         {value}
         {sig && signalLabel ? <span className="sr-only">{signalLabel}</span> : null}

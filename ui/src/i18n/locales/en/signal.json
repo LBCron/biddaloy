@@ -2,17 +2,11 @@
   "needsAction": "Needs action",
   "watch": "Keep an eye on this",
   "healthy": "All good",
-  "neutral": "For your information",
-  "levelAria": "Status: {{level}}",
   "behind": "Behind",
   "onTrack": "On track",
   "ahead": "Ahead",
   "pastDeadline": "Past the deadline",
   "approaching": "Deadline is near",
   "done": "Done",
-  "incomplete": "Not finished",
-  "complete": "Finished",
-  "low": "Running low",
-  "failed": "Failed",
-  "pending": "Waiting for you"
+  "low": "Running low"
 }

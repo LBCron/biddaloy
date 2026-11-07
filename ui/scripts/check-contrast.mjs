@@ -38,7 +38,7 @@ import { fileURLToPath } from 'node:url';
 const pkgRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const HEX_RE = /^#[0-9a-f]{6}$/i;
-const OKLCH_RE = /^oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\)$/i;
+const OKLCH_RE = /^oklch\(\s*(\d*\.?\d+)\s+(\d*\.?\d+)\s+(\d*\.?\d+)\s*\)$/i;
 
 /** `oklch(L C h)` -> linear sRGB [r,g,b], clipped to gamut (Ottosson's matrices). */
 function oklchToLinear(L, C, hDeg) {
@@ -62,13 +62,18 @@ function srgbToLinear(c) {
 function relativeLuminance(hex) {
   const ok = OKLCH_RE.exec(hex);
   if (ok) {
-    const [r, gr, b] = oklchToLinear(+ok[1], +ok[2], +ok[3]);
+    const parts = [+ok[1], +ok[2], +ok[3]];
+    // A NaN would pass every ratio check (NaN < min is false), so refuse it.
+    if (!parts.every(Number.isFinite)) {
+      throw new TypeError(`malformed oklch() colour: ${JSON.stringify(hex)}`);
+    }
+    const [r, gr, b] = oklchToLinear(...parts);
     return 0.2126 * r + 0.7152 * gr + 0.0722 * b;
   }
   if (!HEX_RE.test(hex)) {
     // NaN < min is false, so an unvalidated bad value would silently pass
     // every ratio check below it — fail loudly instead.
-    throw new TypeError(`expected a #RRGGBB colour, got ${JSON.stringify(hex)}`);
+    throw new TypeError(`expected a #RRGGBB or oklch() colour, got ${JSON.stringify(hex)}`);
   }
   const clean = hex.replace('#', '');
   const r = parseInt(clean.slice(0, 2), 16);
