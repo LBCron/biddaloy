@@ -200,7 +200,7 @@ export class GalleryService {
     await m.update(
       SchoolSite,
       { tenant_id: tenantId },
-      { draft, draft_revision: () => 'draft_revision + 1' },
+      { draft: draft as never, draft_revision: () => 'draft_revision + 1' },
     );
   }
 

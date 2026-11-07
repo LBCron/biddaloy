@@ -33,6 +33,9 @@ import * as React from 'react';
 
 type Text = { bn: string; en: string };
 const same = (a: Text, b: Text) => a.bn === b.bn && a.en === b.en;
+const NO_CAPTION: Text = { bn: '', en: '' };
+/** A photo uploaded without a caption has `caption: null`: that reads as an empty caption. */
+const captionOf = (photo: GalleryPhoto): Text => photo.caption ?? NO_CAPTION;
 const clip = (v: Text): Text => ({
   bn: v.bn.slice(0, SITE_GALLERY_CAPTION_MAX_CHARS),
   en: v.en.slice(0, SITE_GALLERY_CAPTION_MAX_CHARS),
@@ -102,7 +105,7 @@ export function GallerySectionCard({
 
   const saveCaption = (photo: GalleryPhoto, next: Text) => {
     const text = clip(next);
-    if (same(text, photo.caption)) return;
+    if (same(text, captionOf(photo))) return;
     caption.mutate(
       { id: photo.id, caption: !text.bn && !text.en ? null : text },
       { onError: fail },
@@ -204,14 +207,14 @@ export function GallerySectionCard({
                   {src && (
                     <img
                       src={src}
-                      alt={photo.caption[lang] || t('gallery.photoLabel', { position })}
+                      alt={captionOf(photo)[lang] || t('gallery.photoLabel', { position })}
                       loading="lazy"
                       className="size-full object-cover"
                     />
                   )}
                 </div>
                 <PhotoCaption
-                  key={`${photo.id}-${photo.caption.bn}-${photo.caption.en}`}
+                  key={`${photo.id}-${captionOf(photo).bn}-${captionOf(photo).en}`}
                   photo={photo}
                   label={t('gallery.captionFor', { position })}
                   hint={t('editor.enHint')}
@@ -289,7 +292,7 @@ function PhotoCaption({
   hint: string;
   onSave: (next: Text) => void;
 }) {
-  const [value, setValue] = React.useState<Text>(photo.caption);
+  const [value, setValue] = React.useState<Text>(captionOf(photo));
   return (
     <div
       onBlur={(e) => {

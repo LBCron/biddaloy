@@ -19951,10 +19951,11 @@ export interface components {
             id: string;
             /** Format: uuid */
             mediaId: string;
-            caption: {
+            /** @description { bn, en } or null when the photo has no caption */
+            caption?: {
                 bn: string;
                 en: string;
-            };
+            } | null;
             sortOrder: number;
         };
         GalleryAlbumDto: {
