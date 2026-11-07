@@ -39,3 +39,12 @@ describe('StatTile', () => {
     await expect(container).toHaveNoViolations();
   });
 });
+
+describe('StatTile signal (#3594)', () => {
+  it('colours the value and adds icon + sr label; neutral adds none', () => {
+    const { rerender } = render(<StatTile label="L" value="9" signal="warn" signalLabel="Watch" />);
+    expect(screen.getByText('Watch').parentElement!.className).toContain('text-signal-warn-fg');
+    rerender(<StatTile label="L" value="9" signal="neutral" signalLabel="Watch" />);
+    expect(screen.queryByText('Watch')).toBeNull();
+  });
+});

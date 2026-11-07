@@ -218,3 +218,21 @@ describe('WidgetCard help (E23)', () => {
     await expect(container).toHaveNoViolations();
   });
 });
+
+describe('WidgetCard signal (#3594)', () => {
+  it('critical shows an aria-hidden icon plus screen-reader label', () => {
+    render(<WidgetCard {...base} signal="critical" signalLabel="Needs action" />);
+    const label = screen.getByText('Needs action');
+    expect(label.className).toContain('sr-only');
+    expect(label.parentElement!.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
+    expect(screen.getByRole('region').className).toContain('border-s-signal-critical-fg');
+  });
+
+  it('neutral and unset render no icon, bar or band', () => {
+    const { rerender } = render(<WidgetCard {...base} signal="neutral" signalLabel="None" />);
+    expect(screen.queryByText('None')).toBeNull();
+    expect(screen.getByRole('region').className).not.toContain('border-s-');
+    rerender(<WidgetCard {...base} />);
+    expect(screen.getByRole('region').className).not.toContain('signal');
+  });
+});

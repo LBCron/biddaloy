@@ -42,3 +42,17 @@ export const TwoColumnPhone: Story = {
   ),
   parameters: { viewport: { defaultViewport: 'mobile1' } },
 };
+
+export const SignalLevels: StoryObj<typeof StatTile> = {
+  render: () => (
+    <div className="grid max-w-xl grid-cols-2 gap-3">
+      {(['critical', 'warn', 'ok', 'neutral'] as const).map((signal) => (
+        <StatTile key={signal} label={signal} value="12" signal={signal} signalLabel={signal} />
+      ))}
+    </div>
+  ),
+};
+export const SignalLevelsDark: StoryObj<typeof StatTile> = {
+  ...SignalLevels,
+  globals: { theme: 'dark' },
+};
