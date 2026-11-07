@@ -1,4 +1,9 @@
-import { SITE_FEATURED_TEACHERS_MAX, SitePage, SiteSectionKey } from '@biddaloy/shared';
+import {
+  SITE_FEATURED_TEACHERS_MAX,
+  SITE_GALLERY_CAROUSEL_MAX,
+  SitePage,
+  SiteSectionKey,
+} from '@biddaloy/shared';
 import type { BilingualText, SiteAnnouncement, SiteConfig } from '@biddaloy/shared';
 import type { School } from '../../schools/entities/school.entity';
 import type { FeedKind, FeedRegistry } from './feeds/feed-registry';
@@ -60,6 +65,14 @@ export async function withFeeds(
         const sections = await registry.cached('sections', tenantId);
         return { ...s, data: { ...s.data, sections } };
       }
+      if (s.key === SiteSectionKey.GALLERY) {
+        const albums = pickGallery(
+          await registry.cached('gallery', tenantId),
+          page.page,
+          s.data.albumId,
+        );
+        return albums.length === 0 ? { ...s, feed: [], empty: true } : { ...s, feed: albums };
+      }
       const fed = SYSTEM_FED[s.key as SiteSectionKey];
       if (!fed) return s;
       // The home page shows the first 8 teachers (D27); the teachers page shows them all.
@@ -76,6 +89,35 @@ export async function withFeeds(
   return { ...page, sections };
 }
 
+/**
+ * What a gallery section shows (D50): the gallery page lists every album; any other page shows one
+ * album, the chosen one or (no choice) the first, cut to the carousel size. A chosen album that is
+ * gone or empty shows nothing: the site hides the section (D12).
+ */
+function pickGallery(
+  all: Record<string, unknown>[],
+  page: SitePage,
+  albumId: unknown,
+): Record<string, unknown>[] {
+  if (page === SitePage.GALLERY) return all;
+  const album = typeof albumId === 'string' ? all.find((a) => a.id === albumId) : all[0];
+  if (!album) return [];
+  const photos = (album.photos as unknown[]).slice(0, SITE_GALLERY_CAROUSEL_MAX);
+  return [{ ...album, photos }];
+}
+
+/**
+ * True when some enabled gallery section asks for the page link (`showPageLink`). The gallery page
+ * and its nav entry also need at least one photo, which the caller checks.
+ */
+export function galleryLinked(config: SiteConfig): boolean {
+  return config.pages.some((p) =>
+    p.sections.some(
+      (s) => s.key === SiteSectionKey.GALLERY && s.enabled && s.data.showPageLink === true,
+    ),
+  );
+}
+
 type SchoolFields = Pick<School, 'name' | 'name_bn' | 'address' | 'phone' | 'email' | 'logo_key'>;
 
 const both = (v: string): BilingualText => ({ bn: v, en: v });
@@ -89,6 +131,8 @@ export function buildManifest(
   hasSiteLogo = false,
   /** `school_sites.umami_website_id`; never set for a draft preview (previews are not counted). */
   umamiWebsiteId: string | null = null,
+  /** The gallery page is in `nav` only when linked AND an album has a photo (D50). */
+  galleryPage = false,
 ): PublicManifest {
   const contact: PublicManifest['contact'] = {};
   if (school.address) contact.address = both(school.address);
@@ -102,7 +146,9 @@ export function buildManifest(
       ...published.announcements,
       items: published.announcements.items.filter((a) => a.enabled),
     },
-    nav: published.pages.filter((p) => p.enabled).map((p) => ({ page: p.page })),
+    nav: published.pages
+      .filter((p) => p.enabled && (p.page !== SitePage.GALLERY || galleryPage))
+      .map((p) => ({ page: p.page })),
     ...(hasSiteLogo || school.logo_key ? { logo: '/media/logo' } : {}),
     noindex,
     schoolName: { bn: school.name_bn ?? school.name, en: school.name },
@@ -149,7 +195,10 @@ export function buildPage(published: SiteConfig, page: string): PublicPage | nul
   return {
     page: cfg.page,
     sections: cfg.sections
-      .filter((s) => s.enabled)
+      // The gallery page always shows its gallery section, whatever the section switch says.
+      .filter(
+        (s) => s.enabled || (cfg.page === SitePage.GALLERY && s.key === SiteSectionKey.GALLERY),
+      )
       .map((s) => ({ key: s.key, data: s.data, typography: s.typography, feed: [] })),
   };
 }

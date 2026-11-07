@@ -19,6 +19,8 @@ import { ResultsFeed } from './results.feed';
 import { WebsiteResultsService } from '../../../exams/website-results.service';
 import { AuditService } from '../../../audit/audit.service';
 import { FeesFeed } from './fees.feed';
+import { GalleryFeed } from './gallery.feed';
+import { ResultsFeed } from './results.feed';
 import { NoticesFeed } from './notices.feed';
 import { RoutineFeed } from './routine.feed';
 import { TeachersFeed } from './teachers.feed';
@@ -134,6 +136,7 @@ describe('Site feeds (integration)', () => {
       ResultsFeed,
       WebsiteResultsService,
       { provide: AuditService, useValue: { record: async () => undefined } },
+      GalleryFeed,
       FeedRegistry,
       { provide: SiteCacheService, useValue: new SiteCacheService(redis as never) },
       { provide: SchoolsService, useValue: { todayFor: async () => TODAY } },

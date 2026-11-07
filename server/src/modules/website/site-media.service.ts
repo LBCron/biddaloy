@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { createHash } from 'node:crypto';
 import sharp from 'sharp';
 import { SITE_MEDIA_QUOTA_BYTES, SITE_MEDIA_SLOT_PX, SiteMediaSlot } from '@biddaloy/shared';
@@ -46,7 +46,7 @@ export class SiteMediaService {
   ) {}
 
   /** Validates by file signature and `sharp`, never the client's type; returns the WebP bytes. */
-  private async prepare(
+  async prepare(
     slot: unknown,
     file: { buffer: Buffer; mimetype: string },
   ): Promise<{ out: Buffer; width: number; height: number; slot: SiteMediaSlot }> {
@@ -90,45 +90,65 @@ export class SiteMediaService {
     let putKey: string | null = null;
     try {
       return await this.media.manager.transaction(async (m) => {
-        // The row lock makes the quota check and the byte count one step per school.
-        const site = await m
-          .getRepository(SchoolSite)
-          .createQueryBuilder('s')
-          .where('s.tenant_id = :tenantId', { tenantId })
-          .setLock('pessimistic_write')
-          .getOneOrFail();
-        const same = await m.findOne(SiteMedia, { where: { tenant_id: tenantId, hash } });
-        if (same) return toDto(same);
-        if (Number(site.media_bytes_used) + p.out.length > SITE_MEDIA_QUOTA_BYTES) {
-          throw mediaRejected();
-        }
-        // Under `tenants/<id>/` so the storage service's own-prefix check accepts it later.
-        const key = `tenants/${tenantId}/site/${hash}.webp`;
-        await this.storage.put(key, p.out, 'image/webp');
-        putKey = key;
-        const row = await m.save(
-          m.create(SiteMedia, {
-            tenant_id: tenantId,
-            slot: p.slot,
-            storage_key: key,
-            hash,
-            width: p.width,
-            height: p.height,
-            bytes: p.out.length,
-          }),
-        );
-        await m.update(
-          SchoolSite,
-          { tenant_id: tenantId },
-          { media_bytes_used: () => `media_bytes_used + ${p.out.length}` },
-        );
-        return toDto(row);
+        await this.lockSite(m, tenantId);
+        const r = await this.storeIn(m, tenantId, p, hash);
+        putKey = r.newKey;
+        return toDto(r.row);
       });
     } catch (e) {
       // No row committed, and no row had this hash when we put: the object is ours alone.
       if (putKey) await this.storage.delete(putKey).catch(() => undefined);
       throw e;
     }
+  }
+
+  /** The row lock makes the quota check and the byte count one step per school. */
+  async lockSite(m: EntityManager, tenantId: string): Promise<SchoolSite> {
+    return m
+      .getRepository(SchoolSite)
+      .createQueryBuilder('s')
+      .where('s.tenant_id = :tenantId', { tenantId })
+      .setLock('pessimistic_write')
+      .getOneOrFail();
+  }
+
+  /**
+   * Stores prepared bytes inside the caller's transaction, which must already hold `lockSite`.
+   * Same file twice reuses its row (counted once). `newKey` is the object this call put, so the
+   * caller can delete it if the transaction rolls back; null when the row already existed.
+   */
+  async storeIn(
+    m: EntityManager,
+    tenantId: string,
+    p: { out: Buffer; width: number; height: number; slot: SiteMediaSlot },
+    hash: string,
+  ): Promise<{ row: SiteMedia; newKey: string | null }> {
+    const site = await m.findOneOrFail(SchoolSite, { where: { tenant_id: tenantId } });
+    const same = await m.findOne(SiteMedia, { where: { tenant_id: tenantId, hash } });
+    if (same) return { row: same, newKey: null };
+    if (Number(site.media_bytes_used) + p.out.length > SITE_MEDIA_QUOTA_BYTES) {
+      throw mediaRejected();
+    }
+    // Under `tenants/<id>/` so the storage service's own-prefix check accepts it later.
+    const key = `tenants/${tenantId}/site/${hash}.webp`;
+    await this.storage.put(key, p.out, 'image/webp');
+    const row = await m.save(
+      m.create(SiteMedia, {
+        tenant_id: tenantId,
+        slot: p.slot,
+        storage_key: key,
+        hash,
+        width: p.width,
+        height: p.height,
+        bytes: p.out.length,
+      }),
+    );
+    await m.update(
+      SchoolSite,
+      { tenant_id: tenantId },
+      { media_bytes_used: () => `media_bytes_used + ${p.out.length}` },
+    );
+    return { row, newKey: key };
   }
 
   async remove(tenantId: string, id: string): Promise<void> {
@@ -145,6 +165,12 @@ export class SiteMediaService {
       if (JSON.stringify([site.draft, site.published]).includes(`"${id}"`)) {
         throw new ConflictException('site.media_in_use');
       }
+      // Rule 27: a gallery photo still uses it (the RESTRICT FK would refuse anyway).
+      const used: unknown[] = await m.query(
+        `SELECT 1 FROM site_gallery_photos WHERE tenant_id = $1 AND media_id = $2 LIMIT 1`,
+        [tenantId, id],
+      );
+      if (used.length > 0) throw new ConflictException('site.media_in_use');
       await m.delete(SiteMedia, { id, tenant_id: tenantId });
       await m.update(
         SchoolSite,

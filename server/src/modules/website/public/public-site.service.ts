@@ -15,6 +15,7 @@ import {
   PublicPage,
   buildManifest,
   buildPage,
+  galleryLinked,
   withFeeds,
   withAnnouncementWindow,
 } from './page-read-model';
@@ -102,20 +103,36 @@ export class PublicSiteService {
     if (l.preview) {
       return {
         data: withAnnouncementWindow(
-          buildManifest(l.published, true, l.school, !!(await this.siteLogo(l.site.tenant_id))),
+          buildManifest(
+            l.published,
+            true,
+            l.school,
+            !!(await this.siteLogo(l.site.tenant_id)),
+            null,
+            await this.galleryOn(l.published, l.site.tenant_id),
+          ),
           new Date(),
         ),
       };
     }
     // A logo upload or delete does not bump the site version, so the logo is part of the key.
     const logo = await this.siteLogo(l.site.tenant_id);
+    // Gallery writes bump the site version, so the nav flag is safe under the versioned key.
+    const gallery = await this.galleryOn(l.published, l.site.tenant_id);
     const m = await this.cache.getOrLoad(
       l.site.tenant_id,
       l.site.version,
       // Everything the manifest reads that is not the published config is in the key.
       `manifest:${l.school.updated_at.getTime()}:${l.site.noindex ? 1 : 0}:${logo?.id ?? ''}:${l.site.umami_website_id ?? ''}`,
       async () =>
-        buildManifest(l.published, l.site.noindex, l.school, !!logo, l.site.umami_website_id),
+        buildManifest(
+          l.published,
+          l.site.noindex,
+          l.school,
+          !!logo,
+          l.site.umami_website_id,
+          gallery,
+        ),
     );
     return { data: withAnnouncementWindow(m, new Date()) };
   }
@@ -127,19 +144,36 @@ export class PublicSiteService {
     if (!(Object.values(SitePage) as string[]).includes(page)) throw siteNotFound();
     if (l.preview) {
       const draft = buildPage(l.published, page); // never cached: the draft changes while it is edited
-      if (!draft) throw siteNotFound();
+      if (
+        !draft ||
+        (page === SitePage.GALLERY && !(await this.galleryOn(l.published, l.site.tenant_id)))
+      )
+        throw siteNotFound();
       return { data: await withFeeds(draft, l.site.tenant_id, this.feeds) };
     }
     const built = await this.cache.getOrLoad(
       l.site.tenant_id,
       l.site.version,
       `page:${page}`,
-      async () => buildPage(l.published, page),
+      async () =>
+        page === SitePage.GALLERY && !(await this.galleryOn(l.published, l.site.tenant_id))
+          ? null
+          : buildPage(l.published, page),
     );
     if (!built) throw siteNotFound();
     // The page shell is cached by site version; the live rows are not (a notice ticked public shows
     // within 60 s without a publish), so they are added per request from the 60 s feed cache.
     return { data: await withFeeds(built, l.site.tenant_id, this.feeds) };
+  }
+
+  /** The gallery page exists for visitors only when linked and an album has a photo (D50). */
+  private async galleryOn(config: SiteConfig, tenantId: string): Promise<boolean> {
+    if (!galleryLinked(config)) return false;
+    const rows: unknown[] = await this.media.manager.query(
+      `SELECT 1 FROM site_gallery_photos WHERE tenant_id = $1 LIMIT 1`,
+      [tenantId],
+    );
+    return rows.length > 0;
   }
 
   /** The kinds a visitor's browser may fetch live; `enquiry` has its own route. */
@@ -240,8 +274,8 @@ export class PublicSiteService {
   }
 
   /**
-   * A picture a feed shows: the photo of a teacher card that is switched on, or the cover or a
-   * picture inside the body of a published post. `key` is a checked UUID, so `position()` is safe.
+   * A picture a feed shows: the photo of a teacher card that is switched on, a gallery photo
+   * (live at once, D49), or the cover or a picture inside the body of a published post. `key` is a checked UUID, so `position()` is safe.
    */
   private async shownByFeed(tenantId: string, key: string): Promise<boolean> {
     const rows: unknown[] = await this.media.manager.query(
@@ -252,6 +286,9 @@ export class PublicSiteService {
           AND EXISTS (SELECT 1 FROM user_tenants m
                        WHERE m.user_id = staff_web_profiles.user_id AND m.tenant_id = $1
                          AND m.deleted_at IS NULL AND m.role IN ('TEACHER','OFFICE_STAFF'))
+       UNION ALL
+       SELECT 1 FROM site_gallery_photos
+        WHERE tenant_id = $1 AND media_id::text = $2
        UNION ALL
        SELECT 1 FROM site_posts
         WHERE tenant_id = $1 AND kind = 'POST'

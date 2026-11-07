@@ -16,6 +16,7 @@ const FEED_KEYS = [
   'blog',
   'fees',
   'admissions',
+  'gallery',
 ];
 /** At most one error log per this window, so a Redis outage does not flood the log. */
 const LOG_EVERY_MS = 60_000;

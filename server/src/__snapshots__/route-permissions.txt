@@ -57,6 +57,8 @@ DELETE /users/:id | UserController | perm: MEMBER_REMOVE
 DELETE /users/:id/invitation | UserController | perm: USER_CREATE
 DELETE /website/custom-domain | CustomDomainController | perm: WEBSITE_MANAGE
 DELETE /website/enquiries/:id | SiteEnquiriesController | perm: WEBSITE_MANAGE
+DELETE /website/gallery/albums/:id | GalleryController | perm: WEBSITE_MANAGE
+DELETE /website/gallery/photos/:id | GalleryController | perm: WEBSITE_MANAGE
 DELETE /website/media/:id | SiteMediaController | perm: WEBSITE_MANAGE
 DELETE /website/posts/:id | SitePostsController | perm: WEBSITE_MANAGE
 GET /academic-years | AcademicYearController | perm: ACADEMIC_STRUCTURE_READ
@@ -444,6 +446,7 @@ GET /website | SiteConfigController | perm: WEBSITE_MANAGE
 GET /website/analytics | CustomDomainController | perm: WEBSITE_MANAGE
 GET /website/custom-domain | CustomDomainController | perm: WEBSITE_MANAGE
 GET /website/enquiries | SiteEnquiriesController | perm: WEBSITE_MANAGE
+GET /website/gallery/albums | GalleryController | perm: WEBSITE_MANAGE
 GET /website/media | SiteMediaController | perm: WEBSITE_MANAGE
 GET /website/posts | SitePostsController | perm: WEBSITE_MANAGE
 GET /website/posts/:id | SitePostsController | perm: WEBSITE_MANAGE
@@ -523,6 +526,8 @@ PATCH /users/me | UserController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,
 PATCH /users/me/preferences/dashboard | UserController | perm: DASHBOARD_VIEW
 PATCH /users/me/preferences/digest | UserController | perm: DASHBOARD_VIEW
 PATCH /users/me/preferences/notifications | UserController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
+PATCH /website/gallery/albums/:id | GalleryController | perm: WEBSITE_MANAGE
+PATCH /website/gallery/photos/:id | GalleryController | perm: WEBSITE_MANAGE
 POST /academic-years | AcademicYearController | perm: ACADEMIC_YEAR_MANAGE
 POST /academic-years/:id/set-current | AcademicYearController | perm: ACADEMIC_YEAR_MANAGE
 POST /account/first-password | FirstPasswordController | allowlist: AuthGuard('jwt')
@@ -789,6 +794,8 @@ POST /users/me/leave | UserController | identity | roles: ACCOUNTANT,ADMIN,COMMI
 POST /website/custom-domain/recheck | CustomDomainController | perm: WEBSITE_MANAGE
 POST /website/enabled | SiteConfigController | perm: WEBSITE_MANAGE
 POST /website/enquiries/:id/seen | SiteEnquiriesController | perm: WEBSITE_MANAGE
+POST /website/gallery/albums | GalleryController | perm: WEBSITE_MANAGE
+POST /website/gallery/albums/:id/photos | GalleryController | perm: WEBSITE_MANAGE
 POST /website/media | SiteMediaController | perm: WEBSITE_MANAGE
 POST /website/posts | SitePostsController | perm: WEBSITE_MANAGE
 POST /website/posts/:id/publish | SitePostsController | perm: WEBSITE_MANAGE
@@ -819,6 +826,8 @@ PUT /study-plans/:id/exam-markers | StudyPlansController | perm: SYLLABUS_MANAGE
 PUT /study-plans/:id/lessons | StudyPlansController | perm: SYLLABUS_MANAGE
 PUT /website/custom-domain | CustomDomainController | perm: WEBSITE_MANAGE
 PUT /website/draft | SiteConfigController | perm: WEBSITE_MANAGE
+PUT /website/gallery/albums/:id/photos/order | GalleryController | perm: WEBSITE_MANAGE
+PUT /website/gallery/albums/order | GalleryController | perm: WEBSITE_MANAGE
 PUT /website/posts/:id | SitePostsController | perm: WEBSITE_MANAGE
 PUT /website/subdomain | SubdomainController | perm: WEBSITE_MANAGE
 PUT /website/teachers/:userId | StaffWebProfilesController | perm: WEBSITE_MANAGE

@@ -807,6 +807,15 @@ POST   /api/v1/website/enabled                                                  
 GET    /api/v1/website/enquiries                                                 401 PASS PASS PASS 403 403 403 403 403 403 403 403
 DELETE /api/v1/website/enquiries/:id                                             401 PASS PASS PASS 403 403 403 403 403 403 403 403
 POST   /api/v1/website/enquiries/:id/seen                                        401 PASS PASS PASS 403 403 403 403 403 403 403 403
+GET    /api/v1/website/gallery/albums                                            401 PASS PASS PASS 403 403 403 403 403 403 403 403
+POST   /api/v1/website/gallery/albums                                            401 PASS PASS PASS 403 403 403 403 403 403 403 403
+DELETE /api/v1/website/gallery/albums/:id                                        401 PASS PASS PASS 403 403 403 403 403 403 403 403
+PATCH  /api/v1/website/gallery/albums/:id                                        401 PASS PASS PASS 403 403 403 403 403 403 403 403
+POST   /api/v1/website/gallery/albums/:id/photos                                 401 PASS PASS PASS 403 403 403 403 403 403 403 403
+PUT    /api/v1/website/gallery/albums/:id/photos/order                           401 PASS PASS PASS 403 403 403 403 403 403 403 403
+PUT    /api/v1/website/gallery/albums/order                                      401 PASS PASS PASS 403 403 403 403 403 403 403 403
+DELETE /api/v1/website/gallery/photos/:id                                        401 PASS PASS PASS 403 403 403 403 403 403 403 403
+PATCH  /api/v1/website/gallery/photos/:id                                        401 PASS PASS PASS 403 403 403 403 403 403 403 403
 GET    /api/v1/website/media                                                     401 PASS PASS PASS 403 403 403 403 403 403 403 403
 POST   /api/v1/website/media                                                     401 PASS PASS PASS 403 403 403 403 403 403 403 403
 DELETE /api/v1/website/media/:id                                                 401 PASS PASS PASS 403 403 403 403 403 403 403 403

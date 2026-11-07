@@ -5,6 +5,7 @@ import { BlogFeed } from './blog.feed';
 import { AdmissionsFeed } from './admissions.feed';
 import { EventsFeed } from './events.feed';
 import { FeesFeed } from './fees.feed';
+import { GalleryFeed } from './gallery.feed';
 import { NoticesFeed } from './notices.feed';
 import { ResultsFeed } from './results.feed';
 import { RoutineFeed } from './routine.feed';
@@ -31,7 +32,8 @@ export type FeedKind =
   | 'fees'
   | 'admissions'
   | 'sections'
-  | 'results';
+  | 'results'
+  | 'gallery';
 
 /**
  * `kind -> provider(tenantId, opts)`. Reads go through `cached`, which never depends on the
@@ -53,8 +55,20 @@ export class FeedRegistry {
     admissions: AdmissionsFeed,
     sections: ClassSectionsFeed,
     results: ResultsFeed,
+    gallery: GalleryFeed,
   ) {
-    this.feeds = { notices, events, routine, teachers, blog, fees, admissions, sections, results };
+    this.feeds = {
+      notices,
+      events,
+      routine,
+      teachers,
+      blog,
+      fees,
+      admissions,
+      sections,
+      results,
+      gallery,
+    };
   }
 
   /** One published post by slug, not cached (an older post is rare; one indexed read). */

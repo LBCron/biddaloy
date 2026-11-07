@@ -13,6 +13,8 @@ import { ResultsFeed } from './public/feeds/results.feed';
 import { SchoolSite } from './entities/school-site.entity';
 import { SiteMedia } from './entities/site-media.entity';
 import { SitePost } from './entities/site-post.entity';
+import { SiteGalleryAlbum } from './entities/site-gallery-album.entity';
+import { SiteGalleryPhoto } from './entities/site-gallery-photo.entity';
 import { SiteEnquiry } from './entities/site-enquiry.entity';
 import { StaffWebProfile } from './entities/staff-web-profile.entity';
 import { SiteConfigController } from './site-config.controller';
@@ -40,6 +42,9 @@ import { ClassSectionsFeed } from './public/feeds/class-sections.feed';
 import { BlogFeed } from './public/feeds/blog.feed';
 import { FeesFeed } from './public/feeds/fees.feed';
 import { AdmissionsFeed } from './public/feeds/admissions.feed';
+import { GalleryFeed } from './public/feeds/gallery.feed';
+import { GalleryController } from './gallery/gallery.controller';
+import { GalleryService } from './gallery/gallery.service';
 import { FeedRegistry } from './public/feeds/feed-registry';
 import { CustomDomainController } from './custom-domain.controller';
 import { CustomDomainService } from './custom-domain.service';
@@ -60,6 +65,8 @@ import { UmamiService } from './umami.service';
       School,
       Notice,
       SitePost,
+      SiteGalleryAlbum,
+      SiteGalleryPhoto,
       SiteEnquiry,
       StaffWebProfile,
       UserTenant,
@@ -80,6 +87,7 @@ import { UmamiService } from './umami.service';
     SiteEnquiriesController,
     PublicEnquiryController,
     StaffWebProfilesController,
+    GalleryController,
   ],
   providers: [
     SiteConfigService,
@@ -103,7 +111,9 @@ import { UmamiService } from './umami.service';
     AdmissionsFeed,
     ResultsFeed,
     ClassSectionsFeed,
+    GalleryFeed,
     FeedRegistry,
+    GalleryService,
     SitePostsService,
     SiteEnquiriesService,
     StaffWebProfilesService,
