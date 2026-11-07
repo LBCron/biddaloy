@@ -90,7 +90,7 @@ describe('/website/blog/$postId', () => {
     mockWebsite();
     const calls = mockPosts();
     render('/website/blog/new');
-    const save = (await screen.findByRole('button', { name: 'Save' })) as HTMLButtonElement;
+    const save = await screen.findByRole<HTMLButtonElement>('button', { name: 'Save' });
     expect(save.disabled).toBe(true);
     await userEvent.type(screen.getByLabelText(/Title \(বাংলা\)/), 'ক্রীড়া দিবস');
     await typeBody();

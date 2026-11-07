@@ -62,7 +62,7 @@ describe('website first-run wizard', () => {
     expect(screen.getByRole('button', { name: /Basic/ })).toBeTruthy();
 
     await userEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect((screen.getByLabelText('Your web address') as HTMLInputElement).value).toBe('gvs');
+    expect(screen.getByLabelText<HTMLInputElement>('Your web address').value).toBe('gvs');
   });
 
   it('finishes with rename, save, publish, then switch on, in that order', async () => {
