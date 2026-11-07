@@ -130,6 +130,9 @@ jobs:
         # not src) — same reason ci.yml's e2e job builds this first.
         run: yarn build:shared
 
+      - name: Build site-themes package
+        run: yarn build:site-themes
+
       # Mirrors ci.yml's e2e job: the package version drives the cache key,
       # so a Playwright bump misses the key and reinstalls. No
       # `restore-keys:` here either — see ci.yml's e2e job for why a prefix
