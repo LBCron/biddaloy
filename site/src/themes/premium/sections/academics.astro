@@ -1,0 +1,20 @@
+---
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang } = Astro.props as SectionProps;
+const title = field(data.title, lang);
+const body = field(data.body, lang);
+// Each blank-line-separated paragraph becomes one stepped "building block" (the theme's one idea).
+const blocks = (body ?? '').split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+---
+{(title || blocks.length > 0) && (
+  <section class="sec" id="academics"><div class="wrap">
+    {title && <div class="sec-head"><h2>{title}</h2></div>}
+    {blocks.length > 0 && (
+      <ul class="blocks">
+        {blocks.map((b) => <li class="block"><p class="prose-p">{b}</p></li>)}
+      </ul>
+    )}
+  </div></section>
+)}
