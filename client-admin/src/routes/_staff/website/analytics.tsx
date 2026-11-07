@@ -59,11 +59,11 @@ function WebsiteAnalytics() {
       <dl className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1">
           <dt className="text-caption text-text-secondary">{t('analytics.visitors')}</dt>
-          <dd className="text-h2 text-end">{formatNumber(data.visitors, region)}</dd>
+          <dd className="text-end text-h2">{formatNumber(data.visitors, region)}</dd>
         </div>
         <div className="flex flex-col gap-1">
           <dt className="text-caption text-text-secondary">{t('analytics.pageviews')}</dt>
-          <dd className="text-h2 text-end">{formatNumber(data.pageviews, region)}</dd>
+          <dd className="text-end text-h2">{formatNumber(data.pageviews, region)}</dd>
         </div>
       </dl>
     </Card>

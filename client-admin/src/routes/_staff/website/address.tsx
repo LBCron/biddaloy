@@ -183,7 +183,10 @@ function SubdomainCard() {
             {hint}
           </p>
           {chips.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2" aria-label={t('address.suggestions')}>
+            <div
+              className="flex flex-wrap items-center gap-2"
+              aria-label={t('address.suggestions')}
+            >
               {chips.map((s) => (
                 <Button key={s} type="button" variant="outline" onClick={() => setValue(s)}>
                   {s}
@@ -360,7 +363,9 @@ function DomainStatus({ status }: { status: CustomDomainStatus }) {
         <span dir="ltr" className="font-medium">
           {status.host}
         </span>
-        {state && <StatusBadge tone={STATUS_TONE[state]} label={t(`address.own.status.${state}`)} />}
+        {state && (
+          <StatusBadge tone={STATUS_TONE[state]} label={t(`address.own.status.${state}`)} />
+        )}
       </div>
       {state && (
         <p className="text-caption text-text-secondary">{t(`address.own.statusHelp.${state}`)}</p>

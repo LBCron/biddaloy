@@ -1,5 +1,11 @@
 import { UserRole } from '@biddaloy/shared';
-import { apiErrorBody, cleanupTestState, renderWithRouter, server, userEvent } from '@biddaloy/ui/test';
+import {
+  apiErrorBody,
+  cleanupTestState,
+  renderWithRouter,
+  server,
+  userEvent,
+} from '@biddaloy/ui/test';
 import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -111,9 +117,7 @@ describe('/website/address', () => {
   it('shows one fixed sentence for a refused address, never the typed value', async () => {
     mockWebsite();
     mockDomain(() => HttpResponse.json(status({ host: null, status: null, records: [] })));
-    server.use(
-      http.put('/api/v1/website/custom-domain', () => unavailable()),
-    );
+    server.use(http.put('/api/v1/website/custom-domain', () => unavailable()));
     render();
     await userEvent.type(await screen.findByLabelText('Your address'), 'www.bad.edu');
     await userEvent.click(screen.getByRole('button', { name: 'Add' }));
