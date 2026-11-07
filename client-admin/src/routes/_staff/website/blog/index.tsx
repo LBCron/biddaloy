@@ -23,11 +23,6 @@ export const Route = createFileRoute('/_staff/website/blog/')({
   component: BlogList,
 });
 
-function BlogPending() {
-  const { t } = useTranslation('nav');
-  return <RoutePending variant="list" label={t('routePending.label')} />;
-}
-
 function BlogList() {
   const { t } = useTranslation('website');
   const { locale } = useLocale();
@@ -105,4 +100,11 @@ function BlogList() {
       />
     </div>
   );
+}
+
+// Kept last: check:i18n resolves one namespace per file from the first useTranslation(), and this
+// file's keys live in 'website'.
+function BlogPending() {
+  const { t } = useTranslation('nav');
+  return <RoutePending variant="list" label={t('routePending.label', { ns: 'nav' })} />;
 }
