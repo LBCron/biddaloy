@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import { DataSource } from 'typeorm';
 import { TestingModule } from '@nestjs/testing';
 import { Readable } from 'stream';
@@ -12,6 +12,7 @@ import { StorageService } from '../../storage/storage.service';
 import { SiteMediaService } from '../site-media.service';
 import { SiteConfigService } from '../site-config.service';
 import { SiteCacheService } from '../public/site-cache.service';
+import { SiteGalleryPhoto } from '../entities/site-gallery-photo.entity';
 import { GalleryService } from './gallery.service';
 
 class MemoryStorage {
@@ -178,15 +179,19 @@ describe('GalleryService (integration)', () => {
       .uploadPhoto(T, a.id, { buffer: await photo(), mimetype: 'image/jpeg' }, long)
       .catch((e) => e);
     expect(e1.message).toBe('site.gallery_invalid');
-    // Force the photo insert itself to fail (a CHECK that always fails): nothing may stay behind.
-    await ds.query(
-      `ALTER TABLE site_gallery_photos ADD CONSTRAINT tmp_fail CHECK (false) NOT VALID`,
-    );
+    // Force the photo insert itself to fail, in this test only: a spy on the manager's `save`
+    // (no change to the shared test database).
+    const proto = Object.getPrototypeOf(ds.manager) as { save: (...a: unknown[]) => unknown };
+    const real = proto.save;
+    const spy = vi.spyOn(proto, 'save').mockImplementation(function (this: unknown, ...args) {
+      if (args[0] instanceof SiteGalleryPhoto) throw new Error('boom');
+      return real.apply(this, args);
+    });
     try {
       const e2 = await add(a.id).catch((e) => e);
-      expect(e2).toBeInstanceOf(Error);
+      expect(e2.message).toBe('boom');
     } finally {
-      await ds.query(`ALTER TABLE site_gallery_photos DROP CONSTRAINT tmp_fail`);
+      spy.mockRestore();
     }
     expect(await ds.query(`SELECT 1 FROM site_media WHERE tenant_id = $1`, [T])).toHaveLength(0);
     expect(await used()).toBe(0);
@@ -292,6 +297,39 @@ describe('GalleryService (integration)', () => {
     const [k2] = await ds.query(`SELECT storage_key FROM site_media WHERE id = $1`, [p2.mediaId]);
     expect(k2.storage_key).not.toBe(k1.storage_key);
     expect(storage.objects.has(k2.storage_key)).toBe(true);
+  });
+
+  it('deleting the chosen album sets the draft section back to no choice and bumps the draft revision only', async () => {
+    const a = await album('Chosen');
+    const other = await album('Other');
+    const draft = {
+      pages: [
+        {
+          page: 'home',
+          sections: [
+            { key: 'gallery', enabled: true, data: { albumId: a.id, showPageLink: true } },
+          ],
+        },
+      ],
+    };
+    await ds.query(
+      `UPDATE school_sites SET draft = $2, draft_revision = 5, version = 7 WHERE tenant_id = $1`,
+      [T, JSON.stringify(draft)],
+    );
+    await svc.deleteAlbum(T, other.id); // not the chosen one: draft untouched
+    const [s1] = await ds.query(
+      `SELECT draft, draft_revision FROM school_sites WHERE tenant_id = $1`,
+      [T],
+    );
+    expect(s1.draft.pages[0].sections[0].data.albumId).toBe(a.id);
+    expect(s1.draft_revision).toBe(5);
+    await svc.deleteAlbum(T, a.id);
+    const [s2] = await ds.query(
+      `SELECT draft, draft_revision, version FROM school_sites WHERE tenant_id = $1`,
+      [T],
+    );
+    expect(s2.draft.pages[0].sections[0].data).toEqual({ albumId: null, showPageLink: true });
+    expect(s2.draft_revision).toBe(6);
   });
 
   it('another school cannot see or touch an album (404)', async () => {

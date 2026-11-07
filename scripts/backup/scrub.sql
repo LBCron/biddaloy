@@ -172,6 +172,8 @@ FROM (SELECT id, row_number() OVER (ORDER BY id) AS rn FROM site_enquiries) n
 WHERE e.id = n.id;
 UPDATE school_sites SET custom_domain_records = NULL;
 UPDATE staff_web_profiles SET bio = NULL, credentials = NULL;
+UPDATE site_gallery_albums SET title = '{"bn": "[scrubbed]", "en": "[scrubbed]"}'::jsonb;
+UPDATE site_gallery_photos SET caption = NULL;
 UPDATE site_posts SET title = '{"bn": "[scrubbed]", "en": "[scrubbed]"}'::jsonb, body = '[]'::jsonb;
 -- hash is CHAR(64) NOT NULL, unique per school: 64 hex chars from id.
 UPDATE site_media SET hash = md5(id::text) || md5(reverse(id::text));

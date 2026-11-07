@@ -16,8 +16,10 @@ import { School } from '../../schools/entities/school.entity';
  * [40.6.02] A photo-gallery album. Delete guards (Rule 27), mirror of migration
  * `SiteGallery1791900003600`:
  *  - `schools` -> albums / photos: ON DELETE CASCADE (website data dies with a HARD school delete).
- *  - album <- photos: RESTRICT. A stray `remove()` fails loudly; the gallery service refuses (409)
- *    to delete an album that still has photos (registered in `delete-guard-registry.ts`).
+ *  - album <- photos: RESTRICT. A stray `remove()` or SQL delete fails loudly. The gallery service
+ *    does not refuse: `GalleryService.deleteAlbum` deletes the album's photos and then the album in
+ *    one transaction on purpose (an album is only a folder of its photos), so there is no
+ *    `assertNoLiveDependents` call and no delete-guard-registry entry; the FK is the backstop.
  *  - `site_media` <- photos: RESTRICT. A picture shown in a gallery cannot be deleted.
  * The photo FKs are composite `(tenant_id, id)`, so the DB refuses another school's album/picture.
  */

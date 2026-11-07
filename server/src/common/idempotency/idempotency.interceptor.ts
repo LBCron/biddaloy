@@ -34,7 +34,8 @@ import { TENANT_STATUS_REDIS } from '../../modules/schools/tenant-status.service
  * (the key is required only with `sendTo`, which sends a real test message),
  * `communications/logs/:id/check-status` (a double click asks the vendor once),
  * `final-results/:id/sms` (the key is required; [70.2.1] D8),
- * `exams/:examId/marks/sheet/commit` ([81.2.1]; also single-use staging id).
+ * `exams/:examId/marks/sheet/commit` ([81.2.1]; also single-use staging id),
+ * `website/gallery/albums` (create) and `website/gallery/albums/:id/photos` (upload) ([40.6.03]).
  *
  * Exempt, with the reason (D23):
  * - `POST exams/:examId/results/sms`: deduped by the unique `reference_key` (result-sms.service.ts).
