@@ -559,7 +559,14 @@
     "path": "administration/website",
     "route": "/website",
     "roles": ["ADMIN"],
-    "routes": ["/website"]
+    "routes": [
+      "/website",
+      "/website/blog",
+      "/website/blog/$postId",
+      "/website/design",
+      "/website/enquiries",
+      "/website/pages"
+    ]
   },
   {
     "id": "portal.overview",

@@ -10491,6 +10491,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/site/by-host/{host}/blog/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One published blog post by slug: title, excerpt, sanitised html, cover. */
+        get: operations["PublicSiteController_blogPost_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/site/by-host/{host}/island/{kind}": {
         parameters: {
             query?: never;
@@ -46438,11 +46455,29 @@ export interface operations {
             };
         };
     };
+    PublicSiteController_blogPost_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                host: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     PublicSiteController_island_v1: {
         parameters: {
-            query?: {
-                classSectionId?: unknown;
-            };
+            query?: never;
             header?: never;
             path: {
                 host: string;
