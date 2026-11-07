@@ -40,7 +40,7 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   // The error pages are rendered by rewrite below; do not look the site up again.
   if (pathname === '/404/' || pathname === '/503/') return next();
 
-  if (pathname === '/') return ctx.redirect('/bn/', 302);
+  if (pathname === '/') return ctx.redirect(`/bn/${ctx.url.search}`, 302);
 
   const previewTheme = ctx.request.headers.get(PREVIEW_HEADER()) ?? undefined;
   let res: Response;

@@ -45898,7 +45898,10 @@ export interface operations {
     };
     SubdomainController_check_v1: {
         parameters: {
-            query?: never;
+            query: {
+                /** @description The address to check, without the root domain. */
+                value: string;
+            };
             header: {
                 /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
                 "X-Tenant-ID": string;
