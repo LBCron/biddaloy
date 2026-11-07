@@ -124,14 +124,14 @@ describe('buildRoleIndex', () => {
     const text = buildRoleIndex('TEACHER', 'en', deps);
     expect(text).not.toMatch(/Fee structures|Invoices|Payments/);
     expect(text).toContain('- [Attendance](../attendance/attendance.md) — Take attendance.');
-    expect(text).toContain('- Students (coming soon)');
+    expect(text).toContain('- Students (in the menu, guide coming soon)');
   });
 
   it('an accountant sees finance, in sidebar order', () => {
     const text = buildRoleIndex('ACCOUNTANT', 'bn', deps);
     expect(text).toContain('**Finance**');
     expect(text.indexOf('Students')).toBeLessThan(text.indexOf('Finance'));
-    expect(text).toContain('(শীঘ্রই আসছে)');
+    expect(text).toContain('(মেনুতে আছে, গাইড শীঘ্রই আসছে)');
   });
 });
 

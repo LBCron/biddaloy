@@ -68,7 +68,7 @@ All your features, in the order of the left menu. The list is built automaticall
 - [Attendance](../attendance/attendance.md) — Take your section's attendance, mark late arrivals and leave, and fix mistakes.
 - [Attendance reports](../attendance/attendance-reports.md) — See a section's monthly attendance figures, find who is falling behind, and send a reminder if needed.
 - [Attendance register](../attendance/attendance-register.md) — See a section's whole month of attendance laid out like the paper register, print it, and correct several days at once on a computer.
-- Uploaded sheets (coming soon)
+- Uploaded sheets (in the menu, guide coming soon)
 - [Staff attendance](../attendance/staff-attendance.md) — Record teachers' and staff attendance every day, check your own leave balance, request leave, and approve requests.
 
 **Exams & Results**

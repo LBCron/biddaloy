@@ -856,7 +856,8 @@
     {
       "path": "/attendance/import",
       "role": "admin",
-      "archetype": "wizard"
+      "archetype": "wizard",
+      "overlays": ["discard"]
     },
 
     {

@@ -17,8 +17,8 @@ import { HELP_GAPS, HELP_INDEX } from './help-index.gen';
 import { HELP_UNWIRED, PUBLIC } from './help-unwired';
 
 /** Guide pages whose feature id is not in their own helpIds yet; shrink, never grow. */
-// [70.5.5] Final results had no page until #3423; the set is empty again.
-const NO_PAGE_ENTRY_YET = new Set<string>([]);
+// [76] Uploaded sheets get their page in #3673, which must delete this id (shrink-only check).
+const NO_PAGE_ENTRY_YET = new Set<string>(['attendance.uploads']);
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const features = JSON.parse(
