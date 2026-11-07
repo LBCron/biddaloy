@@ -46,9 +46,8 @@ describe('section editor', () => {
     mockDraftSite();
     render('/website/pages?edit=hero');
     await userEvent.click(await screen.findByRole('button', { name: 'Back to the default text' }));
-    expect(
-      ((await screen.findByLabelText('Big headline (English)')) as HTMLInputElement).value,
-    ).toBe('Default headline');
+    const field = await screen.findByLabelText<HTMLInputElement>('Big headline (English)');
+    expect(field.value).toBe('Default headline');
   });
 
   it('uses a multi-line field for long text and offers the photo uploader for photo fields', async () => {
