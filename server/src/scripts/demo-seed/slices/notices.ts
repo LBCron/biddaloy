@@ -1,4 +1,4 @@
-import { NoticeRecipientKind, UserRole } from '@biddaloy/shared';
+import { EnrollmentStatus, NoticeRecipientKind, UserRole } from '@biddaloy/shared';
 import { ConflictException } from '@nestjs/common';
 import type { DemoSeedContext, DemoSlice } from '../context';
 import { Notice } from '../../../modules/notices/entities/notice.entity';
@@ -16,7 +16,21 @@ import { SchoolsService } from '../../../modules/schools/schools.service';
 import { NoticeReaderService } from '../../../modules/notices/access/notice-reader.service';
 import { orgIds } from './org';
 import { staffByCardKey, teachersByTenant } from './staff';
-import { studentIds } from './students';
+import { studentIds, type DemoStudent } from './students';
+
+/** Students a notice can go to, leaving out the ones `skip` picks. ACTIVE only: the recipient insert drops the rest silently, and a notice left with nobody cannot be published. */
+export const noticePool = (
+  students: DemoStudent[],
+  tenantId: string,
+  skip: (s: DemoStudent) => boolean,
+): DemoStudent[] =>
+  students.filter(
+    (s) =>
+      s.tenantId === tenantId &&
+      s.status === EnrollmentStatus.ACTIVE &&
+      !skip(s) &&
+      s.guardianIds[0],
+  );
 
 const addDays = (date: string, n: number) =>
   new Date(Date.parse(date) + n * 86_400_000).toISOString().slice(0, 10);
@@ -65,7 +79,7 @@ export const slice: DemoSlice = {
     const inCardFamily = (s: (typeof students)[number]) =>
       !!cardGuardian && s.guardianIds.includes(cardGuardian.id);
     const cardKids = students.filter((s) => s.tenantId === T && inCardFamily(s));
-    const pool = students.filter((s) => s.tenantId === T && !inCardFamily(s) && s.guardianIds[0]);
+    const pool = noticePool(students, T, inCardFamily);
     const some = <X>(items: X[], n: number): X[] =>
       ctx.rng.helpers.arrayElements(items, Math.min(n, items.length));
 
