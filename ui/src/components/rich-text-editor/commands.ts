@@ -4,7 +4,7 @@
 import { Editor, Element, Node, Path, Range, Transforms, type Descendant } from 'slate';
 
 import { normalizeHref } from './serialize';
-import type { BlockType, ImageNode, ListType, TextNode } from './types';
+import type { BlockType, ImageNode, ListType } from './types';
 
 const LISTS: readonly string[] = ['bulleted-list', 'numbered-list'];
 
@@ -50,7 +50,7 @@ export function toggleBlock(editor: Editor, type: BlockType | ListType) {
   Transforms.setNodes(editor, { type: next } as never, {
     match: (n) => isEl(n) && Editor.isBlock(editor, n) && n.type !== 'image',
   });
-  if (!active && isList) Transforms.wrapNodes(editor, { type, children: [] } as Element);
+  if (!active && isList) Transforms.wrapNodes(editor, { type, children: [] });
 }
 
 const cell = (): Element => ({ type: 'table-cell', children: [{ text: '' }] });
@@ -110,7 +110,7 @@ export const inList = (editor: Editor) => !!findAbove(editor, 'list-item');
 
 /** After the top-level block the cursor is in, so it never lands inside a list item or cell. */
 export function insertImage(editor: Editor, mediaId: string, alt: string) {
-  const img: ImageNode = { type: 'image', mediaId, alt, children: [{ text: '' } as TextNode] };
+  const img: ImageNode = { type: 'image', mediaId, alt, children: [{ text: '' }] };
   const top = editor.selection?.anchor.path[0];
   const at = top === undefined ? [editor.children.length] : [top + 1];
   Transforms.insertNodes(

@@ -41,6 +41,16 @@ export const UNREGISTERED_ACTIONS: readonly UnregisteredAction[] = [
 
 export const PALETTE_ALLOW_LIST: readonly PaletteAllowListEntry[] = [
   {
+    file: `${R}_staff/website/-section-editor-modal.tsx`,
+    reason:
+      'edits one section of a website page, opened from the Pages tab editor; the palette action `administration.website` lands on the tab',
+  },
+  {
+    file: `${R}_staff/website/blog/$postId.tsx`,
+    reason:
+      'the blog post editor and its publish confirm act on one post, reached from the Blog tab list; the palette opens the Website page',
+  },
+  {
     file: `${R}_staff/results/final/-sms-dialog.tsx`,
     reason:
       'acts on one published final result, opened from its detail header; `final-result.open` lands on the list it is reached from',
