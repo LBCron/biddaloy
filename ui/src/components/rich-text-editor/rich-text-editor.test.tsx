@@ -141,7 +141,7 @@ describe('editor model', () => {
 });
 
 describe('RichTextEditor', () => {
-  const setup = (onUploadImage = vi.fn(async () => ({ mediaId: 'm1' })), onChange = vi.fn()) => {
+  const setup = (onUploadImage = vi.fn(() => Promise.resolve({ mediaId: 'm1' })), onChange = vi.fn()) => {
     render(
       <RichTextEditor
         value={structuredClone(EMPTY_VALUE)}
