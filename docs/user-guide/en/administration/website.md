@@ -10,6 +10,8 @@ sources:
   - client-admin/src/routes/_staff/website/-theme-card.tsx
   - client-admin/src/routes/_staff/website/pages.tsx
   - client-admin/src/routes/_staff/website/design.tsx
+  - client-admin/src/routes/_staff/website/address.tsx
+  - client-admin/src/routes/_staff/website/analytics.tsx
   - client-admin/src/routes/_staff/website/-section-editor-modal.tsx
   - client-admin/src/routes/_staff/website/-announcements-editor.tsx
   - client-admin/src/routes/_staff/website/-draft-editor.tsx
@@ -39,7 +41,7 @@ The **website** is the public page of your school, at its own web address. Peopl
   <figcaption><em>How the school website goes live</em></figcaption>
 </figure>
 
-[Set up the website](#task-main) · [Publish changes](#task-publish) · [Turn the website off or on](#task-onoff) · [Problems and fixes](#trouble)
+[Set up the website](#task-main) · [Change the web address](#task-address) · [Use your own address](#task-own-address) · [See visitors](#task-visitors) · [Publish changes](#task-publish) · [Turn the website off or on](#task-onoff) · [Problems and fixes](#trouble)
 
 ---
 
@@ -99,6 +101,32 @@ The **website** is the public page of your school, at its own web address. Peopl
 
 ---
 
+## Change the web address <a href="#task-address" id="task-address"></a>
+
+1. Open **Administration → Website**, then the **Address** tab.
+2. In **Web address** press **Change the address**.
+3. Type the **New address**, or press one of the **Addresses we suggest**. → The page checks it: **This address is free.** or **This address cannot be used. Try another one.**
+4. Press **Save address**, then confirm **Change address**.
+   → **Web address changed.** The old address keeps working for 30 days and sends people to the new one.
+
+## Use your own address <a href="#task-own-address" id="task-own-address"></a>
+
+If your school already owns an address, like `www.myschool.edu.bd`, your website can open on it too. The **Your own address** card shows only when this is available for your school.
+
+1. On the **Address** tab, type your address in **Your address**, then press **Add**.
+2. The card shows two lines, **Line 1** and **Line 2**. Press **Copy** beside each **Name** and **Value**.
+3. Go to the place where you bought your address. Add these two lines in its address settings.
+4. Wait. The card checks by itself. The chip changes: **Waiting for the two lines**, then **Almost ready**, then **Working**. This can take a few hours.
+5. Press **Check again** if you want to look now. You can press it once a minute.
+
+To stop using it, press **Remove this address**, then confirm **Remove**. Your website keeps working on the web address above.
+
+## See visitors <a href="#task-visitors" id="task-visitors"></a>
+
+Open the **Visitors** tab. You see **Visitors** and **Pages seen** for the last 30 days. If you see **Visitor numbers are not available**, nothing is wrong with your website. Try again later.
+
+---
+
 ## Publish changes <a href="#task-publish" id="task-publish"></a>
 
 On the overview page you see **Your website is on** or **Draft**, and **Changes not published** when you have edits that people cannot see yet.
@@ -138,6 +166,8 @@ After **Publish** you see **Published.** and the badge says **Your website is on
 | **Design**         | Change the design, colours, text style and logo                  |
 | **News and posts** | Write, publish and delete posts                                  |
 | **Enquiries**      | Read messages people sent from the website, mark them as seen    |
+| **Address**        | Change the web address, add your own address                     |
+| **Visitors**       | See visitors and pages seen in the last 30 days                  |
 
 ---
 

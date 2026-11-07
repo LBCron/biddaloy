@@ -1,6 +1,6 @@
 /**
  * [40.2.04] `/website` layout: the school website's page frame. Overview, Pages, Design, Blog and
- * Enquiries today (#3632); later waves append Address and Visitors the same way (#3652).
+ * Enquiries, Address and Visitors. Address and Visitors read server state, not the shared draft.
  *
  * While the first-run wizard is open (`?step=`) the wizard owns the whole page, so the tab frame
  * steps aside rather than nesting one page container in another.
@@ -24,7 +24,7 @@ const websiteSearchSchema = z.object({
  * tab is open. Only the open tab renders the `<Outlet />`: `DetailShell` keeps visited panels
  * mounted, and a second outlet would draw the same page twice.
  */
-const TAB_IDS = ['overview', 'pages', 'design', 'blog', 'enquiries'] as const;
+const TAB_IDS = ['overview', 'pages', 'design', 'blog', 'enquiries', 'address', 'analytics'] as const;
 type TabId = (typeof TAB_IDS)[number];
 
 export const Route = createFileRoute('/_staff/website')({

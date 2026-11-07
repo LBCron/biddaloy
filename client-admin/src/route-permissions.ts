@@ -218,6 +218,8 @@ export const STAFF_ROUTE_PERMISSIONS: Record<string, Permission> = {
   '/_staff/website/enquiries': Permission.WEBSITE_MANAGE,
   '/_staff/website/pages': Permission.WEBSITE_MANAGE,
   '/_staff/website/design': Permission.WEBSITE_MANAGE,
+  '/_staff/website/address': Permission.WEBSITE_MANAGE,
+  '/_staff/website/analytics': Permission.WEBSITE_MANAGE,
   // [9.6] Both gated on ATTENDANCE_READ, not ATTENDANCE_MARK — this table
   // (like the nav item it mirrors) answers "may you see this route", and
   // seeing a register is a strictly weaker ask than changing it. Whether
