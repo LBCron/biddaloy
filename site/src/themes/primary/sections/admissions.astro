@@ -1,0 +1,33 @@
+---
+import { t } from '../../../i18n/t';
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang, feed } = Astro.props as SectionProps;
+const title = field(data.title, lang);
+const body = field(data.body, lang);
+const s = (v: unknown) => (typeof v === 'string' ? v : undefined);
+const loc = lang === 'en' ? 'en-GB' : 'bn-BD';
+// Open intakes (never marked empty by the server: the text above still shows without them).
+const intakes = feed.filter((i) => s(i.link)?.startsWith('/'));
+---
+{(title || body || intakes.length > 0) && (
+  <section class="band" id="admissions">
+    <svg class="wave" viewBox="0 0 1200 40" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M0 40V22q100-30 200-8t200 6 200-14 200 10 200 4 200-12v32z" /></svg>
+    <div class="band-in"><div class="wrap">
+      {title && <h2>{title}</h2>}
+      {body && <p class="prose-p">{body}</p>}
+      {intakes.length > 0 && (
+        <ul class="intakes">
+          {intakes.map((i) => (
+            <li class="card">
+              <b>{s(i.title)}</b>
+              {s(i.deadline) && <span class="small">{t(lang, 'admissions.deadline')}: {new Date(`${s(i.deadline)}T00:00:00+06:00`).toLocaleDateString(loc, { dateStyle: 'long', timeZone: 'Asia/Dhaka' })}</span>}
+              <a class="btn btn-primary btn-sm" href={s(i.link)}>{t(lang, 'admissions.apply')}</a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div></div>
+  </section>
+)}

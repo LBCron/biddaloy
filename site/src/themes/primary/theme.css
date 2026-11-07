@@ -1,0 +1,614 @@
+/* Primary (kids) theme: calm, sunlit, rounded. Loaded after Basic's theme.css, which supplies the shared
+   structure (islands, forms, carousel, announcement bar, footer); this file only reskins it.
+   Colours come from the five palette vars (--primary --secondary --accent --surface --ink) set on <html> by
+   css-vars.ts, so a palette switch needs no CSS change (D28). Fonts: --font-heading/--font-body per language.
+   No section styles itself from a neighbour: no position selectors on section wrappers (D31). */
+:root {
+  --on-primary: #fff;
+  --r: 22px;
+  --r-s: 14px;
+  --max: 1120px;
+  --bg-2: color-mix(in srgb, var(--primary) 7%, var(--surface));
+  --line: color-mix(in srgb, var(--ink) 14%, var(--surface));
+  --line-accent: color-mix(in srgb, var(--primary) 32%, var(--surface));
+  --butter: color-mix(in srgb, var(--secondary) 28%, var(--surface));
+  --ann-bg: var(--butter);
+  --ann-ink: var(--ink);
+  --ann-label-bg: var(--primary);
+  --ann-label-ink: var(--on-primary);
+  --ann-r: 999px;
+  --ann-m: 6px 0 6px 10px;
+  --hc-bg: var(--bg-2);
+  --hc-ink: var(--ink);
+  --hc-line: var(--line-accent);
+  --hc-cap-r: 14px;
+  --sa-ink: var(--primary);
+  --sa-r: 999px;
+  --hc-focus: var(--primary);
+}
+body {
+  background: var(--surface);
+  color: var(--ink);
+}
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: 0;
+}
+/* header */
+.top {
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  border-bottom: 2px solid var(--line-accent);
+  backdrop-filter: none;
+} /* a backdrop filter would trap the fixed menu sheet inside the header */
+.logo {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-radius: 50%;
+}
+.logo img {
+  border-radius: 50%;
+}
+.nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border-radius: 999px;
+}
+.nav a[aria-current] {
+  background: var(--butter);
+  color: var(--ink);
+}
+.btn {
+  border-radius: 999px;
+}
+.btn-sm {
+  min-height: 44px;
+}
+.btn-primary {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--primary) 82%, var(--ink));
+}
+.btn-ghost {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line-accent);
+}
+.lang {
+  border-radius: 999px;
+  border-color: var(--line-accent);
+}
+.lang a {
+  height: 44px;
+  padding: 0 14px;
+}
+.lang a[aria-current='true'] {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+/* phone menu: a bottom sheet (<details>, no script) */
+.menu {
+  position: relative;
+}
+.menu summary {
+  list-style: none;
+}
+.menu summary::-webkit-details-marker {
+  display: none;
+}
+.menu .menu-btn {
+  border-radius: 50%;
+  border-color: var(--line-accent);
+  cursor: pointer;
+}
+.menu .menu-btn:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+.sheet-panel {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 40;
+  max-height: 80vh;
+  overflow: auto;
+  background: var(--surface);
+  border-top: 3px solid var(--primary);
+  border-radius: var(--r) var(--r) 0 0;
+  padding: 20px var(--pad) 28px;
+  box-shadow: 0 -12px 32px color-mix(in srgb, var(--ink) 22%, transparent);
+}
+.sheet-panel nav {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 16px;
+}
+.sheet-panel nav a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 14px;
+  font-size: 19px;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--ink);
+  border-radius: var(--r-s);
+}
+.sheet-panel nav a[aria-current] {
+  background: var(--butter);
+}
+.sheet-panel .btn {
+  width: 100%;
+}
+.menu[open] summary::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: color-mix(in srgb, var(--ink) 40%, transparent);
+}
+@media (min-width: 1024px) {
+  .menu {
+    display: none;
+  }
+}
+/* hero */
+.hero {
+  padding: 28px 0 36px;
+  border-bottom: 0;
+  background: linear-gradient(var(--surface), var(--bg-2));
+}
+.hero .wrap {
+  display: grid;
+  gap: 24px;
+}
+.hero .kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--butter);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 14.5px;
+}
+.hero .kicker i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.hero h1 {
+  font-size: calc(clamp(30px, 6vw, 52px) * var(--h-size, 1));
+  line-height: 1.18;
+}
+.hero p.lead {
+  font-size: 18px;
+  color: var(--ink);
+  opacity: 0.86;
+  max-width: 48ch;
+  margin: 14px 0 22px;
+}
+.hero .hc {
+  border-radius: var(--r);
+  border: 3px solid var(--line-accent);
+}
+.scene {
+  width: 100%;
+  height: auto;
+  max-height: 420px;
+  justify-self: center;
+}
+.sc-sky {
+  fill: color-mix(in srgb, var(--secondary) 24%, var(--surface));
+}
+.sc-sun circle {
+  fill: var(--secondary);
+}
+.sc-rays path {
+  stroke: var(--secondary);
+  stroke-width: 5;
+  stroke-linecap: round;
+  fill: none;
+}
+.sc-rays {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spin 60s linear infinite;
+}
+.sc-cloud {
+  fill: var(--surface);
+}
+.sc-hill-1 {
+  fill: color-mix(in srgb, var(--primary) 35%, var(--surface));
+}
+.sc-hill-2 {
+  fill: color-mix(in srgb, var(--primary) 60%, var(--surface));
+}
+.sc-wall {
+  fill: var(--surface);
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+.sc-roof {
+  fill: var(--accent);
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+.sc-door {
+  fill: var(--primary);
+}
+.sc-win {
+  fill: color-mix(in srgb, var(--secondary) 40%, var(--surface));
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.sc-sign {
+  fill: var(--secondary);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.sc-kite {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: bob 6s ease-in-out infinite;
+}
+.sc-kite-body {
+  fill: var(--accent);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+.sc-kite-line,
+.sc-kite-bow {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.sc-cr {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.sc-cr-1 {
+  fill: var(--accent);
+}
+.sc-cr-2 {
+  fill: var(--secondary);
+}
+.sc-cr-3 {
+  fill: var(--primary);
+}
+.sc-hull {
+  fill: var(--accent);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+.sc-sail {
+  fill: var(--surface);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+.sc-boat {
+  animation: bob 7s ease-in-out infinite;
+}
+.sc-water {
+  fill: color-mix(in srgb, var(--secondary) 55%, var(--surface));
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes bob {
+  50% {
+    transform: translateY(-8px) rotate(2deg);
+  }
+}
+@media (min-width: 900px) {
+  .hero {
+    padding: 48px 0 56px;
+  }
+  .hero .wrap {
+    grid-template-columns: 1.05fr 1fr;
+    align-items: center;
+  }
+}
+/* sections: every one carries its own background, none depends on a neighbour */
+.sec {
+  padding: 44px 0;
+}
+.sec-tint {
+  background: var(--bg-2);
+}
+.sec h2,
+.band h2 {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 8px;
+}
+.band h2 {
+  font-size: calc(clamp(22px, 3vw, 30px) * var(--h-size, 1));
+  font-weight: var(--h-weight, 700);
+  text-align: var(--h-align, start);
+}
+.sec h2::after,
+.band h2::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 56px;
+  height: 6px;
+  border-radius: 6px;
+  background: var(--accent);
+}
+.sec-head {
+  margin-bottom: 20px;
+}
+.prose-p {
+  white-space: pre-line;
+  color: var(--ink);
+  opacity: 0.88;
+  margin-top: 14px;
+  max-width: 62ch;
+}
+.photo,
+.cover {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  border-radius: var(--r);
+  border: 3px solid var(--line-accent);
+  aspect-ratio: 3/2;
+}
+.cover {
+  aspect-ratio: 1200/630;
+  border: 0;
+  border-radius: 0;
+}
+.card {
+  border-radius: var(--r);
+  border-color: var(--line-accent);
+  background: var(--surface);
+}
+.empty {
+  border-radius: var(--r);
+  border-color: var(--line-accent);
+  background: var(--surface);
+}
+.slot {
+  aspect-ratio: 1200/630;
+  border-radius: 0;
+  border: 0;
+  background: var(--bg-2);
+}
+/* academics: stepped "building blocks" (lip on top), the theme's one idea */
+.blocks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+.block {
+  padding: 20px 20px 18px;
+  border-radius: var(--r-s);
+  background: var(--butter);
+  border-top: 8px solid var(--primary);
+}
+.block:nth-child(2n) {
+  background: var(--bg-2);
+  border-top-color: var(--secondary);
+}
+.block:nth-child(3n) {
+  background: var(--surface);
+  border: 2px solid var(--line-accent);
+  border-top: 8px solid var(--accent);
+}
+.block .prose-p {
+  margin: 0;
+  max-width: none;
+  opacity: 1;
+}
+@media (min-width: 720px) {
+  .blocks {
+    grid-template-columns: repeat(3, 1fr);
+    align-items: end;
+  }
+  .block:nth-child(1) {
+    min-height: 150px;
+  }
+  .block:nth-child(2) {
+    min-height: 190px;
+  }
+  .block:nth-child(3) {
+    min-height: 230px;
+  }
+  .block:nth-child(n + 4) {
+    min-height: 150px;
+  }
+}
+/* admissions: a coloured band under a wave; the wave takes the band colour and leaves the page behind it showing */
+.band {
+  display: block;
+  background: transparent;
+}
+.wave {
+  width: 100%;
+  height: 36px;
+  display: block;
+  fill: var(--primary);
+}
+.band-in {
+  background: var(--primary);
+  color: var(--on-primary);
+  padding: 8px 0 40px;
+}
+.band-in h2::after {
+  background: var(--on-primary);
+}
+.band-in .prose-p {
+  color: var(--on-primary);
+  opacity: 1;
+}
+.band-in .btn-primary {
+  background: var(--on-primary);
+  color: var(--primary);
+}
+.band-in .card {
+  background: var(--surface);
+  color: var(--ink);
+}
+.intakes {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.intakes .card {
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.intakes .btn-primary {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+/* notices, events */
+.notice-list {
+  border: 2px solid var(--line-accent);
+  border-radius: var(--r);
+}
+.date {
+  border-radius: var(--r-s);
+  background: var(--butter);
+  color: var(--ink);
+}
+.ev .date {
+  background: var(--butter);
+  color: var(--ink);
+}
+.chip-accent {
+  background: var(--butter);
+  color: var(--ink);
+}
+.sk i {
+  background: linear-gradient(90deg, var(--bg-2) 25%, var(--butter) 50%, var(--bg-2) 75%);
+  background-size: 200% 100%;
+}
+/* teachers: round illustrated avatars, never a child */
+.tcard {
+  padding: 18px 14px;
+}
+.avatar {
+  background: var(--butter);
+  border: 3px solid var(--line-accent);
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.avatar::before,
+.avatar::after {
+  content: none;
+}
+.hero .tcard img,
+.tcard img {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 auto;
+  border: 3px solid var(--line-accent);
+}
+.seeall a {
+  color: var(--primary);
+}
+@media (hover: hover) {
+  .seeall a:hover {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+}
+/* blog, contact, forms */
+.post {
+  border-radius: var(--r);
+}
+.field input,
+.field select,
+.field textarea {
+  border-radius: var(--r-s);
+  border-color: var(--line-accent);
+}
+.kv.spaced {
+  margin: 16px 0 20px;
+}
+.mapframe,
+.notice-list {
+  border-radius: var(--r);
+}
+/* footer */
+.foot {
+  background: var(--ink);
+  color: var(--surface);
+  margin-top: 0;
+  border-radius: var(--r) var(--r) 0 0;
+}
+.foot h4 {
+  color: var(--surface);
+}
+.foot a {
+  color: var(--surface);
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+.credit {
+  border-top-color: color-mix(in srgb, var(--surface) 22%, var(--ink));
+  color: color-mix(in srgb, var(--surface) 80%, var(--ink));
+}
+.credit a {
+  color: var(--surface);
+  display: inline;
+  min-height: 0;
+}
+/* focus, motion */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+.band-in a:focus-visible,
+.foot a:focus-visible {
+  outline-color: var(--surface);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sc-rays,
+  .sc-kite,
+  .sc-boat {
+    animation: none;
+  }
+}
+@media (max-width: 719px) {
+  .sec {
+    padding: 36px 0;
+  }
+}

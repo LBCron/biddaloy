@@ -1,0 +1,60 @@
+---
+import HeroCarousel from '../../../components/HeroCarousel.astro';
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang } = Astro.props as SectionProps;
+const raw = (data.photos ?? data.images ?? []) as unknown[];
+const photos = raw.filter((p): p is string => typeof p === 'string');
+const kicker = field(data.kicker, lang);
+const headline = field(data.headline, lang);
+const tagline = field(data.tagline, lang);
+const primary = field(data.ctaPrimary, lang);
+const secondary = field(data.ctaSecondary, lang);
+const base = `/${lang}/`;
+const hasText = !!(kicker || headline || tagline || primary || secondary);
+---
+{(hasText || photos.length > 0) && (
+  <section class="hero" id="hero"><div class="wrap">
+    {hasText && (
+      <div class="copy">
+        {kicker && <p class="kicker"><i></i>{kicker}</p>}
+        {headline && <h1>{headline}</h1>}
+        {tagline && <p class="lead">{tagline}</p>}
+        <div class="cta">
+          {primary && <a class="btn btn-primary" href={`${base}admissions/`}>{primary}</a>}
+          {secondary && <a class="btn btn-ghost" href={`${base}contact/`}>{secondary}</a>}
+        </div>
+      </div>
+    )}
+    {photos.length > 0 ? <HeroCarousel photos={photos} lang={lang} /> : (
+      <svg class="scene" viewBox="0 0 480 320" aria-hidden="true" focusable="false">
+        <rect class="sc-sky" width="480" height="320" rx="28" />
+        <g class="sc-sun"><circle cx="388" cy="78" r="30" /><g class="sc-rays">
+          <path d="M388 22v18M388 116v18M332 78h18M426 78h18M348 38l13 13M415 105l13 13M428 38l-13 13M361 105l-13 13" />
+        </g></g>
+        <path class="sc-cloud" d="M70 92a22 22 0 0 1 40-10 18 18 0 0 1 30 12 14 14 0 0 1-4 28H78a20 20 0 0 1-8-30z" />
+        <path class="sc-hill sc-hill-1" d="M0 240q90-60 190-20t290-30v130H0z" />
+        <path class="sc-hill sc-hill-2" d="M0 276q110-38 230-8t250-14v66H0z" />
+        <g class="sc-house">
+          <rect class="sc-wall" x="150" y="170" width="150" height="86" rx="6" />
+          <path class="sc-roof" d="M138 176l87-62 87 62z" />
+          <rect class="sc-door" x="210" y="206" width="30" height="50" rx="14" />
+          <rect class="sc-win" x="162" y="192" width="30" height="26" rx="6" /><rect class="sc-win" x="258" y="192" width="30" height="26" rx="6" />
+          <circle class="sc-sign" cx="225" cy="156" r="10" />
+        </g>
+        <g class="sc-kite">
+          <path class="sc-kite-body" d="M60 60l26 26-26 40-26-40z" /><path class="sc-kite-line" d="M60 126q-10 30 16 60t6 56" />
+          <path class="sc-kite-bow" d="M60 154l-8 8m8-8l8 8" />
+        </g>
+        <g class="sc-crayons">
+          <rect class="sc-cr sc-cr-1" x="320" y="262" width="62" height="12" rx="6" />
+          <rect class="sc-cr sc-cr-2" x="334" y="276" width="62" height="12" rx="6" />
+          <rect class="sc-cr sc-cr-3" x="326" y="290" width="62" height="12" rx="6" />
+        </g>
+        <g class="sc-boat"><path class="sc-hull" d="M70 270h66l-10 18H80z" /><path class="sc-sail" d="M104 224l24 40h-48z" /></g>
+        <path class="sc-water" d="M0 296q30-12 60 0t60 0 60 0 60 0 60 0 60 0 60 0 60 0v24H0z" />
+      </svg>
+    )}
+  </div></section>
+)}
