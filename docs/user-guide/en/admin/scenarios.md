@@ -80,7 +80,7 @@ If your school is not exactly like any of them, take the closest one, then chang
 
    > **Remember:** the cells in the sheets point at each other. If you rename a class, shift, version or year, use Excel's **Find and Replace** and press **Replace All** across the whole file. Do not touch the `id` columns.
 
-3. In the setup wizard, choose **From an Excel file**, press **Upload file**, look at the **This is what will be created** list, then press **Create these** ([The setup wizard, step by step](create-school.md#task-wizard)). The **Download sample file** button in the wizard is the app's own blank sample; the files on this page are different.
+3. In the setup wizard, choose **From an Excel file**, press **Upload file**, look at the **This is what will be created** list, then press **Create these** ([The setup wizard, step by step](create-school.md#task-wizard)). The **Download sample file** button in the wizard is the app's own blank sample; the files on this page are different. The question **Do you want a school website too?** is asked only under **Step by step**, so the Excel way does not show it.
 
    → The message **Your school has been set up.** appears.
 
