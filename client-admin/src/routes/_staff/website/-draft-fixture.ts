@@ -7,7 +7,7 @@ import { http, HttpResponse } from 'msw';
 
 import { baseSite, mockWebsite } from './-test-handlers';
 
-const t = (bn: string, en: string) => ({ bn, en });
+const loc = (bn: string, en: string) => ({ bn, en });
 const vars = (c: string) => ({
   primary: c,
   secondary: c,
@@ -29,7 +29,7 @@ export const draft = {
       page: 'home',
       enabled: true,
       sections: [
-        { key: 'hero', enabled: true, data: { headline: t('আমার হেডলাইন', 'My headline') } },
+        { key: 'hero', enabled: true, data: { headline: loc('আমার হেডলাইন', 'My headline') } },
         { key: 'about', enabled: true, data: {} },
         { key: 'notices', enabled: true, data: {} },
         { key: 'teachers', enabled: false, data: {} },
@@ -41,10 +41,10 @@ export const draft = {
 
 const theme = (id: string, name: [string, string], c: string) => ({
   id,
-  name: t(...name),
+  name: loc(...name),
   palettes: [
-    { id: 'green', name: t('সবুজ', 'Green'), vars: vars(c) },
-    { id: 'blue', name: t('নীল', 'Blue'), vars: vars('#00f') },
+    { id: 'green', name: loc('সবুজ', 'Green'), vars: vars(c) },
+    { id: 'blue', name: loc('নীল', 'Blue'), vars: vars('#00f') },
   ],
   fonts: {
     bn: [
@@ -68,7 +68,7 @@ const theme = (id: string, name: [string, string], c: string) => ({
           key: 'headline',
           kind: 'text',
           required: true,
-          defaults: t('ডিফল্ট', 'Default headline'),
+          defaults: loc('ডিফল্ট', 'Default headline'),
         },
         { key: 'images', kind: 'images', required: false, slot: 'hero' },
       ],
@@ -76,7 +76,7 @@ const theme = (id: string, name: [string, string], c: string) => ({
     {
       key: 'about',
       fields: [
-        { key: 'body', kind: 'richtext', required: true, defaults: t('বিবরণ', 'About text') },
+        { key: 'body', kind: 'richtext', required: true, defaults: loc('বিবরণ', 'About text') },
       ],
     },
   ],
