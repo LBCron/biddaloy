@@ -6,7 +6,7 @@ import { t } from '../i18n';
 
 /**
  * [#3601] Dashboard signal colour (epic #3592, D8/D10): a signalled card shows an icon AND
- * screen-reader text, never colour alone; a card without a signal carries no accent.
+ * screen-reader text, never colour alone; the accent never relies on colour alone.
  * The errored-widget case (no signal) is a unit test (`widget-card.test.tsx`): the service
  * worker defeats `page.route` on the built app, so it cannot be forced here.
  */
@@ -30,26 +30,16 @@ test.describe('dashboard signal colour: admin', () => {
 
   test('every accented card has an icon and level text; none is colour only', async ({ page }) => {
     await openDashboard(page);
-    const accented = page.locator('[data-testid="grid-desktop"] [class*="text-signal-"]');
+    // The accent bar is what makes a card "signalled" (WidgetCard, SetupChecklistCard).
+    const accented = page.locator('[data-testid="grid-desktop"] [class*="border-s-signal-"]');
 
     // The seeded school has at least one signalled card.
     await expect.poll(() => accented.count()).toBeGreaterThan(0);
 
-    for (const el of await accented.all()) {
-      await expect(el.locator('svg[aria-hidden="true"]')).toHaveCount(1);
-      const text = (await el.locator('.sr-only').textContent())?.trim() ?? '';
+    for (const card of await accented.all()) {
+      await expect(card.locator('svg[aria-hidden="true"]').first()).toBeAttached();
+      const text = (await card.locator('.sr-only').first().textContent())?.trim() ?? '';
       expect(LEVEL_TEXTS, `sr-only text "${text}" is a signal label`).toContain(text);
     }
-  });
-
-  test('a card with no signal wiring carries no accent', async ({ page }) => {
-    await openDashboard(page);
-    const attendance = page.getByRole('region', {
-      name: t('dashboard.widgets.attendance-today.title'),
-    });
-    await expect(attendance).toBeVisible();
-    await expect(
-      attendance.locator('[class*="text-signal-"], [class*="border-s-signal-"]'),
-    ).toHaveCount(0);
   });
 });

@@ -157,6 +157,7 @@ Not every widget has a colour. A widget with no data, or one that did not load, 
 | Fee collection this month | 10 points or more behind last month | Behind last month                | Same as or ahead of last month |
 | SMS balance               | Balance is 0                        | Under 200                        | 200 or more                    |
 | Failed messages           | One or more failed                  |                                  | None failed                    |
+| Finish setting up (admin) |                                     | Setup is not finished yet        |                                |
 
 For example, if this month's fee collection is 62% and last month at this point was 70%, the card is amber (8 points behind). At 58% it is red (12 points behind).
 
