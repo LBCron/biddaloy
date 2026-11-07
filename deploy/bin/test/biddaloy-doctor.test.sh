@@ -48,8 +48,11 @@ case "$a" in
   *"exec -T backup"*) printf "%b" "$BACKUP_LS" ;;
 esac'
 
-shim curl 'case "$*" in
-  *-K*) cat >/dev/null; printf "%s" "$UMAMI_CODE" ;;
+shim curl 'printf "%s\n" "$*" >>"$ROOT_DIR/curl.argv"
+case "$*" in
+  *-K*) f=""; prev=""; for x in "$@"; do [ "$prev" = -K ] && f="$x"; prev="$x"; done
+    # Real curl reads the header from the -K file: no token in the file = no auth = 401.
+    if grep -q "Bearer umami-secret" "$f" 2>/dev/null; then printf "%s" "$UMAMI_CODE"; else printf 401; fi ;;
   *sites.*) printf "%s" "$SITES_CODE" ;;
   *) printf "%s" "$PROBE_CODE" ;;
 esac'
@@ -245,8 +248,9 @@ check "CF token without zone WARN" row "custom domains env" WARN
 check "CF half-set WARN has Next" row_next "custom domains env" WARN
 defaults; site_env 'CF_ZONE_ID=zone1\n'; run
 check "CF zone without token WARN" row "custom domains env" WARN
-defaults; site_env 'UMAMI_API_URL=https://stats.example.test\nUMAMI_API_TOKEN=umami-secret\n'; run
-check "Umami reachable OK" row "umami api" OK
+defaults; site_env 'UMAMI_API_URL=https://stats.example.test\nUMAMI_API_TOKEN=umami-secret\n'; rm -f "$ROOT/curl.argv"; run
+check "Umami reachable OK (token reached curl through -K)" row "umami api" OK
+check "Umami token never in curl argv" bash -c '! grep -q umami-secret "$0"' "$ROOT/curl.argv"
 defaults; site_env 'UMAMI_API_URL=https://stats.example.test\nUMAMI_API_TOKEN=umami-secret\n'; export UMAMI_CODE=401; run
 check "Umami 401 WARN" row "umami api" WARN
 defaults; site_env 'UMAMI_API_URL=https://stats.example.test\n'; run
@@ -255,6 +259,9 @@ defaults; site_env 'CF_SAAS_API_TOKEN=tok-secret\nUMAMI_API_TOKEN=umami-secret\n
 check "CF / Umami tokens never printed" bash -c '! printf "%s%s" "$0" "$1" | grep -qE "tok-secret|umami-secret"' "$H" "$OUT"
 defaults; printf 'EDGE_MODE=tunnel\nAPP_DOMAIN=app.example.test\n' >"$ROOT/edge/.env"; run
 check "no ROOT_DOMAIN WARN" row "school websites" WARN
+defaults; set_mode direct; run
+check "direct mode: no site probe rows" nrow "site probe doctor-probe.schools.test"
+check "direct mode: says tunnel-only" row "site probes" OK
 defaults; site_env ''; run prod
 check "prod-only run has no site probes" nrow "site probe doctor-probe.schools.test"
 site_env ""
