@@ -97,7 +97,7 @@ describe('/website/enquiries', () => {
     render();
     const unseen = await screen.findByRole('switch', { name: 'Mark Rahim as seen' });
     expect(
-      (screen.getByRole('switch', { name: 'Mark Karim as seen' }) as HTMLButtonElement).disabled,
+      screen.getByRole<HTMLButtonElement>('switch', { name: 'Mark Karim as seen' }).disabled,
     ).toBe(true);
     await userEvent.click(unseen);
     await waitFor(() => expect(calls).toEqual(['seen:e1']));
