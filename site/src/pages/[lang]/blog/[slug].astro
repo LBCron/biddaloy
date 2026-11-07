@@ -20,7 +20,7 @@ const title = field(post.title, lang) ?? s(post.title) ?? '';
 const when = s(post.publishedAt) ? new Date(s(post.publishedAt)!) : undefined;
 const { Layout } = themes[site.theme] ?? themes.basic;
 ---
-<Layout manifest={site} lang={lang} rest={`blog/${Astro.params.slug}/`} title={title}>
+<Layout manifest={site} lang={lang} rest={`blog/${Astro.params.slug}/`} title={title} description={s(post.excerpt)} image={s(post.cover) ? `/media/${s(post.cover)}` : undefined}>
   <article class="sec"><div class="wrap post-page">
     <h1>{title}</h1>
     {when && !Number.isNaN(when.getTime()) && <p class="tiny"><time datetime={when.toISOString()}>{when.toLocaleDateString(lang === 'en' ? 'en-GB' : 'bn-BD', { dateStyle: 'long' })}</time></p>}

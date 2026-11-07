@@ -14,13 +14,18 @@ async function load(root: HTMLElement) {
   const select = root.querySelector<HTMLSelectElement>('select')!;
   const out = root.querySelector<HTMLElement>('.routine-grid')!;
 
+  let inflight: AbortController | undefined;
   async function show() {
+    inflight?.abort(); // a quick second pick cancels the first, so an old answer never paints over it
     if (!select.value) return;
+    const mine = (inflight = new AbortController());
     root.setAttribute('data-loading', '');
     root.setAttribute('aria-busy', 'true');
     const rows = await loadRows<Slot>(
       `/_api/island/routine?classSectionId=${encodeURIComponent(select.value)}`,
+      mine.signal,
     );
+    if (mine.signal.aborted) return;
     out.replaceChildren();
     if (!rows) return settle(root, out, root.dataset.error ?? '');
     if (rows.length === 0) return settle(root, out, root.dataset.empty ?? '');

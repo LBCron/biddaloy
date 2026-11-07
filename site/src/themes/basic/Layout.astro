@@ -13,12 +13,14 @@ interface Props {
   lang: Lang;
   rest?: string;
   title?: string;
+  description?: string;
+  image?: string;
 }
-const { manifest, lang, rest = '', title } = Astro.props;
+const { manifest, lang, rest = '', title, description, image } = Astro.props;
 const name = pick(manifest.schoolName, lang) ?? '';
 const nav = manifest.nav.filter((n) => n.page !== 'home');
 ---
-<SiteLayout manifest={manifest} lang={lang} rest={rest} title={title}>
+<SiteLayout manifest={manifest} lang={lang} rest={rest} title={title} description={description} image={image}>
   <AnnouncementBar bar={manifest.announcements} lang={lang} />
   <header class="top"><div class="wrap">
     <a class="brand" href={`/${lang}/`}>

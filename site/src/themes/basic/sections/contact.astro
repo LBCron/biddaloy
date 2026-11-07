@@ -32,14 +32,14 @@ const m = (k: string) => t(lang, `enquiry.${k}`);
     {links.length > 0 && (
       <p class="cta">{links.map(([k, href]) => <a class="btn btn-ghost btn-sm" href={href} rel="noopener noreferrer" target="_blank">{t(lang, k)}</a>)}</p>
     )}
-    {map && <iframe class="mapframe" title={t(lang, 'links.map')} src={map} loading="lazy" referrerpolicy="no-referrer" width="600" height="320"></iframe>}
+    {map && <iframe class="mapframe" title={t(lang, 'links.map')} src={map} loading="lazy" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer-when-downgrade" width="600" height="320"></iframe>}
   </div>
   <div>
     <h3>{m('title')}</h3>
     {!siteKey ? <p class="empty">{m('nokey')}</p> : (
       <form class="enquiry" data-enquiry data-sitekey={siteKey} data-state="idle"
         data-m-submitting={m('submitting')} data-m-success={m('success')} data-m-captcha={m('captcha')}
-        data-m-invalid={m('invalid')} data-m-closed={m('closed')} data-m-rate={m('rate')} data-m-error={m('error')}>
+        data-m-invalid={m('invalid')} data-m-closed={m('closed')} data-m-rate={m('rate')} data-m-error={m('error')} data-m-unavailable={m('nokey')}>
         <label class="field"><span>{m('name')}</span><input name="name" required maxlength="80" autocomplete="name" /></label>
         <label class="field"><span>{m('phone')}</span><input name="phone" type="tel" inputmode="tel" required maxlength="20" pattern="(\+?88)?01[3-9][0-9]{8}" autocomplete="tel" /></label>
         <label class="field"><span>{m('message')}</span><textarea name="message" required maxlength="1000" rows="4"></textarea></label>

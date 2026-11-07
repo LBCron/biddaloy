@@ -1,6 +1,7 @@
 /** Every state the enquiry form can be in. Each one has one fixed sentence in `i18n` (`enquiry.<state>`). */
 export type EnquiryState =
   | 'idle'
+  | 'unavailable' // the Turnstile widget could not load: nothing can be sent
   | 'submitting'
   | 'success'
   | 'captcha' // the Turnstile check is missing or failed: tick it again
@@ -16,6 +17,10 @@ export interface EnquiryBody {
   captcha_token: string;
 }
 
+/** `idle` when the Turnstile widget was drawn; `unavailable` when its script is blocked or the key is missing. */
+export const stateAfterWidget = (widgetReady: boolean): EnquiryState =>
+  widgetReady ? 'idle' : 'unavailable';
+
 /**
  * Posts to the enquiry route through the same-origin `/_api/` proxy and maps the answer to a
  * state. The server's own text is never read or shown (Rule 23): only the status and the
@@ -24,7 +29,7 @@ export interface EnquiryBody {
 export async function sendEnquiry(
   body: EnquiryBody,
   fetchImpl: typeof fetch = fetch,
-): Promise<Exclude<EnquiryState, 'idle' | 'submitting'>> {
+): Promise<Exclude<EnquiryState, 'idle' | 'submitting' | 'unavailable'>> {
   try {
     const res = await fetchImpl('/_api/island/enquiry', {
       method: 'POST',

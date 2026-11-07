@@ -46,7 +46,7 @@ const home = {
 };
 
 createServer((req, res) => {
-  const m = /\/public\/site\/by-host\/([^/]+)\/(manifest|page\/home)/.exec(req.url ?? '');
+  const m = /\/public\/site\/by-host\/([^/]+)\/(manifest|page\/[a-z]+)/.exec(req.url ?? '');
   const host = decodeURIComponent(m?.[1] ?? '');
   const send = (code, body) => {
     res.writeHead(code, { 'content-type': 'application/json' });
@@ -54,5 +54,30 @@ createServer((req, res) => {
   };
   if (!m || host === 'down.localhost') return send(500, {});
   if (host !== 'ok.localhost') return send(404, { code: 'site.not_found' });
-  return send(200, m[2] === 'manifest' ? manifest : home);
+  if (m[2] === 'manifest') return send(200, manifest);
+  const page = m[2].slice(5);
+  if (page === 'home') return send(200, home);
+  const inner = {
+    about: [home.sections[1]],
+    teachers: [
+      {
+        key: 'teachers',
+        enabled: true,
+        data: {},
+        feed: [1, 2, 3].map((n) => ({
+          id: String(n),
+          name: bt(`শিক্ষক ${n}`, `Teacher ${n}`),
+          subjects: ['গণিত'],
+        })),
+      },
+    ],
+    contact: [
+      {
+        key: 'contact',
+        enabled: true,
+        data: { title: bt('যোগাযোগ', 'Contact'), address: bt('ঢাকা', 'Dhaka') },
+      },
+    ],
+  }[page];
+  return inner ? send(200, { page, sections: inner }) : send(404, { code: 'site.not_found' });
 }).listen(4399, '127.0.0.1');

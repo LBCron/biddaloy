@@ -1,6 +1,6 @@
 // Enquiry form island (D21, D38, Rule 22): the one public write. Turnstile token + POST, then one
 // fixed sentence per state (copy comes from `data-m-*`, set from i18n). Server text is never shown.
-import { sendEnquiry, type EnquiryState } from '../lib/enquiry';
+import { sendEnquiry, stateAfterWidget, type EnquiryState } from '../lib/enquiry';
 
 interface Turnstile {
   render(el: HTMLElement, o: Record<string, unknown>): string;
@@ -52,7 +52,8 @@ async function init(form: HTMLFormElement) {
       'error-callback': () => (token = ''),
     });
   }
-  show('idle');
+  show(stateAfterWidget(widget !== undefined));
+  if (widget === undefined) return; // blocked script: the form says so and stays closed
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { sendEnquiry } from './enquiry';
+import { sendEnquiry, stateAfterWidget } from './enquiry';
 import bn from '../i18n/bn.json';
 import en from '../i18n/en.json';
 
@@ -44,6 +44,16 @@ describe('sendEnquiry', () => {
   it('a 400 with an unreadable body is invalid', async () => {
     const f = vi.fn(async () => new Response('<html>', { status: 400 })) as unknown as typeof fetch;
     expect(await sendEnquiry(body, f)).toBe('invalid');
+  });
+});
+
+describe('widget failure', () => {
+  it('a blocked Turnstile script leaves the form unavailable, with its own sentence', () => {
+    expect(stateAfterWidget(false)).toBe('unavailable');
+    expect(stateAfterWidget(true)).toBe('idle');
+    for (const d of [bn, en] as unknown as { enquiry: Record<string, string> }[]) {
+      expect(d.enquiry.nokey).toBeTruthy();
+    }
   });
 });
 
