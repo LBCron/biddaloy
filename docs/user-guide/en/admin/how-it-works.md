@@ -140,7 +140,7 @@ The colours in the pictures show who does what. Orange boxes are the admin or ac
 
 This page does not save anything. So none of the three states happen here. The place to see how far your school is set up is the dashboard.
 
-**To check:** On the dashboard, open the **Finish setting up your school** card. It shows a number like "3 of 8 done". Each row says **Done** or **To do**. Press a row to open the page for that task. The order to do the whole list in is on the [Setup order](setup-order.md) page.
+**To check:** On the dashboard, open the **Finish setting up your school** card. It shows a number like "3 of 8 done". Each row says **Done** or **To do**. Press a row to open the page for that task. If you said yes to the website question in the setup wizard, there is also a **Set up the website** row. The order to do the whole list in is on the [Setup order](setup-order.md) page.
 
 > **Remember:** When every row is **Done**, or when you press **Hide**, the card no longer shows.
 
