@@ -598,7 +598,24 @@
       "subjects": "Subjects",
       "bio": "About",
       "credentials": "Qualifications",
-      "photo": "Photo"
+      "photo": "Photo",
+      "saved": "Saved. The website will show this soon.",
+      "saveError": "Could not save. Try again.",
+      "loadError": "Could not load the website profile.",
+      "retry": "Try again",
+      "featuredFull": "{{max}} people are already on the home page. Take one off first.",
+      "subjectsHint": "Separate subjects with a comma.",
+      "photoReady": "Photo ready. Press Save to keep it.",
+      "save": "Save",
+      "photoLabels": {
+        "choose": "Choose a photo",
+        "zoom": "Zoom",
+        "save": "Use this photo",
+        "svgRefused": "Please use a JPG, PNG or WebP photo.",
+        "tooLarge": "This photo is too big. Use one under 20 MB.",
+        "unreadable": "We could not read this photo.",
+        "pan": "Use the arrow keys to move the photo and plus or minus to zoom."
+      }
     }
   }
 }

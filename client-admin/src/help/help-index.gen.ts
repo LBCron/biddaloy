@@ -5201,6 +5201,7 @@ export const HELP_ROUTES = {
   '/audit-logs': 'administration.auditLogs',
   '/settings': 'administration.settings',
   '/curriculum-preset': 'administration.curriculumPreset',
+  '/website': 'administration.website',
   '/portal': 'portal.overview',
   '/portal/fees': 'portal.fees',
   '/portal/statement': 'portal.statement',

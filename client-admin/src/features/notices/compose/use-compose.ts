@@ -22,6 +22,8 @@ export interface NoticeFields {
   important: boolean;
   pinned: boolean;
   isPublic: boolean;
+  /** Pin on the school website home page; only meaningful when `isPublic`. */
+  pinnedOnWebsite: boolean;
   /** `YYYY-MM-DD`, or null for no end date. */
   expiresOn: string | null;
 }
