@@ -12,6 +12,11 @@ sources:
   - client-admin/src/routes/_staff/website/design.tsx
   - client-admin/src/routes/_staff/website/address.tsx
   - client-admin/src/routes/_staff/website/analytics.tsx
+  - client-admin/src/routes/_staff/website/gallery.tsx
+  - client-admin/src/routes/_staff/website/-gallery-section-card.tsx
+  - client-admin/src/routes/_staff/exams/-detail/website-publish-dialog.tsx
+  - site/src/pages/[lang]/results.astro
+  - site/src/pages/[lang]/gallery.astro
   - client-admin/src/routes/_staff/website/-section-editor-modal.tsx
   - client-admin/src/routes/_staff/website/-announcements-editor.tsx
   - client-admin/src/routes/_staff/website/-draft-editor.tsx
@@ -124,6 +129,81 @@ To stop using it, press **Remove this address**, then confirm **Remove**. Your w
 ## See visitors <a href="#task-visitors" id="task-visitors"></a>
 
 Open the **Visitors** tab. You see **Visitors** and **Pages seen** for the last 30 days. If you see **Visitor numbers are not available**, nothing is wrong with your website. Try again later.
+
+## Show exam results on the website <a href="#task-results" id="task-results"></a>
+
+Parents can look up a result on your website. You need the **Result publish** permission, and the exam must be **Published** first.
+
+1. Open the exam, then press **Show results on the website** ([Exams](../exams-results/exams.md#task-website)).
+2. Leave **Show student names** on, or turn it off. Off means visitors see only roll number and marks.
+3. Press **Show on website**. → **Results are now on the website.**
+4. On the **Pages** tab, check that the **Results** page is switched on. Then press **Publish** on the **Overview** tab.
+
+<figure>
+<img src="diagrams/administration-website-results.svg" alt="The Admin publishes the exam, shows it on the website and publishes the website. A visitor picks exam, class and section, ticks the box, and sees the results." width="720">
+<figcaption><em>How a result reaches a visitor</em></figcaption>
+</figure>
+
+What a visitor does: opens the **Results** page, picks **Exam**, **Class** and **Section**, optionally types one **Roll**, ticks the box that says they are a person, then presses **Show results**. They see roll, grade and result, and can press **Print**.
+
+To take the results off, press **Take results off the website** on the exam, then confirm. They leave the website at once.
+
+**Remember:** if you **Reopen** an exam, its results leave the website too. After you publish the results again, show them on the website again.
+
+If you see **Set up the school website first to show results on it.**, finish the website first ([Set up the website](#task-main)).
+
+## Use your own address: what to expect <a href="#task-own-address-wait" id="task-own-address-wait"></a>
+
+Your own address works only when two things are done: you added the two lines where you bought the address, and our team has finished the setup on our side. If the chip says **Waiting for the two lines**, we cannot see them yet.
+
+- If it says **Did not work**, check both lines carefully, then press **Check again**. If it still does not work after some time, the address is released. You can add it again.
+- If you see **This address cannot be added. Try another one.**, that address cannot be used here. The message is the same for every reason on purpose.
+- An address without **www** may be refused by the place you bought it. Use one that starts with **www**.
+
+Until it works, your website keeps opening on the web address above.
+
+## Read the visitor numbers <a href="#task-visitors-detail" id="task-visitors-detail"></a>
+
+On the **Visitors** tab you see **Visitors**, **Pages seen** and **Most seen pages** for the last 30 days. These are counts only. They do not show who the visitors are. If you see **No visitors yet.**, nobody opened the website in the last 30 days. If you see **Visitor numbers are not available**, the counting is not set up or cannot be reached now. Your website is not affected.
+
+## Photo gallery <a href="#task-gallery" id="task-gallery"></a>
+
+A gallery shows your school photos in groups called **gallery sections**, for example "Annual sports". You can have 20 gallery sections, and 60 photos in each.
+
+**Add photos**
+
+1. Open **Administration → Website**, then the **Gallery** tab.
+2. Press **New gallery section**, type a name, then press **Save name**.
+3. Press **Choose photos** and pick many photos at once (JPEG, PNG or WebP, up to 8 MB each). You do not need to prepare them. Each photo is cut to the same 3:2 shape, 1200 × 800, for you.
+4. Each photo shows **Waiting**, **Sending**, then **Done**. If one shows **Failed**, press **Try again** beside it.
+5. Type a **Caption** (up to 120 characters). It is optional. It helps people who use a screen reader.
+
+If you see **Photo space is full. Delete some photos you do not need.**, delete photos you do not want. The space is 100 MB. It is shared with the other pictures of your website (about 700 photos fit).
+
+**Change the order, or delete**
+
+- Use the up and down arrows beside a photo or a gallery section to move it.
+- Press **Delete photo**, then **Delete** to confirm, or **Keep**.
+- Press **Delete this gallery section** to remove the whole section. A box tells you its photos go too, and this cannot be undone. Press **Delete section**.
+
+Do not put up photos of children's faces without a guardian's permission.
+
+**Show it on the website**
+
+1. On the **Pages** tab, open the **Home** page and edit the **Photo gallery** section.
+2. In **Which gallery section to show**, pick one, or keep **The first section that has photos**. The home page shows up to 12 photos.
+3. Switch on **Show a separate page with all photos** if you want visitors to get a link to a page with every photo.
+4. Press **Save**, **Save draft**, then **Publish** on the **Overview** tab. Photos and order go live only after **Publish**.
+
+## Add a YouTube video <a href="#task-video" id="task-video"></a>
+
+1. On the **Pages** tab, edit a **Video** section.
+2. On YouTube press **Share**, then **Embed**, then **Copy**. Paste it in **Paste the YouTube video embed code or link**. A plain video link works too. Only YouTube works, for safety.
+3. When you see **Video found**, the preview shows. If you see **This is not a YouTube code or link**, copy again.
+4. Choose if the heading is **Above the video** or **Below the video**. You may type **Start at** in seconds.
+5. Press **Save**, **Save draft**, then **Publish**.
+
+The video loads only when a visitor presses play. It never starts by itself, and it does not use cookies. Press **Remove video** to take it away.
 
 ---
 

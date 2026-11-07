@@ -1,0 +1,9 @@
+%% title: How a result reaches a visitor
+%% desc: The Admin publishes the exam results, then shows them on the website and publishes the website. A visitor opens the Results page, picks the exam, class and section, ticks the box that says they are a person, and sees the results. If the Admin reopens the exam, the results leave the website.
+flowchart LR
+  A["Admin publishes<br/>the exam results"]:::admin --> B["Admin presses<br/>Show results on the website"]:::admin
+  B --> C["Admin publishes<br/>the website"]:::admin
+  C --> D["Visitor picks exam,<br/>class and section"]
+  D --> E["Visitor ticks the box<br/>and sees the results"]
+  R["Admin reopens the exam"]:::admin -.->|results leave the website| D
+  classDef admin fill:#fff4e6,stroke:#e8590c,color:#7a2e05
