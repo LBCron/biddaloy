@@ -5,6 +5,18 @@ import { TENANT_STATUS_REDIS } from '../../schools/tenant-status.service';
 
 export const SITE_CACHE_TTL_SECONDS = 24 * 60 * 60;
 export const SITE_FEED_TTL_SECONDS = 60;
+/**
+ * Feed keys with a fixed name, so one DEL covers them. `routine:<section>` is per class section
+ * and is left to its 60 s expiry rather than scanned for.
+ */
+const FEED_KEYS = [
+  ...Object.values(SiteIslandKind),
+  'teachers',
+  'teachers:home',
+  'blog',
+  'fees',
+  'admissions',
+];
 /** At most one error log per this window, so a Redis outage does not flood the log. */
 const LOG_EVERY_MS = 60_000;
 
@@ -41,11 +53,11 @@ export class SiteCacheService {
   /**
    * Drops the tenant's feed keys. Content keys need no delete: they carry `version`, so a
    * publish already makes the old ones unreachable (they expire in 24 h). The feed names are
-   * a fixed enum, so this is one DEL, never a SCAN of the shared Redis.
+   * a fixed list, so this is one DEL, never a SCAN of the shared Redis.
    */
   async invalidate(tenantId: string): Promise<void> {
     try {
-      await this.redis.del(...Object.values(SiteIslandKind).map((k) => this.feedKey(tenantId, k)));
+      await this.redis.del(...FEED_KEYS.map((k) => this.feedKey(tenantId, k)));
     } catch (error) {
       this.logOnce(`invalidate failed: ${String(error)}`);
     }

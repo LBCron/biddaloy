@@ -67,14 +67,17 @@ export class PublicSiteController {
   }
 
   @Get('island/:kind')
-  @ApiOperation({ summary: 'Live list for a client island (notices). Cached 60 s.' })
+  @ApiOperation({
+    summary: 'Live list for a client island (notices, events, routine). Cached 60 s.',
+  })
   @ApiOkResponse()
   async island(
     @Param('host') host: string,
     @Param('kind') kind: string,
+    @Query('classSectionId') classSectionId: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.send(res, await this.site.island(host, kind));
+    return this.send(res, await this.site.island(host, kind, classSectionId));
   }
 
   // `key` is `logo` or a media id, so it cannot carry ParseUUIDPipe: the service answers the one 404.

@@ -4,21 +4,22 @@ import { Repository } from 'typeorm';
 import { NoticeStatus } from '@biddaloy/shared';
 import { Notice } from '../../../notices/entities/notice.entity';
 import { SchoolsService } from '../../../schools/schools.service';
+import type { Feed } from './feed-registry';
 
-export interface WebsiteNoticeItem {
+export type WebsiteNoticeItem = {
   id: string;
   title: string;
   /** Publish time, ISO. The site island reads `date`. */
   date: string;
   link: string;
-}
+};
 
 /**
  * The public notice list for the site's `notices` island. Only `is_public` published notices
  * that are not withdrawn or expired; pinned-on-website first, newest 20. No body, no files.
  */
 @Injectable()
-export class NoticesFeed {
+export class NoticesFeed implements Feed {
   constructor(
     @InjectRepository(Notice) private readonly notices: Repository<Notice>,
     private readonly schools: SchoolsService,

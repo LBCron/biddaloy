@@ -79,7 +79,7 @@ export class NoticesService {
 
   private async rows(
     tenantId: string,
-    f: { authorId?: string; status?: string; q?: string; id?: string },
+    f: { authorId?: string; status?: string; q?: string; id?: string; isPublic?: boolean },
     limit: number,
     offset: number,
   ): Promise<{ items: NoticeDto[]; total: number }> {
@@ -99,14 +99,16 @@ export class NoticesService {
           AND ($3::text IS NULL OR n.status = $3::text)
           AND ($4::text IS NULL OR n.title ILIKE '%' || $4::text || '%')
           AND ($5::uuid IS NULL OR n.id = $5::uuid)
+          AND ($6::boolean IS NULL OR n.is_public = $6::boolean)
         ORDER BY n.pinned DESC, COALESCE(n.published_at, n.created_at) DESC, n.id
-        LIMIT $6 OFFSET $7`,
+        LIMIT $7 OFFSET $8`,
       [
         tenantId,
         f.authorId ?? null,
         f.status ?? null,
         normalizeSearchTerm(f.q),
         f.id ?? null,
+        f.isPublic ?? null,
         limit,
         offset,
       ],
@@ -121,6 +123,7 @@ export class NoticesService {
         important: n.important,
         pinned: n.pinned,
         isPublic: n.is_public,
+        pinnedOnWebsite: n.pinned_on_website,
         expiresOn: n.expires_on_text,
         authorUserId: n.author_user_id,
         authorName: n.author_name,
@@ -143,6 +146,7 @@ export class NoticesService {
         authorId: canManage(actor) ? undefined : actor.userId,
         status: q.status,
         q: q.q,
+        isPublic: q.isPublic,
       },
       q.limit,
       (q.page - 1) * q.limit,
@@ -222,6 +226,7 @@ export class NoticesService {
       important: dto.important ?? false,
       pinned: dto.pinned ?? false,
       is_public: dto.isPublic ?? false,
+      pinned_on_website: dto.pinnedOnWebsite ?? false,
       expires_on: dto.expiresOn ?? null,
     });
     return this.get(tenantId, actor, saved.id);
@@ -259,6 +264,7 @@ export class NoticesService {
         important: n.important,
         pinned: n.pinned,
         is_public: n.is_public,
+        pinned_on_website: n.pinned_on_website,
         expires_on: null,
       });
       await this.recipients.copyInto(tx, tenantId, actor, id, copy.id);
@@ -489,7 +495,9 @@ export class NoticesService {
   ): Promise<NoticeDto> {
     // PartialType's @IsOptional lets null through; only expiresOn may be cleared (Rule 24: no 500)
     if (
-      (['title', 'body', 'important', 'pinned', 'isPublic'] as const).some((k) => dto[k] === null)
+      (['title', 'body', 'important', 'pinned', 'isPublic', 'pinnedOnWebsite'] as const).some(
+        (k) => dto[k] === null,
+      )
     )
       throw new BadRequestException(M.nullField);
     if (dto.expiresOn) await this.assertExpiry(tenantId, dto.expiresOn);
@@ -503,6 +511,7 @@ export class NoticesService {
       if (dto.important !== undefined) patch.important = dto.important;
       if (dto.pinned !== undefined) patch.pinned = dto.pinned;
       if (dto.isPublic !== undefined) patch.is_public = dto.isPublic;
+      if (dto.pinnedOnWebsite !== undefined) patch.pinned_on_website = dto.pinnedOnWebsite;
       if (dto.expiresOn !== undefined) patch.expires_on = dto.expiresOn;
 
       const changed = (k: keyof Notice) => k in patch && patch[k] !== n[k];

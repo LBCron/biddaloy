@@ -7,6 +7,7 @@ import { DataSource } from 'typeorm';
 import { randomUUID } from 'node:crypto';
 import { SITE_FEATURED_TEACHERS_MAX, UserRole } from '@biddaloy/shared';
 import { AppModule } from '../../app.module';
+import { StorageService } from '../storage/storage.service';
 import { AllExceptionsFilter } from '../../common/filters/http-exception.filter';
 import { configureApiVersioning } from '@test/helpers/e2e-app.helper';
 import { buildValidationPipeOptions } from '../../validation-pipe';
@@ -338,6 +339,53 @@ describe('Website content API E2E (posts, enquiries, teachers)', () => {
       await admin('put', '/website/teachers/not-a-uuid')
         .send({ show_on_website: true, featured: false })
         .expect(400);
+    });
+  });
+
+  describe('pictures shown by a feed', () => {
+    it('a teacher photo shows only while the card is on; a post cover only while the post is published', async () => {
+      const host = await liveHost();
+      const storage = app.get(StorageService);
+      const media = async (slot: string, name: string) => {
+        const key = `tenants/${SEED_TENANT_ID}/${name}-${tag}.webp`;
+        await storage.put(key, Buffer.from('RIFFfake'), 'image/webp');
+        const [{ id }] = await ds.query(
+          `INSERT INTO site_media (tenant_id, slot, storage_key, hash, width, height, bytes)
+           VALUES ($1,$2,$3,$4,10,10,8) RETURNING id`,
+          [SEED_TENANT_ID, slot, key, name.padEnd(64, 'f').slice(0, 64)],
+        );
+        return { id: id as string, key };
+      };
+      const get = (id: string) => api().get(`/api/v1/public/site/by-host/${host}/media/${id}`);
+
+      const photo = await media('person', 'feedphoto');
+      await ds.query(
+        `INSERT INTO staff_web_profiles (tenant_id, user_id, show_on_website, photo_media_id)
+         VALUES ($1,$2,false,$3)`,
+        [SEED_TENANT_ID, teacherUserId, photo.id],
+      );
+      await get(photo.id).expect(404);
+      await ds.query(`UPDATE staff_web_profiles SET show_on_website = true WHERE user_id = $1`, [
+        teacherUserId,
+      ]);
+      await get(photo.id).expect(200);
+
+      const cover = await media('post-cover', 'feedcover');
+      const post = (
+        await admin('post', '/website/posts')
+          .set('Idempotency-Key', randomUUID())
+          .send({ title: { bn: '', en: 'Cover' }, body, cover_media_id: cover.id })
+          .expect(201)
+      ).body;
+      await get(cover.id).expect(404);
+      await admin('post', `/website/posts/${post.id}/publish`)
+        .set('Idempotency-Key', randomUUID())
+        .expect(200);
+      await get(cover.id).expect(200);
+      await storage.delete(photo.key);
+      await storage.delete(cover.key);
+      await ds.query(`DELETE FROM site_posts WHERE tenant_id = $1`, [SEED_TENANT_ID]);
+      await ds.query(`DELETE FROM site_media WHERE tenant_id = $1`, [SEED_TENANT_ID]);
     });
   });
 

@@ -1,6 +1,7 @@
-import { SitePage } from '@biddaloy/shared';
+import { SITE_FEATURED_TEACHERS_MAX, SitePage, SiteSectionKey } from '@biddaloy/shared';
 import type { BilingualText, SiteAnnouncement, SiteConfig } from '@biddaloy/shared';
 import type { School } from '../../schools/entities/school.entity';
+import type { FeedKind, FeedRegistry } from './feeds/feed-registry';
 
 /** What `GET .../manifest` answers. Matches `SiteManifest` in `site/src/lib/types.ts`. */
 export interface PublicManifest {
@@ -15,7 +16,7 @@ export interface PublicManifest {
   contact: { address?: BilingualText; phone?: string; email?: string };
 }
 
-/** What `GET .../page/:page` answers. `feed` stays `[]` until a section has a system feed. */
+/** What `GET .../page/:page` answers. `feed` is `[]` for a section with no system feed. */
 export interface PublicPage {
   page: SitePage;
   sections: {
@@ -23,7 +24,48 @@ export interface PublicPage {
     data: Record<string, unknown>;
     typography?: unknown;
     feed: Record<string, unknown>[];
+    /** True when a system-fed section has nothing to show: the site hides it (D12). */
+    empty?: boolean;
   }[];
+}
+
+/**
+ * Sections fed by live school data, and what an empty feed means (D12, D25). `hides`: the whole
+ * section is its feed, so no rows hides it. `keeps`: the section also has its own text (admission
+ * rules), so the feed rides along but never hides it. A section not listed here has no feed.
+ * `routine` is not here: it needs a class section, so it is read only as an island.
+ */
+const SYSTEM_FED: Partial<Record<SiteSectionKey, { feed: FeedKind; empty: 'hides' | 'keeps' }>> = {
+  [SiteSectionKey.NOTICES]: { feed: 'notices', empty: 'hides' },
+  [SiteSectionKey.EVENTS]: { feed: 'events', empty: 'hides' },
+  [SiteSectionKey.TEACHERS]: { feed: 'teachers', empty: 'hides' },
+  [SiteSectionKey.BLOG]: { feed: 'blog', empty: 'hides' },
+  [SiteSectionKey.FEES]: { feed: 'fees', empty: 'hides' },
+  [SiteSectionKey.ADMISSIONS]: { feed: 'admissions', empty: 'keeps' },
+};
+
+/** Fills each system-fed section from the feed registry (60 s cache per kind, never per site version). */
+export async function withFeeds(
+  page: PublicPage,
+  tenantId: string,
+  registry: FeedRegistry,
+): Promise<PublicPage> {
+  const sections = await Promise.all(
+    page.sections.map(async (s) => {
+      const fed = SYSTEM_FED[s.key as SiteSectionKey];
+      if (!fed) return s;
+      // The home page shows the first 8 teachers (D27); the teachers page shows them all.
+      const opts =
+        fed.feed === 'teachers' && page.page === SitePage.HOME
+          ? { limit: SITE_FEATURED_TEACHERS_MAX }
+          : {};
+      const feed = await registry.cached(fed.feed, tenantId, opts);
+      return fed.empty === 'hides' && feed.length === 0
+        ? { ...s, feed, empty: true }
+        : { ...s, feed };
+    }),
+  );
+  return { ...page, sections };
 }
 
 type SchoolFields = Pick<School, 'name' | 'name_bn' | 'address' | 'phone' | 'email' | 'logo_key'>;
