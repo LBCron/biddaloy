@@ -19,7 +19,7 @@ export const SITE_MEDIA_SLOT_PX: Record<SiteMediaSlot, { w: number; h: number; m
 };
 
 /** 3-30 chars, lowercase letters, digits and inner hyphens (D34). */
-export const SITE_SUBDOMAIN_RE = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?$/;
+export const SITE_SUBDOMAIN_RE = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/;
 
 /**
  * Subdomains a school may not take (D34). Mirror of runbook Part 17 (School websites).

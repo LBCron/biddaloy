@@ -50,6 +50,17 @@ describe('validateSiteConfig', () => {
     expect(errorsOf(c)).toContain('announcements.tooMany');
   });
 
+  it('rejects a bad announcement item and unknown typography values', () => {
+    const c = fresh();
+    c.announcements.items = [
+      { id: 'a', text: { bn: 'x', en: 'y' }, enabled: true, href: 'javascript:alert(1)' },
+    ] as never;
+    c.pages[0].sections[0].typography = { bn: { body: { size: 'HUGE' } } } as never;
+    const e = errorsOf(c);
+    expect(e).toContain('announcements.item.invalid');
+    expect(e).toContain('typography.invalid');
+  });
+
   it('drops unknown keys', () => {
     const c = fresh();
     c.pages[0].sections[0].data.bogus = { bn: 'a', en: 'b' };
