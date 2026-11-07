@@ -210,14 +210,13 @@ test.describe('attendance machines', () => {
       .click();
     await expect(page.getByText(name)).toBeVisible();
 
-    // Revoke: the row leaves the list.
-    const row = page.getByRole('row').filter({ hasText: name });
-    await row.getByRole('button', { name: /.*/ }).last().click();
-    await page
-      .getByRole('menuitem', { name: t('settings.attendanceDevices.revoke.action') })
+    // Revoke: the machine leaves the list. Each machine is a list item with its own buttons.
+    const item = page.getByRole('listitem').filter({ hasText: name });
+    await item
+      .getByRole('button', { name: t('settings.attendanceDevices.revoke.action'), exact: true })
       .click();
     await page
-      .getByRole('button', { name: t('settings.attendanceDevices.revoke.confirm') })
+      .getByRole('button', { name: t('settings.attendanceDevices.revoke.confirm'), exact: true })
       .click();
     await expect(page.getByText(name)).toHaveCount(0);
   });

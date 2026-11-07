@@ -386,14 +386,14 @@ flowchart LR
 
 **Fixed thresholds.** The DTOs carry no per-school threshold (D9), so a widget compares with a fixed number.
 
-- `sms-balance` uses the server default 200 on purpose (D9, decided in review round 2 of PR #3686). The card is ADMIN-only (`SETTINGS_MANAGE`), so it could read the school's own `smsCreditLowThreshold`. It does not: one fixed number, no extra rate-limited settings call per dashboard load. So the card's "low" can differ from the school's own `sms_credit_low` alert. Example: threshold 500 and 300 left, the alert fires but the card shows nothing. Threshold 50 and 150 left, the card says "Running low" but the alert stays quiet. That is also why the card never shows `ok`.
+- `sms-balance` uses the server default 200 on purpose (D9, decided in the PR #3686 review). The card is ADMIN-only (`SETTINGS_MANAGE`), so it could read the school's own `smsCreditLowThreshold`. It does not: one fixed number, no extra rate-limited settings call per dashboard load. So the card's "low" can differ from the school's own `sms_credit_low` alert. Example: threshold 500 and 300 left, the alert fires but the card shows nothing. Threshold 50 and 150 left, the card says "Running low" but the alert stays quiet. That is also why the card never shows `ok`.
 - `mark-entry-progress` is done only when `submitted >= total`, not `percentage >= 100`: the server rounds the percentage, so 199 of 200 would read 100.
 - `attendance-today` uses a fixed 75% of the whole school **today**. That is not `risk.monthlyAttendancePct`, which is one student's attendance over a month (same default, different measure).
 - `failed-messages` is critical at **any** failed SMS on purpose: one failed absence notice is a parent who was not told. The server alert waits for `failedMessagesThreshold` (10).
 
 Example: `collection-month` is 12 points behind last month at this point. It passes `signal: 'critical'` and `signalLabel: t('signal:needsAction')`. The user sees a red bar, a triangle icon, and a screen reader says "Needs action".
 
-**Gotcha.** `useTranslation('signal')` is a separate call on purpose. The `check-i18n-keys` script reads only the first single-quoted `useTranslation` call in a file, so the signal namespace must not share it.
+**Gotcha.** The `check-i18n-keys` script reads only the first single-quoted `useTranslation` call in a file. So a widget either adds a separate `useTranslation('signal')` call, or (approvals, staff) loads `useTranslation(['dashboard', '<other>', 'signal'])` in one array call and names the namespace in every `t()` (`{ ns: 'signal' }`). The array form loads the namespaces in parallel.
 
 Demo seed: `DEMO_SEED_EXEMPT` (no entry needed in the slices). Epic #3592 adds no table or column. Signals are computed from data the demo seed already creates (fees, exam deadlines, SMS balance, failed messages). Reason recorded here per [22-demo-seed.md](22-demo-seed.md) rule 10.
 
