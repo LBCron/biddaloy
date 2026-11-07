@@ -101,6 +101,11 @@
       "archetype": "detail"
     },
     {
+      "path": "/website/gallery",
+      "role": "admin",
+      "archetype": "detail"
+    },
+    {
       "path": "/security",
       "role": "admin",
       "archetype": "bespoke",

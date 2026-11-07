@@ -561,10 +561,13 @@
     "roles": ["ADMIN"],
     "routes": [
       "/website",
+      "/website/address",
+      "/website/analytics",
       "/website/blog",
       "/website/blog/$postId",
       "/website/design",
       "/website/enquiries",
+      "/website/gallery",
       "/website/pages"
     ]
   },

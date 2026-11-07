@@ -128,6 +128,7 @@ import { Route as StaffWebsiteAddressRouteImport } from './routes/_staff/website
 import { Route as StaffWebsiteAnalyticsRouteImport } from './routes/_staff/website/analytics'
 import { Route as StaffWebsiteDesignRouteImport } from './routes/_staff/website/design'
 import { Route as StaffWebsiteEnquiriesRouteImport } from './routes/_staff/website/enquiries'
+import { Route as StaffWebsiteGalleryRouteImport } from './routes/_staff/website/gallery'
 import { Route as StaffWebsitePagesRouteImport } from './routes/_staff/website/pages'
 import { Route as AdmissionSlugIndexRouteImport } from './routes/admission/$slug/index'
 import { Route as AdmissionSlugStatusRouteImport } from './routes/admission/$slug/status'
@@ -790,6 +791,11 @@ const StaffWebsiteEnquiriesRoute = StaffWebsiteEnquiriesRouteImport.update({
   path: '/enquiries',
   getParentRoute: () => StaffWebsiteRoute,
 } as any)
+const StaffWebsiteGalleryRoute = StaffWebsiteGalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
+  getParentRoute: () => StaffWebsiteRoute,
+} as any)
 const StaffWebsitePagesRoute = StaffWebsitePagesRouteImport.update({
   id: '/pages',
   path: '/pages',
@@ -1169,6 +1175,7 @@ export interface FileRoutesByFullPath {
   '/website/analytics': typeof StaffWebsiteAnalyticsRoute
   '/website/design': typeof StaffWebsiteDesignRoute
   '/website/enquiries': typeof StaffWebsiteEnquiriesRoute
+  '/website/gallery': typeof StaffWebsiteGalleryRoute
   '/website/pages': typeof StaffWebsitePagesRoute
   '/admission/$slug/status': typeof AdmissionSlugStatusRoute
   '/auth/social/done': typeof AuthSocialDoneRoute
@@ -1336,6 +1343,7 @@ export interface FileRoutesByTo {
   '/website/analytics': typeof StaffWebsiteAnalyticsRoute
   '/website/design': typeof StaffWebsiteDesignRoute
   '/website/enquiries': typeof StaffWebsiteEnquiriesRoute
+  '/website/gallery': typeof StaffWebsiteGalleryRoute
   '/website/pages': typeof StaffWebsitePagesRoute
   '/admission/$slug/status': typeof AdmissionSlugStatusRoute
   '/auth/social/done': typeof AuthSocialDoneRoute
@@ -1509,6 +1517,7 @@ export interface FileRoutesById {
   '/_staff/website/analytics': typeof StaffWebsiteAnalyticsRoute
   '/_staff/website/design': typeof StaffWebsiteDesignRoute
   '/_staff/website/enquiries': typeof StaffWebsiteEnquiriesRoute
+  '/_staff/website/gallery': typeof StaffWebsiteGalleryRoute
   '/_staff/website/pages': typeof StaffWebsitePagesRoute
   '/admission/$slug/status': typeof AdmissionSlugStatusRoute
   '/auth/social/done': typeof AuthSocialDoneRoute
@@ -1681,6 +1690,7 @@ export interface FileRouteTypes {
     | '/website/analytics'
     | '/website/design'
     | '/website/enquiries'
+    | '/website/gallery'
     | '/website/pages'
     | '/admission/$slug/status'
     | '/auth/social/done'
@@ -1848,6 +1858,7 @@ export interface FileRouteTypes {
     | '/website/analytics'
     | '/website/design'
     | '/website/enquiries'
+    | '/website/gallery'
     | '/website/pages'
     | '/admission/$slug/status'
     | '/auth/social/done'
@@ -2020,6 +2031,7 @@ export interface FileRouteTypes {
     | '/_staff/website/analytics'
     | '/_staff/website/design'
     | '/_staff/website/enquiries'
+    | '/_staff/website/gallery'
     | '/_staff/website/pages'
     | '/admission/$slug/status'
     | '/auth/social/done'
@@ -2958,6 +2970,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffWebsiteEnquiriesRouteImport
       parentRoute: typeof StaffWebsiteRoute
     }
+    '/_staff/website/gallery': {
+      id: '/_staff/website/gallery'
+      path: '/gallery'
+      fullPath: '/website/gallery'
+      preLoaderRoute: typeof StaffWebsiteGalleryRouteImport
+      parentRoute: typeof StaffWebsiteRoute
+    }
     '/_staff/website/pages': {
       id: '/_staff/website/pages'
       path: '/pages'
@@ -3371,6 +3390,7 @@ interface StaffWebsiteRouteChildren {
   StaffWebsiteAnalyticsRoute: typeof StaffWebsiteAnalyticsRoute
   StaffWebsiteDesignRoute: typeof StaffWebsiteDesignRoute
   StaffWebsiteEnquiriesRoute: typeof StaffWebsiteEnquiriesRoute
+  StaffWebsiteGalleryRoute: typeof StaffWebsiteGalleryRoute
   StaffWebsitePagesRoute: typeof StaffWebsitePagesRoute
   StaffWebsiteIndexRoute: typeof StaffWebsiteIndexRoute
   StaffWebsiteBlogPostIdRoute: typeof StaffWebsiteBlogPostIdRoute
@@ -3382,6 +3402,7 @@ const StaffWebsiteRouteChildren: StaffWebsiteRouteChildren = {
   StaffWebsiteAnalyticsRoute: StaffWebsiteAnalyticsRoute,
   StaffWebsiteDesignRoute: StaffWebsiteDesignRoute,
   StaffWebsiteEnquiriesRoute: StaffWebsiteEnquiriesRoute,
+  StaffWebsiteGalleryRoute: StaffWebsiteGalleryRoute,
   StaffWebsitePagesRoute: StaffWebsitePagesRoute,
   StaffWebsiteIndexRoute: StaffWebsiteIndexRoute,
   StaffWebsiteBlogPostIdRoute: StaffWebsiteBlogPostIdRoute,

@@ -44,6 +44,7 @@ const KNOWN: Record<Kind, Record<string, string>> = {
     '/website/enquiries': TABS,
     '/website/address': TABS,
     '/website/analytics': TABS,
+    '/website/gallery': TABS,
     '/invoices/$invoiceId': 'div.relative.w-full table wrapper scrolls at 320px',
     '/payments/$id': 'div.relative.w-full table wrapper scrolls at 320px',
     '/academic-years/$academicYearId': '320px horizontal scroll on the year detail page',
