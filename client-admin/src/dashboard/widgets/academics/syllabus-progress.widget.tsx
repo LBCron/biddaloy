@@ -5,7 +5,7 @@
  */
 import { DashboardWidgetKey } from '@biddaloy/shared';
 import { apiClient, type components } from '@biddaloy/ui/api';
-import { BarWidget, ChartTableToggle, WidgetCard } from '@biddaloy/ui/components';
+import { BarWidget, ChartTableToggle, type SignalLevel, WidgetCard } from '@biddaloy/ui/components';
 import { useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { formatNumber } from '@biddaloy/ui/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -44,7 +44,7 @@ export function SyllabusView({
   failed = false,
   onRetry,
 }: SyllabusViewProps) {
-  const { t } = useTranslation('dashboard');
+  const { t } = useTranslation(['dashboard', 'signal']);
   const region = useTenantRegionConfig();
   const tw = (key: string, opts: Record<string, unknown> = {}) => t(`widgets.${K}.${key}`, opts);
   const pct = (v: number) => `${formatNumber(v, region)}%`;
@@ -74,6 +74,13 @@ export function SyllabusView({
       : data.behind_count > 0
         ? tw('behindClasses', { count: data.behind_count })
         : tw('onPace');
+  // [#3598] behind the expected pace = watch, on pace = healthy; no study plan = no signal (D9).
+  const signal: { level: SignalLevel; key: string } | undefined =
+    !data || empty || expected === undefined
+      ? undefined
+      : data.behind_count > 0
+        ? { level: 'warn', key: 'behind' }
+        : { level: 'ok', key: 'onTrack' };
   const summary = full ? leastText : [average, leastText].filter(Boolean).join(' ');
 
   const body =
@@ -135,6 +142,9 @@ export function SyllabusView({
       variant={full ? 'full' : 'compact'}
       {...(data && !empty ? { value: pct(data.overall.percentage) } : {})}
       {...(summary && !empty ? { summary } : {})}
+      {...(signal && !failed
+        ? { signal: signal.level, signalLabel: t(`signal:${signal.key}`) }
+        : {})}
       loading={loading}
       loadingLabel={t('states.loading', { title })}
       {...(failed && onRetry
