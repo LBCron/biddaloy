@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { WebsiteResultsService } from './website-results.service';
+import { signResultHandle, verifyResultHandle } from './website-results.handle';
+
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'unit-secret';
+const UUID_A = '00000000-0000-4000-8000-00000000000a';
+const UUID_B = '00000000-0000-4000-8000-00000000000b';
 
 /** A fake manager: answers each query in order and records the SQL and parameters. */
 function build(answers: unknown[], exam: { status: string } | null = { status: 'DRAFT' }) {
@@ -57,26 +62,73 @@ describe('WebsiteResultsService (unit)', () => {
       gpa: '4.50',
       grade: 'A',
       is_fail: false,
-      total: '1',
     };
-    const { svc } = build([[{ show: false }], [row]]);
+    const { svc } = build([[{ show: false }], [row], [{ n: '1' }]]);
     const page = await svc.query('t', { examId: 'e', classSectionId: 's', page: 1 });
     expect(page.rows).toEqual([
-      { id: 'r', roll: 4, name: null, gpa: 4.5, grade: 'A', passed: true },
+      { handle: expect.any(String), roll: 4, name: null, gpa: 4.5, grade: 'A', passed: true },
     ]);
+    expect(page.rows[0].handle.split('.')).toHaveLength(4); // exam.result.expiry.signature
     expect(JSON.stringify(page)).not.toContain('Real Name');
   });
 
   it('query: page 3 reads offset 200 of a 100-row page; the roll is a bound parameter', async () => {
-    const { svc, calls } = build([[{ show: true }], []]);
+    const { svc, calls } = build([[{ show: true }], [], [{ n: '0' }]]);
     const page = await svc.query('t', { examId: 'e', classSectionId: 's', roll: 7, page: 3 });
     expect(page).toMatchObject({ pageSize: 100, total: 0, rows: [] });
-    expect(calls[1].sql).toContain('LIMIT 100 OFFSET $5');
-    expect(calls[1].params).toEqual(['e', 't', 's', 7, 200]);
+    expect(calls[1].sql).toContain('LIMIT $5 OFFSET $6'); // never interpolated
+    expect(calls[1].params).toEqual(['e', 't', 's', 7, 100, 200]);
   });
 
-  it('detail: a result that is not on this exam is the one results.not_found', async () => {
-    const { svc } = build([[{ show: true }], []]);
-    await expect(svc.detail('t', 'e', 'r')).rejects.toThrow('results.not_found');
+  it('query: a page past the end still reports the real total', async () => {
+    const { svc } = build([[{ show: true }], [], [{ n: '101' }]]);
+    const page = await svc.query('t', { examId: 'e', classSectionId: 's', page: 5 });
+    expect(page).toMatchObject({ total: 101, rows: [] });
+  });
+
+  it('detail: a guessed id or junk is the one results.not_found and touches no database', async () => {
+    const { svc, calls } = build([]);
+    for (const h of [
+      UUID_B,
+      'x',
+      undefined,
+      `${UUID_A}.${UUID_B}.99999999999999.${'A'.repeat(43)}`,
+    ]) {
+      await expect(svc.detail('t', h)).rejects.toThrow('results.not_found');
+    }
+    expect(calls).toHaveLength(0);
+  });
+
+  it('detail: a handle of another school or an expired one is refused', () => {
+    const h = signResultHandle('school-1', UUID_A, UUID_B);
+    expect(verifyResultHandle(h, 'school-1')).toEqual({ examId: UUID_A, resultId: UUID_B });
+    expect(verifyResultHandle(h, 'school-2')).toBeNull();
+    expect(verifyResultHandle(h, 'school-1', Date.now() + 31 * 60 * 1000)).toBeNull();
+    expect(verifyResultHandle(h.slice(0, -2) + 'AA', 'school-1')).toBeNull(); // tampered signature
+  });
+
+  it('detail: a good handle on an exam no longer on the website is the same 404', async () => {
+    const { svc } = build([[]]);
+    const h = signResultHandle('t', UUID_A, UUID_B);
+    await expect(svc.detail('t', h)).rejects.toThrow('results.not_found');
+  });
+
+  it('setShowNames: no change means no write, no version bump, no audit row', async () => {
+    const { svc, calls, audit } = build([], {
+      status: 'PUBLISHED',
+      website_show_names: true,
+    } as never);
+    await svc.setShowNames('e', 't', 'u', CTX, true);
+    expect(calls).toHaveLength(0);
+    expect(audit.record).not.toHaveBeenCalled();
+  });
+
+  it('audit rows carry the old value', async () => {
+    const { svc, audit } = build([[[{ id: 'e' }], 1], undefined]);
+    await svc.unpublish('e', 't', 'u', CTX);
+    expect(audit.record.mock.calls[0][0]).toMatchObject({
+      old_values: { website_published: true },
+      new_values: { website_published: false },
+    });
   });
 });

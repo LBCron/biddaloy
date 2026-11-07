@@ -6,8 +6,8 @@ test.use({ baseURL: 'http://res.localhost:4321' });
 const EXAM = '00000000-0000-4000-8000-00000000e001';
 const SECTION = '00000000-0000-4000-8000-0000000005a1';
 const rows = [
-  { id: 'r1', roll: 1, name: 'রহিম উদ্দিন', gpa: 5, grade: 'A+', passed: true },
-  { id: 'r2', roll: 2, name: 'করিম মিয়া', gpa: 0, grade: 'F', passed: false },
+  { handle: 'h1', roll: 1, name: 'রহিম উদ্দিন', gpa: 5, grade: 'A+', passed: true },
+  { handle: 'h2', roll: 2, name: 'করিম মিয়া', gpa: 0, grade: 'F', passed: false },
 ];
 
 /** A fake Turnstile that hands out a token at once, and the two results routes the island calls. */

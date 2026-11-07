@@ -86,6 +86,16 @@ export class PublicSiteService {
     return { tenantId: l.site.tenant_id, published: l.published, school: l.school };
   }
 
+  /**
+   * [40.5.01] The live site for the results routes. D12: the school's Results page must be switched
+   * on in the published config; off answers the same 404 as an unknown host (Rule 23).
+   */
+  async liveForResults(host: string) {
+    const l = await this.liveForWrite(host);
+    if (!buildPage(l.published, SitePage.RESULTS)) throw siteNotFound();
+    return l;
+  }
+
   async manifest(host: string, preview?: string): Promise<HostAnswer<PublicManifest>> {
     const l = await this.live(host, preview);
     if ('redirectTo' in l) return l;
@@ -143,7 +153,15 @@ export class PublicSiteService {
     ];
     // Results list personal data: read live every time, so a withdrawal shows at once.
     if (kind === SiteIslandKind.RESULTS) {
-      return { data: await this.feeds.live('results', l.site.tenant_id) };
+      if (!buildPage(l.published, SitePage.RESULTS)) throw siteNotFound();
+      // Exam and section names only (no student data), cached by site version: publish, withdraw,
+      // names and reopen all bump it. Redis down: read the database.
+      const tenantId = l.site.tenant_id;
+      return {
+        data: await this.cache.getOrLoad(tenantId, l.site.version, 'island:results', () =>
+          this.feeds.live('results', tenantId),
+        ),
+      };
     }
     if (!islands.includes(kind) || !this.feeds.has(kind)) throw siteNotFound();
     const tenantId = l.site.tenant_id;

@@ -665,7 +665,8 @@ describe('ResultsService.publish / reopen', () => {
 
     expect(examRepo.manager.getRepository(Exam).update).toHaveBeenCalledWith(
       { id: EXAM_ID, tenant_id: TENANT_ID },
-      { status: ExamStatus.PROCESSED, published_at: null },
+      // [40.5.01] a reopened exam also leaves the school website
+      { status: ExamStatus.PROCESSED, published_at: null, website_published_at: null },
     );
     expect(auditService.record).toHaveBeenCalledWith(
       expect.objectContaining({
