@@ -61,7 +61,8 @@ export function AnnouncementsEditor({ value, onChange }: AnnouncementsEditorProp
     setItems(
       value.items.map((a) => {
         if (a.id !== id) return a;
-        const { [key]: _old, ...rest } = a;
+        const rest = { ...a };
+        delete rest[key];
         return v === '' ? rest : { ...rest, [key]: v };
       }),
     );

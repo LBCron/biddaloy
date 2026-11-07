@@ -44,7 +44,7 @@ describe('AnnouncementsEditor', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Add an announcement' }));
     expect(seen.value.items).toHaveLength(5);
     expect(
-      (screen.getByRole('button', { name: 'Add an announcement' }) as HTMLButtonElement).disabled,
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Add an announcement' }).disabled,
     ).toBe(true);
     expect(screen.getByText('You can keep at most 5 announcements.')).toBeTruthy();
   });
