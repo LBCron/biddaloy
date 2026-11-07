@@ -27,7 +27,6 @@ import {
 } from '../../exams/dto/website-results.dto';
 import { SiteCacheService } from './site-cache.service';
 import { buildErrorResponseBody } from '../../../common/filters/error-response';
-import { errorPath } from '../../../common/filters/http-exception.filter';
 import { requestContext, resolveRequestId } from '../../../common/request-context.util';
 import { HostAnswer, PublicSiteService, siteNotFound } from './public-site.service';
 
@@ -36,6 +35,8 @@ import { HostAnswer, PublicSiteService, siteNotFound } from './public-site.servi
  * not the visitor's. The tier is sized for that: well above the 30/min of per-person public routes.
  */
 export const SITE_READ_RATE_LIMIT: RateLimitTierOptions = { limit: 1200, ttl: 60_000 };
+
+const MEDIA_ERROR_PATH = '/api/v1/public/site/by-host/:host/media/:key';
 
 /**
  * [40.1.04] Reads for the school-site container: anonymous, no `X-Tenant-ID`; the host name is
@@ -213,7 +214,8 @@ export class PublicSiteController {
       if (res.headersSent) return;
       const requestId = resolveRequestId(res.req);
       const body = buildErrorResponseBody(siteNotFound(), {
-        path: errorPath(res.req),
+        // A fixed route pattern, never res.req.url: nothing the caller sent reaches this body (Rule 23).
+        path: MEDIA_ERROR_PATH,
         requestId,
         nodeEnv: process.env.NODE_ENV,
       });

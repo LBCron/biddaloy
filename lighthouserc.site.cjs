@@ -26,12 +26,14 @@ module.exports = {
       },
     },
     assert: {
-      // Every run must pass, not just the best of 3 (the lhci default is `optimistic`).
-      aggregationMethod: 'pessimistic',
+      // lhci refuses `assertMatrix` next to other top-level assert options, so the pessimistic
+      // aggregation (every run must pass, not just the best of 3: the default is `optimistic`)
+      // sits inside each matrix entry.
       assertMatrix: [
         {
           // School pages: all four budgets, SEO included.
           matchingUrlPattern: '^http://bmsc-high\\.site\\.localhost',
+          aggregationMethod: 'pessimistic',
           assertions: {
             'categories:performance': ['error', { minScore: 0.9 }],
             'categories:accessibility': ['error', { minScore: 0.9 }],
@@ -44,6 +46,7 @@ module.exports = {
         {
           // The preview is noindex by design (D33), so Lighthouse's `is-crawlable` fails: no SEO budget here.
           matchingUrlPattern: '/website/preview/',
+          aggregationMethod: 'pessimistic',
           assertions: {
             'categories:performance': ['error', { minScore: 0.9 }],
             'categories:accessibility': ['error', { minScore: 0.9 }],
