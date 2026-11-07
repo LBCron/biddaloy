@@ -36,6 +36,12 @@ import { HostAnswer, PublicSiteService, siteNotFound } from './public-site.servi
  * not the visitor's. The tier is sized for that: well above the 30/min of per-person public routes.
  */
 export const SITE_READ_RATE_LIMIT: RateLimitTierOptions = { limit: 1200, ttl: 60_000 };
+/**
+ * Pictures have their own, higher per-IP tier: one gallery page can ask for 20 albums x 60 photos,
+ * and a school behind one NAT address would otherwise be answered 429 on a single page load. Pictures
+ * are cached by ETag and cost one indexed read plus a storage read, not a render.
+ */
+export const SITE_MEDIA_RATE_LIMIT: RateLimitTierOptions = { limit: 6000, ttl: 60_000 };
 
 /**
  * [40.1.04] Reads for the school-site container: anonymous, no `X-Tenant-ID`; the host name is
@@ -183,6 +189,7 @@ export class PublicSiteController {
 
   // `key` is `logo` or a media id, so it cannot carry ParseUUIDPipe: the service answers the one 404.
   @Get('media/:key')
+  @Throttle({ default: SITE_MEDIA_RATE_LIMIT })
   @ApiOperation({ summary: 'The school logo (`logo`) or an uploaded site picture, by media id.' })
   async media(
     @Param('host') host: string,

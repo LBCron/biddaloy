@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import { SITE_MEDIA_QUOTA_BYTES, SITE_MEDIA_SLOT_PX, SiteMediaSlot } from '@biddaloy/shared';
 import { StorageService } from '../storage/storage.service';
@@ -91,8 +91,7 @@ export class SiteMediaService {
     try {
       return await this.media.manager.transaction(async (m) => {
         await this.lockSite(m, tenantId);
-        const r = await this.storeIn(m, tenantId, p, hash);
-        putKey = r.newKey;
+        const r = await this.storeIn(m, tenantId, p, hash, (k) => (putKey = k));
         return toDto(r.row);
       });
     } catch (e) {
@@ -114,24 +113,38 @@ export class SiteMediaService {
 
   /**
    * Stores prepared bytes inside the caller's transaction, which must already hold `lockSite`.
-   * Same file twice reuses its row (counted once). `newKey` is the object this call put, so the
-   * caller can delete it if the transaction rolls back; null when the row already existed.
+   * Same file twice reuses its row (counted once). `onPut` reports the object this call put,
+   * so the caller can delete it if the transaction rolls back.
    */
   async storeIn(
     m: EntityManager,
     tenantId: string,
     p: { out: Buffer; width: number; height: number; slot: SiteMediaSlot },
     hash: string,
-  ): Promise<{ row: SiteMedia; newKey: string | null }> {
+    /** Called right after the object is put, so a later failure can still clean it up. */
+    onPut: (key: string) => void,
+  ): Promise<{ row: SiteMedia }> {
     const site = await m.findOneOrFail(SchoolSite, { where: { tenant_id: tenantId } });
     const same = await m.findOne(SiteMedia, { where: { tenant_id: tenantId, hash } });
-    if (same) return { row: same, newKey: null };
+    if (same) {
+      // One file is one row (UNIQUE tenant+hash). A library/post upload of a file a gallery photo
+      // made takes the row over (slot changes), so deleting the gallery photo can never free a
+      // picture a post or the library now uses. Gallery uploads reuse any row as it is.
+      if (same.slot === SiteMediaSlot.GALLERY && p.slot !== SiteMediaSlot.GALLERY) {
+        await m.update(SiteMedia, { id: same.id, tenant_id: tenantId }, { slot: p.slot });
+        same.slot = p.slot;
+      }
+      return { row: same };
+    }
     if (Number(site.media_bytes_used) + p.out.length > SITE_MEDIA_QUOTA_BYTES) {
       throw mediaRejected();
     }
     // Under `tenants/<id>/` so the storage service's own-prefix check accepts it later.
-    const key = `tenants/${tenantId}/site/${hash}.webp`;
+    // The random suffix makes the object this row's own: a later delete of another row with the
+    // same bytes (or a rollback cleanup) can never remove it.
+    const key = `tenants/${tenantId}/site/${hash}-${randomUUID()}.webp`;
     await this.storage.put(key, p.out, 'image/webp');
+    onPut(key);
     const row = await m.save(
       m.create(SiteMedia, {
         tenant_id: tenantId,
@@ -148,7 +161,7 @@ export class SiteMediaService {
       { tenant_id: tenantId },
       { media_bytes_used: () => `media_bytes_used + ${p.out.length}` },
     );
-    return { row, newKey: key };
+    return { row };
   }
 
   async remove(tenantId: string, id: string): Promise<void> {

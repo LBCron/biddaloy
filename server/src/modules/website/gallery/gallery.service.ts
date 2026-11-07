@@ -7,8 +7,9 @@ import {
   SITE_GALLERY_MAX_ALBUMS,
   SITE_GALLERY_MAX_PHOTOS_PER_ALBUM,
   SiteMediaSlot,
+  SiteSectionKey,
 } from '@biddaloy/shared';
-import type { BilingualText } from '@biddaloy/shared';
+import type { BilingualText, SiteConfig } from '@biddaloy/shared';
 import { StorageService } from '../../storage/storage.service';
 import { SchoolSite } from '../entities/school-site.entity';
 import { SiteGalleryAlbum } from '../entities/site-gallery-album.entity';
@@ -170,11 +171,37 @@ export class GalleryService {
       });
       await m.delete(SiteGalleryPhoto, { album_id: a.id, tenant_id: tenantId });
       await m.delete(SiteGalleryAlbum, { id: a.id, tenant_id: tenantId });
+      await this.clearChosenAlbum(m, tenantId, a.id);
       return {
         result: undefined,
         deleteKeys: await this.release(m, tenantId, [...new Set(photos.map((p) => p.media_id))]),
       };
     });
+  }
+
+  /**
+   * A gallery section of the draft that chose the deleted album goes back to "the first album".
+   * The draft revision moves (an editor that has the old draft open gets the stale answer instead
+   * of silently saving the dead id back); the site version does not, a publish carries it (D49).
+   */
+  private async clearChosenAlbum(m: EntityManager, tenantId: string, albumId: string) {
+    const site = await m.findOneOrFail(SchoolSite, { where: { tenant_id: tenantId } });
+    const draft = structuredClone(site.draft) as SiteConfig;
+    let changed = false;
+    for (const page of draft.pages ?? []) {
+      for (const s of page.sections ?? []) {
+        if (s.key === SiteSectionKey.GALLERY && s.data?.albumId === albumId) {
+          s.data.albumId = null;
+          changed = true;
+        }
+      }
+    }
+    if (!changed) return;
+    await m.update(
+      SchoolSite,
+      { tenant_id: tenantId },
+      { draft, draft_revision: () => 'draft_revision + 1' },
+    );
   }
 
   /** `ids` must be exactly the school's albums: the order changes in one statement. */
@@ -219,17 +246,18 @@ export class GalleryService {
     try {
       return await this.write(tenantId, async (m) => {
         const album = await this.one(m, tenantId, albumId);
-        const n = await m.count(SiteGalleryPhoto, { where: { album_id: album.id } });
+        const n = await m.count(SiteGalleryPhoto, {
+          where: { tenant_id: tenantId, album_id: album.id },
+        });
         if (n >= SITE_GALLERY_MAX_PHOTOS_PER_ALBUM) throw galleryLimit();
-        const stored = await this.media.storeIn(m, tenantId, p, hash);
-        putKey = stored.newKey;
+        const stored = await this.media.storeIn(m, tenantId, p, hash, (k) => (putKey = k));
         const dup = await m.count(SiteGalleryPhoto, {
-          where: { album_id: album.id, media_id: stored.row.id },
+          where: { tenant_id: tenantId, album_id: album.id, media_id: stored.row.id },
         });
         if (dup > 0) throw galleryInvalid();
         const rows: { next: number }[] = await m.query(
-          `SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM site_gallery_photos WHERE album_id = $1`,
-          [album.id],
+          `SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM site_gallery_photos WHERE tenant_id = $1 AND album_id = $2`,
+          [tenantId, album.id],
         );
         const photo = await m.save(
           m.create(SiteGalleryPhoto, {
@@ -291,28 +319,41 @@ export class GalleryService {
   }
 
   /**
-   * Frees pictures nothing uses any more: no gallery photo and not named in the draft or the
-   * published site (a same-bytes picture can also sit in another slot). Returns the storage keys
-   * to delete after commit; the bytes go back to the school's quota in this transaction.
+   * Frees pictures only the gallery owned: row slot `gallery` (a library or post upload of the same
+   * file takes the row over, see `SiteMediaService.storeIn`), no gallery photo left, not named in
+   * the draft or published site, not a post cover or inside a post body, not a teacher photo.
+   * Returns the storage keys to delete after commit; the bytes go back to the quota in this
+   * transaction.
    */
   private async release(m: EntityManager, tenantId: string, mediaIds: string[]): Promise<string[]> {
     if (mediaIds.length === 0) return [];
     const site = await m.findOneOrFail(SchoolSite, { where: { tenant_id: tenantId } });
     const shown = JSON.stringify([site.draft, site.published]);
-    const free: Pick<SiteMedia, 'id' | 'bytes' | 'storage_key'>[] = await m.query(
+    const candidates: Pick<SiteMedia, 'id' | 'bytes' | 'storage_key'>[] = await m.query(
       `SELECT x.id, x.bytes, x.storage_key FROM site_media x
-        WHERE x.tenant_id = $1 AND x.id = ANY($2::uuid[])
-          AND NOT EXISTS (SELECT 1 FROM site_gallery_photos p WHERE p.tenant_id = $1 AND p.media_id = x.id)`,
+        WHERE x.tenant_id = $1 AND x.id = ANY($2::uuid[]) AND x.slot = 'gallery'
+          AND NOT EXISTS (SELECT 1 FROM site_gallery_photos p WHERE p.tenant_id = $1 AND p.media_id = x.id)
+          AND NOT EXISTS (SELECT 1 FROM staff_web_profiles w WHERE w.tenant_id = $1 AND w.photo_media_id = x.id)`,
       [tenantId, mediaIds],
     );
-    const gone = free.filter((r) => !shown.includes(`"${r.id}"`));
+    const gone: typeof candidates = [];
+    for (const r of candidates) {
+      if (shown.includes(`"${r.id}"`)) continue;
+      // Post bodies hold the id as text (no FK): at most 60 ids, one indexed read each.
+      const inPost: unknown[] = await m.query(
+        `SELECT 1 FROM site_posts
+          WHERE tenant_id = $1 AND (cover_media_id = $2 OR position($2::text in body::text) > 0)
+          LIMIT 1`,
+        [tenantId, r.id],
+      );
+      if (inPost.length === 0) gone.push(r);
+    }
     if (gone.length === 0) return [];
-    const bytes = gone.reduce((s, r) => s + r.bytes, 0);
+    const bytes = gone.reduce((sum, r) => sum + r.bytes, 0);
     await m.delete(SiteMedia, { tenant_id: tenantId, id: In(gone.map((r) => r.id)) });
-    await m.update(
-      SchoolSite,
-      { tenant_id: tenantId },
-      { media_bytes_used: () => `GREATEST(media_bytes_used - ${Math.trunc(bytes)}, 0)` },
+    await m.query(
+      `UPDATE school_sites SET media_bytes_used = GREATEST(media_bytes_used - $2, 0) WHERE tenant_id = $1`,
+      [tenantId, Math.trunc(bytes)],
     );
     return gone.map((r) => r.storage_key);
   }

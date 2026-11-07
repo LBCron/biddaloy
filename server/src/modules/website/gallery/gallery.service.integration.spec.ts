@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import { DataSource } from 'typeorm';
 import { TestingModule } from '@nestjs/testing';
 import { Readable } from 'stream';
@@ -12,6 +12,7 @@ import { StorageService } from '../../storage/storage.service';
 import { SiteMediaService } from '../site-media.service';
 import { SiteConfigService } from '../site-config.service';
 import { SiteCacheService } from '../public/site-cache.service';
+import { SiteGalleryPhoto } from '../entities/site-gallery-photo.entity';
 import { GalleryService } from './gallery.service';
 
 class MemoryStorage {
@@ -91,6 +92,7 @@ describe('GalleryService (integration)', () => {
   });
 
   async function clean() {
+    await ds.query(`DELETE FROM site_posts WHERE tenant_id = $1`, [T]);
     await ds.query(`DELETE FROM site_gallery_photos WHERE tenant_id = $1`, [T]);
     await ds.query(`DELETE FROM site_gallery_albums WHERE tenant_id = $1`, [T]);
     await ds.query(`DELETE FROM site_media WHERE tenant_id = $1`, [T]);
@@ -177,15 +179,19 @@ describe('GalleryService (integration)', () => {
       .uploadPhoto(T, a.id, { buffer: await photo(), mimetype: 'image/jpeg' }, long)
       .catch((e) => e);
     expect(e1.message).toBe('site.gallery_invalid');
-    // Force the photo insert itself to fail (a CHECK that always fails): nothing may stay behind.
-    await ds.query(
-      `ALTER TABLE site_gallery_photos ADD CONSTRAINT tmp_fail CHECK (false) NOT VALID`,
-    );
+    // Force the photo insert itself to fail, in this test only: a spy on the manager's `save`
+    // (no change to the shared test database).
+    const proto = Object.getPrototypeOf(ds.manager) as { save: (...a: unknown[]) => unknown };
+    const real = proto.save;
+    const spy = vi.spyOn(proto, 'save').mockImplementation(function (this: unknown, ...args) {
+      if (args[0] instanceof SiteGalleryPhoto) throw new Error('boom');
+      return real.apply(this, args);
+    });
     try {
       const e2 = await add(a.id).catch((e) => e);
-      expect(e2).toBeInstanceOf(Error);
+      expect(e2.message).toBe('boom');
     } finally {
-      await ds.query(`ALTER TABLE site_gallery_photos DROP CONSTRAINT tmp_fail`);
+      spy.mockRestore();
     }
     expect(await ds.query(`SELECT 1 FROM site_media WHERE tenant_id = $1`, [T])).toHaveLength(0);
     expect(await used()).toBe(0);
@@ -242,6 +248,88 @@ describe('GalleryService (integration)', () => {
     const media = moduleRef.get(SiteMediaService);
     const err = await media.remove(T, p.mediaId).catch((e) => e);
     expect(err.message).toBe('site.media_in_use');
+  });
+
+  it('deleting a gallery photo never frees a picture a post or the library also uses', async () => {
+    const a = await album();
+    const media = moduleRef.get(SiteMediaService);
+    const buf = await photo(33); // 1200x800: also a valid POST_IMAGE (width <= 1200)
+    const g = await add(a.id, buf);
+    // Reverse order: a post-image upload of the same file takes the gallery row over.
+    const post = await media.upload(T, 'post-image', { buffer: buf, mimetype: 'image/jpeg' });
+    expect(post.id).toBe(g.mediaId);
+    expect(post.slot).toBe('post-image');
+    await ds.query(
+      `INSERT INTO site_posts (tenant_id, kind, slug, title, body) VALUES ($1,'POST',$2,'{"bn":"a","en":"a"}',$3)`,
+      [T, `p-${g.mediaId.slice(0, 8)}`, JSON.stringify([{ type: 'image', mediaId: g.mediaId }])],
+    );
+    const before = storage.objects.size;
+    await svc.deletePhoto(T, g.id);
+    expect(await ds.query(`SELECT 1 FROM site_media WHERE id = $1`, [g.mediaId])).toHaveLength(1);
+    expect(storage.objects.size).toBe(before);
+    expect(await used()).toBeGreaterThan(0);
+  });
+
+  it('a gallery-only picture named by a post body is kept; one nobody uses is freed', async () => {
+    const a = await album();
+    const kept = await add(a.id);
+    const freed = await add(a.id);
+    await ds.query(
+      `INSERT INTO site_posts (tenant_id, kind, slug, title, body) VALUES ($1,'POST','keep','{"bn":"a","en":"a"}',$2)`,
+      [T, JSON.stringify([{ text: kept.mediaId }])],
+    );
+    await svc.deleteAlbum(T, a.id);
+    expect(await ds.query(`SELECT 1 FROM site_media WHERE id = $1`, [kept.mediaId])).toHaveLength(
+      1,
+    );
+    expect(await ds.query(`SELECT 1 FROM site_media WHERE id = $1`, [freed.mediaId])).toHaveLength(
+      0,
+    );
+  });
+
+  it('each stored object has its own key, even for equal bytes in a re-created row', async () => {
+    const a = await album();
+    const buf = await photo(44);
+    const p1 = await add(a.id, buf);
+    const [k1] = await ds.query(`SELECT storage_key FROM site_media WHERE id = $1`, [p1.mediaId]);
+    await svc.deletePhoto(T, p1.id);
+    const p2 = await add(a.id, buf);
+    const [k2] = await ds.query(`SELECT storage_key FROM site_media WHERE id = $1`, [p2.mediaId]);
+    expect(k2.storage_key).not.toBe(k1.storage_key);
+    expect(storage.objects.has(k2.storage_key)).toBe(true);
+  });
+
+  it('deleting the chosen album sets the draft section back to no choice and bumps the draft revision only', async () => {
+    const a = await album('Chosen');
+    const other = await album('Other');
+    const draft = {
+      pages: [
+        {
+          page: 'home',
+          sections: [
+            { key: 'gallery', enabled: true, data: { albumId: a.id, showPageLink: true } },
+          ],
+        },
+      ],
+    };
+    await ds.query(
+      `UPDATE school_sites SET draft = $2, draft_revision = 5, version = 7 WHERE tenant_id = $1`,
+      [T, JSON.stringify(draft)],
+    );
+    await svc.deleteAlbum(T, other.id); // not the chosen one: draft untouched
+    const [s1] = await ds.query(
+      `SELECT draft, draft_revision FROM school_sites WHERE tenant_id = $1`,
+      [T],
+    );
+    expect(s1.draft.pages[0].sections[0].data.albumId).toBe(a.id);
+    expect(s1.draft_revision).toBe(5);
+    await svc.deleteAlbum(T, a.id);
+    const [s2] = await ds.query(
+      `SELECT draft, draft_revision, version FROM school_sites WHERE tenant_id = $1`,
+      [T],
+    );
+    expect(s2.draft.pages[0].sections[0].data).toEqual({ albumId: null, showPageLink: true });
+    expect(s2.draft_revision).toBe(6);
   });
 
   it('another school cannot see or touch an album (404)', async () => {

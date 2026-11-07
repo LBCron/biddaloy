@@ -21,6 +21,7 @@ function setup(o: { used?: number; existing?: Partial<SiteMedia> | null } = {}) 
   };
   const m = {
     getRepository: () => ({ createQueryBuilder: () => qb }),
+    findOneOrFail: async () => site,
     findOne: async (e: unknown) => (e === SiteMedia ? (o.existing ?? null) : null),
     create: (_e: unknown, v: object) => ({ ...v, id: 'new-id', created_at: new Date(0) }),
     save: vi.fn(async (r: unknown) => (saved.push(r), r)),
@@ -45,7 +46,7 @@ describe('SiteMediaService.upload', () => {
     });
     expect(dto).toMatchObject({ slot: 'hero', width: 1920, height: 1080 });
     const [key, body, type] = storage.put.mock.calls[0] as unknown as [string, Buffer, string];
-    expect(key).toMatch(/^tenants\/t1\/site\/[0-9a-f]{64}\.webp$/);
+    expect(key).toMatch(/^tenants\/t1\/site\/[0-9a-f]{64}-[0-9a-f-]{36}\.webp$/);
     expect(type).toBe('image/webp');
     expect((await sharp(body).metadata()).format).toBe('webp');
     expect(saved).toHaveLength(1);
