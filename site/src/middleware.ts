@@ -32,7 +32,17 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   if (pathname.startsWith('/_api/') || pathname.startsWith('/_astro/')) return next();
 
   const host = (ctx.request.headers.get('host') ?? '').replace(/:\d+$/, '').toLowerCase();
-  const seg = pathname.split('/')[1];
+  // A path-preview rewrite re-enters here with its locals already set: let it through.
+  if (ctx.locals.preview && ctx.locals.site) return next();
+
+  // [40.4.09] `/website/preview/<theme>/...` is the header preview as a path, for tools that cannot
+  // send headers (Lighthouse CI). Off unless SITE_PREVIEW_PATHS=1; production nginx does this itself.
+  const pm =
+    process.env.SITE_PREVIEW_PATHS === '1'
+      ? /^\/website\/preview\/([a-z-]+)(\/.*)?$/.exec(pathname)
+      : null;
+  const path = pm ? (pm[2] ?? '/') : pathname;
+  const seg = path.split('/')[1];
   const lang: Lang = seg === 'en' ? 'en' : 'bn';
   ctx.locals.host = host;
   ctx.locals.lang = lang;
@@ -40,9 +50,9 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   // The error pages are rendered by rewrite below; do not look the site up again.
   if (pathname === '/404/' || pathname === '/503/') return next();
 
-  if (pathname === '/') return ctx.redirect('/bn/', 302);
+  if (path === '/') return ctx.redirect(pm ? `${pathname.replace(/\/?$/, '/')}bn/` : '/bn/', 302);
 
-  const previewTheme = ctx.request.headers.get(PREVIEW_HEADER()) ?? undefined;
+  const previewTheme = pm?.[1] ?? ctx.request.headers.get(PREVIEW_HEADER()) ?? undefined;
   let res: Response;
   if (previewTheme) {
     const demo = demoFor(previewTheme as SiteTheme);
@@ -52,8 +62,8 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
     ctx.locals.previewHome = demo.home;
     // Only robots.txt answers in a preview (Disallow: /); sitemap, feed, cards are a 404 there.
     res =
-      LANGS.includes(seg as Lang) || pathname === '/robots.txt'
-        ? await next()
+      LANGS.includes(seg as Lang) || path === '/robots.txt'
+        ? await next(pm ? path : undefined)
         : await next('/404/');
     return withNoindex(res);
   }

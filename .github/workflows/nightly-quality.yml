@@ -140,6 +140,51 @@ jobs:
           path: .lighthouseci/
           if-no-files-found: ignore
 
+  # [40.4.09] Theme screenshots for the school websites. The site e2e specs write their
+  # screenshots into the committed site/e2e/__screenshots__/<theme>/ (stub API, no database), so
+  # a changed theme shows up as a diff against the committed baseline. The diff is printed and the
+  # images uploaded, not failed on: font rendering differs a little between runners. A spec
+  # failure (page broken, overflow) does fail the job.
+  site-themes:
+    name: Site theme screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup
+
+      - run: yarn build:shared
+      - run: yarn build:site-themes
+      - run: yarn workspace @biddaloy/site build
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Site e2e (writes the theme screenshots)
+        run: yarn workspace @biddaloy/site e2e
+
+      - name: Screenshot diff against the committed baseline
+        if: always()
+        run: |
+          git status --short -- site/e2e/__screenshots__ | tee screenshot-diff.txt
+          {
+            echo "### Changed theme screenshots"
+            echo '```'
+            cat screenshot-diff.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site-theme-screenshots
+          path: site/e2e/__screenshots__/
+          retention-days: 14
+
   # [#759] Sticky-issue failure visibility — see
   # scripts/nightly-sticky-issue.sh's header. This workflow declares
   # `workflow_call` (nothing calls it that way yet, but the trigger makes
@@ -147,7 +192,7 @@ jobs:
   # so it stays correct whatever triggers the run.
   report:
     name: Report nightly status
-    needs: [lighthouse]
+    needs: [lighthouse, site-themes]
     if: always()
     runs-on: ubuntu-latest
     permissions:
@@ -161,7 +206,7 @@ jobs:
       - name: Determine status
         id: status
         run: |
-          if [ "${{ needs.lighthouse.result }}" = "success" ]; then
+          if [ "${{ needs.lighthouse.result }}" = "success" ] && [ "${{ needs.site-themes.result }}" = "success" ]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
           else
             echo "status=failure" >> "$GITHUB_OUTPUT"

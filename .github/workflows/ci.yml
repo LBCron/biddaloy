@@ -124,6 +124,8 @@ jobs:
             site:
               - 'site/**'
               - 'site-themes/**'
+              - 'server/src/modules/website/**'
+              - 'lighthouserc.site.cjs'
               - 'shared/src/**'
               - 'yarn.lock'
               - 'package.json'
@@ -1227,6 +1229,114 @@ jobs:
         run: yarn workspace @biddaloy/site build
       - name: Site unit tests
         run: yarn workspace @biddaloy/site test
+
+  # [40.4.09] Budget gate for school websites (D21, D38): the real API with the demo school,
+  # the built site, Lighthouse on a mobile profile. Thresholds live in lighthouserc.site.cjs;
+  # raising one is a decision, never a CI fix. Same path filter as `site` (plus the website
+  # server module), so a PR that cannot change a school page does not pay for it.
+  site-budget:
+    name: Site budget (Lighthouse)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: changes
+    if: github.event_name == 'push' || github.event_name == 'merge_group' || needs.changes.outputs.site == 'true'
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: biddaloy_demo_site_budget # seed:demo refuses any name not starting biddaloy_demo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      seaweedfs:
+        image: chrislusf/seaweedfs:4.48
+        env:
+          AWS_ACCESS_KEY_ID: ci-access-key
+          AWS_SECRET_ACCESS_KEY: ci-secret-key
+          S3_BUCKET: biddaloy-ci
+        ports:
+          - 9000:8333
+        options: >-
+          --health-cmd "curl -sf -o /dev/null http://localhost:8333/status && curl -sf -o /dev/null http://localhost:8888/buckets/biddaloy-ci/"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/biddaloy_demo_site_budget
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-site-budget-jwt-secret-do-not-use-in-production-1234567890
+      NODE_ENV: test
+      SEED_ADMIN_PASSWORD: ci-site-budget-seed-password-123
+      SETTINGS_ENCRYPTION_KEY: YmSqNpwxzusjAF12JSD+JNe+3LXrbNJiQza2yTnQyR0=
+      S3_ENDPOINT: http://localhost:9000
+      S3_REGION: us-east-1
+      S3_BUCKET: biddaloy-ci
+      S3_ACCESS_KEY_ID: ci-access-key
+      S3_SECRET_ACCESS_KEY: ci-secret-key
+      S3_ALLOW_INSECURE_HTTP: 'true'
+      S3_FORCE_PATH_STYLE: 'true'
+      SITE_ROOT_DOMAIN: site.localhost
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup
+
+      - run: yarn build:shared
+      - run: yarn build:site-themes
+
+      - name: Migrate and seed the demo school
+        run: |
+          yarn workspace @biddaloy/server migration:run
+          yarn workspace @biddaloy/server seed:demo --scale 0.05 --years 2
+
+      - name: Build and start the API
+        run: |
+          yarn build:server
+          node server/dist/main.js &
+
+      - name: Build and start the site
+        run: |
+          yarn workspace @biddaloy/site build
+          HOST=127.0.0.1 PORT=4321 SITE_API_BASE=http://localhost:3000/api/v1 SITE_PREVIEW_PATHS=1 \
+            node site/dist/server/entry.mjs &
+
+      # The demo school's subdomain is its tenant slug (bmsc-high).
+      - name: Point the demo school host at localhost
+        run: echo "127.0.0.1 bmsc-high.site.localhost" | sudo tee -a /etc/hosts
+
+      - name: Wait for the API and the site
+        run: npx wait-on tcp:3000 http://bmsc-high.site.localhost:4321/bn/ --timeout 120000
+
+      - name: Lighthouse budget (school site)
+        run: npx lhci autorun --config lighthouserc.site.cjs
+
+      - name: Upload site reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site-reports
+          path: .lighthouseci-site/
+          # .lighthouseci-site/ is a dot-directory; upload-artifact skips those by default.
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
 
   # [50.2] Static marketing site (D20). Builds landing/, checks its tokens
   # against the app's, and keeps dist/ as an artifact for the deploy step.
