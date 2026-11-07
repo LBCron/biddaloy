@@ -127,7 +127,7 @@ describe('toolbar and counter', () => {
       <RichTextEditor
         value={structuredClone(EMPTY_VALUE)}
         onChange={() => {}}
-        onUploadImage={async () => ({ mediaId: 'm' })}
+        onUploadImage={() => Promise.resolve({ mediaId: 'm' })}
         lang="en"
         labels={labels}
       />,
