@@ -1,11 +1,13 @@
 import {
   SITE_ANNOUNCEMENTS_MAX,
   SITE_HERO_MAX_PHOTOS,
+  SITE_VIDEO_START_MAX_SECONDS,
   SITE_POST_BODY_MAX_CHARS,
   SiteAnnouncementStyle,
   SiteMarqueeSpeed,
   SitePage,
   SiteSectionKey,
+  YOUTUBE_ID_RE,
   isSiteRelativeHref,
 } from '@biddaloy/shared';
 import type {
@@ -14,7 +16,7 @@ import type {
   SitePageConfig,
   SiteSectionConfig,
 } from '@biddaloy/shared';
-import type { ThemeManifest } from './manifest';
+import type { ThemeField, ThemeManifest } from './manifest';
 
 export const SITE_TEXT_MAX_CHARS = 2000;
 
@@ -23,6 +25,31 @@ export type ValidateResult = { ok: true; value: SiteConfig } | { ok: false; erro
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isStr = (v: unknown): v is string => typeof v === 'string';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Non-text kinds: `null` or a valid value; anything else is rejected. */
+function scalarOk(f: ThemeField, v: unknown): boolean {
+  switch (f.kind) {
+    case 'uuid':
+      return v === null || (isStr(v) && UUID_RE.test(v));
+    case 'bool':
+      return typeof v === 'boolean';
+    case 'choice':
+      return isStr(v) && !!f.options?.includes(v);
+    case 'youtubeId':
+      return v === null || (isStr(v) && YOUTUBE_ID_RE.test(v));
+    case 'seconds':
+      return (
+        v === null ||
+        (typeof v === 'number' &&
+          Number.isInteger(v) &&
+          v >= 0 &&
+          v <= SITE_VIDEO_START_MAX_SECONDS)
+      );
+    default:
+      return false;
+  }
+}
 
 /**
  * Checks a SiteConfig against a theme manifest. Plain functions, no zod.
@@ -104,6 +131,12 @@ export function validateSiteConfig(config: unknown, manifest: ThemeManifest): Va
       const raw = isObj(s.data) ? s.data : {};
       for (const f of def.fields) {
         const v = raw[f.key];
+        if (f.kind !== 'text' && f.kind !== 'richtext' && f.kind !== 'images') {
+          if (v === undefined) continue;
+          if (scalarOk(f, v)) data[f.key] = v;
+          else bad('field.invalid');
+          continue;
+        }
         if (f.kind === 'images') {
           if (v === undefined) continue;
           if (!Array.isArray(v)) bad('field.invalid');

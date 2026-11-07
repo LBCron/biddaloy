@@ -1,6 +1,28 @@
 import { describe, expect, it } from 'vitest';
 
-import { RESERVED_SUBDOMAINS, SITE_SUBDOMAIN_RE, isSiteRelativeHref } from './site';
+import { SiteMediaSlot } from '../enums/index';
+import {
+  RESERVED_SUBDOMAINS,
+  SITE_GALLERY_CAPTION_MAX_CHARS,
+  SITE_GALLERY_CAROUSEL_MAX,
+  SITE_GALLERY_MAX_ALBUMS,
+  SITE_GALLERY_MAX_PHOTOS_PER_ALBUM,
+  SITE_MEDIA_QUOTA_BYTES,
+  SITE_MEDIA_SLOT_PX,
+  SITE_SUBDOMAIN_RE,
+  isSiteRelativeHref,
+} from './site';
+
+describe('gallery constants', () => {
+  it('slot is 1200x800, quota 100 MB, limits as decided (D46, D47)', () => {
+    expect(SITE_MEDIA_SLOT_PX[SiteMediaSlot.GALLERY]).toEqual({ w: 1200, h: 800 });
+    expect(SITE_MEDIA_QUOTA_BYTES).toBe(104857600);
+    expect(SITE_GALLERY_MAX_ALBUMS).toBe(20);
+    expect(SITE_GALLERY_MAX_PHOTOS_PER_ALBUM).toBe(60);
+    expect(SITE_GALLERY_CAROUSEL_MAX).toBe(12);
+    expect(SITE_GALLERY_CAPTION_MAX_CHARS).toBe(120);
+  });
+});
 
 describe('SITE_SUBDOMAIN_RE', () => {
   it.each(['rumsc', 'rumsc-2026', 'abc', 'a'.repeat(30)])('accepts %s', (s) => {

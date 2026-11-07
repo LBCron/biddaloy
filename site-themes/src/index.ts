@@ -41,8 +41,11 @@ export function defaultConfigFor(theme: SiteTheme): SiteConfig {
       sections: p.sections.map((key) => {
         const def = m.sections.find((s) => s.key === key);
         const data: Record<string, unknown> = {};
-        for (const f of def?.fields ?? []) if (f.defaults) data[f.key] = { ...f.defaults };
-        return { key, enabled: true, data };
+        for (const f of def?.fields ?? []) {
+          if (f.defaults) data[f.key] = { ...f.defaults };
+          else if ('initial' in f) data[f.key] = f.initial;
+        }
+        return { key, enabled: def?.enabledByDefault !== false, data };
       }),
     })),
   };

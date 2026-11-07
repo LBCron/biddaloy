@@ -23,7 +23,19 @@ export interface ThemeFont {
 }
 
 /** `text`/`richtext` hold a BilingualText; `images` hold a list of media ids. */
-export type ThemeFieldKind = 'text' | 'richtext' | 'images';
+export type ThemeFieldKind =
+  | 'text'
+  | 'richtext'
+  | 'images'
+  /** null or a UUID string (gallery album). */
+  | 'uuid'
+  | 'bool'
+  /** One of `options`. */
+  | 'choice'
+  /** null or an 11-character YouTube id. */
+  | 'youtubeId'
+  /** null or a whole number 0-86400. */
+  | 'seconds';
 
 export interface ThemeField {
   key: string;
@@ -33,11 +45,17 @@ export interface ThemeField {
   defaults?: BilingualText;
   /** Upload slot for `images` fields. */
   slot?: SiteMediaSlot;
+  /** Allowed values for a `choice` field. */
+  options?: string[];
+  /** Default for the non-text kinds (`null`, `false`, `'above'`). */
+  initial?: unknown;
 }
 
 export interface ThemeSection {
   key: SiteSectionKey;
   fields: ThemeField[];
+  /** `false`: a fresh config lists the section switched off (gallery, video). */
+  enabledByDefault?: false;
 }
 
 export interface ThemePage {

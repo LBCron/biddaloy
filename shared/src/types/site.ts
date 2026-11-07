@@ -15,6 +15,7 @@ export const SITE_MEDIA_SLOT_PX: Record<SiteMediaSlot, { w: number; h: number; m
   [SiteMediaSlot.ABOUT]: { w: 1200, h: 800 },
   [SiteMediaSlot.POST_COVER]: { w: 1200, h: 630 },
   [SiteMediaSlot.PERSON]: { w: 400, h: 400 },
+  [SiteMediaSlot.GALLERY]: { w: 1200, h: 800 },
   [SiteMediaSlot.POST_IMAGE]: { w: 0, h: 0, maxW: 1200 },
 };
 
@@ -59,6 +60,10 @@ export const SITE_MEDIA_QUOTA_BYTES = 100 * 1024 * 1024;
 export const SITE_POST_BODY_MAX_CHARS = 20_000;
 export const SITE_POST_MAX_IMAGES = 10;
 export const SITE_HERO_MAX_PHOTOS = 5;
+export const SITE_GALLERY_MAX_ALBUMS = 20;
+export const SITE_GALLERY_MAX_PHOTOS_PER_ALBUM = 60;
+export const SITE_GALLERY_CAROUSEL_MAX = 12;
+export const SITE_GALLERY_CAPTION_MAX_CHARS = 120;
 export const SITE_ANNOUNCEMENTS_MAX = 5;
 export const SITE_FEATURED_TEACHERS_MAX = 8;
 export const SITE_SUBDOMAIN_REDIRECT_DAYS = 30;
@@ -143,3 +148,33 @@ export interface SiteConfig {
 }
 
 export type SiteEnquiryStatus = 'NEW' | 'SEEN';
+
+/** Admin read of one photo in a gallery album. */
+export interface SiteGalleryPhoto {
+  id: string;
+  mediaId: string;
+  caption: BilingualText | null;
+  sortOrder: number;
+}
+
+/** Admin read of a gallery album. */
+export interface SiteGalleryAlbum {
+  id: string;
+  title: BilingualText;
+  sortOrder: number;
+  photos: SiteGalleryPhoto[];
+}
+
+/** Public read of a gallery album: no ids the visitor cannot use, no order numbers. */
+export interface SitePublicGalleryAlbum {
+  id: string;
+  title: BilingualText;
+  photos: { mediaId: string; caption: BilingualText | null }[];
+}
+
+/** What the `gallery` entry in `SiteConfig.sections[].data` holds. */
+export interface SiteGallerySectionData {
+  heading: BilingualText;
+  albumId: string | null;
+  showPageLink: boolean;
+}

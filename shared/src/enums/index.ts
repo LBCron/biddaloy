@@ -488,6 +488,7 @@ export enum SitePage {
   BLOG = 'blog',
   TEACHERS = 'teachers',
   RESULTS = 'results',
+  GALLERY = 'gallery',
   CONTACT = 'contact',
 }
 
@@ -508,6 +509,8 @@ export enum SiteSectionKey {
   FEES = 'fees',
   ROUTINE = 'routine',
   RESULTS = 'results',
+  GALLERY = 'gallery',
+  VIDEO = 'video',
   CONTACT = 'contact',
   CUSTOM = 'custom',
 }
@@ -527,6 +530,7 @@ export enum SiteMediaSlot {
   POST_COVER = 'post-cover',
   POST_IMAGE = 'post-image',
   PERSON = 'person',
+  GALLERY = 'gallery',
 }
 
 export enum SiteCustomDomainStatus {

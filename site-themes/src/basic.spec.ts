@@ -29,7 +29,10 @@ describe('basic manifest', () => {
     expect(validateSiteConfig(cfg, BASIC).ok).toBe(true);
     for (const p of cfg.pages) {
       for (const s of p.sections) {
-        for (const v of Object.values(s.data)) expect((v as { bn: string }).bn.trim()).not.toBe('');
+        for (const v of Object.values(s.data)) {
+          if (typeof v === 'object' && v !== null)
+            expect((v as { bn: string }).bn.trim()).not.toBe('');
+        }
       }
     }
   });
