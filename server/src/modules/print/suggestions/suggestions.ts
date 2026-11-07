@@ -114,7 +114,7 @@ function build(kind: DocumentKind, o: SuggestionOrientation, s: SuggestionStyle)
   const [nameBn, nameEn] = split(z.name, 2) as [Rect, Rect];
   const [classCell, sectionCell] = split(z.cls, 2, true) as [Rect, Rect];
   const [infoA, infoB] = split(z.info, 2) as [Rect, Rect];
-  const [ifFoundEn, ifFoundBn, phone] = split(z.address, 3) as [Rect, Rect, Rect];
+  const [ifFoundEn, ifFoundBn, phone, site] = split(z.address, 4) as [Rect, Rect, Rect, Rect];
   const [lx, ly, lr] = z.logo;
   const line = { pt: 7, color: c, align } as const;
 
@@ -184,6 +184,8 @@ function build(kind: DocumentKind, o: SuggestionOrientation, s: SuggestionStyle)
       weight: 600,
       align: 'center',
     }),
+    // Empty when the school's website is off (the cell just prints blank).
+    text(site, { field: 'school.website_url', pt: 6, color: c, align: 'center' }),
     text(z.validity, { field: 'card.valid_until', pt: 7, color: c, weight: 600, align: 'center' }),
   ];
   const background = { assetId: PLACEHOLDER_ASSET, print: true };

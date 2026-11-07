@@ -111,6 +111,11 @@ Sizes are in millimetres. The design kit always comes at the size set in the des
 - The font, size, colour and alignment you give a placeholder are copied on import.
 - Which placeholders work depends on the document type. The exact list is in the kit's **fields** layer; copy from there.
 
+| Placeholder              | What prints                                                                                                                                                               |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{{school.website_url}}` | The school's website address, for example `https://greenfield.schoolmanagerp.com`. A school's own domain shows only once it is **Active**. Empty when the website is off. |
+| `school.website_qr`      | The same address. Today the ready-made ID card designs do not draw a website QR, because a QR box can only show the verification QR. Use the text line.                   |
+
 ### Export settings for each program <a href="#export" id="export"></a>
 
 First delete the **guides** layer.

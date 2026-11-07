@@ -19,6 +19,16 @@ describe('PRINT_SUGGESTIONS', () => {
     },
   );
 
+  it('every ID card back prints the website address as text; other kinds do not', () => {
+    for (const s of PRINT_SUGGESTIONS) {
+      const onBack = s.definition.back?.elements.some(
+        (e) => e.type === 'TEXT' && e.field === 'school.website_url',
+      );
+      const idCard = /^(student|staff)-/.test(s.key);
+      expect(onBack ?? false).toBe(idCard);
+    }
+  });
+
   it('the ACR suggestion is A4 and front only, with no QR', () => {
     const acr = PRINT_SUGGESTIONS.find((s) => s.key === 'acr-a4-standard');
     expect(acr?.definition.page).toEqual({ widthMm: 210, heightMm: 297, sides: ['front'] });
