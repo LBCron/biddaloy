@@ -1,11 +1,34 @@
-import { Controller, Get, Headers, Param, Query, Res, StreamableFile } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  HttpException,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  Req,
+  Res,
+  StreamableFile,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
-import type { RateLimitTierOptions } from '../../../rate-limit';
+import type { Request, Response } from 'express';
+import { PUBLIC_RESULTS_RATE_LIMIT, type RateLimitTierOptions } from '../../../rate-limit';
+import { TurnstileService } from '../../registration/turnstile.service';
+import { WebsiteResultsService } from '../../exams/website-results.service';
+import {
+  ResultsDetailQueryDto,
+  ResultsQueryDto,
+  WebsiteResultDetailDto,
+  WebsiteResultsPageDto,
+} from '../../exams/dto/website-results.dto';
+import { SiteCacheService } from './site-cache.service';
 import { buildErrorResponseBody } from '../../../common/filters/error-response';
 import { errorPath } from '../../../common/filters/http-exception.filter';
-import { resolveRequestId } from '../../../common/request-context.util';
+import { requestContext, resolveRequestId } from '../../../common/request-context.util';
 import { HostAnswer, PublicSiteService, siteNotFound } from './public-site.service';
 
 /**
@@ -24,7 +47,26 @@ export const SITE_READ_RATE_LIMIT: RateLimitTierOptions = { limit: 1200, ttl: 60
 @Controller('public/site/by-host/:host')
 @Throttle({ default: SITE_READ_RATE_LIMIT })
 export class PublicSiteController {
-  constructor(private readonly site: PublicSiteService) {}
+  constructor(
+    private readonly site: PublicSiteService,
+    private readonly results: WebsiteResultsService,
+    private readonly turnstile: TurnstileService,
+    private readonly cache: SiteCacheService,
+  ) {}
+
+  /**
+   * 300 reads a minute per school across every visitor (D36). Redis down: allow and log (D42);
+   * the per-IP throttle and Turnstile still stand.
+   */
+  private async schoolBudget(tenantId: string) {
+    const n = await this.cache.countHit(`site:${tenantId}:results-hits`, 60);
+    if (n !== null && n > 300) {
+      throw new HttpException(
+        'Too many result lookups for this school right now. Try again in a minute.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+  }
 
   // A draft preview must never be indexed or cached (D33); set whenever `?preview=` is present.
   private noIndex(res: Response, preview?: string) {
@@ -91,6 +133,52 @@ export class PublicSiteController {
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.send(res, await this.site.island(host, kind, classSectionId));
+  }
+
+  /**
+   * [40.5.01] The results table. Order: live site (one 404 for unknown host, off site, suspended
+   * school), Turnstile (fail-closed in production, Rule 22, D42), then the school's 300/min budget.
+   */
+  @Post('island/results')
+  @HttpCode(200)
+  @Throttle({ default: PUBLIC_RESULTS_RATE_LIMIT })
+  @ApiOperation({
+    summary:
+      'One section of a website-published exam, or one roll of it, 100 rows a page. 400 CAPTCHA_FAILED, 404 results.not_found, 429 over 30 a minute, 503 when the check is unavailable.',
+  })
+  @ApiOkResponse({ type: WebsiteResultsPageDto })
+  async resultsTable(
+    @Param('host') host: string,
+    @Body() dto: ResultsQueryDto,
+    @Req() request: Request,
+  ): Promise<WebsiteResultsPageDto> {
+    const live = await this.site.liveForWrite(host);
+    await this.turnstile.verify(dto.captcha_token, requestContext(request).ip);
+    await this.schoolBudget(live.tenantId);
+    return this.results.query(live.tenantId, {
+      examId: dto.exam_id,
+      classSectionId: dto.class_section_id,
+      roll: dto.roll,
+      page: dto.page ?? 1,
+    });
+  }
+
+  /**
+   * Per-subject marks of one row. No Turnstile: a token works once, and the id comes only from a
+   * verified table answer. Same IP throttle and school budget.
+   */
+  @Post('island/results/detail')
+  @HttpCode(200)
+  @Throttle({ default: PUBLIC_RESULTS_RATE_LIMIT })
+  @ApiOperation({ summary: 'Per-subject marks of one row of the results table.' })
+  @ApiOkResponse({ type: WebsiteResultDetailDto })
+  async resultDetail(
+    @Param('host') host: string,
+    @Body() dto: ResultsDetailQueryDto,
+  ): Promise<WebsiteResultDetailDto> {
+    const live = await this.site.liveForWrite(host);
+    await this.schoolBudget(live.tenantId);
+    return this.results.detail(live.tenantId, dto.exam_id, dto.result_id);
   }
 
   // `key` is `logo` or a media id, so it cannot carry ParseUUIDPipe: the service answers the one 404.

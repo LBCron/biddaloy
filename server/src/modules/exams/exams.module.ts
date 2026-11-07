@@ -51,12 +51,17 @@ import { MarksController } from './marks.controller';
 import { AttendanceComponentService } from './attendance-component.service';
 import { MarksAuthorizationService } from './marks-authorization.util';
 import { ResultsService } from './results.service';
-import { ResultsController, StudentResultsController } from './results.controller';
+import {
+  ResultsController,
+  StudentResultsController,
+  WebsiteResultsController,
+} from './results.controller';
 import { TranscriptService } from './transcript.service';
 import { TranscriptController } from './transcript.controller';
 import { AnalysisService } from './analysis.service';
 import { AnalysisController } from './analysis.controller';
 import { ResultSmsService } from './result-sms.service';
+import { WebsiteResultsService } from './website-results.service';
 import { FamilyAccessService } from '../students/family-access.service';
 import { ExamSchedulesService } from './exam-schedules.service';
 import { ExamResultRecomputer } from './result-recomputer.service';
@@ -130,6 +135,7 @@ import {
     MarksController,
     ResultsController,
     StudentResultsController,
+    WebsiteResultsController,
     TranscriptController,
     AnalysisController,
     ExamSchedulesController,
@@ -150,6 +156,7 @@ import {
     TranscriptService,
     AnalysisService,
     ResultSmsService,
+    WebsiteResultsService,
     FamilyAccessService,
     ExamSchedulesService,
     ExamResultRecomputer,
@@ -168,6 +175,8 @@ import {
     MarkGridService,
     // [70.2.1] The final-result SMS reuses the exam send path (`sendForFinal`).
     ResultSmsService,
+    // [40.5.01] The public site's results feed and island read it.
+    WebsiteResultsService,
   ],
 })
 export class ExamsModule {}

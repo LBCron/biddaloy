@@ -77,6 +77,13 @@ export const PUBLIC_INVOICE_RATE_LIMIT: RateLimitTierOptions = { limit: 30, ttl:
 export const PUBLIC_NOTICE_RATE_LIMIT: RateLimitTierOptions = { limit: 30, ttl: 60_000 };
 
 /**
+ * Applied to the two `POST /public/site/by-host/:host/island/results*` routes (40.5.01), reachable
+ * with no auth header and no `X-Tenant-ID`. 30/min per IP (D36) bounds a roll-by-roll scan; the
+ * school's own 300/min budget sits on top of it in `PublicSiteController`.
+ */
+export const PUBLIC_RESULTS_RATE_LIMIT: RateLimitTierOptions = { limit: 30, ttl: 60_000 };
+
+/**
  * Applied to `GET /public/verify/:token` (32.2.5) — the third route reachable
  * with no auth header and no `X-Tenant-ID`. Someone scanning a printed card's
  * QR code opens it a few times at most; 30/min per IP bounds a token scan.

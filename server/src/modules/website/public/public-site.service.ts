@@ -131,7 +131,7 @@ export class PublicSiteService {
     return { data: await withFeeds(built, l.site.tenant_id, this.feeds) };
   }
 
-  /** The kinds a visitor's browser may fetch live; `results` and `enquiry` have their own routes. */
+  /** The kinds a visitor's browser may fetch live; `enquiry` has its own route. */
   async island(host: string, kind: string, classSectionId?: unknown): Promise<HostAnswer<unknown>> {
     const l = await this.live(host);
     if ('redirectTo' in l) return l;
@@ -140,6 +140,10 @@ export class PublicSiteService {
       SiteIslandKind.EVENTS,
       SiteIslandKind.ROUTINE,
     ];
+    // Results list personal data: read live every time, so a withdrawal shows at once.
+    if (kind === SiteIslandKind.RESULTS) {
+      return { data: await this.feeds.live('results', l.site.tenant_id) };
+    }
     if (!islands.includes(kind) || !this.feeds.has(kind)) throw siteNotFound();
     const tenantId = l.site.tenant_id;
     if (kind !== SiteIslandKind.ROUTINE) return { data: await this.feeds.cached(kind, tenantId) };

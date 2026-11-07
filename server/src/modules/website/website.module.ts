@@ -8,6 +8,8 @@ import { CommunicationsModule } from '../communications/communications.module';
 import { TurnstileService } from '../registration/turnstile.service';
 import { StorageModule } from '../storage/storage.module';
 import { SchoolsModule } from '../schools/schools.module';
+import { ExamsModule } from '../exams/exams.module';
+import { ResultsFeed } from './public/feeds/results.feed';
 import { SchoolSite } from './entities/school-site.entity';
 import { SiteMedia } from './entities/site-media.entity';
 import { SitePost } from './entities/site-post.entity';
@@ -65,6 +67,7 @@ import { UmamiService } from './umami.service';
     BullModule.registerQueue({ name: CUSTOM_DOMAIN_QUEUE }),
     StorageModule,
     SchoolsModule,
+    ExamsModule,
     CommunicationsModule,
   ],
   controllers: [
@@ -98,6 +101,7 @@ import { UmamiService } from './umami.service';
     BlogFeed,
     FeesFeed,
     AdmissionsFeed,
+    ResultsFeed,
     ClassSectionsFeed,
     FeedRegistry,
     SitePostsService,

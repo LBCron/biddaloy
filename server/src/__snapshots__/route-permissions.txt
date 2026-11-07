@@ -473,6 +473,7 @@ PATCH /exam-templates/:id | ExamTemplatesController | perm: EXAM_MANAGE
 PATCH /exams/:examId/components/:id | ExamComponentsController | perm: EXAM_MANAGE
 PATCH /exams/:examId/marks | MarksController | perm: MARK_ENTER
 PATCH /exams/:examId/schedule/:id | ExamSchedulesController | perm: EXAM_MANAGE
+PATCH /exams/:examId/website-names | WebsiteResultsController | perm: RESULT_PUBLISH
 PATCH /exams/:id | ExamsController | perm: EXAM_MANAGE
 PATCH /fee-structures/:id | FeeController | perm: FEE_STRUCTURE_UPDATE
 PATCH /fees/fine-rules/:id | FineRulesController | perm: FEE_STRUCTURE_UPDATE
@@ -625,6 +626,8 @@ POST /exams/:examId/results/publish | ResultsController | perm: RESULT_PUBLISH
 POST /exams/:examId/results/reopen | ResultsController | perm: RESULT_PUBLISH | approval: results.reopen
 POST /exams/:examId/results/sms | ResultsController | perm: RESULT_PUBLISH
 POST /exams/:examId/schedule | ExamSchedulesController | perm: EXAM_MANAGE
+POST /exams/:examId/website-publish | WebsiteResultsController | perm: RESULT_PUBLISH
+POST /exams/:examId/website-unpublish | WebsiteResultsController | perm: RESULT_PUBLISH
 POST /fee-structures | FeeController | perm: FEE_STRUCTURE_CREATE
 POST /fees/bills/:id/waive | FinesController | perm: FEE_APPROVE
 POST /fees/fine-rules | FineRulesController | perm: FEE_STRUCTURE_CREATE
@@ -709,6 +712,8 @@ POST /public/admission/:slug/applicants | PublicAdmissionController | allowlist:
 POST /public/admission/:slug/status | PublicAdmissionController | allowlist: none
 POST /public/notices/:token/opened | PublicNoticeController | allowlist: none
 POST /public/site/by-host/:host/island/enquiry | PublicEnquiryController | allowlist: none
+POST /public/site/by-host/:host/island/results | PublicSiteController | allowlist: none
+POST /public/site/by-host/:host/island/results/detail | PublicSiteController | allowlist: none
 POST /reports/definitions | ReportDefinitionsController | perm: REPORTS_DESIGN
 POST /reports/definitions/:id/archive | ReportDefinitionsController | perm: REPORTS_DESIGN
 POST /reports/definitions/:id/clone | ReportDefinitionsController | perm: REPORTS_DESIGN

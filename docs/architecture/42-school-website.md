@@ -290,3 +290,9 @@ two Cloudflare values empty. Every refusal (off, malformed, platform name, taken
   `journeys/website-setup.spec.ts` needs the shared school to be never-published. It checks the public read API
   (`/public/site/by-host/<host>/manifest`), not `html[data-theme]`, since the e2e stack has no site container; pixel
   and theme render checks are in `site/e2e/themes/*.spec.ts`. The ticket text said "six themes"; the enum has seven.
+- **2026-11-07 (W5, 40.5.01).** The public results table is not a new read model: it reads the same `results`,
+  `result_subjects` and `students` rows as the staff panel, behind one gate (`exams.status = 'PUBLISHED'` AND
+  `website_published_at` set, same school). Withdrawing an exam, or reopening it, hides it on the next request
+  because the results feed is never cached (a page of student data must not outlive a withdrawal). A Turnstile
+  token works once, so only the table call carries it; the per-subject call takes the unguessable result id from a
+  table answer and is throttled the same.

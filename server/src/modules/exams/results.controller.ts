@@ -2,6 +2,9 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  HttpCode,
+  UseInterceptors,
   Body,
   Param,
   ParseUUIDPipe,
@@ -11,7 +14,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { ContextGuard, RolesGuard } from '../auth/guards/context.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -26,6 +29,9 @@ import { requestContext } from '../../common/request-context.util';
 import { ResultsService } from './results.service';
 import { ResultSmsService } from './result-sms.service';
 import { ProcessExamDto } from './dto/results.dto';
+import { WebsiteResultsService } from './website-results.service';
+import { WebsiteNamesDto, WebsiteResultsStateDto } from './dto/website-results.dto';
+import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.interceptor';
 import { ApprovalScope, Permission, UserRole, JwtPayload, isGuardianRole } from '@biddaloy/shared';
 import { FamilyAccessService } from '../students/family-access.service';
 import { TeacherScopeService } from '../classes/teacher-scope.service';
@@ -184,6 +190,75 @@ export class ResultsController {
     @Req() request: Request,
   ) {
     return this.resultSmsService.sendForExam(examId, tenant.id, user.sub, requestContext(request));
+  }
+}
+
+/**
+ * [40.5.01] Put an exam's published results on the school website, withdraw them, or switch the
+ * names off (D2, D36). Exposing results publicly is a result decision, so the permission is the
+ * one that publishes them (RESULT_PUBLISH), not WEBSITE_MANAGE (D16). Both POSTs carry an
+ * `Idempotency-Key` (Rule 25).
+ */
+@ApiTags('results')
+@ApiTenantAuth()
+@Controller('exams/:examId')
+@UseGuards(AuthGuard('jwt'), ContextGuard, RolesGuard, PermissionsGuard)
+export class WebsiteResultsController {
+  constructor(private readonly websiteResults: WebsiteResultsService) {}
+
+  @Post('website-publish')
+  @HttpCode(200)
+  @UseInterceptors(IdempotencyInterceptor)
+  @RequirePermissions(Permission.RESULT_PUBLISH)
+  @ApiOperation({
+    summary:
+      'Show a PUBLISHED exam on the school website. 409 for any other status, 404 for an unknown exam.',
+  })
+  @ApiOkResponse({ type: WebsiteResultsStateDto })
+  async publish(
+    @Param('examId', ParseUUIDPipe) examId: string,
+    @CurrentTenant() tenant: { id: string },
+    @CurrentUser() user: JwtPayload,
+    @Req() request: Request,
+  ): Promise<WebsiteResultsStateDto> {
+    await this.websiteResults.publish(examId, tenant.id, user.sub, requestContext(request));
+    return { websitePublished: true };
+  }
+
+  @Post('website-unpublish')
+  @HttpCode(200)
+  @UseInterceptors(IdempotencyInterceptor)
+  @RequirePermissions(Permission.RESULT_PUBLISH)
+  @ApiOperation({ summary: 'Take an exam off the school website, effective at once.' })
+  @ApiOkResponse({ type: WebsiteResultsStateDto })
+  async unpublish(
+    @Param('examId', ParseUUIDPipe) examId: string,
+    @CurrentTenant() tenant: { id: string },
+    @CurrentUser() user: JwtPayload,
+    @Req() request: Request,
+  ): Promise<WebsiteResultsStateDto> {
+    await this.websiteResults.unpublish(examId, tenant.id, user.sub, requestContext(request));
+    return { websitePublished: false };
+  }
+
+  @Patch('website-names')
+  @RequirePermissions(Permission.RESULT_PUBLISH)
+  @ApiOperation({ summary: "Show or hide student names on the exam's public results table." })
+  async setNames(
+    @Param('examId', ParseUUIDPipe) examId: string,
+    @Body() dto: WebsiteNamesDto,
+    @CurrentTenant() tenant: { id: string },
+    @CurrentUser() user: JwtPayload,
+    @Req() request: Request,
+  ) {
+    await this.websiteResults.setShowNames(
+      examId,
+      tenant.id,
+      user.sub,
+      requestContext(request),
+      dto.showNames,
+    );
+    return { showNames: dto.showNames };
   }
 }
 

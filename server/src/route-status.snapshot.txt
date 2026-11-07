@@ -312,6 +312,9 @@ GET    /api/v1/exams/:examId/schedule                                           
 POST   /api/v1/exams/:examId/schedule                                            401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
 DELETE /api/v1/exams/:examId/schedule/:id                                        401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
 PATCH  /api/v1/exams/:examId/schedule/:id                                        401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
+PATCH  /api/v1/exams/:examId/website-names                                       401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
+POST   /api/v1/exams/:examId/website-publish                                     401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
+POST   /api/v1/exams/:examId/website-unpublish                                   401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
 DELETE /api/v1/exams/:id                                                         401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
 GET    /api/v1/exams/:id                                                         401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
 PATCH  /api/v1/exams/:id                                                         401 PASS PASS PASS 403 403 403 403 403 403 PASS 403
@@ -556,6 +559,8 @@ POST   /api/v1/public/notices/:token/opened                                     
 GET    /api/v1/public/site/by-host/:host/blog/:slug                              PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 GET    /api/v1/public/site/by-host/:host/island/:kind                            PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 POST   /api/v1/public/site/by-host/:host/island/enquiry                          PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
+POST   /api/v1/public/site/by-host/:host/island/results                          PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
+POST   /api/v1/public/site/by-host/:host/island/results/detail                   PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 GET    /api/v1/public/site/by-host/:host/manifest                                PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 GET    /api/v1/public/site/by-host/:host/media/:key                              PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 GET    /api/v1/public/site/by-host/:host/page/:page                              PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS

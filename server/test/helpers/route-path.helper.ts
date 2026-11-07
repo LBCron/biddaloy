@@ -275,6 +275,20 @@ export const ALLOWLIST: AllowlistEntry[] = [
     reason:
       '[40.3.01] D22, D42 — the one public write of the site. The host name is the only tenant signal (no JWT, user or X-Tenant-ID); a live site is checked first (unknown host and switched-off site answer one 404, site.not_found), then Turnstile (fail-closed in production, Rule 22), then the write. Throttled via STRICT_RATE_LIMIT (5/min per IP).',
   },
+  ...(
+    [
+      ['/public/site/by-host/:host/island/results', 'Turnstile, then the school budget'],
+      [
+        '/public/site/by-host/:host/island/results/detail',
+        'the school budget (no Turnstile: a token works once)',
+      ],
+    ] as const
+  ).map(([path, gate]) => ({
+    controller: 'PublicSiteController',
+    method: 'POST',
+    path,
+    reason: `[40.5.01] D36, D42 — published exam results for the school site. The host name is the only tenant signal (no JWT, user or X-Tenant-ID); a live site is checked first (one 404, site.not_found), then ${gate}. Only exams the school put on the website are readable (one 404, results.not_found). Throttled via PUBLIC_RESULTS_RATE_LIMIT (30/min per IP) plus 300/min per school.`,
+  })),
   {
     controller: 'PublicVerifyController',
     method: 'GET',
