@@ -228,6 +228,19 @@ describe('WidgetCard signal (#3594)', () => {
     expect(screen.getByRole('region').className).toContain('border-s-signal-critical-fg');
   });
 
+  it('ok shows the check icon (aria-hidden), its sr-only label and a green bar, no band', () => {
+    render(<WidgetCard {...base} signal="ok" signalLabel="All good" />);
+    const marker = document.querySelector('[data-signal="ok"]')!;
+    expect(marker.querySelector('.sr-only')!.textContent).toBe('All good');
+    const icon = marker.querySelector('svg')!;
+    expect(icon.getAttribute('aria-hidden')).toBe('true');
+    // The check icon, not the critical triangle or warn clock: colour is never the only cue (D8).
+    expect(icon.getAttribute('class')).toContain('lucide-circle-check');
+    expect(marker.className).toContain('text-signal-ok-fg');
+    expect(screen.getByRole('region').className).toContain('border-s-signal-ok-fg');
+    expect(screen.getByRole('heading').parentElement!.className).not.toContain('bg-signal');
+  });
+
   it('compact critical tints its header band too; warn does not', () => {
     const { rerender } = render(
       <WidgetCard {...base} variant="compact" signal="critical" signalLabel="Needs action" />,
