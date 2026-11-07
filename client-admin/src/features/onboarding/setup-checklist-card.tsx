@@ -9,7 +9,7 @@ import {
 import { useTranslation } from '@biddaloy/ui/i18n';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { ChevronRightIcon, CircleCheckIcon, CircleIcon } from 'lucide-react';
+import { ChevronRightIcon, CircleCheckIcon, CircleIcon, ClockIcon } from 'lucide-react';
 import { useId } from 'react';
 
 const TARGETS: Record<OnboardingItemId, { to: string; search?: Record<string, string | number> }> =
@@ -31,7 +31,7 @@ function showChecklist(status: OnboardingStatus | undefined): status is Onboardi
 }
 
 export function SetupChecklistCard() {
-  const { t } = useTranslation('setupChecklist');
+  const { t } = useTranslation(['setupChecklist', 'signal']);
   const role = useActiveRole();
   const update = useUpdateOnboarding();
   const headingId = useId(); // the grid renders desktop + phone copies; ids must not collide
@@ -42,11 +42,14 @@ export function SetupChecklistCard() {
   if (role !== UserRole.ADMIN || !showChecklist(data)) return null;
   const done = data.items.filter((i) => i.done).length;
   return (
-    <Card padded asChild>
+    <Card padded asChild className="border-s-[3px] border-s-signal-warn-fg">
       <section aria-labelledby={headingId} className="flex flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1">
+              {/* [#3599] Setup is unfinished = "watch": icon + sr-only text, colour never alone (D8). */}
+              <ClockIcon aria-hidden="true" className="size-4 shrink-0 text-signal-warn-fg" />
+              <span className="sr-only">{t('signal:watch')}</span>
               <h2 id={headingId} className="text-h3">
                 {t('title')}
               </h2>
