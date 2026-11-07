@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { orderSections } from './sections';
+import { orderSections, routineOptions } from './sections';
 
 const row = (key: string, extra: object = {}) => ({ key: key as never, data: {}, ...extra });
 
@@ -42,5 +42,23 @@ describe('orderSections', () => {
 
   it('answers [] for a page with no sections', () => {
     expect(orderSections({ sections: [] })).toEqual([]);
+  });
+});
+
+describe('routineOptions', () => {
+  it('reads the server list in the visitor language and drops incomplete rows', () => {
+    const data = {
+      sections: [
+        { id: 'a', label: { bn: 'ষষ্ঠ ক', en: 'Six A' } },
+        { id: 'b', label: { bn: 'ষষ্ঠ খ' } },
+        { label: { bn: 'no id' } },
+        { id: 'c' },
+      ],
+    };
+    expect(routineOptions(data, 'en')).toEqual([
+      { id: 'a', label: 'Six A' },
+      { id: 'b', label: 'ষষ্ঠ খ' },
+    ]);
+    expect(routineOptions({}, 'bn')).toEqual([]);
   });
 });

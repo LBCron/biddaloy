@@ -66,6 +66,19 @@ export class PublicSiteController {
     return this.send(res, await this.site.page(host, page, preview));
   }
 
+  @Get('blog/:slug')
+  @ApiOperation({
+    summary: 'One published blog post by slug: title, excerpt, sanitised html, cover.',
+  })
+  @ApiOkResponse()
+  async blogPost(
+    @Param('host') host: string,
+    @Param('slug') slug: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.send(res, await this.site.blogPost(host, slug));
+  }
+
   @Get('island/:kind')
   @ApiOperation({
     summary: 'Live list for a client island (notices, events, routine). Cached 60 s.',

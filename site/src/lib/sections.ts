@@ -1,4 +1,5 @@
-import type { SitePageData } from './types';
+import { field } from './pick';
+import type { Lang, SitePageData } from './types';
 
 type Row = SitePageData['sections'][number];
 
@@ -18,4 +19,11 @@ export function orderSections(page: Pick<SitePageData, 'sections'>, skip: string
     (s.key as string) === 'hero' ? 0 : (s.key as string) === 'footer' ? 2 : 1;
   // Array.sort is stable, so the admin's order holds inside each rank.
   return [...rows].sort((a, b) => rank(a) - rank(b));
+}
+
+/** The routine picker's options from `data.sections` (`[{ id, label }]`, set by the server). Rows without an id or a label are dropped. */
+export function routineOptions(data: Record<string, unknown>, lang: Lang) {
+  return ((data.sections ?? []) as { id?: unknown; label?: unknown }[])
+    .map((o) => ({ id: typeof o.id === 'string' ? o.id : '', label: field(o.label, lang) ?? '' }))
+    .filter((o) => o.id && o.label);
 }

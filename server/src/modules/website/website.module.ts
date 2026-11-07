@@ -33,6 +33,7 @@ import { NoticesFeed } from './public/feeds/notices.feed';
 import { EventsFeed } from './public/feeds/events.feed';
 import { RoutineFeed } from './public/feeds/routine.feed';
 import { TeachersFeed } from './public/feeds/teachers.feed';
+import { ClassSectionsFeed } from './public/feeds/class-sections.feed';
 import { BlogFeed } from './public/feeds/blog.feed';
 import { FeesFeed } from './public/feeds/fees.feed';
 import { AdmissionsFeed } from './public/feeds/admissions.feed';
@@ -83,6 +84,7 @@ import { FeedRegistry } from './public/feeds/feed-registry';
     BlogFeed,
     FeesFeed,
     AdmissionsFeed,
+    ClassSectionsFeed,
     FeedRegistry,
     SitePostsService,
     SiteEnquiriesService,

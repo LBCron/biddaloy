@@ -1,7 +1,6 @@
 ---
-import { SitePage, SiteSectionKey } from '@biddaloy/shared';
 import { t } from '../../../i18n/t';
-import { loadPage } from '../../../lib/page';
+import { fetchByHost } from '../../../lib/api';
 import { field } from '../../../lib/pick';
 import type { Lang } from '../../../lib/types';
 import { themes } from '../../../themes';
@@ -9,12 +8,15 @@ import { themes } from '../../../themes';
 const { site } = Astro.locals;
 const lang = Astro.params.lang as Lang;
 if (!site) return new Response(null, { status: 404 });
-const r = await loadPage(Astro.locals, SitePage.BLOG);
-if (r.rewrite) return Astro.rewrite(r.rewrite);
-// ponytail: the blog feed carries the 12 newest posts; an older one is a 404 until a one-post read exists.
-const feed = r.page.sections.find((s) => s.key === SiteSectionKey.BLOG)?.feed ?? [];
-const post = feed.find((p) => p.slug === Astro.params.slug);
-if (!post) return Astro.rewrite('/404/');
+// One read by slug: the blog list feed holds only the 12 newest posts.
+if (Astro.locals.preview) return Astro.rewrite('/404/');
+const r = await fetchByHost<Record<string, unknown>>(
+  Astro.locals.host,
+  `blog/${encodeURIComponent(Astro.params.slug ?? '')}`,
+);
+if (r.kind !== 'ok') return Astro.rewrite(r.kind === 'down' ? '/503/' : '/404/');
+const post = r.data;
+
 const s = (v: unknown) => (typeof v === 'string' ? v : undefined);
 const title = field(post.title, lang) ?? s(post.title) ?? '';
 const when = s(post.publishedAt) ? new Date(s(post.publishedAt)!) : undefined;

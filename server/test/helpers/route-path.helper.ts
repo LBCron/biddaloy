@@ -258,6 +258,7 @@ export const ALLOWLIST: AllowlistEntry[] = [
     [
       ['/public/site/by-host/:host/manifest', 'the manifest'],
       ['/public/site/by-host/:host/page/:page', 'one published page'],
+      ['/public/site/by-host/:host/blog/:slug', 'one published blog post'],
       ['/public/site/by-host/:host/island/:kind', 'a live island list'],
       ['/public/site/by-host/:host/media/:key', 'the logo or a site picture'],
     ] as const

@@ -80,6 +80,14 @@ describe('Public site API on the seeded demo school (e2e)', () => {
     facts.heroIds = heroIds;
     facts.media = await by(HOST, `/media/${heroIds[0]}`);
     facts.logo = await by(HOST, '/media/logo');
+    // The seed has two published posts and one draft; the by-slug read serves any published one.
+    const slugs: { slug: string; published_at: Date | null }[] = await ds.query(
+      `SELECT slug, published_at FROM site_posts WHERE tenant_id = $1 ORDER BY published_at NULLS LAST`,
+      [T],
+    );
+    facts.publishedPost = await by(HOST, `/blog/${slugs[0].slug}`);
+    facts.draftPost = await by(HOST, `/blog/${slugs[2].slug}`);
+    facts.badSlug = await by(HOST, '/blog/Not%20A%20Slug');
     facts.unknown = await by(`unknown.${ROOT}`, '/manifest');
     await ds.query(`UPDATE school_sites SET enabled = false WHERE tenant_id = $1`, [T]);
     facts.disabled = await by(HOST, '/manifest');
@@ -129,6 +137,16 @@ describe('Public site API on the seeded demo school (e2e)', () => {
   it('the school logo streams as WebP', () => {
     expect(facts.logo.status).toBe(200);
     expect(facts.logo.headers['content-type']).toMatch(/image\/webp/);
+  });
+
+  it('one blog post by slug: sanitised html and cover; a draft and a bad slug are the one 404', () => {
+    expect(facts.publishedPost.status).toBe(200);
+    expect(Object.keys(facts.publishedPost.body).sort()).toEqual(
+      ['cover', 'excerpt', 'html', 'publishedAt', 'title'].sort(),
+    );
+    expect(facts.publishedPost.body.html).toContain('<table>');
+    expect(facts.draftPost.status).toBe(404);
+    expect(facts.badSlug.status).toBe(404);
   });
 
   it('an unknown host and a switched-off site answer the same 404', () => {

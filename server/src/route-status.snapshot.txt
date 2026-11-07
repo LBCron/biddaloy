@@ -553,6 +553,7 @@ GET    /api/v1/public/invoices/:token                                           
 GET    /api/v1/public/notices/:token                                             PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 GET    /api/v1/public/notices/:token/files/:fileId                               PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 POST   /api/v1/public/notices/:token/opened                                      PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
+GET    /api/v1/public/site/by-host/:host/blog/:slug                              PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 GET    /api/v1/public/site/by-host/:host/island/:kind                            PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 POST   /api/v1/public/site/by-host/:host/island/enquiry                          PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 GET    /api/v1/public/site/by-host/:host/manifest                                PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS

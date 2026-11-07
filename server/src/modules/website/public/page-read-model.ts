@@ -33,7 +33,8 @@ export interface PublicPage {
  * Sections fed by live school data, and what an empty feed means (D12, D25). `hides`: the whole
  * section is its feed, so no rows hides it. `keeps`: the section also has its own text (admission
  * rules), so the feed rides along but never hides it. A section not listed here has no feed.
- * `routine` is not here: it needs a class section, so it is read only as an island.
+ * `routine` is not here: its rows need a class section, so they are read only as an island; the
+ * page only carries the list of class sections to pick from (`data.sections`).
  */
 const SYSTEM_FED: Partial<Record<SiteSectionKey, { feed: FeedKind; empty: 'hides' | 'keeps' }>> = {
   [SiteSectionKey.NOTICES]: { feed: 'notices', empty: 'hides' },
@@ -52,6 +53,11 @@ export async function withFeeds(
 ): Promise<PublicPage> {
   const sections = await Promise.all(
     page.sections.map(async (s) => {
+      // The routine section also needs the picker list of class sections (bounded, cached).
+      if (s.key === SiteSectionKey.ROUTINE) {
+        const sections = await registry.cached('sections', tenantId);
+        return { ...s, data: { ...s.data, sections } };
+      }
       const fed = SYSTEM_FED[s.key as SiteSectionKey];
       if (!fed) return s;
       // The home page shows the first 8 teachers (D27); the teachers page shows them all.
@@ -77,6 +83,8 @@ export function buildManifest(
   published: SiteConfig,
   noindex: boolean,
   school: SchoolFields,
+  /** A logo uploaded in the website screens (site_media). It beats the school profile logo. */
+  hasSiteLogo = false,
 ): PublicManifest {
   const contact: PublicManifest['contact'] = {};
   if (school.address) contact.address = both(school.address);
@@ -91,7 +99,7 @@ export function buildManifest(
       items: published.announcements.items.filter((a) => a.enabled),
     },
     nav: published.pages.filter((p) => p.enabled).map((p) => ({ page: p.page })),
-    ...(school.logo_key ? { logo: '/media/logo' } : {}),
+    ...(hasSiteLogo || school.logo_key ? { logo: '/media/logo' } : {}),
     noindex,
     schoolName: { bn: school.name_bn ?? school.name, en: school.name },
     contact,

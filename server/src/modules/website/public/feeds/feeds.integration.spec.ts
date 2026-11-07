@@ -11,6 +11,7 @@ import { SiteCacheService } from '../site-cache.service';
 import { buildPage, withFeeds } from '../page-read-model';
 import type { SiteConfig } from '@biddaloy/shared';
 import { AdmissionsFeed } from './admissions.feed';
+import { ClassSectionsFeed } from './class-sections.feed';
 import { BlogFeed } from './blog.feed';
 import { EventsFeed } from './events.feed';
 import { FeedRegistry } from './feed-registry';
@@ -126,6 +127,7 @@ describe('Site feeds (integration)', () => {
       BlogFeed,
       FeesFeed,
       AdmissionsFeed,
+      ClassSectionsFeed,
       FeedRegistry,
       { provide: SiteCacheService, useValue: new SiteCacheService(redis as never) },
       { provide: SchoolsService, useValue: { todayFor: async () => TODAY } },
@@ -243,6 +245,71 @@ describe('Site feeds (integration)', () => {
     expect(rows.map((r) => r.slug)).toEqual(['newer', 'older']);
     expect((rows[0].excerpt as string).length).toBe(160);
     expect(rows[1].html).toBe('<p>Hello world from the blog</p>');
+    // One post by slug: a published one, any age; a draft, a page and another school's are all null.
+    expect((await registry.blogPost(A, 'older'))?.html).toBe('<p>Hello world from the blog</p>');
+    expect(await registry.blogPost(A, 'draft')).toBeNull();
+    expect(await registry.blogPost(A, 'a-page')).toBeNull();
+    expect(await registry.blogPost(B, 'older')).toBeNull();
+    expect((await registry.blogPost(B, 'other-school'))?.slug).toBe('other-school');
+  });
+
+  it("routine page: the routine section carries this school's live class sections of the current year, others nothing", async () => {
+    const mk = async (tenant: string, label: string, current: boolean, sections: string[]) => {
+      const [{ id: year }] = await ds.query(
+        `INSERT INTO academic_years (name, start_date, end_date, is_current, tenant_id)
+         VALUES ($1,'2026-01-01','2026-12-31',$2,$3) RETURNING id`,
+        [`Y-${label}`, current, tenant],
+      );
+      const [{ id: klass }] = await ds.query(
+        `INSERT INTO classes (name, academic_year_id, tenant_id) VALUES ($1,$2,$3) RETURNING id`,
+        [`Class ${label}`, year, tenant],
+      );
+      for (const name of sections) {
+        await ds.query(
+          `INSERT INTO class_sections (class_id, section_name, tenant_id) VALUES ($1,$2,$3)`,
+          [klass, name, tenant],
+        );
+      }
+      return klass as string;
+    };
+    const k = await mk(A, 'Six', true, ['A', 'B', 'Gone']);
+    await ds.query(
+      `UPDATE class_sections SET deleted_at = now() WHERE class_id = $1 AND section_name = 'Gone'`,
+      [k],
+    );
+    await mk(A, 'Old', false, ['A']); // a past year
+    await mk(B, 'Other', true, ['A']); // another school
+    const cfg = {
+      pages: [
+        {
+          page: 'academics',
+          enabled: true,
+          sections: [
+            { key: SiteSectionKey.ROUTINE, enabled: true, data: { title: { bn: 'r', en: 'r' } } },
+            { key: SiteSectionKey.ABOUT, enabled: true, data: {} },
+          ],
+        },
+      ],
+    } as unknown as SiteConfig;
+    const page = await withFeeds(buildPage(cfg, 'academics')!, A, registry);
+    const routine = page.sections.find((x) => x.key === 'routine')!;
+    expect((routine.data.sections as { label: { en: string } }[]).map((x) => x.label.en)).toEqual([
+      'Class Six A',
+      'Class Six B',
+    ]);
+    expect(routine.data.title).toEqual({ bn: 'r', en: 'r' });
+    expect(page.sections.find((x) => x.key === 'about')!.data.sections).toBeUndefined();
+    // The list is capped at 60.
+    const many = Array.from({ length: 70 }, (_, i) => `S${String(i).padStart(2, '0')}`);
+    for (const name of many) {
+      await ds.query(
+        `INSERT INTO class_sections (class_id, section_name, tenant_id) VALUES ($1,$2,$3)`,
+        [k, name, A],
+      );
+    }
+    redis.store.clear(); // the first read is cached for 60 s
+    const capped = await registry.cached('sections', A);
+    expect(capped).toHaveLength(60);
   });
 
   it('events, fees and admissions: current year, this school only', async () => {

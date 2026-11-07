@@ -330,6 +330,7 @@ GET /public/admission/:slug | PublicAdmissionController | allowlist: none
 GET /public/invoices/:token | PublicInvoiceController | allowlist: none
 GET /public/notices/:token | PublicNoticeController | allowlist: none
 GET /public/notices/:token/files/:fileId | PublicNoticeController | allowlist: none
+GET /public/site/by-host/:host/blog/:slug | PublicSiteController | allowlist: none
 GET /public/site/by-host/:host/island/:kind | PublicSiteController | allowlist: none
 GET /public/site/by-host/:host/manifest | PublicSiteController | allowlist: none
 GET /public/site/by-host/:host/media/:key | PublicSiteController | allowlist: none

@@ -2,15 +2,13 @@
 import Skeleton from '../../../components/Skeleton.astro';
 import { t } from '../../../i18n/t';
 import { field } from '../../../lib/pick';
+import { routineOptions } from '../../../lib/sections';
 import type { SectionProps } from '../../../lib/types';
 
 const { data, lang } = Astro.props as SectionProps;
 const title = field(data.title, lang) ?? t(lang, 'section.routine');
-// ponytail: no public route lists class sections yet, so the admin supplies `data.sections`
-// as [{ id, label }]; with none the section has nothing to pick and does not render.
-const options = ((data.sections ?? []) as { id?: unknown; label?: unknown }[])
-  .map((o) => ({ id: typeof o.id === 'string' ? o.id : '', label: field(o.label, lang) ?? '' }))
-  .filter((o) => o.id && o.label);
+// The server adds `data.sections` ([{ id, label }]) to the routine section; with none there is nothing to pick.
+const options = routineOptions(data, lang);
 const days = Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map((d) => [`data-d${d}`, t(lang, `routine.d${d}`)]));
 ---
 {options.length > 0 && (

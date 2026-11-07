@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { Readable } from 'node:stream';
-import { SchoolStatus, SiteIslandKind, SitePage } from '@biddaloy/shared';
+import { SchoolStatus, SiteIslandKind, SiteMediaSlot, SitePage } from '@biddaloy/shared';
 import type { SiteConfig } from '@biddaloy/shared';
 import { School } from '../../schools/entities/school.entity';
 import { StorageService } from '../../storage/storage.service';
@@ -91,15 +91,20 @@ export class PublicSiteService {
     if ('redirectTo' in l) return l;
     if (l.preview) {
       return {
-        data: withAnnouncementWindow(buildManifest(l.published, true, l.school), new Date()),
+        data: withAnnouncementWindow(
+          buildManifest(l.published, true, l.school, !!(await this.siteLogo(l.site.tenant_id))),
+          new Date(),
+        ),
       };
     }
+    // A logo upload or delete does not bump the site version, so the logo is part of the key.
+    const logo = await this.siteLogo(l.site.tenant_id);
     const m = await this.cache.getOrLoad(
       l.site.tenant_id,
       l.site.version,
       // Everything the manifest reads that is not the published config is in the key.
-      `manifest:${l.school.updated_at.getTime()}:${l.site.noindex ? 1 : 0}`,
-      async () => buildManifest(l.published, l.site.noindex, l.school),
+      `manifest:${l.school.updated_at.getTime()}:${l.site.noindex ? 1 : 0}:${logo?.id ?? ''}`,
+      async () => buildManifest(l.published, l.site.noindex, l.school, !!logo),
     );
     return { data: withAnnouncementWindow(m, new Date()) };
   }
@@ -150,6 +155,28 @@ export class PublicSiteService {
     return { data: await this.feeds.cached(kind, tenantId, { classSectionId }) };
   }
 
+  /**
+   * One published blog post by slug: the list feed holds only the 12 newest. A slug that is not
+   * the shape we mint, a draft and a missing post all answer the one 404.
+   */
+  async blogPost(host: string, slug: string): Promise<HostAnswer<Record<string, unknown>>> {
+    const l = await this.live(host);
+    if ('redirectTo' in l) return l;
+    if (!/^[a-z0-9-]{1,80}$/.test(slug)) throw siteNotFound();
+    const post = await this.feeds.blogPost(l.site.tenant_id, slug);
+    if (!post) throw siteNotFound();
+    const { title, excerpt, html, cover, publishedAt } = post;
+    return { data: { title, excerpt, html, cover, publishedAt } };
+  }
+
+  /** The newest logo uploaded in the website screens, or null. Tenant-scoped. */
+  private siteLogo(tenantId: string) {
+    return this.media.findOne({
+      where: { tenant_id: tenantId, slot: SiteMediaSlot.LOGO },
+      order: { created_at: 'DESC', id: 'DESC' },
+    });
+  }
+
   /** `key` is `logo` or a `site_media` id. Returns null on `If-None-Match` hit (304). */
   async mediaFile(
     host: string,
@@ -166,8 +193,11 @@ export class PublicSiteService {
     const tenantId = l.site.tenant_id;
 
     if (key === 'logo') {
-      if (!l.school.logo_key) throw siteNotFound();
-      return this.stream(() => this.storage.getForTenant(l.school.logo_key as string, tenantId));
+      // The logo from the website screens wins; the school profile logo is the fallback.
+      const logo = await this.siteLogo(tenantId);
+      const logoKey = logo?.storage_key ?? l.school.logo_key;
+      if (!logoKey) throw siteNotFound();
+      return this.stream(() => this.storage.getForTenant(logoKey, tenantId));
     }
     // Only a picture the published site shows, never any row of the tenant (a removed photo, an
     // unpublished draft's picture). Checked before the row lookup and the 304, so neither tells.
