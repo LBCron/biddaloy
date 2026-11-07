@@ -588,5 +588,17 @@
     "role": "Yes",
     "member": "Yes",
     "employeeId": "Yes"
+  },
+  "tabs": {
+    "websiteProfile": "Website profile",
+    "websiteProfileFields": {
+      "show": "Show on the website",
+      "featured": "Feature on the home page",
+      "order": "Order",
+      "subjects": "Subjects",
+      "bio": "About",
+      "credentials": "Qualifications",
+      "photo": "Photo"
+    }
   }
 }

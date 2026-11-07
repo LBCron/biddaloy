@@ -91,7 +91,12 @@
     "textStyle": "Text style",
     "logo": "School logo",
     "preview": "Preview",
-    "save": "Save"
+    "save": "Save",
+    "changeTheme": {
+      "title": "Change the design?",
+      "body": "Empty fields will get the new design's default text. Your own text stays.",
+      "confirm": "Change design"
+    }
   },
   "pages": {
     "title": "Pages",
@@ -103,7 +108,48 @@
     "photo": "Photo",
     "show": "Show on website",
     "hide": "Hide from website",
-    "save": "Save"
+    "save": "Save",
+    "pageNames": {
+      "home": "Home",
+      "about": "About us",
+      "academics": "Academics",
+      "admissions": "Admissions",
+      "news": "News",
+      "notices": "Notices",
+      "blog": "Blog",
+      "teachers": "Teachers",
+      "results": "Results",
+      "contact": "Contact"
+    },
+    "sectionNames": {
+      "hero": "Front banner",
+      "about": "About us",
+      "academics": "Academics",
+      "admissions": "Admissions",
+      "teachers": "Teachers",
+      "notices": "Notices",
+      "events": "Events",
+      "blog": "News and posts",
+      "downloads": "Downloads",
+      "committee": "Managing committee",
+      "achievements": "Achievements",
+      "testimonials": "What parents say",
+      "campuses": "Campuses",
+      "fees": "Fees",
+      "routine": "Class routine",
+      "results": "Results",
+      "contact": "Contact",
+      "custom": "Your own section"
+    },
+    "pinned": "Stays in its place",
+    "pinnedHint": "This section always stays in its place.",
+    "offHint": "A section that is off does not show on the website",
+    "edit": "Edit",
+    "toggle": "Show {{name}} on the website",
+    "up": "Move {{name}} up, place {{position}}",
+    "down": "Move {{name}} down, place {{position}}",
+    "editSection": "Edit {{name}}",
+    "pageOff": "This page is off"
   },
   "blog": {
     "title": "News and posts",
@@ -116,14 +162,64 @@
     "postBody": "Text",
     "cover": "Cover photo",
     "save": "Save",
-    "publish": "Publish"
+    "publish": "Publish",
+    "posts": "Posts",
+    "pages": "Pages",
+    "edit": "Edit post",
+    "titleBn": "Title (Bangla)",
+    "titleEn": "Title (English)",
+    "excerpt": "Short summary",
+    "unpublish": "Unpublish",
+    "delete": "Delete post",
+    "deleteTitle": "Delete this post?",
+    "deleteBody": "The post will also disappear from your website.",
+    "publishedToast": "Post published",
+    "savedToast": "Post saved",
+    "error": "We could not do that. Please try again.",
+    "loadError": "We could not load the posts.",
+    "editor": {
+      "editor": "Post text",
+      "toolbar": "Text formatting",
+      "bold": "Bold",
+      "italic": "Italic",
+      "paragraph": "Paragraph",
+      "heading2": "Big heading",
+      "heading3": "Small heading",
+      "bulleted": "Bullet list",
+      "numbered": "Numbered list",
+      "quote": "Quote",
+      "table": "Table",
+      "addRow": "Add a row",
+      "addColumn": "Add a column",
+      "deleteTable": "Delete the table",
+      "image": "Photo",
+      "imageAlt": "Describe the photo",
+      "link": "Link",
+      "linkUrl": "Web address",
+      "linkApply": "Add link",
+      "linkRemove": "Remove link",
+      "linkInvalid": "Use an address that starts with http or https."
+    }
   },
   "enquiries": {
     "title": "Enquiries",
-    "empty": "No enquiries yet.",
+    "empty": "No one has written yet",
     "from": "From",
     "message": "Message",
-    "received": "Received"
+    "received": "Received",
+    "name": "Name",
+    "phone": "Phone",
+    "new": "New",
+    "seen": "Seen",
+    "markSeen": "Mark as seen",
+    "copyLink": "Copy link",
+    "copied": "Link copied",
+    "delete": "Delete",
+    "deleteTitle": "Delete this message?",
+    "deleteBody": "You cannot get the message back after deleting it.",
+    "smsSwitch": "Send an SMS to the office phone for each new message",
+    "smsHelp": "When this is on, one SMS goes out for each new message.",
+    "loadError": "We could not load the messages."
   },
   "address": {
     "title": "Web address",
@@ -150,5 +246,76 @@
     "ownAddress": "If your school already has an address, like www.myschool.edu.bd, you can use it instead.",
     "colours": "Colours are used for buttons, headings and the top bar of your website.",
     "textStyle": "The text style sets how the headings and the writing on your website look."
+  },
+  "editor": {
+    "fields": {
+      "kicker": "Small tagline",
+      "headline": "Big headline",
+      "tagline": "Tagline",
+      "ctaPrimary": "Main button text",
+      "ctaSecondary": "Second button text",
+      "images": "Photos",
+      "title": "Title",
+      "body": "Text",
+      "address": "Address"
+    },
+    "typography": {
+      "title": "Text style",
+      "heading": "Heading",
+      "body": "Body text",
+      "size": "Size",
+      "weight": "Boldness",
+      "align": "Alignment",
+      "sizes": {
+        "S": "Small",
+        "M": "Medium",
+        "L": "Large",
+        "XL": "Extra large"
+      },
+      "weights": {
+        "regular": "Regular",
+        "medium": "Medium",
+        "bold": "Bold"
+      },
+      "aligns": {
+        "start": "Start",
+        "center": "Centre"
+      }
+    },
+    "resetDefault": "Back to the default text",
+    "language": {
+      "bn": "Bangla",
+      "en": "English"
+    },
+    "back": "Back to sections",
+    "save": "Save",
+    "saved": "Saved",
+    "saveError": "We could not save that. Please try again.",
+    "photoLimit": "No more photos fit in this section."
+  },
+  "announcements": {
+    "title": "Announcements",
+    "add": "Add an announcement",
+    "remove": "Remove announcement",
+    "text": "Text",
+    "link": "Link",
+    "linkHint": "An address inside your site, like /notices",
+    "linkInvalid": "Use an address that starts with /, like /notices",
+    "from": "Show from",
+    "until": "Show until",
+    "enabled": "On",
+    "style": "How it shows",
+    "styles": {
+      "marquee": "Moving text",
+      "static": "Still text"
+    },
+    "speed": "Speed",
+    "speeds": {
+      "SLOW": "Slow",
+      "NORMAL": "Medium",
+      "FAST": "Fast"
+    },
+    "limit": "You can keep at most 5 announcements.",
+    "empty": "No announcements yet."
   }
 }

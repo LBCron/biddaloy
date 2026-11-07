@@ -1,0 +1,325 @@
+/**
+ * School website content hooks (Epic 40, W3). The one place the W3 screens read the posts,
+ * enquiries and teacher-profile API, plus the pure helpers that edit a draft config.
+ *
+ * Saving a draft reuses `useSaveDraft` from `use-website.ts`. Every mutation here is
+ * `retry: false` (Rule 25); create and publish carry an `Idempotency-Key`.
+ *
+ * TODO(#3638): the post / enquiry / teacher DTOs below are hand-typed because the server routes
+ * (#3628) are not in `schema.d.ts` yet. W3 close regenerates the schema; then each alias becomes
+ * `components['schemas'][...]` and the hand-typed shapes are deleted.
+ */
+import {
+  SiteSectionKey,
+  type SiteAnnouncementBar,
+  type SiteConfig,
+  type SitePage,
+  type SiteSectionTypography,
+  type SiteTheme,
+  type SiteTypography,
+} from '@biddaloy/shared';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { apiClient } from '../api/client';
+
+import { useIdempotencyKey } from './idempotency-key';
+import { shouldRetryQuery } from './retry';
+
+/* ------------------------------ draft helpers ------------------------------ */
+
+/** Hero first, footer last (D31). `footer` is not a stored section key today; kept for when it is. */
+const PINNED_FIRST: readonly string[] = [SiteSectionKey.HERO];
+const PINNED_LAST: readonly string[] = ['footer'];
+
+export const isPinnedSection = (key: string) =>
+  PINNED_FIRST.includes(key) || PINNED_LAST.includes(key);
+
+function editPage(
+  config: SiteConfig,
+  page: SitePage,
+  edit: (
+    sections: SiteConfig['pages'][number]['sections'],
+  ) => SiteConfig['pages'][number]['sections'],
+): SiteConfig {
+  return {
+    ...config,
+    pages: config.pages.map((p) => (p.page === page ? { ...p, sections: edit(p.sections) } : p)),
+  };
+}
+
+function editSection(
+  config: SiteConfig,
+  page: SitePage,
+  key: SiteSectionKey,
+  edit: (
+    s: SiteConfig['pages'][number]['sections'][number],
+  ) => SiteConfig['pages'][number]['sections'][number],
+): SiteConfig {
+  return editPage(config, page, (sections) => sections.map((s) => (s.key === key ? edit(s) : s)));
+}
+
+/** Turning a section off keeps its data, so turning it on again brings the text back. */
+export const toggleSection = (
+  config: SiteConfig,
+  page: SitePage,
+  key: SiteSectionKey,
+  enabled: boolean,
+) => editSection(config, page, key, (s) => ({ ...s, enabled }));
+
+/** A pinned section never moves, and nothing moves onto a pinned slot. */
+export function moveSection(config: SiteConfig, page: SitePage, from: number, to: number) {
+  return editPage(config, page, (sections) => {
+    const moving = sections[from];
+    const target = sections[to];
+    if (!moving || !target || from === to) return sections;
+    if (isPinnedSection(moving.key) || isPinnedSection(target.key)) return sections;
+    const next = [...sections];
+    next.splice(from, 1);
+    next.splice(to, 0, moving);
+    return next;
+  });
+}
+
+export const setSectionData = (
+  config: SiteConfig,
+  page: SitePage,
+  key: SiteSectionKey,
+  data: Record<string, unknown>,
+) => editSection(config, page, key, (s) => ({ ...s, data }));
+
+export const setSectionTypography = (
+  config: SiteConfig,
+  page: SitePage,
+  key: SiteSectionKey,
+  typography: SiteSectionTypography,
+) => editSection(config, page, key, (s) => ({ ...s, typography }));
+
+export const setAnnouncements = (
+  config: SiteConfig,
+  announcements: SiteAnnouncementBar,
+): SiteConfig => ({ ...config, announcements });
+
+export const setPalette = (config: SiteConfig, palette: string): SiteConfig => ({
+  ...config,
+  palette,
+});
+
+export const setTypography = (config: SiteConfig, typography: SiteTypography): SiteConfig => ({
+  ...config,
+  typography,
+});
+
+/** Only the theme id changes here; the new theme's defaults for empty fields come from the server. */
+export const setTheme = (config: SiteConfig, theme: SiteTheme): SiteConfig => ({
+  ...config,
+  theme,
+});
+
+/* --------------------------------- types ----------------------------------- */
+
+type Bilingual = { bn: string; en: string };
+/** A Slate JSON array; `rich-text-editor` owns the node types. */
+type SlateBody = unknown[];
+
+/** TODO(#3638): replace with the generated `SitePostDto`. */
+export interface SitePost {
+  id: string;
+  kind: 'POST' | 'PAGE';
+  slug: string;
+  title: Bilingual;
+  excerpt?: Bilingual | null;
+  body: SlateBody;
+  cover_media_id?: string | null;
+  published_at?: string | null;
+  updated_at: string;
+}
+
+/** TODO(#3638): replace with the generated `SitePostInputDto`. */
+export interface SitePostInput {
+  kind: SitePost['kind'];
+  title: Bilingual;
+  excerpt?: Bilingual | null;
+  body: SlateBody;
+  cover_media_id?: string | null;
+}
+
+/** TODO(#3638): replace with the generated `SiteEnquiryDto`. */
+export interface SiteEnquiry {
+  id: string;
+  name: string;
+  phone: string;
+  message: string;
+  status: 'NEW' | 'SEEN';
+  created_at: string;
+}
+
+/** TODO(#3638): replace with the generated paged enquiry DTO. */
+export interface SiteEnquiryPage {
+  items: SiteEnquiry[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+/** TODO(#3638): replace with the generated `StaffWebProfileDto`. */
+export interface WebTeacher {
+  user_id: string;
+  name: string;
+  show_on_website: boolean;
+  featured: boolean;
+  sort_order?: number | null;
+  subjects: string[];
+  bio?: Bilingual | null;
+  credentials?: Bilingual | null;
+  photo_media_id?: string | null;
+}
+
+export type WebTeacherInput = Omit<WebTeacher, 'user_id' | 'name'>;
+
+export const ENQUIRY_PAGE_SIZE = 20;
+
+export const websiteContentKeys = {
+  posts: () => ['website', 'posts'] as const,
+  post: (id: string) => ['website', 'posts', id] as const,
+  enquiries: (page: number) => ['website', 'enquiries', page] as const,
+  enquiriesAll: () => ['website', 'enquiries'] as const,
+  teachers: () => ['website', 'teachers'] as const,
+};
+
+/* --------------------------------- queries --------------------------------- */
+
+export function usePosts() {
+  return useQuery({
+    queryKey: websiteContentKeys.posts(),
+    queryFn: async ({ signal }) =>
+      (await apiClient.get<SitePost[]>('/website/posts', { signal })).data,
+    retry: shouldRetryQuery,
+  });
+}
+
+export function usePost(id: string | undefined) {
+  return useQuery({
+    queryKey: websiteContentKeys.post(id ?? ''),
+    queryFn: async ({ signal }) =>
+      (await apiClient.get<SitePost>(`/website/posts/${id}`, { signal })).data,
+    enabled: !!id,
+    retry: shouldRetryQuery,
+  });
+}
+
+export function useEnquiries(page: number) {
+  return useQuery({
+    queryKey: websiteContentKeys.enquiries(page),
+    queryFn: async ({ signal }) =>
+      (
+        await apiClient.get<SiteEnquiryPage>('/website/enquiries', {
+          params: { page, limit: ENQUIRY_PAGE_SIZE },
+          signal,
+        })
+      ).data,
+    retry: shouldRetryQuery,
+  });
+}
+
+export function useWebTeachers() {
+  return useQuery({
+    queryKey: websiteContentKeys.teachers(),
+    queryFn: async ({ signal }) =>
+      (await apiClient.get<WebTeacher[]>('/website/teachers', { signal })).data,
+    retry: shouldRetryQuery,
+  });
+}
+
+/* ------------------------------- mutations --------------------------------- */
+
+export function useCreatePost() {
+  const qc = useQueryClient();
+  const { keyFor, rotate } = useIdempotencyKey();
+  return useMutation({
+    mutationFn: async (input: SitePostInput) =>
+      (
+        await apiClient.post<SitePost>('/website/posts', input, {
+          headers: { 'Idempotency-Key': keyFor(input) },
+        })
+      ).data,
+    onSuccess: () => {
+      rotate();
+      return qc.invalidateQueries({ queryKey: websiteContentKeys.posts() });
+    },
+    retry: false,
+  });
+}
+
+export function useUpdatePost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...input }: SitePostInput & { id: string }) =>
+      (await apiClient.put<SitePost>(`/website/posts/${id}`, input)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: websiteContentKeys.posts() }),
+    retry: false,
+  });
+}
+
+/** `publish: false` unpublishes. */
+export function usePublishPost() {
+  const qc = useQueryClient();
+  const { keyFor, rotate } = useIdempotencyKey();
+  return useMutation({
+    mutationFn: async ({ id, publish = true }: { id: string; publish?: boolean }) =>
+      (
+        await apiClient.post<SitePost>(
+          `/website/posts/${id}/${publish ? 'publish' : 'unpublish'}`,
+          undefined,
+          { headers: { 'Idempotency-Key': keyFor({ id, publish }) } },
+        )
+      ).data,
+    onSuccess: () => {
+      rotate();
+      return qc.invalidateQueries({ queryKey: websiteContentKeys.posts() });
+    },
+    retry: false,
+  });
+}
+
+export function useDeletePost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.delete(`/website/posts/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: websiteContentKeys.posts() }),
+    retry: false,
+  });
+}
+
+export function useMarkEnquirySeen() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.post(`/website/enquiries/${id}/seen`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: websiteContentKeys.enquiriesAll() }),
+    retry: false,
+  });
+}
+
+export function useDeleteEnquiry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.delete(`/website/enquiries/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: websiteContentKeys.enquiriesAll() }),
+    retry: false,
+  });
+}
+
+export function useUpsertWebTeacher() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, ...input }: WebTeacherInput & { userId: string }) =>
+      (await apiClient.put<WebTeacher>(`/website/teachers/${userId}`, input)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: websiteContentKeys.teachers() }),
+    retry: false,
+  });
+}
