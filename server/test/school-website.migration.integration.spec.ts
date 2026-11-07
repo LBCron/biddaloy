@@ -254,6 +254,8 @@ describe('SchoolWebsite migration', () => {
   it('down then up: tables gone, schools.domain back, then recreated', async () => {
     // call this migration directly, so a later migration landing never breaks this test
     const qr = ds.createQueryRunner();
+    // later migrations (site gallery) hang foreign keys off site_media; this DB is throwaway
+    await qr.query('DROP TABLE IF EXISTS site_gallery_photos, site_gallery_albums CASCADE');
     await new SchoolWebsite1791900003400().down(qr);
     for (const t of NEW_TABLES) expect(await tableExists(t), t).toBe(false);
     expect(await columnExists('schools', 'domain')).toBe(true);
