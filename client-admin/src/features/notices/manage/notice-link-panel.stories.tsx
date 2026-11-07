@@ -13,6 +13,7 @@ import type { Notice } from './use-notices';
 const notice = (over: Partial<Notice> = {}): Notice => ({
   id: '11111111-1111-4111-8111-111111111111',
   title: 'পরীক্ষার রুটিন',
+  pinnedOnWebsite: false,
   body: 'প্রথম সাময়িক পরীক্ষা শুরু হবে রবিবার।',
   status: 'PUBLISHED',
   important: true,
