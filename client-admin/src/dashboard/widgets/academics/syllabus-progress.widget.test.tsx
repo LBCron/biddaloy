@@ -53,6 +53,7 @@ describe('syllabus-progress widget', () => {
     expect(screen.getByText('Class 8 has covered the least (41%).')).toBeTruthy();
     expect(screen.getAllByRole('progressbar')).toHaveLength(3);
     expect(screen.queryByTestId('bar-target')).toBeNull();
+    expect(screen.queryByText(/^(Behind|On track)$/)).toBeNull();
     expect(
       screen.getByText('Comparison with the expected pace comes with study plans.'),
     ).toBeTruthy();
@@ -73,6 +74,7 @@ describe('syllabus-progress widget', () => {
     });
     renderWidget('full');
     expect(await screen.findByText('1 class is behind the plan.')).toBeTruthy();
+    expect(screen.getByText('Behind')).toBeTruthy();
     expect(screen.getAllByTestId('bar-target').length).toBeGreaterThan(0);
     expect(screen.getByText('19% behind')).toBeTruthy();
     expect(screen.getByRole('progressbar', { name: '8' }).getAttribute('aria-valuetext')).toContain(
@@ -91,6 +93,7 @@ describe('syllabus-progress widget', () => {
     });
     renderWidget('full');
     expect(await screen.findByText('No class is behind the plan.')).toBeTruthy();
+    expect(screen.getByText('On track')).toBeTruthy();
   });
 
   it('table toggle lists every class', async () => {
