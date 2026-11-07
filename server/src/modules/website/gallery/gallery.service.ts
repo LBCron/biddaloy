@@ -221,8 +221,7 @@ export class GalleryService {
         const album = await this.one(m, tenantId, albumId);
         const n = await m.count(SiteGalleryPhoto, { where: { album_id: album.id } });
         if (n >= SITE_GALLERY_MAX_PHOTOS_PER_ALBUM) throw galleryLimit();
-        const stored = await this.media.storeIn(m, tenantId, p, hash);
-        putKey = stored.newKey;
+        const stored = await this.media.storeIn(m, tenantId, p, hash, (k) => (putKey = k));
         const dup = await m.count(SiteGalleryPhoto, {
           where: { album_id: album.id, media_id: stored.row.id },
         });
@@ -291,28 +290,41 @@ export class GalleryService {
   }
 
   /**
-   * Frees pictures nothing uses any more: no gallery photo and not named in the draft or the
-   * published site (a same-bytes picture can also sit in another slot). Returns the storage keys
-   * to delete after commit; the bytes go back to the school's quota in this transaction.
+   * Frees pictures only the gallery owned: row slot `gallery` (a library or post upload of the same
+   * file takes the row over, see `SiteMediaService.storeIn`), no gallery photo left, not named in
+   * the draft or published site, not a post cover or inside a post body, not a teacher photo.
+   * Returns the storage keys to delete after commit; the bytes go back to the quota in this
+   * transaction.
    */
   private async release(m: EntityManager, tenantId: string, mediaIds: string[]): Promise<string[]> {
     if (mediaIds.length === 0) return [];
     const site = await m.findOneOrFail(SchoolSite, { where: { tenant_id: tenantId } });
     const shown = JSON.stringify([site.draft, site.published]);
-    const free: Pick<SiteMedia, 'id' | 'bytes' | 'storage_key'>[] = await m.query(
+    const candidates: Pick<SiteMedia, 'id' | 'bytes' | 'storage_key'>[] = await m.query(
       `SELECT x.id, x.bytes, x.storage_key FROM site_media x
-        WHERE x.tenant_id = $1 AND x.id = ANY($2::uuid[])
-          AND NOT EXISTS (SELECT 1 FROM site_gallery_photos p WHERE p.tenant_id = $1 AND p.media_id = x.id)`,
+        WHERE x.tenant_id = $1 AND x.id = ANY($2::uuid[]) AND x.slot = 'gallery'
+          AND NOT EXISTS (SELECT 1 FROM site_gallery_photos p WHERE p.tenant_id = $1 AND p.media_id = x.id)
+          AND NOT EXISTS (SELECT 1 FROM staff_web_profiles w WHERE w.tenant_id = $1 AND w.photo_media_id = x.id)`,
       [tenantId, mediaIds],
     );
-    const gone = free.filter((r) => !shown.includes(`"${r.id}"`));
+    const gone: typeof candidates = [];
+    for (const r of candidates) {
+      if (shown.includes(`"${r.id}"`)) continue;
+      // Post bodies hold the id as text (no FK): at most 60 ids, one indexed read each.
+      const inPost: unknown[] = await m.query(
+        `SELECT 1 FROM site_posts
+          WHERE tenant_id = $1 AND (cover_media_id = $2 OR position($2::text in body::text) > 0)
+          LIMIT 1`,
+        [tenantId, r.id],
+      );
+      if (inPost.length === 0) gone.push(r);
+    }
     if (gone.length === 0) return [];
-    const bytes = gone.reduce((s, r) => s + r.bytes, 0);
+    const bytes = gone.reduce((sum, r) => sum + r.bytes, 0);
     await m.delete(SiteMedia, { tenant_id: tenantId, id: In(gone.map((r) => r.id)) });
-    await m.update(
-      SchoolSite,
-      { tenant_id: tenantId },
-      { media_bytes_used: () => `GREATEST(media_bytes_used - ${Math.trunc(bytes)}, 0)` },
+    await m.query(
+      `UPDATE school_sites SET media_bytes_used = GREATEST(media_bytes_used - $2, 0) WHERE tenant_id = $1`,
+      [tenantId, Math.trunc(bytes)],
     );
     return gone.map((r) => r.storage_key);
   }
