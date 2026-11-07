@@ -33,6 +33,8 @@ export const TRANSACTIONAL_TABLES_CHILD_FIRST = [
   'alerts',
   // [40.1.03] school website; posts and staff profiles FK site_media (SET NULL), so
   // they clear first. staff_web_profiles FK users, cleared once per file later.
+  'site_gallery_photos',
+  'site_gallery_albums',
   'site_posts',
   'staff_web_profiles',
   'site_media',

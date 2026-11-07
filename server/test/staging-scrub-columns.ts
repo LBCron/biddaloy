@@ -111,6 +111,9 @@ const BY_TABLE: Record<string, Partial<Record<ScrubHandling, string[]>>> = {
   school_sites: { 'kept-public': ['draft', 'published'], null: ['custom_domain_records'] },
   // Posts are news about people, like notices: text goes (NOT NULL jsonb gets a placeholder).
   site_posts: { null: ['title', 'body'] },
+  // Gallery titles and captions are published school copy, like the site draft.
+  site_gallery_albums: { 'kept-public': ['title'] },
+  site_gallery_photos: { 'kept-public': ['caption'] },
   // Content hash of a picture (staff photos too); replaced by a value derived from the row id.
   site_media: { fake: ['hash'] },
 

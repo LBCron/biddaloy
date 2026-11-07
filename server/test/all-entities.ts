@@ -148,6 +148,8 @@ import { SurveyAnswer } from '../src/modules/surveys/entities/survey-answer.enti
 import { SchoolSite } from '../src/modules/website/entities/school-site.entity';
 import { SiteEnquiry } from '../src/modules/website/entities/site-enquiry.entity';
 import { SiteMedia } from '../src/modules/website/entities/site-media.entity';
+import { SiteGalleryAlbum } from '../src/modules/website/entities/site-gallery-album.entity';
+import { SiteGalleryPhoto } from '../src/modules/website/entities/site-gallery-photo.entity';
 import { SitePost } from '../src/modules/website/entities/site-post.entity';
 import { StaffWebProfile } from '../src/modules/website/entities/staff-web-profile.entity';
 
@@ -155,6 +157,8 @@ export const ALL_ENTITIES = [
   SchoolSite,
   SiteEnquiry,
   SiteMedia,
+  SiteGalleryAlbum,
+  SiteGalleryPhoto,
   SitePost,
   StaffWebProfile,
   AcademicYear,

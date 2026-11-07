@@ -16,6 +16,7 @@ import { slice as reports } from './slices/reports';
 import { slice as attention } from './slices/attention';
 import { slice as notices } from './slices/notices';
 import { slice as website } from './slices/website';
+import { slice as gallery } from './slices/gallery';
 
 /** Run order matters: later slices read ids earlier ones publish. `attention` is always last. */
 export const SLICES: DemoSlice[] = [
@@ -35,6 +36,7 @@ export const SLICES: DemoSlice[] = [
   reports,
   notices,
   website,
+  gallery,
   attention,
 ];
 
