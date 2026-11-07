@@ -1,7 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { SiteSectionKey } from '@biddaloy/shared';
 import type { SiteConfig } from '@biddaloy/shared';
-import { SiteEnquiriesService, officeSmsOn } from './site-enquiries.service';
+import {
+  ENQUIRY_SMS_HOURLY_CAP,
+  SiteEnquiriesService,
+  officeSmsOn,
+} from './site-enquiries.service';
 
 const config = (data: Record<string, unknown>) =>
   ({
@@ -25,9 +29,16 @@ describe('officeSmsOn', () => {
 });
 
 describe('SiteEnquiriesService.createPublic', () => {
+  let hits = 1;
+  const countHit = vi.fn(async () => hits);
   const make = (enqueue = vi.fn().mockResolvedValue({})) => {
+    hits = 1;
     const insert = vi.fn().mockResolvedValue({});
-    const svc = new SiteEnquiriesService({ insert } as never, { enqueue } as never);
+    const svc = new SiteEnquiriesService(
+      { insert } as never,
+      { enqueue } as never,
+      { countHit } as never,
+    );
     return { svc, insert, enqueue };
   };
   const office = (smsOn: boolean, phone: string | null = '01811111111') => ({
@@ -60,5 +71,22 @@ describe('SiteEnquiriesService.createPublic', () => {
     const failing = make(vi.fn().mockRejectedValue(new Error('provider down')));
     await expect(failing.svc.createPublic('tenant-a', dto, office(true))).resolves.toBeUndefined();
     expect(failing.insert).toHaveBeenCalled();
+  });
+
+  it('past the hourly cap the enquiry is stored but no SMS is sent; Redis down skips it too', async () => {
+    const over = make();
+    hits = ENQUIRY_SMS_HOURLY_CAP; // exactly at the cap still sends
+    await over.svc.createPublic('tenant-a', dto, office(true));
+    expect(over.enqueue).toHaveBeenCalledTimes(1);
+    hits = ENQUIRY_SMS_HOURLY_CAP + 1;
+    await over.svc.createPublic('tenant-a', dto, office(true));
+    expect(over.enqueue).toHaveBeenCalledTimes(1);
+    expect(over.insert).toHaveBeenCalledTimes(2);
+
+    const down = make();
+    countHit.mockResolvedValueOnce(null as never);
+    await down.svc.createPublic('tenant-a', dto, office(true));
+    expect(down.enqueue).not.toHaveBeenCalled();
+    expect(down.insert).toHaveBeenCalled();
   });
 });

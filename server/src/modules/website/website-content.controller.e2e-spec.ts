@@ -8,6 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { SITE_FEATURED_TEACHERS_MAX, UserRole } from '@biddaloy/shared';
 import { AppModule } from '../../app.module';
 import { StorageService } from '../storage/storage.service';
+import { TENANT_STATUS_REDIS } from '../schools/tenant-status.service';
 import { AllExceptionsFilter } from '../../common/filters/http-exception.filter';
 import { configureApiVersioning } from '@test/helpers/e2e-app.helper';
 import { buildValidationPipeOptions } from '../../validation-pipe';
@@ -382,6 +383,82 @@ describe('Website content API E2E (posts, enquiries, teachers)', () => {
         .set('Idempotency-Key', randomUUID())
         .expect(200);
       await get(cover.id).expect(200);
+      await storage.delete(photo.key);
+      await storage.delete(cover.key);
+      await ds.query(`DELETE FROM site_posts WHERE tenant_id = $1`, [SEED_TENANT_ID]);
+      await ds.query(`DELETE FROM site_media WHERE tenant_id = $1`, [SEED_TENANT_ID]);
+    });
+  });
+
+  describe('routine island input', () => {
+    it('array, junk and foreign ids all answer [] and write no routine cache key', async () => {
+      const host = await liveHost();
+      const redis = app.get(TENANT_STATUS_REDIS);
+      const pattern = `site:${SEED_TENANT_ID}:feed:routine*`;
+      await redis.del(...(await redis.keys(pattern)), `site:${SEED_TENANT_ID}:feed:x`);
+      const url = `/api/v1/public/site/by-host/${host}/island/routine`;
+      for (const q of [
+        '',
+        '?classSectionId=junk-%27%3B--',
+        `?classSectionId=${randomUUID()}&classSectionId=${randomUUID()}`,
+        `?classSectionId=${randomUUID()}`, // a valid UUID that is no section of this school
+      ]) {
+        const r = await api()
+          .get(url + q)
+          .expect(200);
+        expect(r.body).toEqual([]);
+      }
+      expect(await redis.keys(pattern)).toEqual([]);
+    });
+  });
+
+  describe('media by feed: only live people and live posts', () => {
+    it('a suspended teacher photo and a future-dated or PAGE post cover are 404', async () => {
+      const host = await liveHost();
+      const storage = app.get(StorageService);
+      const media = async (slot: string, name: string) => {
+        const key = `tenants/${SEED_TENANT_ID}/${name}-${tag}.webp`;
+        await storage.put(key, Buffer.from('RIFFfake'), 'image/webp');
+        const [{ id }] = await ds.query(
+          `INSERT INTO site_media (tenant_id, slot, storage_key, hash, width, height, bytes)
+           VALUES ($1,$2,$3,$4,10,10,8) RETURNING id`,
+          [SEED_TENANT_ID, slot, key, name.padEnd(64, 'e').slice(0, 64)],
+        );
+        return { id: id as string, key };
+      };
+      const get = (id: string) => api().get(`/api/v1/public/site/by-host/${host}/media/${id}`);
+      const photo = await media('person', 'livephoto');
+      await ds.query(
+        `INSERT INTO staff_web_profiles (tenant_id, user_id, show_on_website, photo_media_id)
+         VALUES ($1,$2,true,$3)`,
+        [SEED_TENANT_ID, teacherUserId, photo.id],
+      );
+      await get(photo.id).expect(200);
+      await ds.query(`UPDATE users SET status = 'SUSPENDED' WHERE id = $1`, [teacherUserId]);
+      await get(photo.id).expect(404);
+      await ds.query(`UPDATE users SET status = 'ACTIVE' WHERE id = $1`, [teacherUserId]);
+      await ds.query(`UPDATE user_tenants SET deleted_at = NOW() WHERE user_id = $1`, [
+        teacherUserId,
+      ]);
+      await get(photo.id).expect(404);
+      await ds.query(`UPDATE user_tenants SET deleted_at = NULL WHERE user_id = $1`, [
+        teacherUserId,
+      ]);
+
+      const cover = await media('post-cover', 'livecover');
+      const post = (kind: string, publishedAt: string) =>
+        ds.query(
+          `INSERT INTO site_posts (tenant_id, kind, slug, title, body, cover_media_id, published_at)
+           VALUES ($1,$2,$3,'{}'::jsonb,'[]'::jsonb,$4,${publishedAt})`,
+          [SEED_TENANT_ID, kind, `s-${randomUUID().slice(0, 6)}`, cover.id],
+        );
+      await post('POST', `NOW() + INTERVAL '1 day'`);
+      await get(cover.id).expect(404);
+      await post('PAGE', 'NOW()');
+      await get(cover.id).expect(404);
+      await post('POST', `NOW() - INTERVAL '1 minute'`);
+      await get(cover.id).expect(200);
+
       await storage.delete(photo.key);
       await storage.delete(cover.key);
       await ds.query(`DELETE FROM site_posts WHERE tenant_id = $1`, [SEED_TENANT_ID]);
