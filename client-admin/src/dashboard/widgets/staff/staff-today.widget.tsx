@@ -43,7 +43,9 @@ export function StaffTodayView({
   failed = false,
   onRetry,
 }: StaffTodayViewProps) {
-  const { t } = useTranslation(['dashboard', 'leave', 'signal']);
+  const { t } = useTranslation('dashboard');
+  useTranslation('leave');  // [#3592] load namespace before first render
+  useTranslation('signal'); // [#3592] separate binding: check-i18n-keys reads the first single-quoted call
   const region = useTenantRegionConfig();
   const tw = (key: string, opts?: Record<string, unknown>) =>
     t(`widgets.${K}.${key}`, { ns: 'dashboard', ...opts });
@@ -71,7 +73,7 @@ export function StaffTodayView({
       variant={compact ? 'compact' : 'full'}
       {...(value && !empty ? { value } : {})}
       {...(summary && !empty ? { summary } : {})}
-      {...(watch ? { signal: 'warn' as const, signalLabel: t('signal:watch') } : {})}
+      {...(watch ? { signal: 'warn' as const, signalLabel: t('watch', { ns: 'signal' }) } : {})}
       loading={loading}
       loadingLabel={t('states.loading', { ns: 'dashboard', title })}
       {...(failed && onRetry

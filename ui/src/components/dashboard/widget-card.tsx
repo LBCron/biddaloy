@@ -191,8 +191,9 @@ export function WidgetCard({
             sig?.band && `-mx-2 rounded-md px-2 py-1 ${sig.band}`,
           )}
         >
-          <Heading id={id} className={cn('me-auto text-h3', sig && 'flex items-center gap-2')}>
-            {sigEl}
+          {/* Beside (not inside) the heading: the section's accessible name stays just the title. */}
+          {sigEl}
+          <Heading id={id} className="me-auto text-h3">
             {title}
           </Heading>
           {helpEl}

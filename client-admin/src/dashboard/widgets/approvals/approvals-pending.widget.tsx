@@ -45,7 +45,9 @@ export function ApprovalsPendingView({
   failed = false,
   onRetry,
 }: ApprovalsPendingViewProps) {
-  const { t } = useTranslation(['dashboard', 'applications', 'signal']);
+  const { t } = useTranslation('dashboard');
+  useTranslation('applications');  // [#3592] load namespace before first render
+  useTranslation('signal'); // [#3592] separate binding: check-i18n-keys reads the first single-quoted call
   const region = useTenantRegionConfig();
   const tw = (key: string, opts: Record<string, unknown> = {}) =>
     t(`dashboard:widgets.${K}.${key}`, opts);
@@ -81,8 +83,8 @@ export function ApprovalsPendingView({
       {...(data ? { summary: data.total === 0 ? tw('none') : oldest } : {})}
       {...(!failed && urgent != null
         ? urgent
-          ? { signal: 'critical' as const, signalLabel: t('signal:needsAction') }
-          : { signal: 'ok' as const, signalLabel: t('signal:healthy') }
+          ? { signal: 'critical' as const, signalLabel: t('needsAction', { ns: 'signal' }) }
+          : { signal: 'ok' as const, signalLabel: t('healthy', { ns: 'signal' }) }
         : {})}
       loading={loading}
       loadingLabel={t('states.loading', { ns: 'dashboard', title })}

@@ -47,7 +47,8 @@ export function AttendanceTodayView({
   onRetry,
   updatedLabel,
 }: AttendanceTodayViewProps) {
-  const { t } = useTranslation(['dashboard', 'signal']);
+  const { t } = useTranslation('dashboard');
+  useTranslation('signal'); // [#3592] separate binding: check-i18n-keys reads the first single-quoted call
   const region = useTenantRegionConfig();
   const tw = (key: string, opts: Record<string, unknown> = {}) => t(`widgets.${K}.${key}`, opts);
   const pct = (v: number) => `${formatNumber(v, region, { decimals: 1 })}%`;
@@ -129,7 +130,7 @@ export function AttendanceTodayView({
       {...(value ? { value } : {})}
       {...(summary ? { summary } : {})}
       {...(updatedLabel && variant === 'full' ? { updatedLabel } : {})}
-      {...(low ? { signal: 'warn' as const, signalLabel: t('signal:watch') } : {})}
+      {...(low ? { signal: 'warn' as const, signalLabel: t('watch', { ns: 'signal' }) } : {})}
       loading={loading}
       loadingLabel={t('states.loading', { title })}
       {...(failed && onRetry

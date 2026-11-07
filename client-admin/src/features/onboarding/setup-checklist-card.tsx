@@ -31,7 +31,8 @@ function showChecklist(status: OnboardingStatus | undefined): status is Onboardi
 }
 
 export function SetupChecklistCard() {
-  const { t } = useTranslation(['setupChecklist', 'signal']);
+  const { t } = useTranslation('setupChecklist');
+  useTranslation('signal'); // [#3592] separate binding: check-i18n-keys reads the first single-quoted call
   const role = useActiveRole();
   const update = useUpdateOnboarding();
   const headingId = useId(); // the grid renders desktop + phone copies; ids must not collide
@@ -49,7 +50,7 @@ export function SetupChecklistCard() {
             <div className="flex items-center gap-1">
               {/* [#3599] Setup is unfinished = "watch": icon + sr-only text, colour never alone (D8). */}
               <ClockIcon aria-hidden="true" className="size-4 shrink-0 text-signal-warn-fg" />
-              <span className="sr-only">{t('signal:watch')}</span>
+              <span className="sr-only">{t('watch', { ns: 'signal' })}</span>
               <h2 id={headingId} className="text-h3">
                 {t('title')}
               </h2>

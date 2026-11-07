@@ -50,7 +50,8 @@ export function CollectionMonthView({
   failed = false,
   onRetry,
 }: CollectionMonthViewProps) {
-  const { t } = useTranslation(['dashboard', 'signal']);
+  const { t } = useTranslation('dashboard');
+  useTranslation('signal'); // [#3592] separate binding: check-i18n-keys reads the first single-quoted call
   const region = useTenantRegionConfig();
   const tw = (key: string, opts: Record<string, unknown> = {}) => t(`widgets.${K}.${key}`, opts);
   const pct = (v: number) => `${formatNumber(v, region)}%`;

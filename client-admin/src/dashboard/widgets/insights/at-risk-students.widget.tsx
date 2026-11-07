@@ -57,7 +57,8 @@ export function AtRiskView({
   onRetry,
   defaultExpanded = false,
 }: AtRiskViewProps) {
-  const { t } = useTranslation(['dashboard', 'signal']);
+  const { t } = useTranslation('dashboard');
+  useTranslation('signal'); // [#3592] separate binding: check-i18n-keys reads the first single-quoted call
   const region = useTenantRegionConfig();
   const [showAll, setShowAll] = React.useState(defaultExpanded);
   const tw = (key: string, opts: Record<string, unknown> = {}) => t(`widgets.${K}.${key}`, opts);
@@ -171,7 +172,7 @@ export function AtRiskView({
       {...(data?.computed_at && variant === 'full'
         ? { updatedLabel: tw('computedAt', { time: formatTime(data.computed_at, region) }) }
         : {})}
-      {...(sigOn ? { signal: 'critical' as const, signalLabel: t('signal:needsAction') } : {})}
+      {...(sigOn ? { signal: 'critical' as const, signalLabel: t('needsAction', { ns: 'signal' }) } : {})}
       loading={loading}
       loadingLabel={t('states.loading', { title })}
       {...(failed && onRetry

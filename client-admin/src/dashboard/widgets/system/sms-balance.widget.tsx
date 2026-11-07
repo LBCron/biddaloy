@@ -44,7 +44,8 @@ export function SmsBalanceView({
   failed = false,
   onRetry,
 }: SmsBalanceViewProps) {
-  const { t } = useTranslation(['dashboard', 'signal']);
+  const { t } = useTranslation('dashboard');
+  useTranslation('signal'); // [#3592] separate binding: check-i18n-keys reads the first single-quoted call
   const region = useTenantRegionConfig();
   const tw = (key: string, opts: Record<string, unknown> = {}) => t(`widgets.${K}.${key}`, opts);
   // `count` picks the plural; `value` is the grouped display (১,২৪০).
