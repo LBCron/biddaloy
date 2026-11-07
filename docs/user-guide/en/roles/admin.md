@@ -128,6 +128,7 @@ All your features, in the order of the left menu. The list is built automaticall
 - [Activity log](../administration/audit-logs.md) — See who created, changed or deleted what in the school, and who signed in, from newest to oldest; filter to find things, and open a row to compare before and after. The record can only be viewed, never changed.
 - [Settings](../administration/settings.md) — Set the school's profile, academic rules, fee rules, communication, printing, sign-in, backup and alerts on one page, in nine categories.
 - [Ready-made curriculum](../administration/curriculum-preset.md) — In a brand-new school, choose a ready-made curriculum and create the academic year, classes, subjects, grading scale and exam templates in one go. It cannot be added if the school already has classes, subjects, students or exams, and once added you cannot undo it yourself.
+- [Website](../administration/website.md) — Set up your school website in a few steps, look at it first, publish it, and turn it on or off.
 
 <!-- /guide:generated -->
 

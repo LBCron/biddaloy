@@ -4007,6 +4007,16 @@ export const HELP_INDEX: HelpIndex = {
     knownIssues: 0,
     field: { ns: 'curriculumPreset', key: 'confirmName' },
   },
+  'administration.website': {
+    title: { bn: 'স্কুলের ওয়েবসাইট', en: 'School website' },
+    summary: {
+      bn: 'কয়েক ধাপে স্কুলের ওয়েবসাইট সাজান, আগে দেখে নিন, প্রকাশ করুন, আর চালু বা বন্ধ করুন।',
+      en: 'Set up your school website in a few steps, look at it first, publish it, and turn it on or off.',
+    },
+    path: 'administration/website',
+    anchor: '',
+    knownIssues: 0,
+  },
   'portal.overview': {
     title: { bn: 'সারসংক্ষেপ', en: 'Overview' },
     summary: {
@@ -5201,6 +5211,7 @@ export const HELP_ROUTES = {
   '/audit-logs': 'administration.auditLogs',
   '/settings': 'administration.settings',
   '/curriculum-preset': 'administration.curriculumPreset',
+  '/website': 'administration.website',
   '/portal': 'portal.overview',
   '/portal/fees': 'portal.fees',
   '/portal/statement': 'portal.statement',
