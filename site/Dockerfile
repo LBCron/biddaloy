@@ -35,6 +35,9 @@ RUN yarn install --frozen-lockfile --production --ignore-scripts --network-timeo
 FROM node:26-alpine@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94
 WORKDIR /app
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=4321
+# The OG share card is drawn by sharp (librsvg), which reads SYSTEM fonts, not site/public/fonts:
+# without these the card text is blank. Noto Bengali covers bn; Inter covers the Latin text.
+RUN apk add --no-cache fontconfig font-noto-bengali font-inter
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=prod-deps /app/shared/node_modules ./shared/node_modules
 COPY --from=prod-deps /app/site-themes/node_modules ./site-themes/node_modules
