@@ -47,9 +47,7 @@ describe('/website Overview', () => {
     mockWebsite({ has_published: true, enabled: true, version: 2 });
     render();
     expect(await screen.findByText('Changes not published')).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(
-      false,
-    );
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Publish' }).disabled).toBe(false);
   });
 
   it('disables Publish when the published copy equals the draft', async () => {
@@ -57,9 +55,7 @@ describe('/website Overview', () => {
     render();
     await screen.findByText('Your website is on');
     expect(screen.queryByText('Changes not published')).toBeNull();
-    expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Publish' }).disabled).toBe(true);
   });
 
   it('hides the live link while the website is off', async () => {
