@@ -222,4 +222,53 @@ describe('onboarding E2E', () => {
   it('rejects an unknown setup_path with 400', async () => {
     await patch(tokens.admin1, { setup_path: 'magic' }).expect(400);
   });
+
+  // [40.2.05] The website item: only for a school that said yes; done once the site is on.
+  it('lists the `website` item only after wants_website, and it is done once the site is on', async () => {
+    const listed = (s: OnboardingStatus) => s.items.some((i) => i.id === 'website');
+    expect(listed((await get(tokens.admin1).expect(200)).body)).toBe(false);
+
+    await patch(tokens.admin1, { wants_website: false }).expect(200);
+    expect(listed((await get(tokens.admin1).expect(200)).body)).toBe(false);
+
+    const yes = (await patch(tokens.admin1, { wants_website: true }).expect(200))
+      .body as OnboardingStatus;
+    expect(yes.items.at(-1)).toEqual({ id: 'website', done: false });
+
+    await dataSource.query(
+      `INSERT INTO school_sites (tenant_id, subdomain, palette, draft, enabled)
+       VALUES ($1, 'onboarding-e2e-site', 'green', '{}'::jsonb, false)`,
+      [TENANT_ID],
+    );
+    expect(done((await get(tokens.admin1).expect(200)).body, 'website')).toBe(false);
+
+    await dataSource.query(`UPDATE school_sites SET enabled = true WHERE tenant_id = $1`, [
+      TENANT_ID,
+    ]);
+    expect(done((await get(tokens.admin1).expect(200)).body, 'website')).toBe(true);
+
+    // The other answers survive: wants_website is one more key in the same document.
+    const [row] = await dataSource.query(`SELECT onboarding FROM schools WHERE id = $1`, [
+      TENANT_ID,
+    ]);
+    expect(row.onboarding.wants_website).toBe(true);
+    expect(row.onboarding.seen_by).toEqual(expect.arrayContaining([ADMIN_1.id]));
+  });
+
+  it('rejects a non-boolean wants_website with 400', async () => {
+    await patch(tokens.admin1, { wants_website: 'yes' }).expect(400);
+  });
+
+  it('a missing, malformed or foreign X-Tenant-ID is refused on both routes', async () => {
+    for (const tenant of [null, 'not-a-uuid', '00000000-0000-4000-8000-0000001e04ff']) {
+      for (const method of ['get', 'patch'] as const) {
+        let r = supertest(app.getHttpServer())
+          [method](method === 'get' ? '/api/v1/onboarding/status' : '/api/v1/onboarding')
+          .set('Authorization', `Bearer ${tokens.admin1}`);
+        if (tenant) r = r.set('X-Tenant-ID', tenant);
+        const res = await (method === 'patch' ? r.send({ wants_website: true }) : r);
+        expect(res.status).toBe(401);
+      }
+    }
+  });
 });

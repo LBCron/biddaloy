@@ -6,7 +6,10 @@ import type { components } from '../api/schema';
 
 import { shouldRetryQuery } from './retry';
 
-export type UpdateOnboardingInput = components['schemas']['UpdateOnboardingDto'];
+/** TODO(#3627): `wants_website` joins the generated type when `schema.d.ts` is regenerated. */
+export type UpdateOnboardingInput = components['schemas']['UpdateOnboardingDto'] & {
+  wants_website?: boolean;
+};
 
 export const onboardingKeys = { status: ['onboarding', 'status'] as const };
 

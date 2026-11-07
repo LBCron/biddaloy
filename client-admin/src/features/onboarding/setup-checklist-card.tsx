@@ -22,7 +22,6 @@ const TARGETS: Record<OnboardingItemId, { to: string; search?: Record<string, st
     feeStructures: { to: '/fee-structures' },
     guardianInvites: { to: '/guardians', search: { invite: 1 } },
     messageSettings: { to: '/settings', search: { section: 'communication' } },
-    // TODO(#3626): the server sends this item, and its `checklist.website` label lands, in #3626.
     website: { to: '/website' },
   };
 

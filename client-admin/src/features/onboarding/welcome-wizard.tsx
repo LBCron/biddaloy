@@ -33,6 +33,7 @@ export function WelcomeWizard({ guided, excel, people, summary }: WelcomeWizardP
   const status = useQuery(onboardingStatusQueryOptions());
   const update = useUpdateOnboarding();
   const [door, setDoor] = React.useState<SetupDoor | null>(null);
+  const [wantsWebsiteChoice, setWantsWebsite] = React.useState<boolean | null>(null);
   const [failed, setFailed] = React.useState(false);
 
   // Once per mount (the ref also guards StrictMode's double effect).
@@ -46,6 +47,9 @@ export function WelcomeWizard({ guided, excel, people, summary }: WelcomeWizardP
 
   // A door chosen earlier (before a reload) is preselected; guided is the default.
   const chosen: SetupDoor = door ?? status.data?.setup_path ?? 'guided';
+  // The status lists a `website` item only after a yes, so a reload keeps the answer.
+  const wantsWebsite =
+    wantsWebsiteChoice ?? status.data?.items.some((i) => i.id === 'website') ?? false;
 
   async function save(input: Parameters<typeof update.mutateAsync>[0]): Promise<boolean> {
     setFailed(false);
@@ -63,7 +67,9 @@ export function WelcomeWizard({ guided, excel, people, summary }: WelcomeWizardP
   }
 
   async function nextFromDoors() {
-    if (!(await save({ setup_path: chosen }))) return;
+    // The website question lives under the guided door; any other door means no.
+    if (!(await save({ setup_path: chosen, wants_website: chosen === 'guided' && wantsWebsite })))
+      return;
     if (chosen === 'later') setStep('people');
     else setPath(chosen);
   }
@@ -134,6 +140,8 @@ export function WelcomeWizard({ guided, excel, people, summary }: WelcomeWizardP
             value={chosen}
             onChange={setDoor}
             onEnter={() => void nextFromDoors()}
+            wantsWebsite={wantsWebsite}
+            onWantsWebsiteChange={setWantsWebsite}
             supportUrl={status.data?.support_url ?? null}
           />
         ))}

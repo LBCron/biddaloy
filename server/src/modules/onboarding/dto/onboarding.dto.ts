@@ -7,6 +7,11 @@ export class UpdateOnboardingDto {
   @IsIn(['guided', 'excel', 'later'])
   setup_path?: OnboardingSetupPath;
 
+  /** The school's answer to "do you want a public website?" at setup. Adds the `website` checklist item. */
+  @IsOptional()
+  @IsBoolean()
+  wants_website?: boolean;
+
   /** `true` stamps `finished_at`; `false` clears it. */
   @IsOptional()
   @IsBoolean()
