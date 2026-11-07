@@ -15,6 +15,7 @@ sources:
   - client-admin/src/routes/_staff/exams/-detail/results-panel.tsx
   - client-admin/src/routes/_staff/exams/-detail/print-panel.tsx
   - client-admin/src/routes/_staff/exams/-detail/use-result-actions.tsx
+  - client-admin/src/routes/_staff/exams/-detail/website-publish-dialog.tsx
   - server/src/modules/exams/exams.controller.ts
   - server/src/modules/exams/exams.service.ts
   - server/src/modules/exams/exam-components.controller.ts
@@ -249,6 +250,18 @@ knownIssues: []
 | **প্রকাশিত**      | ফল প্রকাশ হয়েছে; অংশ বদলানো বন্ধ                | **ফলাফল বিশ্লেষণ**, **ফলাফল এসএমএস পাঠান**, **পুনরায় খুলুন** |
 
 **পুনরায় খুলুন** চাপলে পরীক্ষা আবার **প্রক্রিয়াকৃত** হয়। প্রক্রিয়া, প্রকাশ আর পুনরায় খোলার পুরো নিয়ম [ফলাফলের পাতায়](results.md) থাকবে।
+
+### স্কুলের ওয়েবসাইটে ফলাফল দেখান <a href="#task-website" id="task-website"></a>
+
+এর জন্য **ফলাফল প্রকাশ** অনুমতি লাগবে, আর পরীক্ষাটি **প্রকাশিত** হতে হবে।
+
+1. পরীক্ষা খুলুন, তারপর **ওয়েবসাইটে ফলাফল দেখান** চাপুন।
+2. **নাম দেখাও** চালু রাখুন, অথবা বন্ধ করুন। বন্ধ থাকলে শুধু রোল আর নম্বর দেখা যাবে।
+3. **ওয়েবসাইটে দেখান** চাপুন। → **ফলাফল এখন ওয়েবসাইটে আছে।** দেখতে **ওয়েবসাইটে দেখুন** চাপুন।
+
+সরাতে **ওয়েবসাইট থেকে ফলাফল সরান** চাপুন, তারপর নিশ্চিত করুন। ফলাফল সঙ্গে সঙ্গে ওয়েবসাইট থেকে সরে যায়।
+
+স্কুলের ওয়েবসাইট না থাকলে আগে তা সাজিয়ে নিন ([স্কুলের ওয়েবসাইট](../administration/website.md))।
 
 ### পরীক্ষা মোছা <a href="#task-delete" id="task-delete"></a>
 

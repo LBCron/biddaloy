@@ -6,23 +6,18 @@
  * and reopen need RESULT_PUBLISH.
  */
 import { Permission } from '@biddaloy/shared';
-import { useHasPermission, useResults } from '@biddaloy/ui/hooks';
+import { useExam, useHasPermission, useResults } from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
 import type { PageAction } from '@biddaloy/ui/shells';
 import { useNavigate } from '@tanstack/react-router';
-import {
-  Calculator,
-  Globe,
-  MessageSquare,
-  RefreshCw,
-  RotateCcw,
-  TrendingUp,
-} from 'lucide-react';
+import { Calculator, Globe, MessageSquare, RefreshCw, RotateCcw, TrendingUp } from 'lucide-react';
 import * as React from 'react';
 
 import { ProcessDialog } from '../../results/-process-dialog';
 import { PublishDialog, ReopenPreviewDialog } from '../../results/-publish-dialog';
 import { SendResultSmsDialog } from '../../results/-send-result-sms-dialog';
+
+import { WebsitePublishDialog } from './website-publish-dialog';
 
 const ICON = 'size-4';
 
@@ -41,6 +36,10 @@ export function useResultActions(
   const [publishOpen, setPublishOpen] = React.useState(false);
   const [reopenOpen, setReopenOpen] = React.useState(false);
   const [smsOpen, setSmsOpen] = React.useState(false);
+  const [websiteOpen, setWebsiteOpen] = React.useState(false);
+  // Same cached exam the page header reads; only a PUBLISHED exam can go on the website.
+  const exam = useExam(examStatus === 'PUBLISHED' ? examId : undefined).data;
+  const onWebsite = !!exam?.website_published_at;
 
   if (!examStatus) return { actions: [], dialogs: null };
 
@@ -83,6 +82,15 @@ export function useResultActions(
     allowed: canPublish,
     onClick: () => setSmsOpen(true),
   };
+  // Secondary, never primary: one primary per page (the next result step).
+  const websitePublish: PageAction = {
+    id: 'websitePublish',
+    label: onWebsite ? t('website.unpublish') : t('website.publish'),
+    icon: <Globe aria-hidden className={ICON} />,
+    priority: 'secondary',
+    allowed: canPublish,
+    onClick: () => setWebsiteOpen(true),
+  };
   const reopen: PageAction = {
     id: 'reopen',
     label: t('resultsPanel.reopen'),
@@ -95,7 +103,7 @@ export function useResultActions(
   let actions: PageAction[];
   if (examStatus === 'DRAFT') actions = [process];
   else if (examStatus === 'PROCESSED') actions = [analysis, reprocess, publish];
-  else actions = [analysis, sendSms, reopen];
+  else actions = [analysis, sendSms, websitePublish, reopen];
 
   // Without permission for the primary, the next allowed result-changing action
   // (process again) takes its place; "analysis" is never promoted.
@@ -120,6 +128,13 @@ export function useResultActions(
           onOpenChange={setReopenOpen}
           examId={examId}
           resultCount={resultCount}
+        />
+        <WebsitePublishDialog
+          open={websiteOpen}
+          onOpenChange={setWebsiteOpen}
+          examId={examId}
+          published={onWebsite}
+          showNames={exam?.website_show_names ?? true}
         />
         <SendResultSmsDialog
           open={smsOpen}

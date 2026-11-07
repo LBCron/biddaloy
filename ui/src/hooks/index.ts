@@ -1795,6 +1795,13 @@ export {
   type WebsiteTheme,
 } from './use-website';
 export {
+  usePublishExamWebsite,
+  useSetExamWebsiteNames,
+  useUnpublishExamWebsite,
+  type WebsiteNamesInput,
+  type WebsiteResultsState,
+} from './use-exam-website';
+export {
   useCustomDomain,
   useRecheckCustomDomain,
   useRemoveCustomDomain,

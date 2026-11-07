@@ -15,6 +15,7 @@ sources:
   - client-admin/src/routes/_staff/exams/-detail/results-panel.tsx
   - client-admin/src/routes/_staff/exams/-detail/print-panel.tsx
   - client-admin/src/routes/_staff/exams/-detail/use-result-actions.tsx
+  - client-admin/src/routes/_staff/exams/-detail/website-publish-dialog.tsx
   - server/src/modules/exams/exams.controller.ts
   - server/src/modules/exams/exams.service.ts
   - server/src/modules/exams/exam-components.controller.ts
@@ -249,6 +250,18 @@ The state is written at the top of the exam page, and beside it are only the but
 | **Published** | Results are published; parts are locked                        | **Result analysis**, **Send result SMS**, **Reopen** |
 
 Pressing **Reopen** makes the exam **Processed** again. The full rules for processing, publishing and reopening will be on [the results page](results.md).
+
+### Show results on the school website <a href="#task-website" id="task-website"></a>
+
+You need the **Result publish** permission, and the exam must be **Published**.
+
+1. Open the exam, then press **Show results on the website**.
+2. Leave **Show student names** on, or turn it off to show only roll number and marks.
+3. Press **Show on website**. → **Results are now on the website.** Press **See on the website** to look at them.
+
+To take them off, press **Take results off the website**, then confirm. The results leave the website at once.
+
+If your school has no website yet, set it up first ([School website](../administration/website.md)).
 
 ### Delete an exam <a href="#task-delete" id="task-delete"></a>
 

@@ -329,6 +329,8 @@ describe('action-registry.ts', () => {
     'programs.add',
     // [81.3.3] Uploading marks is MARK_ENTER; `/marks` is MARK_VIEW.
     'marks.uploadSheet',
+    // [40.5.03] Showing results on the website is RESULT_PUBLISH; `/exams` is EXAM_MANAGE.
+    'exams.publishWebsite',
     'programs.enrol',
     'fines.log',
     'fines.generate',
@@ -481,6 +483,13 @@ describe('action-registry.ts', () => {
     it('exams.printAdmitCards opens that exam’s Print tab', () => {
       expect(target('exams.printAdmitCards', { examId: 'e1' })).toBe('/exams/e1?tab=print');
       expect(target('exams.printAdmitCards')).toBe('/exams');
+    });
+    it('exams.publishWebsite needs RESULT_PUBLISH and opens that exam', () => {
+      expect(ACTIONS.find((a) => a.id === 'exams.publishWebsite')?.permission).toBe(
+        Permission.RESULT_PUBLISH,
+      );
+      expect(target('exams.publishWebsite', { examId: 'e1' })).toBe('/exams/e1');
+      expect(target('exams.publishWebsite')).toBe('/exams');
     });
     it('certificates.issue opens the issue modal for that student', () => {
       expect(target('certificates.issue', { studentId: 's1' })).toBe(

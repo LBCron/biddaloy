@@ -1089,6 +1089,19 @@ export const ACTIONS: readonly PaletteAction[] = [
         to: ctx.params?.examId ? `/exams/${ctx.params.examId}?tab=print` : '/exams',
       }),
   },
+  // [40.5.03] Lands on the exam, where the header button opens the confirm (the action only exists
+  // for a PUBLISHED exam, so the palette cannot open the dialog itself).
+  {
+    id: 'exams.publishWebsite',
+    label: { en: 'Show results on the website', bn: 'ওয়েবসাইটে ফলাফল দেখান' },
+    synonyms: ['website results', 'publish results online', 'ওয়েবসাইট ফলাফল'],
+    permission: Permission.RESULT_PUBLISH,
+    kind: 'navigate',
+    group: 'examsResults',
+    context: ['exam'],
+    run: (ctx) =>
+      ctx.navigate({ to: ctx.params?.examId ? `/exams/${ctx.params.examId}` : '/exams' }),
+  },
   // CERTIFICATE_ISSUE is stricter than `/students`'s STUDENT_READ: documented exception.
   {
     id: 'certificates.issue',

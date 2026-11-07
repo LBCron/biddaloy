@@ -240,4 +240,26 @@ describe('/exams/$examId', () => {
     await screen.findByRole('heading', { name: 'Half Yearly 2026' });
     expect(screen.queryByRole('tab', { name: 'Print' })).toBeNull();
   });
+
+  describe('[40.5.03] results on the website', () => {
+    it.each(['DRAFT', 'PROCESSED'] as const)('%s: no website action', async (status) => {
+      renderExam(status);
+      await screen.findByRole('heading', { name: 'Half Yearly 2026' });
+      expect(screen.queryByRole('button', { name: /on the website|off the website/ })).toBeNull();
+    });
+
+    it('PUBLISHED: a secondary Show results on the website action, never primary', async () => {
+      renderExam('PUBLISHED');
+      const button = await screen.findByRole('button', { name: 'Show results on the website' });
+      expect(button.getAttribute('data-variant')).not.toBe('default');
+      expect(filledButtons()).toHaveLength(1);
+    });
+
+    it('without RESULT_PUBLISH the action is not offered', async () => {
+      grant.only = new Set(['EXAM_MANAGE', 'EXAM_READ']);
+      renderExam('PUBLISHED');
+      await screen.findByRole('heading', { name: 'Half Yearly 2026' });
+      expect(screen.queryByRole('button', { name: 'Show results on the website' })).toBeNull();
+    });
+  });
 });

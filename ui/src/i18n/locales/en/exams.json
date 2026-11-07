@@ -623,6 +623,7 @@
     "unpublished": "Results are off the website",
     "view": "See on the website",
     "error": "We could not do that. Please try again.",
-    "siteOff": "Set up the school website first to show results on it."
+    "siteOff": "Set up the school website first to show results on it.",
+    "notPublished": "Only results that are published can go on the website. Publish the results first."
   }
 }
