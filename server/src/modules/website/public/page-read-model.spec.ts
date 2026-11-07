@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import type { SiteAnnouncement } from '@biddaloy/shared';
-import { buildManifest, inWindow } from './page-read-model';
+import { SitePage, SiteTheme, type SiteAnnouncement } from '@biddaloy/shared';
+import { defaultConfigFor } from '@biddaloy/site-themes';
+import { buildManifest, buildPage, inWindow } from './page-read-model';
 
 const ann = (o: Partial<SiteAnnouncement>): SiteAnnouncement => ({
   id: 'a',
@@ -51,5 +52,38 @@ describe('manifest analytics', () => {
       websiteId: 'w1',
       scriptUrl: 'https://stats.example.org/script.js',
     });
+  });
+});
+
+describe('buildPage: results page gate (D12)', () => {
+  const withResults = (enabled: boolean | null) => {
+    const c = defaultConfigFor(SiteTheme.BASIC);
+    c.pages = c.pages.filter((p) => p.page !== SitePage.RESULTS);
+    if (enabled !== null) c.pages.push({ page: SitePage.RESULTS, enabled, sections: [] });
+    return c;
+  };
+
+  it('is null when the page is off or missing, a page when on', () => {
+    expect(buildPage(withResults(false), SitePage.RESULTS)).toBeNull();
+    expect(buildPage(withResults(null), SitePage.RESULTS)).toBeNull();
+    expect(buildPage(withResults(true), SitePage.RESULTS)).toEqual({
+      page: SitePage.RESULTS,
+      sections: [],
+    });
+  });
+
+  it('shows Results in the nav only when on', () => {
+    const school = {
+      name: 'S',
+      name_bn: null,
+      address: null,
+      phone: null,
+      email: null,
+      logo_key: null,
+    };
+    const nav = (c: ReturnType<typeof withResults>) =>
+      buildManifest(c, false, school).nav.map((n) => n.page);
+    expect(nav(withResults(true))).toContain(SitePage.RESULTS);
+    expect(nav(withResults(false))).not.toContain(SitePage.RESULTS);
   });
 });

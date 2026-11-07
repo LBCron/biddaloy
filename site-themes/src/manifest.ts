@@ -62,6 +62,8 @@ export interface ThemePage {
   page: SitePage;
   /** Section keys in default order. On `home`, hero comes first (D31). */
   sections: SiteSectionKey[];
+  /** `false`: a fresh config lists the page switched off (results: the school opts in, D12). */
+  enabledByDefault?: false;
 }
 
 export interface ThemeManifest {

@@ -220,6 +220,7 @@ export const BASIC: ThemeManifest = {
     { page: SitePage.ADMISSIONS, sections: [SiteSectionKey.ADMISSIONS] },
     { page: SitePage.NOTICES, sections: [SiteSectionKey.NOTICES] },
     { page: SitePage.TEACHERS, sections: [SiteSectionKey.TEACHERS] },
+    { page: SitePage.RESULTS, sections: [], enabledByDefault: false },
     { page: SitePage.GALLERY, sections: [SiteSectionKey.GALLERY] },
     { page: SitePage.CONTACT, sections: [SiteSectionKey.CONTACT] },
   ],

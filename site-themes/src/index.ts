@@ -37,7 +37,7 @@ export function defaultConfigFor(theme: SiteTheme): SiteConfig {
     },
     pages: m.pages.map((p) => ({
       page: p.page,
-      enabled: true,
+      enabled: p.enabledByDefault !== false,
       sections: p.sections.map((key) => {
         const def = m.sections.find((s) => s.key === key);
         const data: Record<string, unknown> = {};

@@ -92,6 +92,17 @@ describe('changeTheme', () => {
     }
   });
 
+  it('keeps the results page switch across a theme switch, and adds it off to an older draft', () => {
+    const current = defaultConfigFor(SiteTheme.BASIC);
+    current.pages.find((p) => p.page === 'results')!.enabled = true;
+    const on = changeTheme(current, SiteTheme.PREMIUM);
+    expect(on.pages.find((p) => p.page === 'results')?.enabled).toBe(true);
+
+    const old = { ...current, pages: current.pages.filter((p) => p.page !== 'results') };
+    const added = changeTheme(old, SiteTheme.PRIMARY);
+    expect(added.pages.find((p) => p.page === 'results')?.enabled).toBe(false);
+  });
+
   it('keeps the gallery and video settings across a theme switch', () => {
     const current = defaultConfigFor(SiteTheme.BASIC);
     const home = current.pages.find((p) => p.page === 'home')!;
