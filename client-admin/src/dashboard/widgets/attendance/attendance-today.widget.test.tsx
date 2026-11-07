@@ -133,4 +133,18 @@ describe('attendance-today widget', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(calls).toBe(2));
   });
+
+  it('signal: low attendance shows watch text', async () => {
+    serve({ ...BASE, percentage: 60 });
+    renderWidget('full');
+    await screen.findByText('60.0%');
+    expect(screen.getByText('Keep an eye on this')).toBeTruthy();
+  });
+
+  it('signal: healthy attendance shows none', async () => {
+    serve(BASE);
+    renderWidget('full');
+    await screen.findByText('91.4%');
+    expect(screen.queryByText('Keep an eye on this')).toBeNull();
+  });
 });

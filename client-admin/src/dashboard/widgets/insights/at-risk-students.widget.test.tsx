@@ -173,4 +173,18 @@ describe('at-risk-students widget', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(calls).toBe(2));
   });
+
+  it('signal: students at risk show needs-action text', async () => {
+    serve(BASE);
+    renderWidget('full');
+    await screen.findByRole('table');
+    expect(screen.getByText('Needs action')).toBeTruthy();
+  });
+
+  it('signal: computing shows none', async () => {
+    serve({ ...BASE, state: 'COMPUTING', students: [], total: 0 });
+    renderWidget('full');
+    await screen.findByRole('heading');
+    expect(screen.queryByText('Needs action')).toBeNull();
+  });
 });

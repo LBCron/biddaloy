@@ -18,6 +18,8 @@ export const widgetKey = DashboardWidgetKey.ATTENDANCE_TODAY;
 export type AttendanceTodayDto = components['schemas']['AttendanceTodayWidgetDto'];
 
 const K = widgetKey;
+/** Same default as the at-risk rule (monthlyAttendancePct); the DTO carries no tenant value (D9). */
+const LOW_ATTENDANCE_PCT = 75;
 
 function useAttendanceToday() {
   return useQuery({
@@ -45,7 +47,7 @@ export function AttendanceTodayView({
   onRetry,
   updatedLabel,
 }: AttendanceTodayViewProps) {
-  const { t } = useTranslation('dashboard');
+  const { t } = useTranslation(['dashboard', 'signal']);
   const region = useTenantRegionConfig();
   const tw = (key: string, opts: Record<string, unknown> = {}) => t(`widgets.${K}.${key}`, opts);
   const pct = (v: number) => `${formatNumber(v, region, { decimals: 1 })}%`;
@@ -88,6 +90,12 @@ export function AttendanceTodayView({
   }
 
   const pending = data?.pending_sections.length ?? 0;
+  const low =
+    !failed &&
+    !closed &&
+    !empty &&
+    data?.percentage != null &&
+    data.percentage < LOW_ATTENDANCE_PCT;
   const linkClass = 'text-primary underline';
   const body = data ? (
     <ChartTableToggle
@@ -121,6 +129,7 @@ export function AttendanceTodayView({
       {...(value ? { value } : {})}
       {...(summary ? { summary } : {})}
       {...(updatedLabel && variant === 'full' ? { updatedLabel } : {})}
+      {...(low ? { signal: 'warn' as const, signalLabel: t('signal:watch') } : {})}
       loading={loading}
       loadingLabel={t('states.loading', { title })}
       {...(failed && onRetry

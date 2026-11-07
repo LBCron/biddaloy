@@ -45,7 +45,7 @@ export function ApprovalsPendingView({
   failed = false,
   onRetry,
 }: ApprovalsPendingViewProps) {
-  const { t } = useTranslation(['dashboard', 'applications']);
+  const { t } = useTranslation(['dashboard', 'applications', 'signal']);
   const region = useTenantRegionConfig();
   const tw = (key: string, opts: Record<string, unknown> = {}) =>
     t(`dashboard:widgets.${K}.${key}`, opts);
@@ -71,12 +71,19 @@ export function ApprovalsPendingView({
     );
   }
 
+  const urgent = data ? data.total > 0 : null;
+
   return (
     <WidgetCard
       title={title}
       variant={full ? 'full' : 'compact'}
       {...(data ? { value: tw('value', { count: data.total }) } : {})}
       {...(data ? { summary: data.total === 0 ? tw('none') : oldest } : {})}
+      {...(!failed && urgent != null
+        ? urgent
+          ? { signal: 'critical' as const, signalLabel: t('signal:needsAction') }
+          : { signal: 'ok' as const, signalLabel: t('signal:healthy') }
+        : {})}
       loading={loading}
       loadingLabel={t('states.loading', { ns: 'dashboard', title })}
       {...(failed && onRetry

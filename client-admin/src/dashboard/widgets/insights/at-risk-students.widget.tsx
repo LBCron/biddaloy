@@ -57,7 +57,7 @@ export function AtRiskView({
   onRetry,
   defaultExpanded = false,
 }: AtRiskViewProps) {
-  const { t } = useTranslation('dashboard');
+  const { t } = useTranslation(['dashboard', 'signal']);
   const region = useTenantRegionConfig();
   const [showAll, setShowAll] = React.useState(defaultExpanded);
   const tw = (key: string, opts: Record<string, unknown> = {}) => t(`widgets.${K}.${key}`, opts);
@@ -160,6 +160,8 @@ export function AtRiskView({
       </div>
     ) : null;
 
+  const sigOn = !failed && ready && !empty && !!data;
+
   return (
     <WidgetCard
       title={title}
@@ -169,6 +171,7 @@ export function AtRiskView({
       {...(data?.computed_at && variant === 'full'
         ? { updatedLabel: tw('computedAt', { time: formatTime(data.computed_at, region) }) }
         : {})}
+      {...(sigOn ? { signal: 'critical' as const, signalLabel: t('signal:needsAction') } : {})}
       loading={loading}
       loadingLabel={t('states.loading', { title })}
       {...(failed && onRetry

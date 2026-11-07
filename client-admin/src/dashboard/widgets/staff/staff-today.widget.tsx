@@ -43,7 +43,7 @@ export function StaffTodayView({
   failed = false,
   onRetry,
 }: StaffTodayViewProps) {
-  const { t } = useTranslation(['dashboard', 'leave']);
+  const { t } = useTranslation(['dashboard', 'leave', 'signal']);
   const region = useTenantRegionConfig();
   const tw = (key: string, opts?: Record<string, unknown>) =>
     t(`widgets.${K}.${key}`, { ns: 'dashboard', ...opts });
@@ -63,12 +63,15 @@ export function StaffTodayView({
       })
     : undefined;
 
+  const watch = !failed && !!data && !empty && data.absent_without_leave > 0;
+
   return (
     <WidgetCard
       title={title}
       variant={compact ? 'compact' : 'full'}
       {...(value && !empty ? { value } : {})}
       {...(summary && !empty ? { summary } : {})}
+      {...(watch ? { signal: 'warn' as const, signalLabel: t('signal:watch') } : {})}
       loading={loading}
       loadingLabel={t('states.loading', { ns: 'dashboard', title })}
       {...(failed && onRetry
