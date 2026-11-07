@@ -55,6 +55,7 @@ DELETE /subjects/:id | SubjectController | perm: CLASS_MANAGE
 DELETE /syllabus-topics/:id | SyllabusController | perm: SYLLABUS_MANAGE
 DELETE /users/:id | UserController | perm: MEMBER_REMOVE
 DELETE /users/:id/invitation | UserController | perm: USER_CREATE
+DELETE /website/custom-domain | CustomDomainController | perm: WEBSITE_MANAGE
 DELETE /website/enquiries/:id | SiteEnquiriesController | perm: WEBSITE_MANAGE
 DELETE /website/media/:id | SiteMediaController | perm: WEBSITE_MANAGE
 DELETE /website/posts/:id | SitePostsController | perm: WEBSITE_MANAGE
@@ -440,6 +441,8 @@ GET /users/invitations/batch/:batchId | UserController | perm: USER_CREATE
 GET /users/me | UserController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
 GET /users/me/preferences/notifications | UserController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
 GET /website | SiteConfigController | perm: WEBSITE_MANAGE
+GET /website/analytics | CustomDomainController | perm: WEBSITE_MANAGE
+GET /website/custom-domain | CustomDomainController | perm: WEBSITE_MANAGE
 GET /website/enquiries | SiteEnquiriesController | perm: WEBSITE_MANAGE
 GET /website/media | SiteMediaController | perm: WEBSITE_MANAGE
 GET /website/posts | SitePostsController | perm: WEBSITE_MANAGE
@@ -778,6 +781,7 @@ POST /users/join-requests | UserController | perm: USER_CREATE
 POST /users/me/contact-change | UserController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
 POST /users/me/contact-change/confirm-phone | UserController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
 POST /users/me/leave | UserController | identity | roles: ACCOUNTANT,ADMIN,COMMITTEE,EXAM_CONTROLLER,EXECUTIVE,OFFICE_STAFF,PARENT,STUDENT,SUPER_ADMIN,TEACHER
+POST /website/custom-domain/recheck | CustomDomainController | perm: WEBSITE_MANAGE
 POST /website/enabled | SiteConfigController | perm: WEBSITE_MANAGE
 POST /website/enquiries/:id/seen | SiteEnquiriesController | perm: WEBSITE_MANAGE
 POST /website/media | SiteMediaController | perm: WEBSITE_MANAGE
@@ -808,6 +812,7 @@ PUT /staff/:userId/training | TrainingController | perm: STAFF_HR_MANAGE
 PUT /students/:studentId/subject-choices | SubjectChoicesController | perm: STUDENT_UPDATE
 PUT /study-plans/:id/exam-markers | StudyPlansController | perm: SYLLABUS_MANAGE
 PUT /study-plans/:id/lessons | StudyPlansController | perm: SYLLABUS_MANAGE
+PUT /website/custom-domain | CustomDomainController | perm: WEBSITE_MANAGE
 PUT /website/draft | SiteConfigController | perm: WEBSITE_MANAGE
 PUT /website/posts/:id | SitePostsController | perm: WEBSITE_MANAGE
 PUT /website/subdomain | SubdomainController | perm: WEBSITE_MANAGE

@@ -41,6 +41,29 @@ describe('SiteHostService', () => {
     expect(await service([pending]).resolve('school.org', NOW)).toBeNull();
   });
 
+  it("tenant A's custom domain never resolves tenant B, and a FAILED or unknown host is 404", async () => {
+    const a = site({
+      tenant_id: 'A',
+      custom_domain: 'a.school.org',
+      custom_domain_status: 'ACTIVE',
+    });
+    const b = site({
+      tenant_id: 'B',
+      custom_domain: 'b.school.org',
+      custom_domain_status: 'ACTIVE',
+    });
+    const failed = site({
+      tenant_id: 'C',
+      custom_domain: 'c.school.org',
+      custom_domain_status: 'FAILED',
+    });
+    const svc = service([a, b, failed]);
+    expect(await svc.resolve('a.school.org', NOW)).toMatchObject({ tenantId: 'A' });
+    expect(await svc.resolve('b.school.org', NOW)).toMatchObject({ tenantId: 'B' });
+    expect(await svc.resolve('c.school.org', NOW)).toBeNull();
+    expect(await svc.resolve('d.school.org', NOW)).toBeNull();
+  });
+
   it('redirects a renamed subdomain inside its window and not after it', async () => {
     const renamed = (until: string) =>
       site({ subdomain: 'new', previous_subdomain: 'old', previous_until: new Date(until) });

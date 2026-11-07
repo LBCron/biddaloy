@@ -93,7 +93,44 @@ files in storage, not rows: a restored post or staff card loses its picture link
 a picture id keeps the id, which answers 404 until the school uploads it again. A restore never changes the school's
 subdomain or custom domain, and only moves `version` / `draft_revision` forward.
 
+## Custom domain and analytics (40.4.08)
+
+```mermaid
+stateDiagram-v2
+  [*] --> PENDING_DNS: PUT website/custom-domain
+  PENDING_DNS --> PENDING_SSL: Cloudflare confirms ownership TXT
+  PENDING_SSL --> ACTIVE: certificate issued
+  PENDING_DNS --> FAILED: 7 days without progress
+  PENDING_SSL --> FAILED: 7 days without progress
+  ACTIVE --> [*]: DELETE website/custom-domain
+```
+
+A BullMQ job (`site-custom-domain`) asks Cloudflare every 10 minutes about each `PENDING_*` hostname. Only `ACTIVE`
+resolves in `SiteHostService`; every other host gets the one 404. Cloudflare unreachable changes nothing (D42).
+
+Example: the school types `www.myschool.edu.bd`; the API answers 202 with two records to add at the registrar:
+
+```text
+CNAME  www.myschool.edu.bd                      -> sites.<SITE_ROOT_DOMAIN>
+TXT    _cf-custom-hostname.www.myschool.edu.bd  -> <value from Cloudflare>
+```
+
+| Env                                 | Meaning                                                                       |
+| ----------------------------------- | ----------------------------------------------------------------------------- |
+| `CF_SAAS_API_TOKEN` + `CF_ZONE_ID`  | Both or neither (boot refuses one). Neither = custom domains off, routes 409. |
+| `CF_SAAS_FALLBACK_ORIGIN`           | Default `sites.<SITE_ROOT_DOMAIN>`.                                           |
+| `UMAMI_API_URL` + `UMAMI_API_TOKEN` | Both set = first publish creates one Umami site. Unset = no analytics.        |
+
+The server cannot see `EDGE_MODE` (it is an edge container variable), so "direct mode" means the operator leaves the
+two Cloudflare values empty. Every refusal (off, malformed, platform name, taken by another school) is one 409
+`site.custom_domain_unavailable`; Cloudflare down is 503 `site.custom_domain_try_later`.
+
 ## Learning
+
+- **2026-11-07 (W4, 40.4.08).** Cloudflare for SaaS needs: a zone with the fallback origin proxied, a token scoped
+  to "SSL and Certificates: Edit" only, and the school's CNAME plus the `_cf-custom-hostname` TXT. An apex needs the
+  school's DNS to flatten CNAMEs (D23); otherwise the registrar forwards apex to `www`. Claiming the host in our own
+  unique index before asking Cloudflare means two schools racing for one host never create two hostnames.
 
 - **2026-11-07 (W1 close).** Surprise: the draft save and publish take `draft_revision`, not just `version`.
   Cost: tickets written against `{ config, version }` would have sent a body the API refuses. Fix: contract note

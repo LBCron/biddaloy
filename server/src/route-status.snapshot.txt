@@ -792,6 +792,11 @@ PATCH  /api/v1/users/me/preferences/digest                                      
 GET    /api/v1/users/me/preferences/notifications                                401 PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 PATCH  /api/v1/users/me/preferences/notifications                                401 PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS PASS
 GET    /api/v1/website                                                           401 PASS PASS PASS 403 403 403 403 403 403 403 403
+GET    /api/v1/website/analytics                                                 401 PASS PASS PASS 403 403 403 403 403 403 403 403
+DELETE /api/v1/website/custom-domain                                             401 PASS PASS PASS 403 403 403 403 403 403 403 403
+GET    /api/v1/website/custom-domain                                             401 PASS PASS PASS 403 403 403 403 403 403 403 403
+PUT    /api/v1/website/custom-domain                                             401 PASS PASS PASS 403 403 403 403 403 403 403 403
+POST   /api/v1/website/custom-domain/recheck                                     401 PASS PASS PASS 403 403 403 403 403 403 403 403
 PUT    /api/v1/website/draft                                                     401 PASS PASS PASS 403 403 403 403 403 403 403 403
 POST   /api/v1/website/enabled                                                   401 PASS PASS PASS 403 403 403 403 403 403 403 403
 GET    /api/v1/website/enquiries                                                 401 PASS PASS PASS 403 403 403 403 403 403 403 403

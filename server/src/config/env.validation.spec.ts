@@ -40,6 +40,20 @@ describe('BILLING_FREE_UNTIL (49.4)', () => {
   });
 });
 
+describe('Cloudflare custom-domain pair (40.4.08)', () => {
+  it('production refuses only one of the token and the zone', () => {
+    expect(() => validate({ ...prodConfig, CF_SAAS_API_TOKEN: 'tok' })).toThrow(/CF_ZONE_ID/);
+    expect(() => validate({ ...prodConfig, CF_ZONE_ID: 'zone' })).toThrow(/CF_SAAS_API_TOKEN/);
+  });
+
+  it('production accepts both or neither (neither = custom domains off)', () => {
+    expect(() =>
+      validate({ ...prodConfig, CF_SAAS_API_TOKEN: 'tok', CF_ZONE_ID: 'zone' }),
+    ).not.toThrow();
+    expect(() => validate(prodConfig)).not.toThrow();
+  });
+});
+
 describe('Turnstile keys (Epic 79)', () => {
   it('production refuses only one of the site key and the secret', () => {
     expect(() => validate({ ...prodConfig, TURNSTILE_SITE_KEY: 'site' })).toThrow(/TURNSTILE/);
