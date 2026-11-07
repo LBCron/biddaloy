@@ -13,6 +13,7 @@ const labels = {
   svgRefused: 'No SVG',
   tooLarge: 'Too big',
   unreadable: 'Unreadable',
+  pan: 'Arrows move, plus and minus zoom',
 };
 
 describe('crop-canvas', () => {
@@ -129,5 +130,38 @@ describe('ImageSlotUpload', () => {
     await waitFor(() => expect(lastY()).toBeCloseTo(-200));
     fireEvent.keyDown(preview, { key: 'ArrowRight' });
     expect(lastX()).toBeCloseTo(0);
+  });
+
+  it('+ and - still zoom after an arrow key', async () => {
+    render(<ImageSlotUpload slot={SiteMediaSlot.HERO} labels={labels} onUpload={vi.fn()} />);
+    fireEvent.change(screen.getByTestId('slot-file'), {
+      target: { files: [file('a.png', 'image/png')] },
+    });
+    const preview = await screen.findByTestId('slot-preview');
+    const slider = screen.getByRole<HTMLInputElement>('slider');
+    fireEvent.keyDown(preview, { key: 'ArrowDown' });
+    fireEvent.keyDown(preview, { key: '+' });
+    await waitFor(() => expect(Number(slider.value)).toBeCloseTo(1.1));
+    fireEvent.keyDown(preview, { key: '-' });
+    await waitFor(() => expect(Number(slider.value)).toBeCloseTo(1));
+  });
+
+  it('refuses an image above 100 megapixels', async () => {
+    vi.stubGlobal(
+      'Image',
+      class {
+        naturalWidth = 20000;
+        naturalHeight = 10000;
+        onload: (() => void) | null = null;
+        set src(_: string) {
+          queueMicrotask(() => this.onload?.());
+        }
+      },
+    );
+    render(<ImageSlotUpload slot={SiteMediaSlot.HERO} labels={labels} onUpload={vi.fn()} />);
+    fireEvent.change(screen.getByTestId('slot-file'), {
+      target: { files: [file('a.png', 'image/png')] },
+    });
+    expect(await screen.findByText('Too big')).toBeTruthy();
   });
 });

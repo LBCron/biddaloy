@@ -11,6 +11,7 @@ import {
   useSaveDraft,
   useSetWebsiteEnabled,
   useSubdomainCheck,
+  useUploadSiteMedia,
 } from './use-website';
 
 const fail = () => HttpResponse.json({ statusCode: 500, message: 'boom' }, { status: 500 });
@@ -28,6 +29,25 @@ describe('website mutations', () => {
     );
     const { result } = renderHookWithProviders(() => usePublishWebsite(), { tenantId: 't1' });
     result.current.mutate({ version: 1, draft_revision: 1 });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(key).toBeTruthy();
+    expect(calls).toBe(1);
+  });
+
+  it('media upload sends an Idempotency-Key and is not retried', async () => {
+    let calls = 0;
+    let key: string | null = null;
+    server.use(
+      http.post('/api/v1/website/media', ({ request }) => {
+        calls += 1;
+        key = request.headers.get('Idempotency-Key');
+        return fail();
+      }),
+    );
+    const { result } = renderHookWithProviders(() => useUploadSiteMedia('hero' as never), {
+      tenantId: 't1',
+    });
+    result.current.mutate(new Blob(['x'], { type: 'image/webp' }));
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(key).toBeTruthy();
     expect(calls).toBe(1);
