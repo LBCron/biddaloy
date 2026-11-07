@@ -45,6 +45,8 @@ const NAV_PATH_TO_ROUTE_ID: Record<string, string> = {
   '/notifications?tab=active': '/_staff/notifications',
   '/settings?section=alerts': '/_staff/settings',
   '/curriculum-preset': '/_staff/curriculum-preset',
+  '/website': '/_staff/website/',
+  '/website?publish=1': '/_staff/website/',
   '/roles': '/_staff/roles/',
   '/dashboard?customize=1': '/_staff/dashboard',
   '/print/committee-report?from=/dashboard': '/_staff/print/committee-report',

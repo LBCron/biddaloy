@@ -500,6 +500,14 @@ export const STAFF_NAV_ITEMS = {
     permission: Permission.SETTINGS_MANAGE,
     label: { key: 'settings' },
   },
+  // [40.2.04] The school website (Epic 40), ADMIN-only like its API.
+  'administration.website': {
+    id: 'administration.website',
+    to: '/website',
+    permission: Permission.WEBSITE_MANAGE,
+    label: { key: 'website' },
+    synonyms: ['site', 'web', 'homepage', 'ওয়েব'],
+  },
   // [35.5.1] Settings › Curriculum preset (D12), gated like its route.
   'administration.curriculumPreset': {
     id: 'administration.curriculumPreset',
@@ -662,6 +670,7 @@ export const STAFF_NAV_GROUPS: readonly StaffNavGroupDef[] = [
       STAFF_NAV_ITEMS['administration.auditLogs'],
       STAFF_NAV_ITEMS['administration.settings'],
       STAFF_NAV_ITEMS['administration.curriculumPreset'],
+      STAFF_NAV_ITEMS['administration.website'],
     ],
   },
 ];

@@ -1054,6 +1054,26 @@ export const ACTIONS: readonly PaletteAction[] = [
     run: (ctx) => ctx.navigate({ to: '/settings?section=backup' }),
   },
 
+  // [40.2.04] Epic 40. `?publish=1` opens the publish confirm on the Overview tab.
+  {
+    id: 'website.open',
+    label: { en: 'Open the school website', bn: 'স্কুলের ওয়েবসাইট খুলুন' },
+    synonyms: ['site', 'web', 'ওয়েব'],
+    permission: Permission.WEBSITE_MANAGE,
+    kind: 'navigate',
+    group: 'administration',
+    run: (ctx) => ctx.navigate({ to: '/website' }),
+  },
+  {
+    id: 'website.publish',
+    label: { en: 'Publish the school website', bn: 'স্কুলের ওয়েবসাইট প্রকাশ করুন' },
+    synonyms: ['site', 'web', 'ওয়েব'],
+    permission: Permission.WEBSITE_MANAGE,
+    kind: 'modal',
+    group: 'administration',
+    run: (ctx) => ctx.navigate({ to: '/website?publish=1' }),
+  },
+
   // [48.3.15] Epic 48 D14. With the route's id they land on that exam / student, never a list.
   {
     id: 'exams.printAdmitCards',

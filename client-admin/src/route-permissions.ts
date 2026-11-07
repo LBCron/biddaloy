@@ -209,6 +209,8 @@ export const STAFF_ROUTE_PERMISSIONS: Record<string, Permission> = {
   '/_staff/settings': Permission.SETTINGS_MANAGE,
   // [35.5.1] Preset read + apply (D36).
   '/_staff/curriculum-preset': Permission.CURRICULUM_PRESET_APPLY,
+  // [40.2.04] The school website: ADMIN (and SUPER_ADMIN) only, like `/website` in the API.
+  '/_staff/website/': Permission.WEBSITE_MANAGE,
   // [9.6] Both gated on ATTENDANCE_READ, not ATTENDANCE_MARK — this table
   // (like the nav item it mirrors) answers "may you see this route", and
   // seeing a register is a strictly weaker ask than changing it. Whether
