@@ -28,7 +28,7 @@ const notice = (over: Record<string, unknown>) => ({
   ...over,
 });
 
-function renderList() {
+function renderList(entry = '/') {
   const root = createRootRoute();
   const index = createRoute({
     getParentRoute: () => root,
@@ -37,7 +37,7 @@ function renderList() {
     component: NoticeList,
   });
   return renderWithRouter(root.addChildren([index]), {
-    initialEntries: ['/'],
+    initialEntries: [entry],
     tenantId: 'tenant-1',
     role: 'ADMIN',
     locale: 'en',
@@ -127,5 +127,31 @@ describe('NoticeList', () => {
     await waitFor(() => expect(calls).toBe(1));
     await new Promise((r) => setTimeout(r, 300));
     expect(calls).toBe(1);
+  });
+
+  it('the On the website filter asks for public notices only', async () => {
+    const urls: string[] = [];
+    server.use(
+      http.get('*/notices', ({ request }) => {
+        urls.push(request.url);
+        return HttpResponse.json({ items: [notice({})], total: 1, page: 1, limit: 25 });
+      }),
+    );
+    renderList('/?onWebsite=true');
+    await screen.findByText('Exam routine');
+    expect(urls.every((u) => new URL(u).searchParams.get('isPublic') === 'true')).toBe(true);
+  });
+
+  it('without the filter no isPublic is sent', async () => {
+    const urls: string[] = [];
+    server.use(
+      http.get('*/notices', ({ request }) => {
+        urls.push(request.url);
+        return HttpResponse.json({ items: [notice({})], total: 1, page: 1, limit: 25 });
+      }),
+    );
+    renderList();
+    await screen.findByText('Exam routine');
+    expect(urls.some((u) => new URL(u).searchParams.has('isPublic'))).toBe(false);
   });
 });

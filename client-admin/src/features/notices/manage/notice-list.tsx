@@ -42,8 +42,15 @@ export function NoticeList() {
 
   const status = STATUSES.find((s) => s === state.filters.status);
   const q = state.filters.q?.trim() || undefined;
-  const query = useNotices({ page: state.page, limit: state.limit, status, q });
-  const filtered = status !== undefined || q !== undefined;
+  const onWebsite = state.filters.onWebsite === 'true';
+  const query = useNotices({
+    page: state.page,
+    limit: state.limit,
+    status,
+    q,
+    ...(onWebsite ? { isPublic: true } : {}),
+  });
+  const filtered = status !== undefined || q !== undefined || onWebsite;
 
   const columns: DataTableColumn<Notice>[] = [
     {
@@ -133,6 +140,13 @@ export function NoticeList() {
               label: t('manage.statusFilter'),
               allLabel: t('manage.allStatuses'),
               options: STATUSES.map((s) => ({ value: s, label: t(`manage.status.${s}`) })),
+            },
+            {
+              kind: 'select',
+              key: 'onWebsite',
+              label: t('filters.onWebsiteLabel'),
+              allLabel: t('filters.allNotices'),
+              options: [{ value: 'true', label: t('filters.onWebsite') }],
             },
           ],
           values: state.filters,

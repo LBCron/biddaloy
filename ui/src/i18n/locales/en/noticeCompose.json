@@ -1,7 +1,11 @@
 {
   "title": "New notice",
   "editTitle": "Edit notice",
-  "steps": { "write": "Write and attach", "audience": "Who gets it", "review": "Check" },
+  "steps": {
+    "write": "Write and attach",
+    "audience": "Who gets it",
+    "review": "Check"
+  },
   "actions": {
     "saveDraft": "Keep as draft",
     "next": "Next step",
@@ -26,7 +30,7 @@
     "important": "Urgent",
     "pinned": "Pin to the top",
     "isPublic": "Public (anyone with the link can read)",
-    "isPublicNote": "Anyone with the link can also read it without logging in.",
+    "isPublicNote": "Anyone with the link can read it without logging in, and it is also listed on the public school website once the site is published.",
     "sms": "Also ask to send an SMS",
     "expires": "Valid until",
     "noExpiry": "No end date",
@@ -82,8 +86,16 @@
       "version": "Version",
       "group": "Group"
     },
-    "columns": { "name": "Name", "detail": "Class or role", "contact": "Reach" },
-    "reach": { "app": "App", "sms": "SMS only", "none": "Cannot be reached" },
+    "columns": {
+      "name": "Name",
+      "detail": "Class or role",
+      "contact": "Reach"
+    },
+    "reach": {
+      "app": "App",
+      "sms": "SMS only",
+      "none": "Cannot be reached"
+    },
     "roles": {
       "ADMIN": "Admin",
       "ACCOUNTANT": "Accountant",

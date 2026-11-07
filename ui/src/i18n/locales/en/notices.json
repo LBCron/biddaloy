@@ -148,6 +148,8 @@
     "pinOnHome": "Pin on the home page"
   },
   "filters": {
-    "onWebsite": "On the website"
+    "onWebsite": "On the website",
+    "onWebsiteLabel": "Website",
+    "allNotices": "All notices"
   }
 }

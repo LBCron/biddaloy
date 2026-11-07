@@ -439,6 +439,7 @@ Someone without permission who opens the page sees **You don't have access to th
 
 **Related pages**
 
+- [**School website**](../administration/website.md) — the **Website profile** tab decides how a teacher appears on the website.
 - [**Importing from Excel**](staff-import.md) — add many staff at once.
 - [**Teacher assignments**](teaching-assignments.md) — give a teacher a class, section and subject.
 - [**Staff attendance and leave**](../attendance/staff-attendance.md) — staff attendance and leave.

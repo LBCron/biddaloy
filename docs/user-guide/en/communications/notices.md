@@ -114,7 +114,7 @@ A notice is an announcement from the school: a title, some text, and up to three
 
 9. Press **Yes, publish**.
 
-   → The notice is published and you go to the notice page. If you ticked **Public**, a **Public link** box shows first: copy the link now and press **Done**. The link is shown only this once.
+   → The notice is published and you go to the notice page. If you ticked **Show on the website**, a **Public link** box shows first: copy the link now and press **Done**. The link is shown only this once.
 
 > **Remember:** nobody gets the notice until you press **Publish** and **Yes, publish**. After publishing, who gets it cannot be changed.
 
@@ -180,7 +180,7 @@ People with no account in the app are here too. When they open the SMS link, the
 
 ### Public link <a href="#task-public" id="task-public"></a>
 
-When you tick **Public**, the notice gets a link. Anyone who has the link can read the notice without logging in. If you do not tick it, only the people it was sent to read it. A personal link sent by SMS also opens without logging in, so if someone forwards that SMS, whoever gets it can read the notice too.
+When you tick **Show on the website**, the notice gets a link. Anyone who has the link can read the notice without logging in. Once the school website is published, the notice is also listed on that public website (see [School website](../administration/website.md)). Notices you ticked this way before also appear there after the site is published. If you do not tick it, only the people it was sent to read it. A personal link sent by SMS also opens without logging in, so if someone forwards that SMS, whoever gets it can read the notice too.
 
 Look at the **Public link** part of the notice page.
 
@@ -190,7 +190,7 @@ Look at the **Public link** part of the notice page.
 | **New link**          | The box **Make a new link?** shows. If you confirm, the old link stops working, and people who have it cannot open the notice. The new link is shown once.                  |
 | **Turn off the link** | The box **Turn off the public link?** shows. If you confirm, the link stops working. People it was sent to can still read it in the app. **The public link is off.** shows. |
 
-After you turn the link off, to get a link again, **Edit** the notice and tick **Public** ([Edit, withdraw, copy](#task-manage)).
+After you turn the link off, to get a link again, **Edit** the notice and tick **Show on the website** ([Edit, withdraw, copy](#task-manage)).
 
 A link always lasts as long as the notice. At any time you can make a new link, turn the link off, or withdraw the notice.
 
@@ -316,6 +316,7 @@ Other roles read notices but cannot give them. For parents and students: [Notice
 
 **Related pages**
 
+- [**School website**](../administration/website.md) — notices ticked **Show on the website** are listed there.
 - [**Notices (parent and student)**](../portal/notices.md) — where parents and students read notices.
 
 ---
