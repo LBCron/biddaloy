@@ -138,10 +138,14 @@ export function WidgetCard({
                 className="flex min-h-11 w-full items-center gap-3 rounded-lg p-3 text-start outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="flex items-center gap-1 text-label text-text-secondary">
-                    {sigEl}
-                    <span className="truncate">{title}</span>
-                  </span>
+                  {sig ? (
+                    <span className="flex items-center gap-1 text-label text-text-secondary">
+                      {sigEl}
+                      <span className="truncate">{title}</span>
+                    </span>
+                  ) : (
+                    <span className="truncate text-label text-text-secondary">{title}</span>
+                  )}
                   {value ? <span className="text-h2 tabular-nums">{value}</span> : null}
                   {summary ? (
                     <span className="text-caption text-text-secondary">{summary}</span>
@@ -187,7 +191,7 @@ export function WidgetCard({
             sig?.band && `-mx-2 rounded-md px-2 py-1 ${sig.band}`,
           )}
         >
-          <Heading id={id} className="me-auto flex items-center gap-2 text-h3">
+          <Heading id={id} className={cn('me-auto text-h3', sig && 'flex items-center gap-2')}>
             {sigEl}
             {title}
           </Heading>
