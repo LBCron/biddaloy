@@ -35,10 +35,15 @@ function useDraftEditor(config: WebsiteConfig | undefined) {
   // `local` is null until the admin edits: the screen then follows the server draft (another
   // tab saved, a refetch). Once there are edits they are kept, never replaced silently.
   const [local, setLocal] = React.useState<SiteConfig | null>(null);
+  // The revision the local edits started from; a refetch while editing must not move it.
+  const [base, setBase] = React.useState<number | null>(null);
   const save = useSaveDraft();
   const dirty = local !== null && JSON.stringify(local) !== serverJson;
   const draft = dirty ? local : server;
-  const setDraft = (update: (d: SiteConfig) => SiteConfig) => setLocal((l) => update(l ?? server));
+  const setDraft = (update: (d: SiteConfig) => SiteConfig) => {
+    if (local === null) setBase(config?.draft_revision ?? null);
+    setLocal((l) => update(l ?? server));
+  };
 
   // Leaving for another page or tab while there are unsaved edits asks first (Rule: no silent loss).
   const blocker = useBlocker({
@@ -68,10 +73,12 @@ function useDraftEditor(config: WebsiteConfig | undefined) {
     const sent = local;
     if (!sent) return;
     try {
-      await save.mutateAsync({
+      const saved = await save.mutateAsync({
         config: sent as unknown as Record<string, unknown>,
-        draft_revision: config.draft_revision,
+        draft_revision: base ?? config.draft_revision,
       });
+      // Edits typed while saving continue from the revision this save produced.
+      setBase((saved as { draft_revision?: number } | undefined)?.draft_revision ?? null);
       // Anything typed while the save was in flight stays; only an untouched copy takes the answer.
       setLocal((l) => (l === sent ? null : l));
       toast.success(t('editor.saved'));

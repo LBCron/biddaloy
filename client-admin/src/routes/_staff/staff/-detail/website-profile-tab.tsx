@@ -184,7 +184,7 @@ function ProfileForm({ row, othersFeatured }: { row: WebTeacher; othersFeatured:
         </p>
       )}
       <div>
-        <Button type="submit" disabled={save.isPending}>
+        <Button type="submit" disabled={save.isPending || upload.isPending}>
           {f('save')}
         </Button>
       </div>

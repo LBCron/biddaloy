@@ -35,6 +35,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import * as React from 'react';
 import { z } from 'zod';
 
+import { announcementsInvalid } from './-announcements-editor';
 import { DraftBar, uploadLabels, useDraft } from './-draft-editor';
 import { ThemeCard } from './-theme-card';
 
@@ -89,8 +90,8 @@ function WebsiteDesign() {
   if (configQuery.isError || themesQuery.isError) {
     return (
       <ErrorState
-        message={t('overview.saveError')}
-        retryLabel={t('wizard.back')}
+        message={t('overview.loadError')}
+        retryLabel={t('overview.retry')}
         onRetry={() => {
           void configQuery.refetch();
           void themesQuery.refetch();
@@ -244,7 +245,12 @@ function DesignEditor({ themes }: { themes: readonly WebsiteTheme[] }) {
         />
       </Card>
 
-      <DraftBar dirty={dirty} saving={saving} onSave={() => void saveDraft()} />
+      <DraftBar
+        dirty={dirty}
+        saving={saving}
+        disabled={announcementsInvalid(draft.announcements)}
+        onSave={() => void saveDraft()}
+      />
 
       <ConfirmDialog
         open={pending !== null}

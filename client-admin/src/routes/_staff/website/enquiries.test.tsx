@@ -42,6 +42,7 @@ const items = [
 /** Registers the enquiry routes; returns the order write calls arrive in. */
 function mockEnquiries(list = items, smsOn = false) {
   const calls: string[] = [];
+  let site = { ...baseSite, draft: contactDraft(smsOn) as never };
   mockWebsite({ draft: contactDraft(smsOn) as never });
   server.use(
     http.get('/api/v1/website/enquiries', () =>
@@ -55,6 +56,7 @@ function mockEnquiries(list = items, smsOn = false) {
       calls.push(`delete:${String(params.id)}`);
       return new HttpResponse(null, { status: 204 });
     }),
+    http.get('/api/v1/website', () => HttpResponse.json(site)),
     http.put('/api/v1/website/draft', async ({ request }) => {
       const b = (await request.json()) as {
         config: { pages: { sections: { data: { enquirySmsToOffice: boolean } }[] }[] };
@@ -63,7 +65,9 @@ function mockEnquiries(list = items, smsOn = false) {
       calls.push(
         `sms:${b.config.pages[0]!.sections[0]!.data.enquirySmsToOffice}:${b.draft_revision}`,
       );
-      return HttpResponse.json({ ...baseSite, draft_revision: b.draft_revision + 1 });
+      // Keep the saved draft, so the refetch and the response both show the switch on.
+      site = { ...site, draft: b.config as never, draft_revision: b.draft_revision + 1 };
+      return HttpResponse.json(site);
     }),
   );
   return calls;
@@ -130,5 +134,8 @@ describe('/website/enquiries', () => {
     await waitFor(() => expect((sms as HTMLButtonElement).disabled).toBe(false));
     await userEvent.click(sms);
     await waitFor(() => expect(calls).toEqual(['sms:true:3']));
+    // The saved draft is kept, so the switch stays on and usable after the refetch.
+    await waitFor(() => expect(sms.getAttribute('aria-checked')).toBe('true'));
+    expect((sms as HTMLButtonElement).disabled).toBe(false);
   });
 });

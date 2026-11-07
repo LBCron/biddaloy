@@ -156,6 +156,12 @@ describe('/website/pages unsaved work', () => {
     await userEvent.click(screen.getByRole('switch', { name: 'Show Notices on the website' }));
     release();
     await waitFor(() => expect(saved).toHaveLength(1));
+    // The save has settled once the bar is enabled again; only then do the edits mean anything.
+    await waitFor(() =>
+      expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Save draft' }).disabled).toBe(
+        false,
+      ),
+    );
     expect(
       screen
         .getByRole('switch', { name: 'Show Notices on the website' })

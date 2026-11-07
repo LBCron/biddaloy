@@ -66,8 +66,8 @@ function WebsitePages() {
   if (configQuery.isError || themesQuery.isError) {
     return (
       <ErrorState
-        message={t('overview.saveError')}
-        retryLabel={t('wizard.back')}
+        message={t('overview.loadError')}
+        retryLabel={t('overview.retry')}
         onRetry={() => {
           void configQuery.refetch();
           void themesQuery.refetch();
