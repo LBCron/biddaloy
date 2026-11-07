@@ -12,6 +12,7 @@ const site = (overrides: Partial<WebsiteConfig> = {}): WebsiteConfig => ({
   draft_revision: 1,
   published_at: null,
   has_published: false,
+  has_unpublished_changes: true,
   draft: {},
   ...overrides,
 });

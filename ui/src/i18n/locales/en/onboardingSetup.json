@@ -87,8 +87,5 @@
     }
   },
   "progress": "Step {{current}} of {{total}}",
-  "saveError": "We could not save that. Please try again.",
-  "checklist": {
-    "website": "Set up the website"
-  }
+  "saveError": "We could not save that. Please try again."
 }

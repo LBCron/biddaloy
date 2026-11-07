@@ -2,9 +2,8 @@
  * [40.2.04] Website › Overview. Never published: one card that opens the first-run wizard.
  * Published: status, live link (copy), preview, publish, and the on/off switch.
  *
- * The site API has no "published copy equals draft" flag yet, so Publish stays available whenever
- * a version exists (publishing an unchanged draft is harmless). `?publish=1` (palette) opens the
- * publish confirm.
+ * Publish is enabled only while `has_unpublished_changes`. `?publish=1` (palette) opens the
+ * publish confirm, or the wizard's last step on a never-published site.
  */
 import { ApiError } from '@biddaloy/ui/api';
 import {
@@ -53,9 +52,18 @@ const MB = 1024 * 1024;
 function WebsiteOverview() {
   const { t } = useTranslation('website');
   const navigate = useNavigate();
-  const { step } = Route.useSearch();
+  const { step, publish } = Route.useSearch();
   const configQuery = useWebsiteConfig();
   const themesQuery = useWebsiteThemes();
+
+  // `?publish=1` (palette) on a never-published site: there is nothing to confirm yet, so take
+  // the admin to the wizard's last step instead of silently showing the start card.
+  const neverPublished = configQuery.data?.has_published === false;
+  React.useEffect(() => {
+    if (neverPublished && publish !== undefined && step === undefined) {
+      void navigate({ to: '/website', search: { step: 'publish' }, replace: true });
+    }
+  }, [neverPublished, publish, step, navigate]);
 
   if (configQuery.isPending) return <Skeleton className="h-40 w-full" />;
   if (configQuery.isError) {
@@ -153,6 +161,9 @@ function StatusCard({ config }: { config: WebsiteConfig }) {
           tone={config.enabled ? 'success' : 'neutral'}
           label={config.enabled ? t('overview.status.live') : t('overview.status.draft')}
         />
+        {config.has_unpublished_changes && (
+          <StatusBadge tone="warning" label={t('overview.unpublished')} />
+        )}
         <label className="ms-auto flex items-center gap-2 text-sm">
           {config.enabled ? t('overview.turnOff.action') : t('overview.turnOn.action')}
           <Switch
@@ -163,7 +174,7 @@ function StatusCard({ config }: { config: WebsiteConfig }) {
         </label>
       </div>
 
-      {liveUrl && (
+      {config.enabled && liveUrl && (
         <div className="flex flex-col gap-1">
           <span className="text-caption text-text-secondary">{t('overview.liveLink')}</span>
           <div className="flex flex-wrap items-center gap-2">
@@ -182,7 +193,11 @@ function StatusCard({ config }: { config: WebsiteConfig }) {
       </p>
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" onClick={() => setPublishOpen(true)}>
+        <Button
+          type="button"
+          disabled={!config.has_unpublished_changes}
+          onClick={() => setPublishOpen(true)}
+        >
           {t('overview.publish')}
         </Button>
         <Button

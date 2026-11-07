@@ -14,6 +14,7 @@ export const baseSite = {
   draft_revision: 3,
   published_at: null,
   has_published: false,
+  has_unpublished_changes: true,
   draft: { theme: 'BASIC', palette: 'green', pages: [] },
 };
 
@@ -65,13 +66,22 @@ export function mockWebsite(site: Partial<typeof baseSite> = {}, taken: string[]
     http.put('/api/v1/website/draft', async ({ request }) => {
       const body = (await request.json()) as { config: { palette: string } };
       calls.push(`save:${body.config.palette}`);
-      current = { ...current, draft_revision: current.draft_revision + 1 };
+      current = {
+        ...current,
+        draft_revision: current.draft_revision + 1,
+        has_unpublished_changes: true,
+      };
       return HttpResponse.json(current);
     }),
     http.post('/api/v1/website/publish', async ({ request }) => {
       const body = (await request.json()) as { version: number; draft_revision: number };
       calls.push(`publish:${body.version}:${body.draft_revision}`);
-      current = { ...current, version: current.version + 1, has_published: true };
+      current = {
+        ...current,
+        version: current.version + 1,
+        has_published: true,
+        has_unpublished_changes: false,
+      };
       return HttpResponse.json(current);
     }),
     http.post('/api/v1/website/enabled', async ({ request }) => {

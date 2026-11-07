@@ -193,6 +193,20 @@ describe('SiteConfigService', () => {
     expect(texts.every((t) => t.bn.length > 0)).toBe(true);
   });
 
+  it('has_unpublished_changes: true before any publish, false right after, true after a new save', async () => {
+    const { svc } = setup(null);
+    const first = await svc.get('t1');
+    expect(first.has_unpublished_changes).toBe(true);
+
+    const published = await svc.publish('t1', 0, 0);
+    expect(published.has_unpublished_changes).toBe(false);
+
+    const config = structuredClone(first.draft) as Record<string, unknown>;
+    config.palette = THEMES[SiteTheme.BASIC].palettes[1].id;
+    const saved = await svc.saveDraft('t1', { config, draft_revision: 0 });
+    expect(saved.has_unpublished_changes).toBe(true);
+  });
+
   it('saveDraft rejects an invalid palette with a code that does not echo it', async () => {
     const { svc } = setup(null);
     const dto = await svc.get('t1');
