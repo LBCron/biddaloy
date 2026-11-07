@@ -28,7 +28,7 @@ const isStr = (v: unknown): v is string => typeof v === 'string';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Non-text kinds: `null` or a valid value; anything else is rejected. */
-function scalarOk(f: ThemeField, v: unknown): boolean {
+export function scalarOk(f: ThemeField, v: unknown): boolean {
   switch (f.kind) {
     case 'uuid':
       return v === null || (isStr(v) && UUID_RE.test(v));

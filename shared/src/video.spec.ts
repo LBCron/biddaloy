@@ -38,6 +38,11 @@ describe('parseYoutubeStartSeconds', () => {
     expect(parseYoutubeStartSeconds(`https://www.youtube.com/watch?v=${ID}&t=1m30s`)).toBe(90);
     expect(parseYoutubeStartSeconds(`https://www.youtube.com/embed/${ID}?start=15`)).toBe(15);
   });
+  it('reads the start time out of an embed code that writes &amp;', () => {
+    const embed = `<iframe src="https://www.youtube.com/embed/${ID}?si=abc&amp;start=42" title="x"></iframe>`;
+    expect(parseYoutubeVideoId(embed)).toBe(ID);
+    expect(parseYoutubeStartSeconds(embed)).toBe(42);
+  });
   it('caps at 86400 and returns null for nothing or junk', () => {
     expect(parseYoutubeStartSeconds(`https://youtu.be/${ID}?t=999999`)).toBe(86400);
     expect(parseYoutubeStartSeconds(`https://youtu.be/${ID}`)).toBeNull();

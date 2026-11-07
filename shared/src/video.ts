@@ -24,7 +24,8 @@ function youtubeUrl(input: string): URL | null {
   let text = input.trim();
   if (/^<iframe[\s>]/i.test(text)) {
     const m = /\ssrc\s*=\s*(?:"([^"]*)"|'([^']*)')/i.exec(text);
-    text = (m?.[1] ?? m?.[2] ?? '').trim();
+    // YouTube's embed code writes the query as `&amp;`; read it as `&` so `start=` survives.
+    text = (m?.[1] ?? m?.[2] ?? '').replace(/&amp;/gi, '&').trim();
   }
   let url: URL;
   try {
