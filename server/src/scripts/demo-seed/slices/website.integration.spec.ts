@@ -24,6 +24,7 @@ import { EnrollmentService } from '../../../modules/enrollments/enrollments.serv
 import { StudentLifecycleService } from '../../../modules/students/student-lifecycle.service';
 import { ApprovalService } from '../../../modules/auth/guards/approval.guard';
 import { SiteConfigService } from '../../../modules/website/site-config.service';
+import { UmamiService } from '../../../modules/website/umami.service';
 import { SiteCacheService } from '../../../modules/website/public/site-cache.service';
 import { createContext, type DemoSeedContext } from '../context';
 import { slice as org, orgIds } from './org';
@@ -123,6 +124,7 @@ describe('website slice (integration, scale 0.05)', () => {
         { provide: TenantSettingsCache, useValue: { invalidate: vi.fn() } },
         { provide: StorageService, useValue: { put: async () => undefined } },
         SiteConfigService,
+        { provide: UmamiService, useValue: { ensureWebsite: vi.fn() } },
         { provide: SiteCacheService, useValue: { invalidate: vi.fn() } },
       ],
       [ConfigModule.forRoot({ isGlobal: true }), AuthModule],
@@ -158,6 +160,18 @@ describe('website slice (integration, scale 0.05)', () => {
     ]);
     expect(first.logoKey).toContain('/logo/');
     expect(Number(first.site.media_bytes_used)).toBeGreaterThan(0);
+  });
+
+  it('publishes the Results page (D12) and a click-to-play video that stores only its id', () => {
+    const pages = first.site.published.pages as { page: string; enabled: boolean; sections: any[] }[];
+    expect(pages.find((p) => p.page === 'results')).toMatchObject({ enabled: true, sections: [] });
+    const video = pages
+      .find((p) => p.page === 'home')!
+      .sections.find((x) => x.key === 'video')!;
+    expect(video).toMatchObject({
+      enabled: true,
+      data: { videoId: 'aqz-KE-bpKQ', headingPosition: 'below' },
+    });
   });
 
   it('has six teacher cards, three of them featured', () => {

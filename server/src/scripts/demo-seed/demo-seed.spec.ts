@@ -224,6 +224,7 @@ describe('SLICES', () => {
       'reports',
       'notices',
       'website',
+      'gallery',
       'attention',
     ]);
     expect(SLICES.every((s) => s.covers.length > 0)).toBe(true);

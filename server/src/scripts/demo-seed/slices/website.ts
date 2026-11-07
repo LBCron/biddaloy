@@ -28,7 +28,7 @@ const addDays = (date: string, n: number) =>
   new Date(Date.parse(date) + n * 86_400_000).toISOString().slice(0, 10);
 
 /** A WebP gradient, so the demo site has real pictures without shipping binary files. */
-const gradient = (w: number, h: number, from: string, to: string) =>
+export const gradient = (w: number, h: number, from: string, to: string) =>
   sharp(
     Buffer.from(
       `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">` +
@@ -39,6 +39,9 @@ const gradient = (w: number, h: number, from: string, to: string) =>
   )
     .webp({ quality: 80 })
     .toBuffer();
+
+/** Public YouTube id (Big Buck Bunny, a Blender Foundation film), kept as a constant so no call is made. */
+const DEMO_VIDEO_ID = 'aqz-KE-bpKQ';
 
 const BIOS = [
   { bn: 'শিক্ষার্থীদের প্রশ্ন করতে উৎসাহ দেন।', en: 'Encourages students to ask questions.' },
@@ -182,6 +185,22 @@ export const slice: DemoSlice = {
     ];
     section(SitePage.HOME, SiteSectionKey.HERO); // throws if the theme ever drops the home hero
 
+    // D12: the Results page is off in every theme by default; the public lookup 404s without it.
+    // It has no sections (the page itself renders the lookup), so it is one page entry.
+    // The theme may already list it (switched off): switch that entry on, else add one.
+    const results = draft.pages.find((p) => p.page === SitePage.RESULTS);
+    if (results) results.enabled = true;
+    else draft.pages.push({ page: SitePage.RESULTS, enabled: true, sections: [] });
+    // [40.6.10] A click-to-play video on the home page: only the public id is stored (no network at
+    // seed time, nothing embedded until the visitor clicks).
+    const video = section(SitePage.HOME, SiteSectionKey.VIDEO);
+    video.enabled = true;
+    Object.assign(video.data, {
+      heading: { bn: 'আমাদের স্কুলের ভিডিও', en: 'A video from our school' },
+      headingPosition: 'below',
+      videoId: DEMO_VIDEO_ID,
+    });
+
     await site.saveDraft(T, { config: draft as never, draft_revision: created.draft_revision });
     const saved = await site.get(T);
     await site.publish(T, saved.version, saved.draft_revision);
@@ -202,6 +221,21 @@ export const slice: DemoSlice = {
         [T, testHost, SiteCustomDomainStatus.ACTIVE],
       );
     }
+
+    // [40.5.09] The school's most recent exam with published results goes on the website, names on.
+    // Same columns `WebsiteResultsService.publish` writes, stamped from the exam's own publish time
+    // (no clock), so the demo lookup works for a guardian out of the box.
+    // (No exam yet, as in this slice's own spec that skips the exams slice: nothing to publish;
+    // the coverage spec asserts exactly one in a full run.)
+    await ctx.ds.query(
+      `UPDATE exams SET website_published_at = COALESCE(published_at, created_at), website_show_names = true
+        WHERE id = (SELECT e.id FROM exams e
+                     WHERE e.tenant_id = $1 AND e.status = 'PUBLISHED' AND e.deleted_at IS NULL
+                     ORDER BY e.published_at DESC NULLS LAST, e.name,
+                              (SELECT c.name FROM classes c WHERE c.id = e.class_id), e.id LIMIT 1)
+          AND website_published_at IS NULL RETURNING id`,
+      [T],
+    );
 
     // Six teacher cards, picked by position; the first three drawn are featured.
     const teachers = teachersByTenant(ctx).get(T) ?? [];

@@ -11,6 +11,7 @@ import { User } from '../../../users/entities/user.entity';
 import { SchoolSite } from '../../../website/entities/school-site.entity';
 import { SitePost } from '../../../website/entities/site-post.entity';
 import { SiteEnquiry } from '../../../website/entities/site-enquiry.entity';
+import { SiteGalleryAlbum } from '../../../website/entities/site-gallery-album.entity';
 import { StaffWebProfile } from '../../../website/entities/staff-web-profile.entity';
 import { toCell } from '../../codec/cell-format';
 import type { ExportContext, ImportContext, TabSpec } from '../../codec/tab-spec';
@@ -18,6 +19,7 @@ import { schoolSiteTab } from './school-site.tab';
 import { sitePostsTab } from './site-post.tab';
 import { siteEnquiriesTab } from './site-enquiry.tab';
 import { staffWebProfilesTab } from './staff-web-profile.tab';
+import { siteGalleryAlbumsTab } from './site-gallery-album.tab';
 
 /**
  * [40.1.08] Export -> import round trip of the four website tabs, from school A into a fresh
@@ -70,6 +72,8 @@ describe('website workbook tabs (integration)', () => {
     for (const t of [A, B]) {
       await ds.query(`DELETE FROM staff_web_profiles WHERE tenant_id = $1`, [t]);
       await ds.query(`DELETE FROM user_tenants WHERE tenant_id = $1`, [t]);
+      await ds.query(`DELETE FROM site_gallery_photos WHERE tenant_id = $1`, [t]);
+      await ds.query(`DELETE FROM site_gallery_albums WHERE tenant_id = $1`, [t]);
       await ds.query(`DELETE FROM site_posts WHERE tenant_id = $1`, [t]);
       await ds.query(`DELETE FROM site_enquiries WHERE tenant_id = $1`, [t]);
       await ds.query(`DELETE FROM school_sites WHERE tenant_id = $1`, [t]);
@@ -218,6 +222,27 @@ describe('website workbook tabs (integration)', () => {
       message: 'When does admission open?',
     });
     expect(siteEnquiriesTab.deleteByAbsence).toBe(false);
+  });
+
+  it('site_gallery_albums: round-trips title and order, and a restore never deletes an album', async () => {
+    await ds.getRepository(SiteGalleryAlbum).insert([
+      { tenant_id: A, title: { bn: 'ক্রীড়া', en: 'Sports' }, sort_order: 0 },
+      { tenant_id: A, title: { bn: 'মেলা', en: 'Fair' }, sort_order: 1 },
+    ]);
+    // B already has an album the backup does not know about, with a photo in it (RESTRICT FK).
+    const [extra] = await ds
+      .getRepository(SiteGalleryAlbum)
+      .save([{ tenant_id: B, title: { bn: 'অন্য', en: 'Other' }, sort_order: 9 }]);
+    expect(extra.id).toBeDefined();
+    const after = await roundTrip(siteGalleryAlbumsTab);
+    expect(after.map((r) => [r.sort_order, r.title.en]).sort()).toEqual([
+      [0, 'Sports'],
+      [1, 'Fair'],
+      [9, 'Other'],
+    ]);
+    expect(siteGalleryAlbumsTab.deleteByAbsence).toBe(false);
+    // Photos are not exported: the tab has no column that could carry a storage key or media id.
+    expect(siteGalleryAlbumsTab.columns.map((c) => c.key)).toEqual(['id', 'title', 'sort_order']);
   });
 
   it('staff_web_profiles: round-trips the card, and a card of a user outside the users tab is left out of the export', async () => {

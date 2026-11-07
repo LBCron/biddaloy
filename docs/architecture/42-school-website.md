@@ -153,10 +153,25 @@ flowchart LR
 
 ## Backup and restore
 
-`school_site`, `site_posts`, `site_enquiries` and `staff_web_profiles` are workbook tabs. Pictures (`site_media`) are
+`school_site`, `site_posts`, `site_enquiries`, `staff_web_profiles` and `site_gallery_albums` are workbook tabs. Pictures (`site_media`) are
 files in storage, not rows: a restored post or staff card loses its picture link, and a restored config that points at
 a picture id keeps the id, which answers 404 until the school uploads it again. A restore never changes the school's
 subdomain or custom domain, and only moves `version` / `draft_revision` forward.
+
+```mermaid
+flowchart LR
+  A[site_gallery_albums: title + order] -->|tab, never deleted by a restore| R[restored: empty albums]
+  P[site_gallery_photos] -.->|RESTRICT FK to site_media, a storage file| X[not in backup: exempt, with reason]
+  M[site_media] -.-> X
+```
+
+- **Gallery.** Only the album folders are a tab (`site_gallery_albums`, key `sort_order`, `deleteByAbsence: false`: an
+  album with photos is held by a RESTRICT foreign key, and one made after the backup must survive a restore). Photos
+  point at `site_media`, a file in the storage backup, so they are in `ENTITY_COVERAGE_EXEMPT` with that reason. A restore
+  can therefore never bring back a storage key or a photo without its file; the admin refills the empty albums.
+- **Exam results on the website.** `exams.website_published_at` and `website_show_names` are explicit columns of the
+  `exams` tab, so a restore puts back exactly the state that was exported (published stays published, off stays off).
+  A restore never publishes an exam that was not published when the backup was taken.
 
 ## Custom domain and analytics (40.4.08)
 
@@ -322,3 +337,49 @@ two Cloudflare values empty. Every refusal (off, malformed, platform name, taken
   (`ThemePage.enabledByDefault: false`); the admin switches it on in the Pages tab "Results page" card, which
   adds it to an older draft that lacks it (`setPageEnabled`), then publishes. Reopening an exam takes it off the website (clears `website_published_at`, bumps the site version).
   The results page carries `noindex`; it is not in the sitemap.
+
+### Wave 5 and 6 close (2026-11-08)
+
+- **2026-11-08 (W5 close).** Surprise: the demo school's published site had no Results page, and the public results
+  list and both POSTs answer the one 404 without it (D12). Cost: a demo exam on the website that nobody could look up.
+  Fix: the `website` slice adds `{ page: 'results', enabled: true, sections: [] }` to the draft before it publishes,
+  and writes `website_published_at` / `website_show_names` on the most recent published exam from the exam's own
+  publish time (no clock). Rule candidate: a feature that is off in every theme by default gets its switch in the demo
+  seed in the same ticket.
+- **2026-11-08 (W5).** Surprise: names are ON by default when results go on the website (D36), and the results are
+  about children. Cost: a reviewer asked twice whether a school can publish names by accident. Fix: the publish dialog
+  says in one sentence whether names will show, and the switch sits above the confirm button; the choice is saved on
+  the exam before it is published. Rule candidate: a default that exposes minors' data is written in the dialog
+  sentence itself, not only on a switch.
+- **2026-11-08 (W5).** Surprise: a result id in a URL could be enumerated. Fix: the per-subject call takes a signed
+  handle (HMAC over exam id, result id and a 30-minute expiry, domain-separated key), never a raw id. Rule candidate:
+  an id that a visitor can only get from a list must still not be accepted from a guess.
+- **2026-11-08 (W6).** Surprise: two gallery photos with the same bytes shared one `site_media` row, so deleting
+  one photo deleted the file the other still showed (data loss), and no test noticed; review did. Fix: one storage key
+  per row (`tenants/<id>/site/<hash>-<uuid>.webp`) and the quota counts a distinct file once. Rule candidate: when rows
+  share a file by hash, say who owns the delete.
+- **2026-11-08 (W6).** Surprise: switching theme dropped the new scalar field kinds (`uuid`, `bool`, `choice`,
+  `youtubeId`, `seconds`): `changeTheme` copied only text fields. Cost: a gallery album choice and a video id vanished on
+  a theme change. Fix: scalars are copied when the target theme has the same field. Rule candidate: a new field kind
+  adds a theme-switch test in the same ticket.
+- **2026-11-08 (W6 close).** Surprise: the "same inputs give the same data" demo-seed test flaked. Cause: the staff
+  attendance query had no `ORDER BY`, so the order of staff (random uuid ids) decided which `ctx.rng` draw each person
+  got. Fix: `ORDER BY u.email` (a seeded value); the coverage spec passed twice in a row afterwards. Rule candidate: any
+  seed query that feeds `ctx.rng` per row orders by a seeded column, never by id or insertion order.
+- **2026-11-08 (W6 close).** Surprise: `GalleryService` writes `draft` through `m.update` and TypeScript 6.0.3 refuses
+  the type (`gallery.service.ts:203`), so `nest build` fails, and with it the e2e web server. Cost: found only when the
+  e2e run tried to start the server. Fix: reported for the gallery lane (`draft: draft as never`). Rule candidate:
+  run `tsc --noEmit -p tsconfig.build.json` after every server lane, not only the lane's own specs.
+- **2026-11-08 (process).** A fresh agent worktree cannot checkout or commit under the sandbox (the orchestrator
+  commits); generated files (`schema.d.ts`, `routeTree.gen.ts`) conflict on every merge, so take ours and regenerate.
+  The 100-file cap was passed twice by gate fixes (guide pages and CI files). Rule candidate: a gate fix goes on its
+  owning branch only if that branch has room, otherwise on a new stacked branch. The `draft_revision` migration was
+  edited across PRs, which makes the migration history hard to read; a column added later is a new migration.
+- **2026-11-08 (process).** Security: CodeQL flagged a reflected XSS in an error page (`errorPath(request.url)`):
+  the path of the request went into the HTML. Rule candidate: an error page prints fixed text only.
+- **2026-11-08 (process).** A green local gate did not mean CI passes: `site-themes` was not built in some CI jobs,
+  `import/order` lint differs from lint-staged, the e2e route manifest was five routes short, and the Lighthouse
+  `assertMatrix` is CI-only. Rule candidate: after a gate, run the CI job's own commands for the packages touched.
+- **Not verified:** the Playwright theme specs (`site/e2e/themes/*.spec.ts`) were never run; Lighthouse numbers are
+  CI-only; the Results page and the gallery page were read through the public API, not rendered by the site container
+  (the e2e stack has none).

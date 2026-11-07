@@ -180,6 +180,8 @@ describe('EXPECTED_TABS', () => {
       'site_posts',
       'site_enquiries',
       'staff_web_profiles',
+      // [40.6.10]
+      'site_gallery_albums',
     ]);
   });
 

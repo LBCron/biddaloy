@@ -104,6 +104,31 @@ const CLOCK_COLS: Record<string, string[]> = {
   notices: ['sms_requested_at'], // [53.5.05] the real SMS request stamps it
 };
 
+/** [40.5.09, 40.6.10] What the demo school's website holds after a full run. */
+async function websiteFacts(ds: DataSource) {
+  const n = async (sql: string) => Number((await ds.query(sql))[0].n);
+  const [site] = await ds.query(
+    `SELECT s.enabled, s.draft, s.published FROM school_sites s JOIN schools sc ON sc.id = s.tenant_id
+      WHERE s.subdomain = 'bmsc-high'`,
+  );
+  const page = (cfg: any, name: string) => cfg.pages.find((p: any) => p.page === name);
+  const homeSection = (key: string) =>
+    page(site.published, 'home').sections.find((x: any) => x.key === key);
+  return {
+    examsOnWebsite: await n(`SELECT count(*)::int AS n FROM exams WHERE website_published_at IS NOT NULL`),
+    examsWithNames: await n(
+      `SELECT count(*)::int AS n FROM exams WHERE website_published_at IS NOT NULL AND website_show_names`,
+    ),
+    resultsPageOnPublished: page(site.published, 'results')?.enabled === true,
+    resultsPageOnDraft: page(site.draft, 'results')?.enabled === true,
+    videoIdPublished: homeSection('video').data.videoId,
+    siteEnabled: site.enabled,
+    albums: await n(`SELECT count(*)::int AS n FROM site_gallery_albums`),
+    photos: await n(`SELECT count(*)::int AS n FROM site_gallery_photos`),
+    galleryOnHome: homeSection('gallery').data.albumId !== null,
+  };
+}
+
 /** First day of the month before the anchor's: the live (real-service) money starts here. */
 const LIVE_FROM = (() => {
   const [y, m] = SMALL.anchor.split('-').map(Number);
@@ -231,6 +256,7 @@ describe('demo seed coverage', () => {
   let fpB: Record<string, string> = {};
   let openAlerts: Record<string, number> = {};
   let finalBackedRuns = 0;
+  let web: Record<string, unknown> = {};
   let cardNoteCounts = { teacher: 0, guardian: 0 };
 
   /** Seeds `db` from a freshly loaded module graph (the app caches DATABASE_URL on first load). */
@@ -267,6 +293,7 @@ describe('demo seed coverage', () => {
       violations: keepOpen ? await validate(run.ds) : [],
       openAlerts: keepOpen ? await openAlertsByCard(run.ds) : {},
       cardNotes: keepOpen ? await cardNotes(run.ds) : { teacher: 0, guardian: 0 },
+      web: keepOpen ? await websiteFacts(run.ds) : {},
       // [#3411] Promotion runs ranked on a published final result (#3410's merit source).
       finalBackedRuns: keepOpen
         ? Number(
@@ -294,6 +321,7 @@ describe('demo seed coverage', () => {
     rows = main.counts;
     openAlerts = main.openAlerts;
     finalBackedRuns = main.finalBackedRuns;
+    web = main.web;
     cardNoteCounts = main.cardNotes;
     fpA = (await seedInto(dbs[1], SMALL, false)).fp;
     fpB = (await seedInto(dbs[2], SMALL, false)).fp;
@@ -373,6 +401,20 @@ describe('demo seed coverage', () => {
       Object.entries(openAlerts).filter(([, n]) => n < 3),
       'card key and its open alert count',
     ).toEqual([]);
+  });
+
+  it('puts one published exam, a Results page, a video and two gallery albums on the demo site', () => {
+    expect(web).toEqual({
+      examsOnWebsite: 1,
+      examsWithNames: 1,
+      resultsPageOnPublished: true,
+      resultsPageOnDraft: true,
+      videoIdPublished: 'aqz-KE-bpKQ',
+      siteEnabled: true,
+      albums: 2,
+      photos: 8,
+      galleryOnHome: true,
+    });
   });
 
   it('seeds report-card notes and at least one promotion run ranked on a final result', () => {

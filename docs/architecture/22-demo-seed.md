@@ -85,6 +85,11 @@ site at the subdomain `bmsc-high`. It goes through `SiteConfigService` (draft, p
 1920x1080 WebP hero pictures and a logo through `StorageService`, and adds six teacher cards (three featured)
 picked by `ctx.rng`. When `SITE_TEST_HOST` is set (staging), that host also answers for the school as an ACTIVE
 custom domain. The same slice seeds three blog posts (two published, one draft), three enquiries (one unseen) and pins the public notice on the site (#3638).
+From Epic 40 close (#3657, #3671) it also puts the school's most recent published exam on the website (columns
+`website_published_at` from the exam's own publish time, names on), adds the Results page to the draft before publishing
+(without it the public lookup is a 404, D12), and turns on a click-to-play video section (a fixed public YouTube id, no
+network call). The `gallery` slice runs after it: two albums (5 and 3 photos) through the real `GalleryService`, photos
+are 1200x800 WebP gradients from `ctx.rng`, then the first album is shown on the home page and the site is published again.
 
 The `billing` slice (Epic 49) gives each of the three branches one PAID seat order (1,400 seats, 12 months, period
 anchor -6 months to +6 months) and one `OFFLINE_BANK` payment for the full amount (`seats * 12 * 1000` paisa).

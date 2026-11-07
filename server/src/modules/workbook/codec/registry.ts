@@ -233,6 +233,8 @@ export const EXPECTED_TABS = [
   'site_posts',
   'site_enquiries',
   'staff_web_profiles',
+  // [40.6.10] Gallery album folders. Photos are not a tab (they point at storage files).
+  'site_gallery_albums',
 ] as const;
 
 export type ExpectedTabName = (typeof EXPECTED_TABS)[number];
