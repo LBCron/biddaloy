@@ -142,5 +142,12 @@
     "errorTitle": "Could not load the notice",
     "errorBody": "Check your internet and try again.",
     "retry": "Try again"
+  },
+  "compose": {
+    "showOnWebsite": "Show on the website",
+    "pinOnHome": "Pin on the home page"
+  },
+  "filters": {
+    "onWebsite": "On the website"
   }
 }

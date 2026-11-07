@@ -588,5 +588,17 @@
     "role": "হ্যাঁ",
     "member": "হ্যাঁ",
     "employeeId": "হ্যাঁ"
+  },
+  "tabs": {
+    "websiteProfile": "ওয়েবসাইট প্রোফাইল",
+    "websiteProfileFields": {
+      "show": "ওয়েবসাইটে দেখাও",
+      "featured": "হোমপেজে বিশেষভাবে দেখাও",
+      "order": "ক্রম",
+      "subjects": "বিষয়",
+      "bio": "পরিচিতি",
+      "credentials": "শিক্ষাগত যোগ্যতা",
+      "photo": "ছবি"
+    }
   }
 }
