@@ -26,5 +26,10 @@ export const staffWebProfilesTab = createRefChildTab<StaffWebProfile>({
     const known = new Set((await usersTab.load(tenantId, m)).map((u) => u.id));
     return rows.filter((r) => known.has(r.user_id));
   },
+  checkRow: (row) =>
+    row.subjects == null ||
+    (Array.isArray(row.subjects) && row.subjects.every((v) => typeof v === 'string'))
+      ? null
+      : { column: 'subjects', message: 'Subjects must be a list of text' },
   excluded: ['photo_media_id'], // the picture is a storage file, not a workbook row
 });

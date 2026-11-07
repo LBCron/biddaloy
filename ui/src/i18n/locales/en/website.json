@@ -49,6 +49,9 @@
     }
   },
   "overview": {
+    "loadError": "We could not load the website settings. Please try again.",
+    "themesError": "We could not load the themes. Please try again.",
+    "retry": "Try again",
     "title": "Website",
     "off": {
       "title": "Your school has no website yet",

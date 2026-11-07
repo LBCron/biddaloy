@@ -74,12 +74,15 @@ server {
         proxy_no_cache $arg_preview;
         add_header X-Cache-Status $upstream_cache_status;
         add_header Strict-Transport-Security $edge_hsts always;
-        error_page 502 503 504 =503 /maintenance.html;
+        # Without this, an upstream 5xx on an empty cache would skip error_page and pass through.
+        proxy_intercept_errors on;
+        error_page 500 502 503 504 =503 /maintenance.html;
     }
 
     # File shipped in the site image (site/public/maintenance.html) and mounted by deploy/edge.yml.
     location = /maintenance.html {
         internal;
+        add_header Retry-After 30 always;
         root /usr/share/nginx/site-static;
         add_header Cache-Control "no-store";
         add_header Strict-Transport-Security $edge_hsts always;

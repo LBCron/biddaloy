@@ -13,6 +13,7 @@ import type {
   SiteConfig,
   SitePageConfig,
   SiteSectionConfig,
+  SiteSectionTypography,
 } from '@biddaloy/shared';
 import type { ThemeManifest } from './manifest';
 
@@ -23,6 +24,45 @@ export type ValidateResult = { ok: true; value: SiteConfig } | { ok: false; erro
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isStr = (v: unknown): v is string => typeof v === 'string';
+
+const SIZES = ['S', 'M', 'L', 'XL'];
+const WEIGHTS = ['regular', 'medium', 'bold'];
+const ALIGNS = ['start', 'center'];
+
+/** Keeps only known typography keys with known values. */
+function cleanTypography(raw: Obj, bad: (code: string) => void): SiteSectionTypography {
+  const out: SiteSectionTypography = {};
+  for (const lang of ['bn', 'en'] as const) {
+    if (raw[lang] === undefined) continue;
+    if (!isObj(raw[lang])) {
+      bad('typography.invalid');
+      continue;
+    }
+    const pair: Obj = {};
+    for (const role of ['heading', 'body'] as const) {
+      const st = (raw[lang] as Obj)[role];
+      if (st === undefined) continue;
+      if (!isObj(st)) {
+        bad('typography.invalid');
+        continue;
+      }
+      const o: Obj = {};
+      if (st.size !== undefined)
+        isStr(st.size) && SIZES.includes(st.size) ? (o.size = st.size) : bad('typography.invalid');
+      if (st.weight !== undefined)
+        isStr(st.weight) && WEIGHTS.includes(st.weight)
+          ? (o.weight = st.weight)
+          : bad('typography.invalid');
+      if (st.align !== undefined)
+        isStr(st.align) && ALIGNS.includes(st.align)
+          ? (o.align = st.align)
+          : bad('typography.invalid');
+      pair[role] = o;
+    }
+    out[lang] = pair as SiteSectionTypography['bn'];
+  }
+  return out;
+}
 
 /**
  * Checks a SiteConfig against a theme manifest. Plain functions, no zod.
@@ -126,7 +166,7 @@ export function validateSiteConfig(config: unknown, manifest: ThemeManifest): Va
       sections.push({
         key: s.key as SiteSectionKey,
         enabled: s.enabled !== false,
-        ...(isObj(s.typography) ? { typography: s.typography } : {}),
+        ...(isObj(s.typography) ? { typography: cleanTypography(s.typography, bad) } : {}),
         data,
       });
     }

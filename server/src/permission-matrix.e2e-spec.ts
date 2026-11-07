@@ -886,6 +886,8 @@ export const UI_ONLY_PERMISSIONS: Permission[] = [
   // route gate. [53.5.01] NOTICE_SMS_APPROVE now gates the four `/notices/:id/sms*` routes, so it
   // left this list. `POST /notices/:id/sms/request` is gated by NOTICE_POST.
   Permission.NOTICE_MANAGE,
+  // [40.1] WEBSITE_MANAGE: no route requires it until the website admin API (#3618) lands.
+  Permission.WEBSITE_MANAGE,
   // Pre-existing UI-only gates, unaffected by [10.4]: no route requires
   // these — they gate a button/action inline rather than a whole route
   // (invoice print button, correcting a mark outside the window, collecting

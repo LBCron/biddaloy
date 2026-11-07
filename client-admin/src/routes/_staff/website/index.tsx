@@ -69,8 +69,8 @@ function WebsiteOverview() {
   if (configQuery.isError) {
     return (
       <ErrorState
-        message={t('overview.saveError')}
-        retryLabel={t('wizard.back')}
+        message={t('overview.loadError')}
+        retryLabel={t('overview.retry')}
         onRetry={() => void configQuery.refetch()}
       />
     );
@@ -79,6 +79,15 @@ function WebsiteOverview() {
   const close = () => void navigate({ to: '/website', search: {}, replace: true });
 
   if (step !== undefined) {
+    if (themesQuery.isError) {
+      return (
+        <ErrorState
+          message={t('overview.themesError')}
+          retryLabel={t('overview.retry')}
+          onRetry={() => void themesQuery.refetch()}
+        />
+      );
+    }
     if (!themesQuery.data) return <Skeleton className="h-64 w-full" />;
     return <WebsiteWizard config={config} themes={themesQuery.data} onDone={close} />;
   }

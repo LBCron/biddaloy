@@ -53,26 +53,28 @@ publish of a draft nobody on that screen has seen, answers 409 `site.stale`.
 | anything else, off site, nothing published, suspended school | n/a                                                                       | One identical 404 (`site.not_found`, Rule 23) |
 
 Subdomains are 3 to 30 characters (`SITE_SUBDOMAIN_RE`); `RESERVED_SUBDOMAINS` in `shared` lists the names no school
-may take (`app`, `demo`, `site-test`, ...). On staging, `SITE_TEST_HOST` is an always-on custom domain for the demo
+may take (`app`, `demo`, `site-test`, ...). Edge limit: the API can resolve an active custom domain, but the site listener (`:8081`) only accepts subdomains of `ROOT_DOMAIN`; any other host gets 444 until the custom-domain edge work (#3646) ships. Direct edge mode does not expose school sites at all.
+
+On staging, `SITE_TEST_HOST` is an always-on custom domain for the demo
 school.
 
 ## Cache
 
-| What                         | Key                               | TTL   | Cleared by                                     |
-| ---------------------------- | --------------------------------- | ----- | ---------------------------------------------- |
-| Manifest and pages (Redis)   | `site:<tenant>:<version>:<kind>`  | 24 h  | A publish (new `version`, old keys never read) |
-| Notice feed (Redis)          | `site:<tenant>:feed:notices`      | 60 s  | TTL, or publish / switch on-off                |
-| Pages (nginx `site_cache`)   | `$host$request_uri`               | 30 s  | TTL; `?preview=` is never stored               |
-| Pictures (nginx and browser) | `/media/<id>` (the id is the key) | 1 day | Nothing: a new picture gets a new id (D41)     |
+| What                         | Key                               | TTL                         | Cleared by                                     |
+| ---------------------------- | --------------------------------- | --------------------------- | ---------------------------------------------- |
+| Manifest and pages (Redis)   | `site:<tenant>:<version>:<kind>`  | 24 h                        | A publish (new `version`, old keys never read) |
+| Notice feed (Redis)          | `site:<tenant>:feed:notices`      | 60 s                        | TTL, or publish / switch on-off                |
+| Pages (nginx `site_cache`)   | `$host$request_uri`               | 30 s                        | TTL; `?preview=` is never stored               |
+| Pictures (nginx and browser) | `/media/<id>` (the id is the key) | 1 day nginx, 1 year browser | Nothing: a new picture gets a new id (D41)     |
 
 ## When something is down
 
-| What is down          | What the visitor gets                                                                             | Why                     |
-| --------------------- | ------------------------------------------------------------------------------------------------- | ----------------------- |
-| Redis                 | The page, built from Postgres. One error log per minute.                                          | D32, D42: never a 500   |
-| API or site container | nginx serves the last good page, even an expired one; if none is cached, `maintenance.html` (503) | `proxy_cache_use_stale` |
-| Postgres              | Same as API down for uncached pages; cached pages still show                                      | D32                     |
-| Object storage        | The page; the picture answers the one 404 and the site shows no picture                           | Rules 23, 24            |
+| What is down          | What the visitor gets                                                                                                                                    | Why                     |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| Redis                 | The page, built from Postgres. One error log per minute.                                                                                                 | D32, D42: never a 500   |
+| API or site container | nginx serves the last good page, even an expired one; if none is cached, `maintenance.html` (503, `Retry-After: 30`), also when the upstream answers 500 | `proxy_cache_use_stale` |
+| Postgres              | Same as API down for uncached pages; cached pages still show                                                                                             | D32                     |
+| Object storage        | The page; the picture answers the one 404 and the site shows no picture                                                                                  | Rules 23, 24            |
 
 ## File map
 
@@ -90,7 +92,7 @@ school.
 
 `school_site`, `site_posts`, `site_enquiries` and `staff_web_profiles` are workbook tabs. Pictures (`site_media`) are
 files in storage, not rows: a restored post or staff card loses its picture link, and a restored config that points at
-a picture id keeps the id, which answers 404 until the school uploads it again. A restore never changes the school's
+a picture id keeps the id, which answers 404 until the school uploads it again. `site_media` also has database rows, and the public API needs the matching row, so restoring files alone does not revive old ids. Recovery: upload the picture again in the admin (new id), point the draft at it, publish. A restore never changes the school's
 subdomain or custom domain, and only moves `version` / `draft_revision` forward.
 
 ## Learning
