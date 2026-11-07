@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * [40.1.05] Site e2e: the built SSR server against a stub by-host API. No database, no login.
- * Run: `yarn workspace @biddaloy/site build && yarn workspace @biddaloy/site e2e`
+ * Run: `yarn build:shared && yarn workspace @biddaloy/site-themes build && yarn workspace @biddaloy/site build && yarn workspace @biddaloy/site e2e`
  */
 export default defineConfig({
   testDir: './e2e',

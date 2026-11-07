@@ -16,7 +16,7 @@ const s = (v: unknown) => (typeof v === 'string' ? v : undefined);
         const d = new Date(s(e.date) ?? '');
         return (
           <div class="card ev">
-            {!Number.isNaN(d.getTime()) && <span class="date"><b>{d.toLocaleDateString(loc, { day: '2-digit' })}</b><span>{d.toLocaleDateString(loc, { month: 'short' })}</span></span>}
+            {!Number.isNaN(d.getTime()) && <span class="date"><b>{d.toLocaleDateString(loc, { day: '2-digit', timeZone: 'Asia/Dhaka' })}</b><span>{d.toLocaleDateString(loc, { month: 'short', timeZone: 'Asia/Dhaka' })}</span></span>}
             <div><b>{field(e.title, lang) ?? s(e.title)}</b></div>
           </div>
         );

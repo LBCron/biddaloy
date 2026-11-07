@@ -85,6 +85,12 @@ describe('validateSiteConfig', () => {
     if (r.ok) expect(r.value.announcements.items[0]).not.toHaveProperty('onclick');
   });
 
+  it('rejects unknown typography values', () => {
+    const c = fresh();
+    c.pages[0].sections[0].typography = { bn: { body: { size: 'HUGE' } } } as never;
+    expect(errorsOf(c)).toContain('typography.invalid');
+  });
+
   it('drops unknown keys', () => {
     const c = fresh();
     c.pages[0].sections[0].data.bogus = { bn: 'a', en: 'b' };
