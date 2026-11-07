@@ -24,7 +24,16 @@ const websiteSearchSchema = z.object({
  * tab is open. Only the open tab renders the `<Outlet />`: `DetailShell` keeps visited panels
  * mounted, and a second outlet would draw the same page twice.
  */
-const TAB_IDS = ['overview', 'pages', 'design', 'blog', 'enquiries', 'address', 'analytics'] as const;
+const TAB_IDS = [
+  'overview',
+  'pages',
+  'design',
+  'blog',
+  'gallery',
+  'enquiries',
+  'address',
+  'analytics',
+] as const;
 type TabId = (typeof TAB_IDS)[number];
 
 export const Route = createFileRoute('/_staff/website')({

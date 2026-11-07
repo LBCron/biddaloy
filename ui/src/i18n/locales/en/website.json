@@ -377,7 +377,8 @@
       "images": "Photos",
       "title": "Title",
       "body": "Text",
-      "address": "Address"
+      "address": "Address",
+      "heading": "Heading"
     },
     "typography": {
       "title": "Text style",
@@ -417,7 +418,6 @@
     "remove": "Remove",
     "enHint": "Optional. If empty, the Bangla text shows.",
     "gallery": {
-      "heading": "Heading",
       "chooseSection": "Which gallery section to show",
       "firstWithPhotos": "The first section that has photos",
       "showPageLink": "Show a separate page with all photos",
@@ -426,7 +426,6 @@
       "makeSectionFirst": "Make a gallery section first"
     },
     "video": {
-      "heading": "Heading",
       "embedCode": "Paste the YouTube video embed code or link",
       "embedHelp": "On YouTube choose Share, then Embed, then Copy. A plain video link works too. Only YouTube is accepted.",
       "found": "Video found",
@@ -521,7 +520,8 @@
       "rejected": "This photo could not be used. Use a JPEG, PNG or WebP photo.",
       "storageFull": "Photo space is full. Delete some photos you do not need.",
       "inUse": "This is shown on your website now. Remove it from there first.",
-      "failed": "We could not send this photo. Please try again."
-    }
+      "failed": "That did not work. Please try again."
+    },
+    "captionFor": "Caption, photo {{position}}"
   }
 }

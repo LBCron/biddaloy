@@ -217,6 +217,7 @@ export const STAFF_ROUTE_PERMISSIONS: Record<string, Permission> = {
   // [40.3.08] Enquiries tab.
   '/_staff/website/enquiries': Permission.WEBSITE_MANAGE,
   '/_staff/website/pages': Permission.WEBSITE_MANAGE,
+  '/_staff/website/gallery': Permission.WEBSITE_MANAGE,
   '/_staff/website/design': Permission.WEBSITE_MANAGE,
   '/_staff/website/address': Permission.WEBSITE_MANAGE,
   '/_staff/website/analytics': Permission.WEBSITE_MANAGE,

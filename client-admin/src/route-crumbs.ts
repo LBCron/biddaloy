@@ -298,6 +298,7 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
   ],
   '/_staff/website/enquiries': [{ label: { key: 'website' } }],
   '/_staff/website/pages': [{ label: { key: 'website' } }],
+  '/_staff/website/gallery': [{ label: { key: 'website' } }],
   '/_staff/website/design': [{ label: { key: 'website' } }],
   '/_staff/website/address': [{ label: { key: 'website' } }],
   '/_staff/website/analytics': [{ label: { key: 'website' } }],

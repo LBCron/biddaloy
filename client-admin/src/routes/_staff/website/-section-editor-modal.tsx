@@ -7,8 +7,13 @@
  * multi-line bilingual field here, not the Slate editor.
  */
 import {
+  SITE_GALLERY_CAROUSEL_MAX,
   SITE_HERO_MAX_PHOTOS,
+  SITE_VIDEO_START_MAX_SECONDS,
   SiteMediaSlot,
+  SiteSectionKey as SectionKey,
+  parseYoutubeStartSeconds,
+  parseYoutubeVideoId,
   type SiteConfig,
   type SitePage,
   type SiteSectionKey,
@@ -19,17 +24,28 @@ import {
   BilingualField,
   Button,
   ImageSlotUpload,
+  Input,
   Label,
+  RadioRows,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Switch,
+  Textarea,
   toast,
 } from '@biddaloy/ui/components';
-import { usePreviewToken, useUploadSiteMedia, type WebsiteTheme } from '@biddaloy/ui/hooks';
+import {
+  useGalleryAlbums,
+  usePreviewToken,
+  useUploadSiteMedia,
+  type WebsiteTheme,
+} from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
 import { FullPageShell } from '@biddaloy/ui/shells';
+import { Link } from '@tanstack/react-router';
+import { PlayIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { uploadLabels, useDraft } from './-draft-editor';
@@ -37,7 +53,8 @@ import { uploadLabels, useDraft } from './-draft-editor';
 type Text = { bn?: string; en?: string };
 interface ManifestField {
   key: string;
-  kind: 'text' | 'richtext' | 'images';
+  /** The others (`uuid`, `bool`, `choice`, `youtubeId`, `seconds`) have their own forms below. */
+  kind: 'text' | 'richtext' | 'images' | 'uuid' | 'bool' | 'choice' | 'youtubeId' | 'seconds';
   defaults?: Text;
   slot?: SiteMediaSlot;
 }
@@ -49,6 +66,16 @@ interface ManifestSection {
 export const sectionFieldsOf = (theme: WebsiteTheme | undefined, key: string) =>
   ((theme?.sections ?? []) as unknown as ManifestSection[]).find((s) => s.key === key)?.fields ??
   [];
+
+/** Gallery and video fields have their own forms (`GalleryFields`, `VideoFields`). */
+const GALLERY_VIDEO_KINDS: ManifestField['kind'][] = [
+  'uuid',
+  'bool',
+  'choice',
+  'youtubeId',
+  'seconds',
+];
+const FIRST_ALBUM = '__first';
 
 const SIZES = ['S', 'M', 'L', 'XL'] as const;
 const WEIGHTS = ['regular', 'medium', 'bold'] as const;
@@ -90,6 +117,8 @@ export function SectionEditorModal({
   const [typography, setTypography] = React.useState<SiteSectionTypography>(
     section?.typography ?? {},
   );
+  // A pasted video code that is not YouTube blocks Save until it is fixed or cleared.
+  const [videoInvalid, setVideoInvalid] = React.useState(false);
   const preview = usePreviewToken({ enabled: true });
   // The preview shows what the server holds, so it waits until everything is saved.
   const unsaved = useDraft().dirty;
@@ -141,7 +170,7 @@ export function SectionEditorModal({
       closeLabel={t('editor.back')}
       dirty={dirty}
       size="wide"
-      primary={{ label: t('editor.save'), onClick: apply }}
+      primary={{ label: t('editor.save'), onClick: apply, disabled: videoInvalid }}
       secondary={{
         label: unsaved
           ? `${t('design.preview')} (${t('pages.previewSaveFirst')})`
@@ -153,7 +182,7 @@ export function SectionEditorModal({
     >
       <div className="flex flex-col gap-6">
         {fields.map((f) =>
-          f.kind === 'images' ? (
+          GALLERY_VIDEO_KINDS.includes(f.kind) ? null : f.kind === 'images' ? (
             <PhotosField
               key={f.key}
               label={t(`editor.fields.${f.key}`)}
@@ -187,6 +216,11 @@ export function SectionEditorModal({
               )}
             </div>
           ),
+        )}
+
+        {sectionKey === SectionKey.GALLERY && <GalleryFields data={data} setData={setData} />}
+        {sectionKey === SectionKey.VIDEO && (
+          <VideoFields data={data} setData={setData} onInvalid={setVideoInvalid} />
         )}
 
         <fieldset className="flex flex-col gap-4">
@@ -289,6 +323,199 @@ function PhotosField({
           labels={uploadLabels(t)}
         />
       )}
+    </div>
+  );
+}
+
+type SetData = React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
+
+/** [40.6.06] Which gallery section the home page shows, and whether a page of all photos is linked. */
+function GalleryFields({ data, setData }: { data: Record<string, unknown>; setData: SetData }) {
+  const { t, i18n } = useTranslation('website');
+  const albums = useGalleryAlbums();
+  const lang = i18n.language.startsWith('bn') ? 'bn' : 'en';
+  const list = [...(albums.data ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
+  const albumId = typeof data.albumId === 'string' ? data.albumId : null;
+  const selectId = React.useId();
+  return (
+    <div className="flex flex-col gap-4">
+      {albums.isSuccess && list.length === 0 ? (
+        <p className="text-sm">
+          <Link to="/website/gallery" className="link">
+            {t('editor.gallery.makeSectionFirst')}
+          </Link>
+        </p>
+      ) : (
+        <div className="flex flex-col gap-1">
+          <Label htmlFor={selectId}>{t('editor.gallery.chooseSection')}</Label>
+          <Select
+            value={albumId ?? FIRST_ALBUM}
+            onValueChange={(v) => setData((d) => ({ ...d, albumId: v === FIRST_ALBUM ? null : v }))}
+          >
+            <SelectTrigger id={selectId}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={FIRST_ALBUM}>{t('editor.gallery.firstWithPhotos')}</SelectItem>
+              {list.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.title[lang] || a.title.bn || a.title.en}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-caption text-text-secondary">
+            {t('editor.gallery.carouselNote', { max: SITE_GALLERY_CAROUSEL_MAX })}
+          </p>
+        </div>
+      )}
+      <div className="flex flex-col gap-1">
+        <label className="flex min-h-11 items-center gap-2 text-sm">
+          <Switch
+            checked={data.showPageLink === true}
+            onCheckedChange={(on) => setData((d) => ({ ...d, showPageLink: on }))}
+          />
+          {t('editor.gallery.showPageLink')}
+        </label>
+        <p className="text-caption text-text-secondary">{t('editor.gallery.helpPageLink')}</p>
+      </div>
+    </div>
+  );
+}
+
+const startOk = (n: number | null) =>
+  n === null || (Number.isInteger(n) && n >= 0 && n <= SITE_VIDEO_START_MAX_SECONDS);
+
+/**
+ * [40.6.06] A YouTube video: the admin pastes a link or the embed code, and only the parsed
+ * 11-character id and start time go into the draft, never the pasted text (D55, D56).
+ */
+function VideoFields({
+  data,
+  setData,
+  onInvalid,
+}: {
+  data: Record<string, unknown>;
+  setData: SetData;
+  onInvalid: (invalid: boolean) => void;
+}) {
+  const { t } = useTranslation('website');
+  const [paste, setPaste] = React.useState('');
+  const [start, setStart] = React.useState(
+    typeof data.startSeconds === 'number' ? String(data.startSeconds) : '',
+  );
+  const videoId = typeof data.videoId === 'string' ? data.videoId : null;
+  const pasteBad = paste.trim() !== '' && parseYoutubeVideoId(paste) === null;
+  const startBad = !startOk(start.trim() === '' ? null : Number(start));
+  const position = data.headingPosition === 'below' ? 'below' : 'above';
+
+  React.useEffect(() => onInvalid(pasteBad || startBad), [pasteBad, startBad, onInvalid]);
+
+  function onPaste(value: string) {
+    setPaste(value);
+    const id = value.trim() ? parseYoutubeVideoId(value) : null;
+    if (!id) return;
+    // A link may carry its own start time; it fills the box unless the admin already typed one.
+    const fromLink = start.trim() === '' ? parseYoutubeStartSeconds(value) : null;
+    setData((d) => ({
+      ...d,
+      videoId: id,
+      ...(fromLink !== null ? { startSeconds: fromLink } : {}),
+    }));
+    if (fromLink !== null) setStart(String(fromLink));
+  }
+
+  const id = React.useId();
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <Label htmlFor={`${id}-paste`}>{t('editor.video.embedCode')}</Label>
+        <Textarea
+          id={`${id}-paste`}
+          rows={4}
+          dir="ltr"
+          value={paste}
+          aria-invalid={pasteBad || undefined}
+          aria-describedby={`${id}-help ${id}-state`}
+          onChange={(e) => onPaste(e.target.value)}
+        />
+        <p id={`${id}-help`} className="text-caption text-text-secondary">
+          {t('editor.video.embedHelp')}
+        </p>
+        <p
+          id={`${id}-state`}
+          role={pasteBad ? 'alert' : 'status'}
+          className={pasteBad ? 'text-sm text-destructive' : 'text-sm text-text-secondary'}
+        >
+          {pasteBad
+            ? t('editor.video.notYoutube')
+            : videoId
+              ? t('editor.video.found')
+              : t('editor.video.noVideoFound')}
+        </p>
+      </div>
+
+      {videoId && !pasteBad && (
+        <div className="flex flex-col gap-2">
+          <div
+            role="img"
+            aria-label={t('editor.video.previewTitle')}
+            className="flex aspect-video w-full max-w-sm flex-col items-center justify-center gap-1 rounded-lg border border-border-subtle bg-muted"
+          >
+            <PlayIcon aria-hidden className="size-8 text-text-secondary" />
+            <span dir="ltr" className="text-caption text-text-secondary">
+              {videoId}
+            </span>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="self-start"
+            onClick={() => {
+              setPaste('');
+              setStart('');
+              setData((d) => ({ ...d, videoId: null, startSeconds: null }));
+            }}
+          >
+            {t('editor.video.remove')}
+          </Button>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-1">
+        <Label htmlFor={`${id}-start`}>{t('editor.video.startAt')}</Label>
+        <Input
+          id={`${id}-start`}
+          inputMode="numeric"
+          dir="ltr"
+          className="max-w-40"
+          value={start}
+          aria-invalid={startBad || undefined}
+          onChange={(e) => {
+            setStart(e.target.value);
+            const n = e.target.value.trim() === '' ? null : Number(e.target.value);
+            if (startOk(n)) setData((d) => ({ ...d, startSeconds: n }));
+          }}
+        />
+        {startBad && (
+          <p role="alert" className="text-sm text-destructive">
+            {t('editor.video.startInvalid')}
+          </p>
+        )}
+      </div>
+
+      <RadioRows
+        legend={t('editor.video.headingPosition')}
+        value={position}
+        onValueChange={(v) => setData((d) => ({ ...d, headingPosition: v }))}
+        options={[
+          { value: 'above', title: t('editor.video.above') },
+          { value: 'below', title: t('editor.video.below') },
+        ]}
+      />
+      <p className="text-caption text-text-secondary">
+        {t('editor.video.privacy')} {t('help.videoOnly')}
+      </p>
     </div>
   );
 }
