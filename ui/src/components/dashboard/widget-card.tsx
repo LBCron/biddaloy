@@ -8,6 +8,8 @@ import { HelpHint } from '../help-hint';
 import { Menu, MenuContent, MenuTrigger } from '../menu';
 import { Skeleton } from '../skeleton';
 
+import { SIGNAL, type SignalLevel } from './signal';
+
 /** [44.2.02] WidgetSlot sets this to `widget.<key>`, so no widget file passes a help id (E23). */
 export const WidgetHelpContext = React.createContext<string | null>(null);
 
@@ -20,6 +22,10 @@ export const WidgetHelpContext = React.createContext<string | null>(null);
  */
 export interface WidgetCardProps {
   title: string;
+  /** Priority/health accent (#3594). Unset or `neutral` renders exactly as before. */
+  signal?: SignalLevel;
+  /** Translated level text, read by screen readers beside the icon. Required with `signal`. */
+  signalLabel?: string;
   /** Help id of the (?) beside the title; defaults to `WidgetHelpContext`. */
   helpId?: string;
   variant?: 'full' | 'compact';
@@ -49,6 +55,8 @@ export interface WidgetCardProps {
 
 export function WidgetCard({
   title,
+  signal,
+  signalLabel,
   helpId,
   variant = 'full',
   headingLevel = 2,
@@ -75,6 +83,13 @@ export function WidgetCard({
   const helpEl = <HelpHint size="sm" helpId={helpId ?? ctxHelpId} label={title} />;
   const [inner, setInner] = React.useState(defaultExpanded ?? false);
   const open = expanded ?? inner;
+  const sig = signal && signal !== 'neutral' ? SIGNAL[signal] : null;
+  const sigEl = sig ? (
+    <span className={cn('inline-flex shrink-0 items-center', sig.text)}>
+      <sig.Icon aria-hidden="true" className="size-4" />
+      {signalLabel ? <span className="sr-only">{signalLabel}</span> : null}
+    </span>
+  ) : null;
   const Heading: 'h2' | 'h3' = headingLevel === 3 ? 'h3' : 'h2';
 
   const body = loading ? (
@@ -112,7 +127,7 @@ export function WidgetCard({
       onExpandedChange?.(next);
     };
     return (
-      <Card asChild className={cn('flex flex-col', className)}>
+      <Card asChild className={cn('flex flex-col', sig?.bar, className)}>
         <section aria-labelledby={id}>
           <div className="flex items-center">
             <Heading id={id} className="m-0 min-w-0 flex-1">
@@ -123,7 +138,10 @@ export function WidgetCard({
                 className="flex min-h-11 w-full items-center gap-3 rounded-lg p-3 text-start outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-label text-text-secondary">{title}</span>
+                  <span className="flex items-center gap-1 text-label text-text-secondary">
+                    {sigEl}
+                    <span className="truncate">{title}</span>
+                  </span>
                   {value ? <span className="text-h2 tabular-nums">{value}</span> : null}
                   {summary ? (
                     <span className="text-caption text-text-secondary">{summary}</span>
@@ -161,10 +179,16 @@ export function WidgetCard({
   }
 
   return (
-    <Card asChild padded className={cn('flex h-full flex-col', className)}>
+    <Card asChild padded className={cn('flex h-full flex-col', sig?.bar, className)}>
       <section aria-labelledby={id}>
-        <div className="flex items-start justify-between gap-2">
-          <Heading id={id} className="me-auto text-h3">
+        <div
+          className={cn(
+            'flex items-start justify-between gap-2',
+            sig?.band && `-mx-2 rounded-md px-2 py-1 ${sig.band}`,
+          )}
+        >
+          <Heading id={id} className="me-auto flex items-center gap-2 text-h3">
+            {sigEl}
             {title}
           </Heading>
           {helpEl}

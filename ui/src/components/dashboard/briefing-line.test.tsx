@@ -74,3 +74,12 @@ describe('BriefingLine', () => {
     await expect(container).toHaveNoViolations();
   });
 });
+
+describe('BriefingLine signal (#3594)', () => {
+  it('shows the level icon with an sr label', () => {
+    render(<BriefingLine headline="H" signal="critical" signalLabel="Needs action" />);
+    expect(screen.getByText('Needs action').parentElement!.className).toContain(
+      'text-signal-critical-fg',
+    );
+  });
+});

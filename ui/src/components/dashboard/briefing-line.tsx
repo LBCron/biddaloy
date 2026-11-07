@@ -12,11 +12,17 @@ import * as React from 'react';
 import { cn } from '../../primitives/lib/utils';
 import { Skeleton } from '../skeleton';
 
+import { SIGNAL, type SignalLevel } from './signal';
+
 export interface BriefingLineProps {
   /** "Good morning! 4 things need your attention today" */
   headline: string;
   /** "Most urgent: attendance not taken in 3 sections." */
   mostUrgent?: string;
+  /** Level of the most urgent item (#3594, D12): icon + colour, same scale as widgets. */
+  signal?: SignalLevel;
+  /** Translated level text for screen readers. */
+  signalLabel?: string;
   /** ONE primary Button (asChild Link) — the page's only filled button. */
   action?: React.ReactNode;
   /** `BriefingChip` elements for the other items. */
@@ -56,6 +62,8 @@ export function BriefingChip({
 export function BriefingLine({
   headline,
   mostUrgent,
+  signal,
+  signalLabel,
   action,
   items,
   itemsLabel,
@@ -67,6 +75,7 @@ export function BriefingLine({
 }: BriefingLineProps) {
   const uid = React.useId();
   const [open, setOpen] = React.useState(false);
+  const sig = signal && signal !== 'neutral' ? SIGNAL[signal] : null;
 
   if (loading) {
     return (
@@ -84,7 +93,17 @@ export function BriefingLine({
     <section aria-labelledby={headingId} className="rounded-lg bg-secondary p-4 md:p-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          {icon ? (
+          {sig ? (
+            <span
+              className={cn(
+                'inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-surface',
+                sig.text,
+              )}
+            >
+              <sig.Icon aria-hidden="true" className="size-5" />
+              {signalLabel ? <span className="sr-only">{signalLabel}</span> : null}
+            </span>
+          ) : icon ? (
             <span
               aria-hidden="true"
               className="hidden size-10 shrink-0 items-center justify-center rounded-full bg-surface md:inline-flex"

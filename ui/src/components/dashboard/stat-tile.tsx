@@ -4,6 +4,8 @@ import * as React from 'react';
 import { cn } from '../../primitives/lib/utils';
 import { Card } from '../card';
 
+import { SIGNAL, type SignalLevel } from './signal';
+
 /**
  * [169.1-02] Phone KPI tile (also the committee desktop KPI row). Trend is
  * icon + text, never colour alone. Presentational; strings arrive formatted.
@@ -14,6 +16,10 @@ export interface StatTileProps {
   trend?: { direction: 'up' | 'down' | 'flat'; text: string; tone?: 'neutral' | 'good' | 'bad' };
   /** Caption without an icon, e.g. "guardians". */
   note?: string;
+  /** Priority/health accent (#3594): coloured number + icon. Unset/`neutral` = as before. */
+  signal?: SignalLevel;
+  /** Translated level text for screen readers. */
+  signalLabel?: string;
   /** Sparkline or Meter. With `asChild`: the single link element (its children fill this slot). */
   children?: React.ReactNode;
   /** Wrap a router Link, like Card's asChild. */
@@ -33,15 +39,22 @@ export function StatTile({
   value,
   trend,
   note,
+  signal,
+  signalLabel,
   children,
   asChild,
   className,
 }: StatTileProps) {
+  const sig = signal && signal !== 'neutral' ? SIGNAL[signal] : null;
   const Icon = trend ? ICON[trend.direction] : null;
   const tile = (extra: React.ReactNode) => (
     <>
       <span className="truncate text-label text-text-secondary">{label}</span>
-      <span className="text-h1 tabular-nums">{value}</span>
+      <span className={cn('flex items-center gap-2 text-h1 tabular-nums', sig?.text)}>
+        {sig ? <sig.Icon aria-hidden="true" className="size-5 shrink-0" /> : null}
+        {value}
+        {sig && signalLabel ? <span className="sr-only">{signalLabel}</span> : null}
+      </span>
       {trend && Icon ? (
         <span className={cn('flex items-center gap-1 text-caption', TONE[trend.tone ?? 'neutral'])}>
           <Icon aria-hidden="true" className="size-4 shrink-0" />
