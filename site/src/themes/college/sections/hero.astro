@@ -1,0 +1,38 @@
+---
+import HeroCarousel from '../../../components/HeroCarousel.astro';
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang } = Astro.props as SectionProps;
+const raw = (data.photos ?? data.images ?? []) as unknown[];
+const photos = raw.filter((p): p is string => typeof p === 'string');
+const kicker = field(data.kicker, lang);
+const headline = field(data.headline, lang);
+const tagline = field(data.tagline, lang);
+const primary = field(data.ctaPrimary, lang);
+const secondary = field(data.ctaSecondary, lang);
+const base = `/${lang}/`;
+const hasText = !!(kicker || headline || tagline || primary || secondary);
+---
+{(hasText || photos.length > 0) && (
+  <section class="hero" id="hero"><div class="wrap">
+    {hasText && (
+      <div class="copy">
+        {kicker && <p class="kicker">{kicker}</p>}
+        {headline && <h1>{headline}</h1>}
+        {tagline && <p class="lead">{tagline}</p>}
+        <div class="cta">
+          {primary && <a class="btn btn-primary" href={`${base}admissions/`}>{primary}</a>}
+          {secondary && <a class="btn btn-ghost" href={`${base}contact/`}>{secondary}</a>}
+        </div>
+      </div>
+    )}
+    {photos.length > 0 ? <div class="plate"><HeroCarousel photos={photos} lang={lang} /></div> : hasText && (
+      <svg class="facade" viewBox="0 0 240 200" aria-hidden="true" focusable="false">
+        <path class="facade-roof" d="M20 70 120 20l100 50z" />
+        <path class="facade-line" d="M30 84h180M30 176h180M20 188h200" />
+        <path class="facade-col" d="M46 84v92M82 84v92M118 84v92M154 84v92M190 84v92" />
+      </svg>
+    )}
+  </div></section>
+)}

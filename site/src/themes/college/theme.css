@@ -1,0 +1,601 @@
+/* College theme: editorial confidence, "results are a habit". Square corners, hairline rules, lists instead of cards,
+   one big headline and a tall framed photo slot. Loaded after Basic's theme.css, which supplies the shared structure
+   (islands, forms, carousel, announcement bar, footer); this file only reskins it.
+   Colours come from the five palette vars (--primary --secondary --accent --surface --ink) set on <html> by
+   css-vars.ts, so a palette switch needs no CSS change (D28). Fixed colours: --danger (urgent notices) and --line
+   (the hairline grey). The accent is the one hot colour: markers, rules and the current step, never text.
+   No section styles itself from a neighbour: no position selectors on section wrappers (D31). */
+.t-college {
+  --on-primary: #fff;
+  --danger: #a2321f;
+  --line: #dce1e7;
+  --r: 0;
+  --r-s: 0;
+  --max: 1160px;
+  --warn: var(--danger);
+  --warn-soft: color-mix(in srgb, var(--danger) 10%, var(--surface));
+  --bg-2: color-mix(in srgb, var(--primary) 5%, var(--surface));
+  --line-accent: color-mix(in srgb, var(--primary) 40%, var(--surface));
+  --paper: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  --ann-bg: var(--bg-2);
+  --ann-ink: var(--ink);
+  --ann-label-bg: var(--secondary);
+  --ann-label-ink: var(--on-primary);
+  --ann-r: 0;
+  --ann-m: 0;
+  --hc-bg: var(--bg-2);
+  --hc-ink: var(--ink);
+  --hc-line: var(--line-accent);
+  --hc-cap-r: 0;
+  --sa-ink: var(--primary);
+  --sa-r: 0;
+  --hc-focus: var(--primary);
+}
+.t-college {
+  --hd: var(--en-h);
+}
+html[lang='bn'] .t-college {
+  --hd: var(--bn-h);
+}
+.t-college {
+  background: var(--surface);
+  color: var(--ink);
+}
+.t-college h1,
+.t-college h2,
+.t-college h3,
+.t-college h4 {
+  letter-spacing: 0;
+}
+/* letterhead bar and header */
+.t-college .letterhead {
+  background: var(--secondary);
+  color: var(--on-primary);
+  font-size: 14px;
+}
+.t-college .letterhead .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 22px;
+  align-items: center;
+  min-height: 36px;
+  padding-block: 4px;
+}
+.t-college .top {
+  background: var(--surface);
+  backdrop-filter: none;
+  border-bottom: 1px solid var(--line);
+} /* a backdrop filter would trap the fixed menu sheet inside the header */
+.t-college .logo {
+  background: none;
+  border-radius: 0;
+  width: 44px;
+  height: 44px;
+}
+.t-college .logo img {
+  border-radius: 0;
+}
+.t-college .logo svg {
+  width: 44px;
+  height: 44px;
+}
+.t-college .crest-shield {
+  fill: var(--primary);
+}
+.t-college .crest-rule {
+  fill: none;
+  stroke: var(--on-primary);
+  stroke-width: 1.5;
+}
+.t-college .crest-letter {
+  fill: var(--on-primary);
+  font: 700 17px var(--bn-h);
+}
+.t-college .brand b {
+  font-size: 17px;
+}
+.t-college .nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border-radius: 0;
+  border-bottom: 3px solid transparent;
+}
+.t-college .nav a[aria-current] {
+  background: none;
+  color: var(--primary);
+  border-bottom-color: var(--accent);
+}
+.t-college .btn {
+  border-radius: 0;
+}
+.t-college .btn-sm {
+  min-height: 44px;
+}
+.t-college .btn-primary {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.t-college .btn-primary:hover {
+  background: var(--secondary);
+}
+.t-college .btn-ghost {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--ink);
+}
+.t-college .lang {
+  border-radius: 0;
+  border-color: var(--ink);
+}
+.t-college .lang a {
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 0;
+}
+.t-college .lang a[aria-current='true'] {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+/* phone menu: a bottom sheet (<details>, no script) */
+.t-college .menu {
+  position: relative;
+}
+.t-college .menu summary {
+  list-style: none;
+}
+.t-college .menu summary::-webkit-details-marker {
+  display: none;
+}
+/* Basic draws a "+" after every <summary> (its FAQ); the menu button has its own icon */
+.t-college .menu summary::after {
+  content: none;
+}
+.t-college .menu summary {
+  padding: 0;
+}
+.t-college .menu .menu-btn {
+  border-radius: 0;
+  border-color: var(--ink);
+  cursor: pointer;
+}
+.t-college .sheet-panel {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 40;
+  max-height: 80vh;
+  overflow: auto;
+  background: var(--surface);
+  border-top: 4px solid var(--accent);
+  padding: 20px var(--pad) 28px;
+  box-shadow: 0 -12px 32px color-mix(in srgb, var(--ink) 25%, transparent);
+}
+.t-college .sheet-panel nav {
+  display: grid;
+  gap: 0;
+  margin: 0 0 16px;
+}
+.t-college .sheet-panel nav a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 4px;
+  font-size: 19px;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+.t-college .sheet-panel nav a[aria-current] {
+  color: var(--primary);
+  box-shadow: inset 4px 0 0 var(--accent);
+  padding-left: 14px;
+}
+.t-college .sheet-panel .btn {
+  width: 100%;
+}
+.t-college .menu[open] summary::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+@media (min-width: 1024px) {
+  .t-college .menu {
+    display: none;
+  }
+}
+/* hero: oversized headline beside a tall framed photo slot */
+.t-college .hero {
+  padding: 36px 0 44px;
+  border-bottom: 1px solid var(--line);
+}
+.t-college .hero .wrap {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+}
+.t-college .hero .copy {
+  text-align: start;
+}
+.t-college .hero .cta {
+  justify-content: flex-start;
+}
+.t-college .hero .kicker {
+  display: block;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  font-size: inherit;
+  margin: 0 0 14px;
+  padding: 0 0 0 12px;
+  font-weight: 700;
+  color: var(--primary);
+  border-left: 4px solid var(--accent);
+}
+.t-college .hero h1 {
+  font-size: calc(clamp(40px, 11.5vw, 88px) * var(--h-size, 1));
+  line-height: 1.08;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.t-college .hero p.lead {
+  font-size: 18px;
+  max-width: 52ch;
+  margin: 18px 0 24px;
+}
+.t-college .plate {
+  border: 1px solid var(--ink);
+  padding: 10px;
+  background: var(--surface);
+}
+.t-college .plate .hc {
+  border-radius: 0;
+}
+.t-college .facade {
+  width: 100%;
+  max-height: 320px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  padding: 20px;
+}
+.t-college .facade-roof {
+  fill: var(--primary);
+}
+.t-college .facade-line {
+  stroke: var(--ink);
+  stroke-width: 3;
+  fill: none;
+}
+.t-college .facade-col {
+  stroke: var(--primary);
+  stroke-width: 6;
+  fill: none;
+}
+@media (min-width: 900px) {
+  .t-college .hero {
+    padding: 64px 0 72px;
+  }
+  .t-college .hero .wrap {
+    grid-template-columns: 1.4fr 1fr;
+    align-items: center;
+    gap: 56px;
+  }
+  .t-college .plate,
+  .t-college .facade {
+    min-height: 420px;
+  }
+}
+/* sections: every one carries its own background, none depends on a neighbour */
+.t-college .sec {
+  padding: 44px 0;
+}
+.t-college .sec-tint {
+  background: var(--bg-2);
+  border-block: 1px solid var(--line);
+}
+.t-college .sec h2 {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 8px;
+}
+.t-college .sec h2::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 64px;
+  height: 4px;
+  background: var(--accent);
+}
+.t-college .sec-head {
+  margin-bottom: 20px;
+}
+.t-college .prose-p {
+  white-space: pre-line;
+  margin-top: 14px;
+  max-width: 64ch;
+}
+.t-college .photo,
+.t-college .cover {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  border: 1px solid var(--ink);
+  padding: 8px;
+  background: var(--surface);
+  aspect-ratio: 3/2;
+}
+.t-college .cover {
+  aspect-ratio: 1200/630;
+  border: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--line);
+}
+.t-college .card {
+  border-radius: 0;
+  border-color: var(--line);
+  background: var(--surface);
+}
+.t-college .empty {
+  border-radius: 0;
+  border-color: var(--line);
+}
+.t-college .slot {
+  aspect-ratio: 1200/630;
+  border: 0;
+  border-radius: 0;
+  background: var(--bg-2);
+}
+/* academics: departments as a hairline-ruled index with arrow discs */
+.t-college .depts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 2px solid var(--ink);
+}
+.t-college .dept {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.t-college .dept-name {
+  display: block;
+  font: 700 clamp(20px, 3vw, 26px)/1.2 var(--hd);
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+.t-college .dept .prose-p {
+  margin: 0;
+  max-width: 70ch;
+}
+.t-college .disc {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+.t-college .disc::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 14px;
+  height: 2px;
+  background: var(--on-primary);
+}
+.t-college .disc::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid var(--on-primary);
+  border-right: 2px solid var(--on-primary);
+  transform: translateX(3px) rotate(45deg);
+  background: none;
+}
+/* admissions: a real numbered sequence; the first step is the one to take now */
+.t-college .notice-box {
+  border-top: 2px solid var(--ink);
+  padding: 24px 0 0;
+}
+.t-college .steps {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+  counter-reset: s;
+}
+.t-college .step {
+  counter-increment: s;
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 16px;
+  align-items: start;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.t-college .step::before {
+  content: counter(s);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--primary);
+  font: 700 20px/1 var(--hd);
+  color: var(--primary);
+}
+.t-college .step.now::before {
+  background: var(--primary);
+  color: var(--on-primary);
+  box-shadow: 4px 4px 0 var(--accent);
+}
+html[lang='bn'] .t-college .step::before {
+  content: counter(s, bengali);
+}
+.t-college .step .prose-p {
+  margin: 0;
+  padding-top: 8px;
+}
+@media (min-width: 900px) {
+  .t-college .steps {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+  .t-college .step {
+    grid-template-columns: 1fr;
+    border-bottom: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+.t-college .intakes {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.t-college .intakes .card {
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+}
+/* notices, events */
+.t-college .notice-list {
+  border: 1px solid var(--ink);
+  border-radius: 0;
+}
+.t-college .date {
+  border-radius: 0;
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.t-college .date span {
+  color: var(--on-primary);
+}
+.t-college .ev .date {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.t-college .chip {
+  border-radius: 0;
+}
+.t-college .chip-accent {
+  background: var(--paper);
+  color: var(--ink);
+}
+.t-college .sk i {
+  border-radius: 0;
+  background: linear-gradient(90deg, var(--bg-2) 25%, var(--paper) 50%, var(--bg-2) 75%);
+  background-size: 200% 100%;
+}
+/* teachers: square plates */
+.t-college .tcard {
+  padding: 18px 14px;
+}
+.t-college .avatar {
+  border-radius: 0;
+  width: 96px;
+  height: 96px;
+  background: var(--bg-2);
+  border: 1px solid var(--ink);
+  display: grid;
+  place-items: center;
+  font: 700 34px var(--bn-h);
+  color: var(--primary);
+}
+.t-college .avatar::before,
+.t-college .avatar::after {
+  content: none;
+}
+.t-college .tcard img {
+  width: 96px;
+  height: 96px;
+  border-radius: 0;
+  object-fit: cover;
+  margin: 0 auto;
+  border: 1px solid var(--ink);
+}
+.t-college .seeall a {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+@media (hover: hover) {
+  .t-college .seeall a:hover {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+}
+/* blog, contact, forms */
+.t-college .post {
+  border-radius: 0;
+}
+.t-college .field input,
+.t-college .field select,
+.t-college .field textarea {
+  border-radius: 0;
+  border-color: var(--ink);
+}
+.t-college .kv.spaced {
+  margin: 16px 0 20px;
+}
+.t-college .mapframe {
+  border-radius: 0;
+  border-color: var(--ink);
+}
+/* footer */
+.t-college .foot {
+  background: var(--secondary);
+  color: var(--surface);
+  margin-top: 0;
+  border-top: 4px solid var(--accent);
+}
+.t-college .foot h4 {
+  color: var(--surface);
+}
+.t-college .foot a {
+  color: var(--surface);
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+.t-college .credit {
+  border-top-color: color-mix(in srgb, var(--surface) 24%, var(--ink));
+  color: color-mix(in srgb, var(--surface) 80%, var(--ink));
+}
+.t-college .credit a {
+  color: var(--surface);
+  display: inline;
+  min-height: 0;
+}
+/* focus, motion */
+.t-college a:focus-visible,
+.t-college button:focus-visible,
+.t-college summary:focus-visible,
+.t-college input:focus-visible,
+.t-college select:focus-visible,
+.t-college textarea:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 0;
+}
+.t-college .foot a:focus-visible,
+.t-college .letterhead a:focus-visible {
+  outline-color: var(--surface);
+}
+@media (max-width: 719px) {
+  .t-college .sec {
+    padding: 36px 0;
+  }
+}

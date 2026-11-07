@@ -1,0 +1,35 @@
+---
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang } = Astro.props as SectionProps;
+const title = field(data.title, lang);
+const body = field(data.body, lang);
+// Each blank-line-separated paragraph is one department row; "Name: what it covers" splits at the first colon.
+const rows = (body ?? '')
+  .split(/\n\s*\n/)
+  .map((b) => b.trim())
+  .filter(Boolean)
+  .map((b) => {
+    const m = /^([^:：]{1,40})[:：]\s*([\s\S]+)$/.exec(b);
+    return m ? { name: m[1].trim(), text: m[2].trim() } : { name: undefined, text: b };
+  });
+---
+{(title || rows.length > 0) && (
+  <section class="sec" id="academics"><div class="wrap">
+    {title && <div class="sec-head"><h2>{title}</h2></div>}
+    {rows.length > 0 && (
+      <ul class="depts">
+        {rows.map((r) => (
+          <li class="dept">
+            <div>
+              {r.name && <b class="dept-name">{r.name}</b>}
+              <p class="prose-p">{r.text}</p>
+            </div>
+            <span class="disc" aria-hidden="true"></span>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div></section>
+)}
