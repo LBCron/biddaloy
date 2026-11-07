@@ -63,6 +63,34 @@
       "archetype": "detail"
     },
     {
+      "path": "/website/pages",
+      "role": "admin",
+      "archetype": "detail"
+    },
+    {
+      "path": "/website/design",
+      "role": "admin",
+      "archetype": "detail"
+    },
+    {
+      "path": "/website/blog",
+      "role": "admin",
+      "archetype": "list"
+    },
+    {
+      "path": "/website/blog/$postId",
+      "params": {
+        "postId": "created"
+      },
+      "role": "admin",
+      "archetype": "detail"
+    },
+    {
+      "path": "/website/enquiries",
+      "role": "admin",
+      "archetype": "list"
+    },
+    {
       "path": "/security",
       "role": "admin",
       "archetype": "bespoke",
