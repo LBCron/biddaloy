@@ -1,0 +1,18 @@
+---
+import type { SiteManifest } from '../lib/types';
+
+interface Props {
+  manifest: Pick<SiteManifest, 'analytics'>;
+}
+// The manifest carries the school's Umami website id and the operator's public script URL, and
+// nothing else (D42). A preview is never counted. A value that is not what the server mints
+// (https URL, id of letters, digits and dashes) draws nothing: no script is better than a wrong one.
+const a = Astro.props.manifest.analytics;
+const isPreview = !!(Astro.locals.preview || Astro.locals.previewToken);
+const ok =
+  !isPreview &&
+  a &&
+  /^[A-Za-z0-9-]{1,64}$/.test(a.websiteId) &&
+  /^https:\/\/[^\s"'<>]+$/.test(a.scriptUrl);
+---
+{ok && <script defer src={a.scriptUrl} data-website-id={a.websiteId} data-do-not-track="true"></script>}

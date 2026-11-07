@@ -45,14 +45,40 @@ const home = {
   ],
 };
 
+// [40.5.05] res.localhost: a school with the results page on, one published exam and an Umami id.
+const resManifest = {
+  ...manifest,
+  nav: [...manifest.nav, { page: 'results' }],
+  analytics: { websiteId: 'umami-site-1', scriptUrl: 'https://stats.example.test/script.js' },
+};
+const exams = [
+  {
+    id: '00000000-0000-4000-8000-00000000e001',
+    name: 'Half yearly 2026',
+    showNames: true,
+    sections: [
+      { id: '00000000-0000-4000-8000-0000000005a1', className: 'Six', sectionName: 'A' },
+      { id: '00000000-0000-4000-8000-0000000005a2', className: 'Six', sectionName: 'B' },
+    ],
+  },
+];
+
 createServer((req, res) => {
-  const m = /\/public\/site\/by-host\/([^/]+)\/(manifest|page\/[a-z]+)/.exec(req.url ?? '');
+  const m = /\/public\/site\/by-host\/([^/]+)\/(manifest|page\/[a-z]+|island\/results)/.exec(
+    req.url ?? '',
+  );
   const host = decodeURIComponent(m?.[1] ?? '');
   const send = (code, body) => {
     res.writeHead(code, { 'content-type': 'application/json' });
     res.end(JSON.stringify(body));
   };
   if (!m || host === 'down.localhost') return send(500, {});
+  if (host === 'res.localhost') {
+    if (m[2] === 'manifest') return send(200, resManifest);
+    if (m[2] === 'island/results') return send(200, exams);
+    if (m[2] === 'page/results') return send(200, { page: 'results', sections: [] });
+    if (m[2] === 'page/home') return send(200, home);
+  }
   if (host !== 'ok.localhost') return send(404, { code: 'site.not_found' });
   if (m[2] === 'manifest') return send(200, manifest);
   const page = m[2].slice(5);

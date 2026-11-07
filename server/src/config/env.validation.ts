@@ -88,6 +88,11 @@ class EnvironmentVariables {
   @IsString()
   UMAMI_API_TOKEN?: string;
 
+  // Public URL of Umami's tracker script (https). Without it the school sites carry no analytics tag.
+  @IsOptional()
+  @IsString()
+  UMAMI_SCRIPT_URL?: string;
+
   // Test inbox (Epic 87). `mailpit` sends every message to the Mailpit sink; prod leaves it unset.
   @ValidateIf((o: EnvironmentVariables) => !!o.MESSAGE_SINK)
   @IsIn(['mailpit', 'real'])
@@ -558,6 +563,9 @@ export function assertProductionConfig(config: Record<string, unknown>): void {
   }
   if (str('UMAMI_API_URL') && !/^https:\/\/[^\s/]+(\/\S*)?$/.test(str('UMAMI_API_URL'))) {
     problems.push('UMAMI_API_URL must be an https URL');
+  }
+  if (str('UMAMI_SCRIPT_URL') && !/^https:\/\/[^\s/]+(\/\S*)?$/.test(str('UMAMI_SCRIPT_URL'))) {
+    problems.push('UMAMI_SCRIPT_URL must be an https URL');
   }
 
   if (str('OUTBOUND_TEST_ALLOW_LOOPBACK')) {

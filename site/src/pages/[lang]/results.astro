@@ -1,0 +1,81 @@
+---
+import { SitePage } from '@biddaloy/shared';
+import Skeleton from '../../components/Skeleton.astro';
+import { t } from '../../i18n/t';
+import { fetchByHost } from '../../lib/api';
+import { loadPage } from '../../lib/page';
+import type { Lang } from '../../lib/types';
+import { themes } from '../../themes';
+
+const { site } = Astro.locals;
+const lang = Astro.params.lang as Lang;
+if (!site) return new Response(null, { status: 404 });
+// The page exists only when the school switched the results page on (D12): the API answers 404 otherwise.
+const gate = await loadPage(Astro.locals, SitePage.RESULTS);
+if (gate.rewrite) return Astro.rewrite(gate.rewrite);
+// The exam list is read here, so it is in the first HTML (no flash, works before any script runs).
+const list = await fetchByHost<{ id: string; name: string; sections: unknown[] }[]>(
+  Astro.locals.host,
+  'island/results',
+);
+if (list.kind !== 'ok') return Astro.rewrite(list.kind === 'down' ? '/503/' : '/404/');
+const exams = list.data;
+const { Layout } = themes[site.theme] ?? themes.basic;
+// The Turnstile site key is public; the site container carries it in its own env.
+const siteKey = process.env.TURNSTILE_SITE_KEY ?? import.meta.env?.TURNSTILE_SITE_KEY ?? '';
+const m = (k: string) => t(lang, `results.${k}`);
+const msgs = Object.fromEntries(
+  ['captcha', 'invalid', 'notfound', 'rate', 'error', 'empty', 'unavailable'].map((k) => [`data-m-${k}`, m(k)]),
+);
+const labels = Object.fromEntries(
+  ['roll', 'name', 'gpa', 'grade', 'result', 'pass', 'fail', 'subjects'].map((k) => [`data-l-${k}`, m(k)]),
+);
+---
+<Layout manifest={site} lang={lang} rest="results/" title={t(lang, 'nav.results')}>
+  <section class="sec" id="results"><div class="wrap">
+    <div class="sec-head"><h1>{t(lang, 'nav.results')}</h1></div>
+    {exams.length === 0 ? <p class="empty">{m('none')}</p> : !siteKey ? <p class="empty">{m('unavailable')}</p> : (
+      <div class="island" data-results data-lang={lang} data-sitekey={siteKey} data-exams={JSON.stringify(exams)}
+        data-pick={m('pick')} data-prev={m('prev')} data-next={m('next')} {...msgs} {...labels}>
+        <form class="results-form" novalidate>
+          <label class="field"><span>{m('exam')}</span>
+            <select name="exam" required>
+              <option value="">{m('pick')}</option>
+              {exams.map((e) => <option value={e.id}>{e.name}</option>)}
+            </select>
+          </label>
+          <label class="field"><span>{m('class')}</span><select name="class" required disabled><option value="">{m('pick')}</option></select></label>
+          <label class="field"><span>{m('section')}</span><select name="section" required disabled><option value="">{m('pick')}</option></select></label>
+          <label class="field"><span>{m('rollOpt')}</span><input name="roll" type="text" inputmode="numeric" pattern="[0-9]{1,6}" maxlength="6" autocomplete="off" /></label>
+          <div data-captcha></div>
+          <button class="btn" type="submit">{m('show')}</button>
+        </form>
+        <p data-status role="status" aria-live="polite"></p>
+        <Skeleton label={m('loading')} />
+        <div class="ready" data-out aria-live="polite"></div>
+        <p class="print-row"><button class="btn btn-ghost btn-sm" type="button" data-print>{m('print')}</button></p>
+      </div>
+    )}
+  </div></section>
+</Layout>
+<script>
+  import '../../islands/results';
+</script>
+<style is:global>
+  .results-form{display:grid;gap:12px;max-width:480px}
+  .results-table{width:100%;border-collapse:collapse;margin-top:16px}
+  .results-table th,.results-table td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  .results-table summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+  .results-table .subjects ul{margin:8px 0 0;padding-left:18px}
+  .pager{display:flex;gap:12px;align-items:center;margin-top:12px}
+  /* Phone: each row becomes a card of labelled lines (the label sits in `data-l`). */
+  @media (max-width:600px){
+    .results-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+    .results-table tr{display:block;border:1px solid var(--line);border-radius:var(--r-s);margin-bottom:10px;padding:6px 10px}
+    .results-table td{display:flex;justify-content:space-between;gap:12px;border:0;padding:4px 0}
+    .results-table td::before{content:attr(data-l);font-weight:600;color:var(--ink-3)}
+  }
+  @media print{
+    .results-form,[data-captcha],[data-status],.print-row,.top,.foot,.sk,nav,.announce{display:none!important}
+  }
+</style>

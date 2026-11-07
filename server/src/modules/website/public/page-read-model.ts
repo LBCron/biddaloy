@@ -14,6 +14,8 @@ export interface PublicManifest {
   noindex: boolean;
   schoolName: BilingualText;
   contact: { address?: BilingualText; phone?: string; email?: string };
+  /** Present only when the site has an Umami website AND the operator set `UMAMI_SCRIPT_URL` (D42). */
+  analytics?: { websiteId: string; scriptUrl: string };
 }
 
 /** What `GET .../page/:page` answers. `feed` is `[]` for a section with no system feed. */
@@ -85,6 +87,8 @@ export function buildManifest(
   school: SchoolFields,
   /** A logo uploaded in the website screens (site_media). It beats the school profile logo. */
   hasSiteLogo = false,
+  /** `school_sites.umami_website_id`; never set for a draft preview (previews are not counted). */
+  umamiWebsiteId: string | null = null,
 ): PublicManifest {
   const contact: PublicManifest['contact'] = {};
   if (school.address) contact.address = both(school.address);
@@ -103,7 +107,14 @@ export function buildManifest(
     noindex,
     schoolName: { bn: school.name_bn ?? school.name, en: school.name },
     contact,
+    ...analyticsOf(umamiWebsiteId),
   };
+}
+
+/** Only the website id and the public script URL leave the server; never the API URL or token. */
+function analyticsOf(websiteId: string | null): Pick<PublicManifest, 'analytics'> {
+  const scriptUrl = process.env.UMAMI_SCRIPT_URL?.trim();
+  return websiteId && scriptUrl ? { analytics: { websiteId, scriptUrl } } : {};
 }
 
 // A bare date is a Bangladesh calendar day (UTC+6). A date that does not parse never shows.

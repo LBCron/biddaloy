@@ -103,8 +103,9 @@ export class PublicSiteService {
       l.site.tenant_id,
       l.site.version,
       // Everything the manifest reads that is not the published config is in the key.
-      `manifest:${l.school.updated_at.getTime()}:${l.site.noindex ? 1 : 0}:${logo?.id ?? ''}`,
-      async () => buildManifest(l.published, l.site.noindex, l.school, !!logo),
+      `manifest:${l.school.updated_at.getTime()}:${l.site.noindex ? 1 : 0}:${logo?.id ?? ''}:${l.site.umami_website_id ?? ''}`,
+      async () =>
+        buildManifest(l.published, l.site.noindex, l.school, !!logo, l.site.umami_website_id),
     );
     return { data: withAnnouncementWindow(m, new Date()) };
   }

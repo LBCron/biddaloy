@@ -84,6 +84,15 @@ describe('Umami pair (40.4.08)', () => {
     ).not.toThrow();
     expect(() => validate(prodConfig)).not.toThrow();
   });
+
+  it('production refuses a tracker script URL that is not https, and accepts an https one', () => {
+    expect(() =>
+      validate({ ...prodConfig, UMAMI_SCRIPT_URL: 'http://u.example.org/s.js' }),
+    ).toThrow(/UMAMI_SCRIPT_URL/);
+    expect(() =>
+      validate({ ...prodConfig, UMAMI_SCRIPT_URL: 'https://u.example.org/script.js' }),
+    ).not.toThrow();
+  });
 });
 
 describe('Turnstile keys (Epic 79)', () => {

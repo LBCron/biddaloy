@@ -17,7 +17,12 @@ export default defineConfig({
       command: 'node dist/server/entry.mjs',
       url: 'http://127.0.0.1:4321/healthz',
       reuseExistingServer: !process.env.CI,
-      env: { HOST: '127.0.0.1', PORT: '4321', SITE_API_BASE: 'http://127.0.0.1:4399' },
+      env: {
+        HOST: '127.0.0.1',
+        PORT: '4321',
+        SITE_API_BASE: 'http://127.0.0.1:4399',
+        TURNSTILE_SITE_KEY: 'e2e-site-key',
+      },
     },
   ],
   projects: [{ name: 'site', use: { ...devices['Desktop Chrome'] } }],

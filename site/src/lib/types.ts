@@ -23,6 +23,8 @@ export interface SiteManifest {
   logo?: string;
   noindex?: boolean;
   schoolName: BilingualText;
+  /** Present only for a site with an Umami website and an operator script URL (D42). */
+  analytics?: { websiteId: string; scriptUrl: string };
   contact?: {
     address?: BilingualText;
     phone?: string;
