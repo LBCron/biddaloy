@@ -104,3 +104,16 @@ subdomain or custom domain, and only moves `version` / `draft_revision` forward.
 - **2026-11-07 (W1 close).** Surprise: `demo` and `site-test` are reserved subdomains, so the demo school cannot use
   its own short name. Cost: none, it uses `bmsc-high`. Rule candidate: seed code takes the subdomain from the school
   slug, never from the word "demo".
+- **2026-11-07 (W2 close).** Surprise: the server lane (#3622) rejected the `logo` media slot while the wizard
+  (#3625) uploaded to it. Cost: each lane's own tests were green; only regenerating `schema.d.ts` and running the
+  typecheck exposed the mismatch. Fix: caught at W2 close. Rule candidate: regenerate `schema.d.ts` as soon as each
+  server lane lands, so a client lane never builds on a stale contract.
+- **2026-11-07 (W2 close).** Surprise: a client type was hand-typed (a `media.url` field) instead of taken from
+  `schema.d.ts`; the admin media list has no picture URL. Cost: the wizard preview had to use the blob it just
+  uploaded. Fix: preview from the uploaded blob. Rule candidate: client types for an API response come from the
+  generated schema, never from memory of the ticket.
+- **2026-11-07 (W2 close).** Surprise: a fresh worktree has no built `shared/dist` or `site-themes/dist`, and the
+  symlinked main-checkout `node_modules/@biddaloy/*` points at main's stale packages. Cost: server build and
+  migrations failed with missing exports until the packages were linked to the worktree and `yarn build:shared`
+  and `yarn build:site-themes` ran. Rule candidate: an e2e run in a worktree links `@biddaloy/*` to its own
+  packages and builds shared first.
