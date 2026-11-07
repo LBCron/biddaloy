@@ -383,6 +383,14 @@ export async function resolvePath(
     if (!runs[0]) test.skip(true, 'no promotion run seeded: needs published exam results');
     return route.path.replace('$runId', runs[0]!.id);
   }
+  if (route.path.includes('$postId')) {
+    // [40.3.11] A blog post to open in the editor: any title, one empty paragraph.
+    const created = await post<{ id: string }>(request, session, '/website/posts', {
+      title: { bn: `ব্লগ ${stamp}`, en: `Reflow post ${stamp}` },
+      body: [{ type: 'paragraph', children: [{ text: '' }] }],
+    });
+    return route.path.replace('$postId', created.id);
+  }
   if (route.path.includes('$examId')) {
     const chain = await createClassSection(request, session);
     const exam = await post<{ id: string }>(request, session, '/exams', {
