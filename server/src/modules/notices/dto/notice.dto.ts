@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
@@ -46,6 +46,10 @@ export class CreateNoticeDto {
   @ApiPropertyOptional() @IsOptional() @IsBoolean() important?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() pinned?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() isPublic?: boolean;
+  @ApiPropertyOptional({ description: 'Show first in the school website notice list.' })
+  @IsOptional()
+  @IsBoolean()
+  pinnedOnWebsite?: boolean;
 
   @ApiPropertyOptional({ type: String, format: 'date', nullable: true })
   @IsOptional()
@@ -83,6 +87,12 @@ export class NoticeListQueryDto {
   @IsString()
   @MaxLength(100)
   q?: string;
+
+  @ApiPropertyOptional({ description: 'Only public (true) or only not-public (false) notices.' })
+  @IsOptional()
+  @Transform(({ value }) => (value === 'true' ? true : value === 'false' ? false : value))
+  @IsBoolean()
+  isPublic?: boolean;
 }
 
 export class RecipientPageQueryDto {
@@ -177,6 +187,7 @@ export class NoticeDto {
   @ApiProperty() important: boolean;
   @ApiProperty() pinned: boolean;
   @ApiProperty() isPublic: boolean;
+  @ApiProperty() pinnedOnWebsite: boolean;
   @ApiProperty({ type: String, nullable: true }) expiresOn: string | null;
   @ApiProperty({ format: 'uuid' }) authorUserId: string;
   @ApiProperty({ type: String, nullable: true }) authorName: string | null;

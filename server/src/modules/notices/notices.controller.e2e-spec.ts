@@ -328,6 +328,39 @@ describe('Notices API E2E', () => {
     expect((await call('get', `/notices/${n.id}/recipients`).expect(200)).body.total).toBe(0);
   });
 
+  it('[40.3.02] pinnedOnWebsite is saved on create and update; ?isPublic filters the list', async () => {
+    const title = `E2E ${tag}`;
+    const pub = (
+      await call('post', '/notices', {
+        body: { title, body: 'x', isPublic: true, pinnedOnWebsite: true },
+        key: randomUUID(),
+      }).expect(201)
+    ).body;
+    const priv = (
+      await call('post', '/notices', { body: { title, body: 'x' }, key: randomUUID() }).expect(201)
+    ).body;
+    expect(pub.pinnedOnWebsite).toBe(true);
+    expect(priv.pinnedOnWebsite).toBe(false);
+
+    const upd = await call('patch', `/notices/${priv.id}`, {
+      body: { pinnedOnWebsite: true },
+    }).expect(200);
+    expect(upd.body.pinnedOnWebsite).toBe(true);
+    await call('patch', `/notices/${priv.id}`, { body: { pinnedOnWebsite: null } }).expect(400);
+
+    const ids = async (q: string) =>
+      (await call('get', `/notices?limit=100${q}`).expect(200)).body.items.map(
+        (n: { id: string }) => n.id,
+      );
+    const onlyPublic = await ids('&isPublic=true');
+    expect(onlyPublic).toContain(pub.id);
+    expect(onlyPublic).not.toContain(priv.id);
+    const onlyPrivate = await ids('&isPublic=false');
+    expect(onlyPrivate).toContain(priv.id);
+    expect(onlyPrivate).not.toContain(pub.id);
+    await call('get', '/notices?isPublic=maybe').expect(400);
+  });
+
   it('GET /notices/mine (reader route) is still reachable and not swallowed by :id', async () => {
     await call('get', '/notices/mine', { role: UserRole.PARENT }).expect(200);
   });

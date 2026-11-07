@@ -308,7 +308,8 @@ describe('Website API E2E', () => {
       const titles = res.body.map((n: { title: string }) => n.title);
       expect(titles).toContain(`site-${tag}-public`);
       expect(titles).not.toContain(`site-${tag}-private`);
-      await by(host, '/island/events').expect(404);
+      // `results` has its own route and no feed here; an unknown kind is the same 404.
+      await by(host, '/island/results').expect(404);
     });
 
     it('streams the school logo; another school’s picture is a 404', async () => {

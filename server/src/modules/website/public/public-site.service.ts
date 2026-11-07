@@ -15,9 +15,10 @@ import {
   PublicPage,
   buildManifest,
   buildPage,
+  withFeeds,
   withAnnouncementWindow,
 } from './page-read-model';
-import { NoticesFeed } from './feeds/notices.feed';
+import { FeedRegistry } from './feeds/feed-registry';
 import { PreviewTokenService } from '../preview-token.service';
 
 /** One 404 for an unknown host, an off site, a missing page and a missing picture (Rule 23). */
@@ -43,7 +44,7 @@ export class PublicSiteService {
     private readonly storage: StorageService,
     @InjectRepository(School) private readonly schools: Repository<School>,
     @InjectRepository(SiteMedia) private readonly media: Repository<SiteMedia>,
-    private readonly notices: NoticesFeed,
+    private readonly feeds: FeedRegistry,
     private readonly previews: PreviewTokenService,
   ) {}
 
@@ -111,7 +112,7 @@ export class PublicSiteService {
     if (l.preview) {
       const draft = buildPage(l.published, page); // never cached: the draft changes while it is edited
       if (!draft) throw siteNotFound();
-      return { data: draft };
+      return { data: await withFeeds(draft, l.site.tenant_id, this.feeds) };
     }
     const built = await this.cache.getOrLoad(
       l.site.tenant_id,
@@ -120,18 +121,22 @@ export class PublicSiteService {
       async () => buildPage(l.published, page),
     );
     if (!built) throw siteNotFound();
-    return { data: built };
+    // The page shell is cached by site version; the live rows are not (a notice ticked public shows
+    // within 60 s without a publish), so they are added per request from the 60 s feed cache.
+    return { data: await withFeeds(built, l.site.tenant_id, this.feeds) };
   }
 
-  async island(host: string, kind: string): Promise<HostAnswer<unknown>> {
+  /** The kinds a visitor's browser may fetch live; `results` and `enquiry` have their own routes. */
+  async island(host: string, kind: string, classSectionId?: string): Promise<HostAnswer<unknown>> {
     const l = await this.live(host);
     if ('redirectTo' in l) return l;
-    // ponytail: one feed, so a plain check; a map of feeds when events/results land.
-    if (kind !== SiteIslandKind.NOTICES) throw siteNotFound();
-    const tenantId = l.site.tenant_id;
-    return {
-      data: await this.cache.getOrLoadFeed(tenantId, kind, () => this.notices.load(tenantId)),
-    };
+    const islands: string[] = [
+      SiteIslandKind.NOTICES,
+      SiteIslandKind.EVENTS,
+      SiteIslandKind.ROUTINE,
+    ];
+    if (!islands.includes(kind) || !this.feeds.has(kind)) throw siteNotFound();
+    return { data: await this.feeds.cached(kind, l.site.tenant_id, { classSectionId }) };
   }
 
   /** `key` is `logo` or a `site_media` id. Returns null on `If-None-Match` hit (304). */
@@ -155,8 +160,11 @@ export class PublicSiteService {
     }
     // Only a picture the published site shows, never any row of the tenant (a removed photo, an
     // unpublished draft's picture). Checked before the row lookup and the 304, so neither tells.
-    // ponytail: config-only; the teachers/blog feed tickets add the photo/cover ids they show.
-    if (!UUID_RE.test(key) || !JSON.stringify(l.published).includes(`"${key}"`)) {
+    if (!UUID_RE.test(key)) throw siteNotFound();
+    if (
+      !JSON.stringify(l.published).includes(`"${key}"`) &&
+      !(await this.shownByFeed(tenantId, key))
+    ) {
       throw siteNotFound();
     }
     const row = await this.media.findOne({ where: { id: key, tenant_id: tenantId } });
@@ -165,6 +173,24 @@ export class PublicSiteService {
     if (ifNoneMatch?.split(',').some((t) => t.trim().replace(/^W\//, '') === etag))
       return { notModified: true, etag };
     return this.stream(() => this.storage.getForTenant(row.storage_key, tenantId), etag);
+  }
+
+  /**
+   * A picture a feed shows: the photo of a teacher card that is switched on, or the cover or a
+   * picture inside the body of a published post. `key` is a checked UUID, so `position()` is safe.
+   */
+  private async shownByFeed(tenantId: string, key: string): Promise<boolean> {
+    const rows: unknown[] = await this.media.manager.query(
+      `SELECT 1 FROM staff_web_profiles
+        WHERE tenant_id = $1 AND show_on_website = true AND photo_media_id::text = $2
+       UNION ALL
+       SELECT 1 FROM site_posts
+        WHERE tenant_id = $1 AND published_at IS NOT NULL
+          AND (cover_media_id::text = $2 OR position($2 in body::text) > 0)
+       LIMIT 1`,
+      [tenantId, key],
+    );
+    return rows.length > 0;
   }
 
   /** A storage failure never reaches the caller as anything but the one 404 (Rules 23, 24). */

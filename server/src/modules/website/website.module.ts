@@ -30,6 +30,13 @@ import { SiteEnquiriesService } from './site-enquiries.service';
 import { StaffWebProfilesController } from './staff-web-profiles.controller';
 import { StaffWebProfilesService } from './staff-web-profiles.service';
 import { NoticesFeed } from './public/feeds/notices.feed';
+import { EventsFeed } from './public/feeds/events.feed';
+import { RoutineFeed } from './public/feeds/routine.feed';
+import { TeachersFeed } from './public/feeds/teachers.feed';
+import { BlogFeed } from './public/feeds/blog.feed';
+import { FeesFeed } from './public/feeds/fees.feed';
+import { AdmissionsFeed } from './public/feeds/admissions.feed';
+import { FeedRegistry } from './public/feeds/feed-registry';
 
 /**
  * [40.1.04] The school website: ADMIN editing (`/website`) and the anonymous by-host reads the
@@ -70,6 +77,13 @@ import { NoticesFeed } from './public/feeds/notices.feed';
     SiteHostService,
     SiteCacheService,
     NoticesFeed,
+    EventsFeed,
+    RoutineFeed,
+    TeachersFeed,
+    BlogFeed,
+    FeesFeed,
+    AdmissionsFeed,
+    FeedRegistry,
     SitePostsService,
     SiteEnquiriesService,
     StaffWebProfilesService,
