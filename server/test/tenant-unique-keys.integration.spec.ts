@@ -58,6 +58,25 @@ const ALLOW_LIST: Record<string, { reason: string; removedBy: string }> = {
     reason: 'global on purpose: random secret hash, personal notice link lookup',
     removedBy: 'permanent',
   },
+  // The public site picks the school from the Host header before any tenant is known,
+  // so a hostname must be unique across all schools.
+  'school_sites(subdomain)': {
+    reason: 'global on purpose: the Host header picks the school, so a subdomain is one school',
+    removedBy: 'permanent',
+  },
+  'school_sites(previous_subdomain)': {
+    reason: 'global on purpose: an old subdomain keeps redirecting to one school, found by Host',
+    removedBy: 'permanent',
+  },
+  'school_sites(custom_domain)': {
+    reason: 'global on purpose: the Host header picks the school, so a domain is one school',
+    removedBy: 'permanent',
+  },
+  'site_media(storage_key)': {
+    reason:
+      'global on purpose: one object-store key is one file, served before the school is known',
+    removedBy: 'permanent',
+  },
 };
 
 /**
