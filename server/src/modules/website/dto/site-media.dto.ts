@@ -6,7 +6,7 @@ export class UploadSiteMediaDto {
   @ApiProperty({ description: 'hero | about | post-cover | post-image | person' })
   @IsOptional()
   @IsString()
-  @MaxLength(40)
+  @MaxLength(20)
   slot?: string;
 }
 

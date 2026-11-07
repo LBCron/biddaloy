@@ -40,11 +40,6 @@ export const Route = createFileRoute('/_staff/website/enquiries')({
   component: Enquiries,
 });
 
-function EnquiriesPending() {
-  const { t } = useTranslation('nav');
-  return <RoutePending variant="list" label={t('routePending.label')} />;
-}
-
 const contactSection = (draft: SiteConfig | undefined) =>
   draft?.pages
     .find((p) => p.page === SitePage.CONTACT)
@@ -241,4 +236,11 @@ function Enquiries() {
       />
     </>
   );
+}
+
+// Kept last: check:i18n resolves one namespace per file from the first useTranslation(), and this
+// file's keys live in 'website'.
+function EnquiriesPending() {
+  const { t } = useTranslation('nav');
+  return <RoutePending variant="list" label={t('routePending.label', { ns: 'nav' })} />;
 }
