@@ -29,7 +29,7 @@ export const websiteDefaultHandlers = [
   ),
   http.get('/api/v1/website/subdomain/check', () => HttpResponse.json({ available: true })),
   http.get('/api/v1/website/subdomain/suggest', () =>
-    HttpResponse.json(['demo-school', 'demo-school-bd']),
+    HttpResponse.json({ suggestions: ['demo-school', 'demo-school-bd'] }),
   ),
   http.put('/api/v1/website/subdomain', () => HttpResponse.json(site())),
   http.get('/api/v1/website/preview-token', () =>

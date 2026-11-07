@@ -67,7 +67,15 @@ describe('SiteMediaService.upload', () => {
     );
   });
 
-  it('refuses SVG, a lying mimetype, junk bytes, logo and unknown slots', async () => {
+  it('logo is a site slot at exactly 512 x 512 (D19)', async () => {
+    const { svc } = setup();
+    await svc.upload('t1', 'logo', { buffer: await img(512, 512), mimetype: 'image/jpeg' });
+    await rejected(
+      svc.upload('t1', 'logo', { buffer: await img(511, 512), mimetype: 'image/jpeg' }),
+    );
+  });
+
+  it('refuses SVG, a lying mimetype, junk bytes, a wrong-size logo and unknown slots', async () => {
     const { svc, storage } = setup();
     const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080"/>');
     await rejected(svc.upload('t1', 'hero', { buffer: svg, mimetype: 'image/svg+xml' }));
@@ -80,7 +88,7 @@ describe('SiteMediaService.upload', () => {
       svc.upload('t1', 'hero', { buffer: Buffer.from('not an image'), mimetype: 'image/jpeg' }),
     );
     await rejected(
-      svc.upload('t1', 'logo', { buffer: await img(512, 512), mimetype: 'image/jpeg' }),
+      svc.upload('t1', 'logo', { buffer: await img(1920, 1080), mimetype: 'image/jpeg' }),
     );
     await rejected(
       svc.upload('t1', 'nope', { buffer: await img(1920, 1080), mimetype: 'image/jpeg' }),

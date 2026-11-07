@@ -50,12 +50,7 @@ export class SiteMediaService {
     slot: unknown,
     file: { buffer: Buffer; mimetype: string },
   ): Promise<{ out: Buffer; width: number; height: number; slot: SiteMediaSlot }> {
-    // Logo is the school profile's, not a site-media slot.
-    if (
-      typeof slot !== 'string' ||
-      slot === SiteMediaSlot.LOGO ||
-      !(Object.values(SiteMediaSlot) as string[]).includes(slot)
-    ) {
+    if (typeof slot !== 'string' || !(Object.values(SiteMediaSlot) as string[]).includes(slot)) {
       throw mediaRejected();
     }
     const want = SITE_MEDIA_SLOT_PX[slot as SiteMediaSlot];

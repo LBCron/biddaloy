@@ -15402,7 +15402,7 @@ export interface components {
         };
         OnboardingItemDto: {
             /** @enum {string} */
-            id: "profile" | "structure" | "sections" | "students" | "staff" | "feeStructures" | "guardianInvites" | "messageSettings";
+            id: "profile" | "structure" | "sections" | "students" | "staff" | "feeStructures" | "guardianInvites" | "messageSettings" | "website";
             done: boolean;
         };
         OnboardingCountsDto: {
@@ -15440,6 +15440,7 @@ export interface components {
         UpdateOnboardingDto: {
             /** @enum {string} */
             setup_path?: "guided" | "excel" | "later";
+            wants_website?: boolean;
             finished?: boolean;
             dismissed?: boolean;
             seen?: boolean;
@@ -19275,6 +19276,8 @@ export interface components {
             draft_revision: number;
             published_at?: string | null;
             has_published: boolean;
+            /** @description True when nothing is published yet or the draft differs from it. */
+            has_unpublished_changes: boolean;
             draft: {
                 [key: string]: unknown;
             };

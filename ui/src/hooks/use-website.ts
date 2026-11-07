@@ -1,10 +1,6 @@
 /**
  * School website admin hooks (Epic 40, W2). The one place W2 screens read the website API.
- *
- * Types come from `schema.d.ts` where the route exists there. The server routes added by #3622
- * (subdomain check/suggest/rename, preview token, media) are not in `schema.d.ts` yet; their
- * shapes below are hand-typed from the #3622 contract and marked `TODO(#3627)`: delete them for
- * generated types when the wave-close ticket regenerates `schema.d.ts`.
+ * Every type comes from the generated `schema.d.ts`.
  *
  * Mutations: `retry: false` and every one invalidates `['website']` (Rule 25).
  */
@@ -18,28 +14,14 @@ import { useIdempotencyKey } from './idempotency-key';
 import { shouldRetryQuery } from './retry';
 import { useDebouncedValue } from './use-debounce';
 
-/** TODO(#3627): `has_unpublished_changes` joins the generated `SiteDto` when `schema.d.ts` is regenerated. */
-export type WebsiteConfig = components['schemas']['SiteDto'] & { has_unpublished_changes: boolean };
+export type WebsiteConfig = components['schemas']['SiteDto'];
 export type WebsiteTheme = components['schemas']['ThemeSummaryDto'];
 export type SaveDraftInput = components['schemas']['SaveDraftDto'];
 export type PublishInput = components['schemas']['PublishDto'];
-
-/** TODO(#3627): replace with the generated type once `schema.d.ts` has `GET website/subdomain/check`. */
-export interface SubdomainCheck {
-  available: boolean;
-}
-/** TODO(#3627): replace with the generated type (`GET website/subdomain/suggest`). */
-export type SubdomainSuggestions = string[];
-/** TODO(#3627): replace with the generated type (`GET website/preview-token`). */
-export interface PreviewToken {
-  url: string;
-}
-/** TODO(#3627): replace with the generated type (`GET website/media`). */
-export interface WebsiteMedia {
-  items: { id: string; slot: SiteMediaSlot; url: string; bytes: number }[];
-  usedBytes: number;
-  quotaBytes: number;
-}
+export type SubdomainCheck = components['schemas']['SubdomainCheckDto'];
+export type SubdomainSuggestions = components['schemas']['SubdomainSuggestDto'];
+export type PreviewToken = components['schemas']['PreviewTokenDto'];
+export type WebsiteMedia = components['schemas']['SiteMediaListDto'];
 
 export const websiteKeys = {
   all: ['website'] as const,

@@ -25,7 +25,6 @@ import {
   useSubdomainCheck,
   useSubdomainSuggestions,
   useUploadSiteMedia,
-  useWebsiteMedia,
   type WebsiteConfig,
   type WebsiteTheme,
 } from '@biddaloy/ui/hooks';
@@ -67,12 +66,10 @@ export function WebsiteWizard({ config, themes, onDone }: WebsiteWizardProps) {
   const check = useSubdomainCheck(clean);
   const settled = useDebouncedValue(clean, 300) === clean;
   const suggestions = useSubdomainSuggestions();
-  // The hook types this as a bare list; the API sends `{ suggestions }`. Accept both.
-  const suggested = React.useMemo(() => {
-    const raw: unknown = suggestions.data;
-    const list = Array.isArray(raw) ? raw : ((raw as { suggestions?: unknown })?.suggestions ?? []);
-    return (list as string[]).filter((s) => s !== config.subdomain);
-  }, [suggestions.data, config.subdomain]);
+  const suggested = React.useMemo(
+    () => (suggestions.data?.suggestions ?? []).filter((s) => s !== config.subdomain),
+    [suggestions.data, config.subdomain],
+  );
 
   const addressOk =
     clean === config.subdomain ||
@@ -126,9 +123,11 @@ export function WebsiteWizard({ config, themes, onDone }: WebsiteWizardProps) {
     }
   }
 
-  const media = useWebsiteMedia();
   const uploadLogo = useUploadSiteMedia(SiteMediaSlot.LOGO);
-  const logo = media.data?.items.find((m) => m.slot === SiteMediaSlot.LOGO)?.url ?? null;
+  // The admin media list has no picture URL (the public site serves the file by host), so the
+  // wizard previews the blob it just uploaded.
+  const [logo, setLogo] = React.useState<string | null>(null);
+  React.useEffect(() => () => (logo ? URL.revokeObjectURL(logo) : undefined), [logo]);
 
   const addressHint = !SITE_SUBDOMAIN_RE.test(clean)
     ? t('wizard.address.invalid')
@@ -233,6 +232,7 @@ export function WebsiteWizard({ config, themes, onDone }: WebsiteWizardProps) {
                 onUpload={async (blob) => {
                   try {
                     await uploadLogo.mutateAsync(blob);
+                    setLogo(URL.createObjectURL(blob));
                   } catch {
                     toast.error(t('overview.saveError'));
                   }

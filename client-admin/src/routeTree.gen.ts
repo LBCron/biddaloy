@@ -27,6 +27,7 @@ import { Route as StaffFeesRouteImport } from './routes/_staff/fees'
 import { Route as StaffNotificationsRouteImport } from './routes/_staff/notifications'
 import { Route as StaffSecurityRouteImport } from './routes/_staff/security'
 import { Route as StaffSettingsRouteImport } from './routes/_staff/settings'
+import { Route as StaffWebsiteRouteImport } from './routes/_staff/website'
 import { Route as StaffWelcomeRouteImport } from './routes/_staff/welcome'
 import { Route as ITokenRouteImport } from './routes/i/$token'
 import { Route as NTokenRouteImport } from './routes/n.$token'
@@ -122,6 +123,7 @@ import { Route as StaffStudentsIndexRouteImport } from './routes/_staff/students
 import { Route as StaffStudentsStudentIdRouteImport } from './routes/_staff/students/$studentId'
 import { Route as StaffStudentsImportRouteImport } from './routes/_staff/students/import'
 import { Route as StaffStudentsNewRouteImport } from './routes/_staff/students/new'
+import { Route as StaffWebsiteIndexRouteImport } from './routes/_staff/website/index'
 import { Route as AdmissionSlugIndexRouteImport } from './routes/admission/$slug/index'
 import { Route as AdmissionSlugStatusRouteImport } from './routes/admission/$slug/status'
 import { Route as AuthSocialDoneRouteImport } from './routes/auth.social.done'
@@ -257,6 +259,11 @@ const StaffSecurityRoute = StaffSecurityRouteImport.update({
 const StaffSettingsRoute = StaffSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => StaffRoute,
+} as any)
+const StaffWebsiteRoute = StaffWebsiteRouteImport.update({
+  id: '/website',
+  path: '/website',
   getParentRoute: () => StaffRoute,
 } as any)
 const StaffWelcomeRoute = StaffWelcomeRouteImport.update({
@@ -751,6 +758,11 @@ const StaffStudentsNewRoute = StaffStudentsNewRouteImport.update({
   path: '/students/new',
   getParentRoute: () => StaffRoute,
 } as any)
+const StaffWebsiteIndexRoute = StaffWebsiteIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => StaffWebsiteRoute,
+} as any)
 const AdmissionSlugIndexRoute = AdmissionSlugIndexRouteImport.update({
   id: '/admission/$slug/',
   path: '/admission/$slug/',
@@ -1044,6 +1056,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof StaffNotificationsRoute
   '/security': typeof StaffSecurityRoute
   '/settings': typeof StaffSettingsRoute
+  '/website': typeof StaffWebsiteRouteWithChildren
   '/welcome': typeof StaffWelcomeRoute
   '/i/$token': typeof ITokenRoute
   '/n/$token': typeof NTokenRoute
@@ -1144,6 +1157,7 @@ export interface FileRoutesByFullPath {
   '/routines/': typeof StaffRoutinesIndexRoute
   '/staff/': typeof StaffStaffIndexRoute
   '/students/': typeof StaffStudentsIndexRoute
+  '/website/': typeof StaffWebsiteIndexRoute
   '/admission/$slug/': typeof AdmissionSlugIndexRoute
   '/portal/applications/': typeof PortalApplicationsIndexRoute
   '/portal/notices/': typeof PortalNoticesIndexRoute
@@ -1303,6 +1317,7 @@ export interface FileRoutesByTo {
   '/routines': typeof StaffRoutinesIndexRoute
   '/staff': typeof StaffStaffIndexRoute
   '/students': typeof StaffStudentsIndexRoute
+  '/website': typeof StaffWebsiteIndexRoute
   '/admission/$slug': typeof AdmissionSlugIndexRoute
   '/portal/applications': typeof PortalApplicationsIndexRoute
   '/portal/notices': typeof PortalNoticesIndexRoute
@@ -1367,6 +1382,7 @@ export interface FileRoutesById {
   '/_staff/notifications': typeof StaffNotificationsRoute
   '/_staff/security': typeof StaffSecurityRoute
   '/_staff/settings': typeof StaffSettingsRoute
+  '/_staff/website': typeof StaffWebsiteRouteWithChildren
   '/_staff/welcome': typeof StaffWelcomeRoute
   '/i/$token': typeof ITokenRoute
   '/n/$token': typeof NTokenRoute
@@ -1467,6 +1483,7 @@ export interface FileRoutesById {
   '/_staff/routines/': typeof StaffRoutinesIndexRoute
   '/_staff/staff/': typeof StaffStaffIndexRoute
   '/_staff/students/': typeof StaffStudentsIndexRoute
+  '/_staff/website/': typeof StaffWebsiteIndexRoute
   '/admission/$slug/': typeof AdmissionSlugIndexRoute
   '/portal/applications/': typeof PortalApplicationsIndexRoute
   '/portal/notices/': typeof PortalNoticesIndexRoute
@@ -1530,6 +1547,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/security'
     | '/settings'
+    | '/website'
     | '/welcome'
     | '/i/$token'
     | '/n/$token'
@@ -1630,6 +1648,7 @@ export interface FileRouteTypes {
     | '/routines/'
     | '/staff/'
     | '/students/'
+    | '/website/'
     | '/admission/$slug/'
     | '/portal/applications/'
     | '/portal/notices/'
@@ -1789,6 +1808,7 @@ export interface FileRouteTypes {
     | '/routines'
     | '/staff'
     | '/students'
+    | '/website'
     | '/admission/$slug'
     | '/portal/applications'
     | '/portal/notices'
@@ -1852,6 +1872,7 @@ export interface FileRouteTypes {
     | '/_staff/notifications'
     | '/_staff/security'
     | '/_staff/settings'
+    | '/_staff/website'
     | '/_staff/welcome'
     | '/i/$token'
     | '/n/$token'
@@ -1952,6 +1973,7 @@ export interface FileRouteTypes {
     | '/_staff/routines/'
     | '/_staff/staff/'
     | '/_staff/students/'
+    | '/_staff/website/'
     | '/admission/$slug/'
     | '/portal/applications/'
     | '/portal/notices/'
@@ -2143,6 +2165,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof StaffSettingsRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/_staff/website': {
+      id: '/_staff/website'
+      path: '/website'
+      fullPath: '/website'
+      preLoaderRoute: typeof StaffWebsiteRouteImport
       parentRoute: typeof StaffRoute
     }
     '/_staff/welcome': {
@@ -2810,6 +2839,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffStudentsNewRouteImport
       parentRoute: typeof StaffRoute
     }
+    '/_staff/website/': {
+      id: '/_staff/website/'
+      path: '/'
+      fullPath: '/website/'
+      preLoaderRoute: typeof StaffWebsiteIndexRouteImport
+      parentRoute: typeof StaffWebsiteRoute
+    }
     '/admission/$slug/': {
       id: '/admission/$slug/'
       path: '/admission/$slug'
@@ -3197,6 +3233,18 @@ const StaffFeesRouteWithChildren = StaffFeesRoute._addFileChildren(
   StaffFeesRouteChildren,
 )
 
+interface StaffWebsiteRouteChildren {
+  StaffWebsiteIndexRoute: typeof StaffWebsiteIndexRoute
+}
+
+const StaffWebsiteRouteChildren: StaffWebsiteRouteChildren = {
+  StaffWebsiteIndexRoute: StaffWebsiteIndexRoute,
+}
+
+const StaffWebsiteRouteWithChildren = StaffWebsiteRoute._addFileChildren(
+  StaffWebsiteRouteChildren,
+)
+
 interface StaffRouteChildren {
   StaffCurriculumPresetRoute: typeof StaffCurriculumPresetRoute
   StaffDashboardRoute: typeof StaffDashboardRoute
@@ -3204,6 +3252,7 @@ interface StaffRouteChildren {
   StaffNotificationsRoute: typeof StaffNotificationsRoute
   StaffSecurityRoute: typeof StaffSecurityRoute
   StaffSettingsRoute: typeof StaffSettingsRoute
+  StaffWebsiteRoute: typeof StaffWebsiteRouteWithChildren
   StaffWelcomeRoute: typeof StaffWelcomeRoute
   StaffAcademicYearsAcademicYearIdRoute: typeof StaffAcademicYearsAcademicYearIdRoute
   StaffApplicationsApplicationIdRoute: typeof StaffApplicationsApplicationIdRoute
@@ -3318,6 +3367,7 @@ const StaffRouteChildren: StaffRouteChildren = {
   StaffNotificationsRoute: StaffNotificationsRoute,
   StaffSecurityRoute: StaffSecurityRoute,
   StaffSettingsRoute: StaffSettingsRoute,
+  StaffWebsiteRoute: StaffWebsiteRouteWithChildren,
   StaffWelcomeRoute: StaffWelcomeRoute,
   StaffAcademicYearsAcademicYearIdRoute: StaffAcademicYearsAcademicYearIdRoute,
   StaffApplicationsApplicationIdRoute: StaffApplicationsApplicationIdRoute,
