@@ -498,3 +498,15 @@ export {
 export { SchoolInvitesCard, type SchoolInvitesCardProps } from './school-invites-card';
 export * from './dashboard/index';
 export * from './audience-builder/index';
+export { BilingualField, type BilingualFieldProps, type BilingualValue } from './bilingual-field';
+export {
+  PaletteSwatches,
+  type PaletteOption,
+  type PaletteSwatchesProps,
+} from './palette-swatches';
+export {
+  FontPairPicker,
+  type FontPairOption,
+  type FontPairPickerProps,
+} from './font-pair-picker';
+export * from './image-slot-upload/index';
