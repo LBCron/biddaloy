@@ -20,6 +20,7 @@ labels:
     dashboard:committeeSummary.privacyNote,
     dashboard:committeeSummary.printReport,
     attention:bar.*,
+    signal:*,
     attention:modal.empty,
     attention:modal.seeAll,
     reports:pinned.*,
@@ -60,6 +61,7 @@ The **dashboard** ([glossary](../help/glossary.md#dashboard)) is a page of **wid
 - [How you get here](#arrive)
 - [See today's work](#task-main)
 - [How to know the dashboard loaded properly](#confirm)
+- [What the colours mean](#colours)
 - [Other situations](#other)
   - [Dashboard by role](#task-roles)
   - [Report cards](#task-report-cards)
@@ -126,6 +128,46 @@ This page saves nothing. Each widget loads on its own, so you can tell the state
 | **All good**            | You can see the number, the short sentence and the link    | Done.                                                      |
 
 **If no message appears:** see [Problems and fixes](#trouble). Even if the dashboard does not appear, none of your data is lost.
+
+---
+
+## What the colours mean <a href="#colours" id="colours"></a>
+
+Some widgets have a coloured bar on the left edge and a small mark beside the title. The colour tells you how much a widget needs you. **The colour is never alone:** every one also has a mark and a short text (screen readers read the text), so you can read the page in black and white.
+
+| Colour    | Mark                | Short text on the card                                        | What to do                                    |
+| --------- | ------------------- | ------------------------------------------------------------- | --------------------------------------------- |
+| **Red**   | Triangle with **!** | **Needs action**                                              | Open it now.                                  |
+| **Amber** | Clock               | **Keep an eye on this** (or a closer word such as **Behind**) | Look today; it is not urgent yet.             |
+| **Green** | Tick in a circle    | **All good**                                                  | Nothing to do.                                |
+| **Plain** | No mark             | none                                                          | Nothing to do. The widget is for information. |
+
+Not every widget has a colour. A widget with no data, or one that did not load, has none.
+
+**When the colour turns on**
+
+| Widget                    | Red: needs action                   | Amber: keep an eye               | Green: all good                |
+| ------------------------- | ----------------------------------- | -------------------------------- | ------------------------------ |
+| Approvals waiting         | One or more waiting                 |                                  | None waiting                   |
+| At-risk students          | Any student is listed               |                                  |                                |
+| Today's attendance        |                                     | Below 75%                        |                                |
+| Staff today               |                                     | Someone is absent without leave  |                                |
+| Mark entry progress       | Deadline has passed, not finished   | Deadline within 3 days           | Finished                       |
+| Syllabus progress         |                                     | A class is behind the study plan | On the study plan              |
+| Fee collection this month | 10 points or more behind last month | Behind last month                | Same as or ahead of last month |
+| SMS balance               | Balance is 0                        | Under 200                        | 200 or more                    |
+| Failed messages           | One or more failed                  |                                  | None failed                    |
+
+For example, if this month's fee collection is 62% and last month at this point was 70%, the card is amber (8 points behind). At 58% it is red (12 points behind).
+
+```mermaid
+flowchart LR
+  W["A widget loads"] --> D{"Is it urgent?"}
+  D -->|"Yes"| R["Red + triangle<br/>Needs action"]
+  D -->|"Getting there"| A["Amber + clock<br/>Keep an eye on this"]
+  D -->|"No problem"| G["Green + tick<br/>All good"]
+  D -->|"Info only"| N["Plain<br/>no mark"]
+```
 
 ---
 
