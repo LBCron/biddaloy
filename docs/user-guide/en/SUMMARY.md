@@ -59,6 +59,7 @@
 - [Attendance](attendance/attendance.md)
   - [Taking attendance](attendance/attendance.md)
   - [Attendance register](attendance/attendance-register.md)
+  - [Upload an attendance sheet](attendance/uploads.md)
   - [Attendance reports](attendance/attendance-reports.md)
   - [Staff attendance and leave](attendance/staff-attendance.md)
 - [Exams and results](exams-results/exam-templates.md)

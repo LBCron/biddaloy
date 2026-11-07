@@ -305,6 +305,117 @@ present/absent, `Home` / `End` jump to the first / last open day, `Esc`
 cancels. `Ctrl+S` saves from anywhere on the page while editing, the reason
 field included, but not while one of these dialogs is open. The palette reaches it with **Edit monthly register**.
 
+## 3b. Uploading a sheet (Epic 76)
+
+A teacher or admin-level user (anyone with `ATTENDANCE_MARK`; office staff do
+not have it) can fill a day's marks in a spreadsheet instead of the grid. Three steps. Nothing is written until step 3.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant A as API (attendance-import.controller.ts)
+    participant S as Staging (Redis)
+    participant DB as Database
+
+    U->>A: GET /attendance/import/template?sectionIds=a,b&date=2026-11-02
+    A-->>U: .xlsx, pre-filled (max 10 sections)<br/>403 for the whole download if any section is not yours to write
+    U->>A: POST /attendance/import/validate (file, max 5 MB, 2000 rows)
+    A->>A: Resolve every row, diff against the register
+    A->>S: Stage the NEW / CHANGED rows
+    A-->>U: {staging_id, rows[], counts, overwrite_count}
+    U->>A: POST /attendance/import/commit {staging_id}<br/>Idempotency-Key header
+    A->>DB: One transaction: lock each session, refuse if a mark moved,<br/>writeImportDay per (date, section), insert attendance_imports row
+    A-->>U: {import_id}
+```
+
+Rules that hold:
+
+- **All or nothing.** One transaction; any failure leaves the register untouched.
+- **Source is `IMPORT`, and a sheet never finalizes** a register.
+- **Stale check.** If a teacher saved a mark after validate, commit answers
+  `409` with `details.code = "ATTENDANCE_IMPORT_STALE"`. Upload again.
+- **Nothing to save, nothing staged.** `staging_id` is `null` when every row is
+  `UNCHANGED` or `ERROR`.
+- **Same gate as the grid.** `dailySource` ([§4b](#4b-who-marks-the-day--dailysource-epic-76))
+  applies; a section the caller may not write gives `NOT_ALLOWED_SECTION`.
+- A teacher sees only their own uploads in `GET /attendance/imports`;
+  other roles see all. `GET /attendance/imports/:id` returns the rows plus the
+  record's `current` status.
+- **The screen restarts on any 4xx at commit.** `410`/`404` shows "expired",
+  `403` shows "not allowed", `STALE` shows the stale text, any other 4xx shows
+  "failed" and the wizard goes back to the upload step. A `5xx` or a dropped
+  connection keeps the review so the user can press Save again (safe, because
+  of the `Idempotency-Key`).
+- **A refused download shows its own sentence.** The `403` from the template
+  route reads "You cannot fill in one of these sections on this day. Pick fewer
+  sections or another date." (`attendanceImport:download.denied`).
+- **Who column.** The list and detail pages show `You` for the caller's own
+  upload and `A staff member` when the uploader's name is not on the row.
+
+### Row-error codes
+
+Source: `shared/src/types/attendance-import.types.ts`, set in
+`attendance-import.service.ts` `resolveRows`.
+
+| `code`                     | Outcome | Meaning                                                                    |
+| -------------------------- | ------- | -------------------------------------------------------------------------- |
+| `BAD_STATUS`               | ERROR   | Not `P`/`A`/`L`/`LV` (or `উ`/`অ`/`দে`/`ছু`).                               |
+| `DUPLICATE_ROW`            | ERROR   | Same date, section and roll twice in one sheet.                            |
+| `SECTION_NOT_FOUND`        | ERROR   | Section not in this school's current year, or two sections share the name. |
+| `DATE_OUTSIDE_YEAR`        | ERROR   | Date is outside the section's academic year, or cannot be read.            |
+| `NOT_ALLOWED_SECTION`      | ERROR   | Caller may not write that section's day register.                          |
+| `NON_WORKING_DAY`          | ERROR   | Holiday or weekly off-day for that class.                                  |
+| `FUTURE_DATE`              | ERROR   | Future date. Allowed only with `allowFutureDates` on and status `LV`.      |
+| `ROLL_NOT_IN_SECTION`      | ERROR   | No student, or two students, with that roll.                               |
+| `NEEDS_CORRECT_PERMISSION` | ERROR   | Register finalized or past the correction window; caller lacks it.         |
+| `NAME_MISMATCH`            | warning | Name column differs from the roster. The row still saves (D6).             |
+
+A blank status cell is `UNCHANGED`: the existing mark stays.
+
+### What `attendance_imports` stores
+
+One row per committed sheet (`entities/attendance-import.entity.ts`).
+Tenant-scoped, no soft delete, not in the workbook backup. `rows` is jsonb,
+one entry per sheet row, including the errors.
+The demo seed writes one (`demo-seed/slices/attendance.ts`, `bmsc-primary`):
+
+```jsonc
+{
+  "file_name": "class-attendance.xlsx",
+  "count_new": 37,
+  "count_changed": 2,
+  "count_unchanged": 0,
+  "count_error": 1,
+  "supersedes_import_id": null, // set when a re-upload supersedes an earlier sheet; history link only, marks not in the new sheet keep their values
+  "rows": [
+    // CHANGED: the sheet overwrote a mark
+    {
+      "date": "<day>",
+      "sectionId": "<uuid>",
+      "roll": 1,
+      "before": "PRESENT",
+      "after": "ABSENT",
+      "outcome": "CHANGED",
+      "recordId": "<uuid>",
+    },
+    // ERROR: row kept for the history, nothing written
+    {
+      "date": "<day>",
+      "sectionId": "<uuid>",
+      "roll": 41,
+      "before": null,
+      "after": null,
+      "outcome": "ERROR",
+      "recordId": null,
+      "code": "ROLL_NOT_IN_SECTION",
+    },
+  ],
+}
+```
+
+Dates are relative to "today" in the seed (rule: no literal dates, see
+[22-demo-seed.md](22-demo-seed.md)), so they are shown as `<day>` here.
+
 ## 4. The correction rules
 
 | Situation                                                                 | Who                                                            | Requires                               |
@@ -458,6 +569,107 @@ Roll  Student   Mathematics (8)
 Worked example: 8 Mathematics periods were held this month. Rahim was `PRESENT`
 in 6, `LATE` in 1 and `ABSENT` in 1. With `lateCountsAsPresent` on, he attended
 6 + 1 = 7 of 8, so 7 / 8 = **87.5 %**.
+
+## 4b. Who marks the day — `dailySource` (Epic 76)
+
+`settings.attendance.dailySource` decides **who may write the whole-day
+register**. It is a **write gate only** (D2): it never changes how a mark is
+computed, only who may save one. Period registers ignore it.
+
+| `dailySource`   | Who may write a section's day register                                               | `write_reason` when refused |
+| --------------- | ------------------------------------------------------------------------------------ | --------------------------- |
+| `ANY` (default) | Anyone with section access, as before Epic 76.                                       | never refused               |
+| `CLASS_TEACHER` | The section's class teacher or assistant class teacher.                              | `CLASS_TEACHER_ONLY`        |
+| `FIRST_PERIOD`  | Class teachers, plus whoever covers period 1 that date (a substitute replaces them). | `FIRST_PERIOD_ONLY`         |
+| `DEVICE`        | Class teachers correct; devices and the sweep fill in. Others are refused.           | `DEVICE_SCHOOL`             |
+
+Admin-level roles (tenant-wide access) always pass. The month grid
+(`register-matrix`) refuses the first-period teacher (D31). Code:
+`attendance-access.service.ts` `assertCanWriteDayRegister` (throws) and
+`dayRegisterWriteState` (never throws, feeds the read view). The refusal is
+`403` with `details: { reason }` and a message that names nobody (Rule 23).
+
+### A DEVICE school's day
+
+```mermaid
+sequenceDiagram
+    participant D as Card reader
+    participant A as API
+    participant W as Sweep (every 5 min)
+    participant T as Class teacher
+    participant L as Check-list
+
+    D->>A: POST /attendance/device-events (external_ref = card or reg no.)
+    A->>A: Mark PRESENT / LATE by the student's shift, source DEVICE
+    Note over W: after the shift's absentAfter
+    W->>A: Any active student with NO mark becomes ABSENT, source SYSTEM
+    Note over W: skipped if the school had zero scans today
+    T->>A: PUT register: fix a mark (teacher wins, source TEACHER)
+    A-->>L: scanned_but_absent badge when a scanned student is marked ABSENT / LEAVE
+```
+
+- The sweep (`device-absent-sweep.scheduler.ts`) is **insert-only**: it never
+  touches an existing mark, leaves the register `DRAFT` for the teacher, and
+  skips FINALIZED registers, non-working days and non-`DEVICE` schools.
+  A dead machine (no scans at all) marks nobody absent. Redis down: the sweep
+  does not run (D41).
+- A scan that arrives after a teacher marked `ABSENT` / `LEAVE` keeps the
+  teacher's status but stores `check_in_at`. That is what `scanned_at` and the
+  mismatch badge show (D5).
+- Alerts: in a `DEVICE` school the register stays `DRAFT`, so the "attendance
+  not taken" alert stays open until every student has a mark, not until the
+  register is submitted (table in [23-attention.md](23-attention.md), D28).
+
+### The register read: `can_write` and `write_reason`
+
+`GET /attendance/sections/:id/register?date=...` (shape: `RegisterResponseDto`).
+A teacher who is not this section's class teacher, in a `CLASS_TEACHER` school:
+
+```jsonc
+{
+  "section": { "id": "<uuid>", "section_name": "A", "class_name": "Class 8" },
+  "session": {
+    "id": "<uuid>",
+    "date": "2026-11-02",
+    "period_no": null,
+    "state": "DRAFT",
+    "version": 2,
+    "marked_by_user_id": "<uuid>",
+    "marked_at": "2026-11-02T02:30:00.000Z",
+    "finalized_at": null,
+  },
+  "editable": true,
+  "reason_required": false,
+  "non_working_day": false,
+  "policy": { "late_after": "08:15", "correction_window_days": 2, "allow_future_dates": false },
+  "can_write": false,
+  "write_reason": "CLASS_TEACHER_ONLY",
+  "first_period_today": false,
+  "period_attendance_enabled": false,
+  "students": [
+    {
+      "student_id": "<uuid>",
+      "roll_number": 1,
+      "full_name": "…",
+      "record_id": "<uuid>",
+      "status": "ABSENT",
+      "minutes_late": null,
+      "remarks": null,
+      "source": "TEACHER",
+      "scanned_at": "2026-11-02T02:05:00.000Z",
+      "suggested_status": null,
+      "correction_count": 0,
+    },
+  ],
+}
+```
+
+`can_write` is separate from `editable`: a finalized or old register can be
+`can_write: true` and still refuse the save. A caller without
+`ATTENDANCE_MARK`, or with no access to the section, gets `can_write: false`
+with `write_reason: null`. `scanned_at` is set only when the scan contradicts
+the mark (status `ABSENT` or `LEAVE`). The check-list counts these as
+`scanned_but_absent` (`MySectionTodayDto`).
 
 ## 5. Working days and the percentage
 
@@ -641,10 +853,27 @@ not atomic (one bad scan must not fail the other 199):
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `accepted`               | A new check-in/out was recorded.                                                                                                                                                  |
 | `duplicate`              | This exact `device_event_id` was already processed — the device retried a batch it wasn't sure went through.                                                                      |
-| `unknown_student`        | Neither `student_id` nor `external_ref` (registration number) matched a student in this device's tenant.                                                                          |
+| `unknown_student`        | Neither `student_id` nor `external_ref` (registration number **or card number**) matched a student in this device's tenant.                                                       |
 | `skipped_teacher_marked` | A teacher already marked this student today. The device may still fill a blank `check_in_at`, but the `status` a teacher set is never overwritten.                                |
 | `out_of_window`          | `occurred_at` is more than 2 days from today — a scanner with a badly-set clock cannot rewrite attendance history.                                                                |
 | `rejected`               | Everything else: an `OUT` scan with no matching `IN` (`reason: "no_check_in"`), or a section-bound device scanning a student from another section (`reason: "section_mismatch"`). |
+
+### The card number (Epic 76)
+
+A reader sends whatever the card carries in `external_ref`. The API looks it up
+in **one query on both columns**: `students.registration_number OR students.card_no`
+(`devices/device-events.service.ts`). If one student's registration number equals
+another's card number, the registration number wins. A staff scan does the
+same on `staff_profiles.employee_id OR staff_profiles.card_no`; the employee id
+wins a tie.
+
+- One card per person (D9). `card_no` is unique per school among live students
+  (`UQ_students_tenant_card_no`, ends `AND "deleted_at" IS NULL`) and among
+  staff (`UQ_staff_profiles_tenant_card_no`, no soft delete). A clash returns
+  the fixed 409 from `known-errors.ts`, never the raw DB text.
+- The register read shows `scanned_at` per student (see [§4b](#4b-who-marks-the-day--dailysource-epic-76)).
+- The demo seed gives students a 10-digit number from `ctx.rng`
+  ([22-demo-seed.md](22-demo-seed.md)).
 
 ### Late or on time? The student's own shift decides
 
@@ -676,21 +905,22 @@ without bound; there is no retention job for it yet (see below).
 Every field lives under `School.settings.attendance`, resolved against
 these defaults (`tenant-settings-defaults.ts`):
 
-| Field                               | Default        | What visibly changes when you move it                                                                                                                       |
-| ----------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `weeklyOffDays`                     | `[5]` (Friday) | Which weekdays never need marking and never count as a working day.                                                                                         |
-| `lateAfter`                         | `08:15`        | The check-in cutoff (local time) after which a mark becomes `LATE` instead of `PRESENT`.                                                                    |
-| `absentAfter`                       | `10:00`        | The cutoff after which a mark becomes `ABSENT` instead of `LATE`.                                                                                           |
-| `correctionWindowDays`              | `2`            | How many days after a register's date it stays editable without `ATTENDANCE_CORRECT`.                                                                       |
-| `lowAttendanceThresholdPercent`     | `75`           | The cutoff `GET /attendance/flags/low` and the reports page use to flag a student.                                                                          |
-| `lateCountsAsPresent`               | `true`         | Whether a `LATE` day adds to the percentage's numerator.                                                                                                    |
-| `leaveCountsAsWorkingDay`           | `false`        | Whether a `LEAVE` day stays in the denominator (`false` = removed).                                                                                         |
-| `percentageDenominator`             | `WORKING_DAYS` | Whether the percentage divides by calendar working days or by days actually marked.                                                                         |
-| `allowFutureDates`                  | `false`        | Whether a future date can be marked at all (and then, only `LEAVE`).                                                                                        |
-| `shiftTimes`                        | `[]`           | Per-shift `lateAfter` / `absentAfter` (`{ shiftId, lateAfter, absentAfter }`). A shift with an entry uses its own cutoffs; others use the two fields above. |
-| `periodAttendance.enabled`          | `false`        | Whether teachers can take a per-period register on top of the whole-day one. Period registers never feed the percentage or fines.                           |
-| `autoAbsentNotification.enabled`    | `false`        | Whether finalizing a register triggers guardian notifications for that day's absences.                                                                      |
-| `autoAbsentNotification.cutoffTime` | `11:00`        | The local time after which the auto-absent sweep considers a register due.                                                                                  |
+| Field                               | Default        | What visibly changes when you move it                                                                                                                               |
+| ----------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `weeklyOffDays`                     | `[5]` (Friday) | Which weekdays never need marking and never count as a working day.                                                                                                 |
+| `lateAfter`                         | `08:15`        | The check-in cutoff (local time) after which a mark becomes `LATE` instead of `PRESENT`.                                                                            |
+| `absentAfter`                       | `10:00`        | The cutoff after which a mark becomes `ABSENT` instead of `LATE`.                                                                                                   |
+| `correctionWindowDays`              | `2`            | How many days after a register's date it stays editable without `ATTENDANCE_CORRECT`.                                                                               |
+| `lowAttendanceThresholdPercent`     | `75`           | The cutoff `GET /attendance/flags/low` and the reports page use to flag a student.                                                                                  |
+| `lateCountsAsPresent`               | `true`         | Whether a `LATE` day adds to the percentage's numerator.                                                                                                            |
+| `leaveCountsAsWorkingDay`           | `false`        | Whether a `LEAVE` day stays in the denominator (`false` = removed).                                                                                                 |
+| `percentageDenominator`             | `WORKING_DAYS` | Whether the percentage divides by calendar working days or by days actually marked.                                                                                 |
+| `allowFutureDates`                  | `false`        | Whether a future date can be marked at all (and then, only `LEAVE`).                                                                                                |
+| `shiftTimes`                        | `[]`           | Per-shift `lateAfter` / `absentAfter` (`{ shiftId, lateAfter, absentAfter }`). A shift with an entry uses its own cutoffs; others use the two fields above.         |
+| `periodAttendance.enabled`          | `false`        | Whether teachers can take a per-period register on top of the whole-day one. Period registers never feed the percentage or fines.                                   |
+| `autoAbsentNotification.enabled`    | `false`        | Whether finalizing a register triggers guardian notifications for that day's absences.                                                                              |
+| `autoAbsentNotification.cutoffTime` | `11:00`        | The local time after which the auto-absent sweep considers a register due.                                                                                          |
+| `dailySource`                       | `ANY`          | Who may write the whole-day register: `ANY`, `CLASS_TEACHER`, `FIRST_PERIOD` or `DEVICE`. A write gate only. See [§4b](#4b-who-marks-the-day--dailysource-epic-76). |
 
 `policyForShift(policy, shiftId)` (`attendance-policy.util.ts`) returns the
 policy with that shift's cutoffs swapped in. No shift id, or no entry for
@@ -1001,7 +1231,21 @@ The processor side is in
 - **A device-management UI** — device create/rotate/revoke is API-only
   today (see [§7](#7-integrating-a-device)).
 - **`attendance_device_events` retention** — every raw scan is kept
-  forever; there is no job that prunes old ones.
+  forever; there is no job that prunes old ones (#489).
+
+Left out by Epic 76 (#2429) on purpose, with the reason:
+
+- **A different `dailySource` per class shift** (D1) — one value per school.
+  A school that gates one shift only runs the gate for all.
+- **A second card per person** (D9) — one `card_no` each.
+- **Copying period-1 marks into the day register** (D3).
+- **Undoing a whole upload** (D12) — a re-upload with `supersedes_import_id`
+  overwrites; there is no revert.
+- **Staff attendance sheet upload** — students only; same kit if a school asks.
+- **API-level batch attendance writes** (Epic 93, #3276) — the sheet is the one
+  bulk path; API/MCP/webhook batching is for that epic.
+- **A Finalize action on the check-list** (D26, #1690).
+- **Face or fingerprint template storage** — the machines keep their own.
 
 One line each here so the next person who goes looking for one of these
 knows it was a decision, not an oversight.
@@ -1130,3 +1374,23 @@ no shared tables, no shared code, just the same status enum reused. See
   noise lines in `schema.d.ts`. Fix: kept, since `check:api-types` compares
   against the generator. Rule candidate: none, generator order follows the
   enum declaration.
+- **2026-11-06 · Epic 76 W6 close — the sheet commit must re-check the marks it validated against.**
+  Surprise: validate and commit are two requests, so a teacher can save between
+  them and a blind commit would overwrite that mark. Cost: a lost mark with no
+  trace. Fix: commit locks each session and answers `409`
+  `ATTENDANCE_IMPORT_STALE` if any staged mark moved (`assertMarksUnchanged`).
+  Rule candidate: any validate-then-commit flow re-reads what it diffed against
+  inside the commit transaction.
+- **2026-11-06 · Epic 76 W6 close — `can_write` is not `editable`.**
+  Surprise: the school gate (`dailySource`) and the register state (finalized,
+  past the window) are two separate answers. Cost: a screen reading only
+  `can_write: true` can still get `ATTENDANCE_FINALIZED` on save. Fix: the read
+  returns both fields and the DTO says to check both (§4b). Rule candidate: a
+  new permission-like flag on a read gets its own field, never folded into
+  `editable`.
+- **2026-11-06 · Epic 76 W6 close — an auto-absent sweep needs a "dead machine" guard.**
+  Surprise: with no scans at all the sweep would mark the whole school absent.
+  Cost: would have been a school-wide false absence, with SMS following.
+  Fix: skip a school with zero device scans today; insert-only, never touch an
+  existing mark. Rule candidate: a job that writes the absence of data first
+  checks that the data source was alive.

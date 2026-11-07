@@ -162,6 +162,19 @@ has no register at 10:30 on the anchor day, the 8-A card login gets that alert a
 
 `AttendanceImport` is no longer in `EXEMPT`; the `attendance` slice covers it.
 
+**Walkthrough: attendance source (Epic 76).** Which card sees what:
+
+| Login card         | Branch         | Try                                                                                                                                                                                          |
+| ------------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `class-teacher-8a` | `bmsc-high`    | The school is `DEVICE`. Open Class 8-A's register for today: 3 students show the scanned-but-absent badge (a card scan, but marked ABSENT).                                                  |
+| `admin`            | `bmsc-high`    | Settings › Attendance policy: `dailySource` reads `DEVICE`. A Class 8 student's form and the first 5 teachers' staff forms show a card number (students have a 10-digit one from `ctx.rng`). |
+| `admin`            | `bmsc-primary` | Switch branch. The school is `CLASS_TEACHER`. The uploads list (`/attendance/imports`) shows `class-attendance.xlsx` (37 new, 2 changed, 1 error); open it for rows.                         |
+| `admin`            | `bmsc-college` | Untouched: `dailySource` is `ANY`, as before Epic 76.                                                                                                                                        |
+
+The upload row belongs to the admin, not the teacher: its past days are
+FINALIZED, and only a holder of `ATTENDANCE_CORRECT` could really upload over
+them. A teacher sees only their own uploads, so that card would see none.
+
 #### Deep links
 
 `/login?role=<Card key>` on a demo host signs in as that card, once, then drops the param from the URL
