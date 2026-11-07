@@ -17,11 +17,7 @@ export interface RoleIndexDeps {
   summaries: Readonly<Record<string, string>>; // feature path -> page summary, for pages that exist
 }
 
-// Every item here is in the reader's sidebar, so only its guide page is pending, not the feature.
-const SOON: Record<GuideLang, string> = {
-  bn: 'মেনুতে আছে, গাইড শীঘ্রই আসছে',
-  en: 'in the menu, guide coming soon',
-};
+const SOON: Record<GuideLang, string> = { bn: 'শীঘ্রই আসছে', en: 'coming soon' };
 const get = (o: Json, key: string): string | undefined => {
   const v = key.split('.').reduce<unknown>((acc, k) => (acc as Json | undefined)?.[k], o);
   return typeof v === 'string' ? v : undefined;

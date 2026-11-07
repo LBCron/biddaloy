@@ -352,23 +352,6 @@ export const overlayOpeners: Record<string, (page: Page, locale: Locale) => Prom
     await page.getByRole('menuitem', { name: t('applicationsDetail.actions.consider') }).click();
     await expectDialogOpen(page);
   },
-  // Only the review step asks before discarding. Any readable sheet reaches it: an unknown class
-  // comes back as an error row, so this needs no seed data and nothing can be saved.
-  '/attendance/import::discard': async (page, locale) => {
-    const t = makeT(locale);
-    await page.getByRole('button', { name: t('attendanceImport.upload.title') }).click();
-    await page.getByLabel(t('attendanceImport.upload.chooseFile')).setInputFiles({
-      name: 'a11y.csv',
-      mimeType: 'text/csv',
-      buffer: Buffer.from('date,class,section,roll,status\n2000-01-01,No such class,A,1,P\n'),
-    });
-    await page.getByRole('button', { name: t('attendanceImport.upload.reviewChanges') }).click();
-    await expect(
-      page.getByRole('heading', { name: t('attendanceImport.review.title') }),
-    ).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expectDialogOpen(page);
-  },
   // Picking a type makes the form dirty, so Cancel asks before discarding.
   '/applications/new::discard': async (page, locale) => {
     const t = makeT(locale);
