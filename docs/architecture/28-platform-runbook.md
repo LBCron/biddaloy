@@ -2125,7 +2125,8 @@ and the curl must still give the `302`.
 **Check.**
 
 ```bash
-dig +short sites.schoolmanagerp.com site-test.schoolmanagerp.com   # Cloudflare IPs
+dig +short sites.schoolmanagerp.com                # Cloudflare IPs
+dig +short site-test.schoolmanagerp.com              # Cloudflare IPs (a wildcard can answer for a missing record, so check each name)
 curl -sI https://sites.schoolmanagerp.com                           # 404 (cloudflared) until #3646
 curl -sI https://site-test.schoolmanagerp.com                       # after #3621: 302 to <team>.cloudflareaccess.com
 ```

@@ -22,6 +22,19 @@ export const sitePostsTab = createRefChildTab<SitePost>({
     { key: 'body', type: 'json', required: true, label: { en: 'Body', bn: 'লেখা' } },
     { key: 'published_at', type: 'datetime', label: { en: 'Published at', bn: 'প্রকাশের সময়' } },
   ],
+  checkRow: (row) => {
+    if (typeof row.slug !== 'string' || row.slug.length > 80)
+      return { column: 'slug', message: 'Slug must be text of at most 80 characters' };
+    const t = row.title;
+    if (
+      typeof t !== 'object' ||
+      t === null ||
+      Array.isArray(t) ||
+      !Object.values(t).every((v) => typeof v === 'string')
+    )
+      return { column: 'title', message: 'Title must be an object of text per language' };
+    return null;
+  },
   naturalKey: ['slug'],
   excluded: ['cover_media_id'], // the picture is a file in storage, not a workbook row
 });

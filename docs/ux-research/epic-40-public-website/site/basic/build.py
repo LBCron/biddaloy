@@ -6,7 +6,7 @@
 import pathlib, re, sys
 from html.parser import HTMLParser
 HERE = pathlib.Path(__file__).parent
-NAV = [("home.html","হোম","Home"),("about","আমাদের কথা","About"),("academics","একাডেমিক","Academics"),("admissions.html","ভর্তি","Admissions"),("notices.html","খবর ও নোটিশ","News & Notices"),("results.html","ফলাফল","Results"),("teachers.html","শিক্ষকমণ্ডলী","Teachers"),("contact.html","যোগাযোগ","Contact")]
+NAV = [("home.html","হোম","Home"),("home.html#about","আমাদের কথা","About"),("home.html#academics","একাডেমিক","Academics"),("admissions.html","ভর্তি","Admissions"),("notices.html","খবর ও নোটিশ","News & Notices"),("results.html","ফলাফল","Results"),("teachers.html","শিক্ষকমণ্ডলী","Teachers"),("contact.html","যোগাযোগ","Contact")]
 def t(bn,en): return f'<x-t data-field="" bn="{bn}" en="{en}"></x-t>'
 def nav(cur):
     cur_attr = ' aria-current="page"'
@@ -87,13 +87,13 @@ HOME = f'''
   <div class="island" data-loading aria-busy="true"><div class="sk" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div class="ready notice-list">{notice_rows()}</div></div>
 </div></section>
 
-<section class="sec sec-alt"><div class="wrap grid g2">
+<section class="sec sec-alt" id="about"><div class="wrap grid g2">
   <div><h2>{t("আমাদের কথা","About us")}</h2><p class="muted" style="margin-top:14px">{t("১৯৭২ সালে স্থানীয় কৃষক ও ব্যবসায়ীদের চাঁদায় টিনের ঘরে স্কুলটি শুরু হয়। আজ তিনটি ভবন, একটি বিজ্ঞানাগার, একটি কম্পিউটার ল্যাব আর ১২ হাজার বইয়ের গ্রন্থাগার।","The school began in 1972 in a tin shed, funded by local farmers and traders. Today it has three buildings, a science lab, a computer lab and a 12,000-book library.")}</p><p class="muted" style="margin-top:12px">{t("আমরা বিশ্বাস করি শৃঙ্খলা আর স্নেহ একসাথে চলে। প্রতিটি শ্রেণির একজন শ্রেণিশিক্ষক প্রতিটি শিক্ষার্থীকে নামে চেনেন।","We believe discipline and care go together. Every class teacher knows every student by name.")}</p>
   <div class="facts"><div class="fact"><b>১৯৭২</b><span>{t("প্রতিষ্ঠার বছর","Founded")}</span></div><div class="fact"><b>৪২</b><span>{t("জন শিক্ষক","Teachers")}</span></div><div class="fact"><b>৯৬%</b><span>{t("এসএসসি পাসের হার ২০২৬","SSC pass rate 2026")}</span></div></div></div>
   <div class="slot" data-size="1200×800" style="aspect-ratio:3/2" role="img" aria-label="Campus photo slot"><span class="cap">{t("ক্যাম্পাস বা শ্রেণিকক্ষের ছবি","Campus or classroom photo")}</span></div>
 </div></section>
 
-<section class="sec"><div class="wrap">
+<section class="sec" id="academics"><div class="wrap">
   <div class="sec-head"><div><h2>{t("একাডেমিক কার্যক্রম","Academics")}</h2><p class="muted">{t("জাতীয় শিক্ষাক্রম, বাংলা মাধ্যম","National curriculum, Bangla medium")}</p></div></div>
   <div class="grid g3">
     <div class="card prog"><span class="ico">৬–৮</span><h3>{t("নিম্ন মাধ্যমিক","Junior secondary")}</h3><p class="muted small">{t("ভিত্তি গড়ার তিন বছর","Three foundation years")}</p><ul><li>{t("বাংলা, ইংরেজি, গণিত, বিজ্ঞান","Bangla, English, Maths, Science")}</li><li>{t("আইসিটি ও কর্মমুখী শিক্ষা","ICT and work education")}</li><li>{t("সপ্তাহে একদিন গ্রন্থাগার","Weekly library period")}</li></ul></div>
@@ -262,7 +262,7 @@ tr.detail td{background:var(--bg-2)}
   .res td[data-l]::before{content:attr(data-l);display:block;font-size:12px;color:var(--ink-3)}
   .res td[data-l="নাম"]{grid-column:1/-1;font-weight:600;font-size:17px}
   .res td:last-child{grid-column:1/-1}
-  .res tr.detail{display:block}.res tr.detail td{padding:0}
+  .res tr.detail:not([hidden]){display:block}.res tr.detail td{padding:0}
 }'''
 
 TEACHERS = ph("শিক্ষকমণ্ডলী","Teachers","শিক্ষকমণ্ডলী","Our teachers","৪২ জন শিক্ষক ও ৯ জন কর্মচারী। বিভাগ অনুযায়ী দেখুন।","42 teachers and 9 staff. Filter by department.") + f'''
