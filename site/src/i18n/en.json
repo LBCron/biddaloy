@@ -129,7 +129,8 @@
     "notfound": "No result was found for this search.",
     "rate": "Too many tries. Please try again in a minute.",
     "error": "The results could not be loaded. Please try again in a moment.",
-    "empty": "There are no results to show for this section."
+    "empty": "There are no results to show for this section.",
+    "count": "{n} results found"
   },
   "links": {
     "whatsapp": "WhatsApp",

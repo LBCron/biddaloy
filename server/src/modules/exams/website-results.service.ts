@@ -5,6 +5,7 @@ import { AuditAction } from '@biddaloy/shared';
 import { AuditService } from '../audit/audit.service';
 import { RequestContext } from '../../common/request-context.util';
 import { Exam } from './entities/exam.entity';
+import { signResultHandle, verifyResultHandle } from './website-results.handle';
 
 export const WEBSITE_RESULTS_PAGE_SIZE = 100;
 /** Newest exams the island lists; a school publishes a handful a year. */
@@ -14,8 +15,8 @@ const LISTED_EXAMS_MAX = 50;
 export const resultsNotFound = () => new NotFoundException('results.not_found');
 
 export interface WebsiteResultRow {
-  /** Handle for the lazy per-subject `detail`; never a student id. */
-  id: string;
+  /** Signed, 30-minute pointer for the lazy per-subject `detail`; never a student or result id. */
+  handle: string;
   roll: number;
   /** null when the school switched names off (D36). */
   name: string | null;
@@ -45,13 +46,14 @@ export class WebsiteResultsService {
     userId: string,
     ctx: RequestContext,
     updateSql: string,
+    oldValues: Record<string, unknown>,
     newValues: Record<string, unknown>,
   ): Promise<boolean> {
     return this.exams.manager.transaction(async (m) => {
       // TypeORM's postgres driver answers an UPDATE ... RETURNING as `[rows, affectedCount]`.
       const [rows]: [unknown[], number] = await m.query(updateSql, [examId, tenantId]);
       if (rows.length === 0) return false;
-      await this.bumpAndAudit(m, examId, tenantId, userId, ctx, newValues);
+      await this.bumpAndAudit(m, examId, tenantId, userId, ctx, oldValues, newValues);
       return true;
     });
   }
@@ -62,6 +64,7 @@ export class WebsiteResultsService {
     tenantId: string,
     userId: string,
     ctx: RequestContext,
+    oldValues: Record<string, unknown>,
     newValues: Record<string, unknown>,
   ) {
     await m.query(`UPDATE school_sites SET version = version + 1 WHERE tenant_id = $1`, [tenantId]);
@@ -74,7 +77,7 @@ export class WebsiteResultsService {
         performed_by_user_id: userId,
         ip_address: ctx.ip,
         user_agent: ctx.userAgent,
-        old_values: null,
+        old_values: oldValues,
         new_values: newValues,
       },
       m,
@@ -84,7 +87,7 @@ export class WebsiteResultsService {
   private async findExam(examId: string, tenantId: string): Promise<Exam> {
     const exam = await this.exams.findOne({
       where: { id: examId, tenant_id: tenantId },
-      select: { id: true, status: true },
+      select: { id: true, status: true, website_show_names: true },
     });
     if (!exam) throw new NotFoundException('Exam not found');
     return exam;
@@ -100,6 +103,7 @@ export class WebsiteResultsService {
       `UPDATE exams SET website_published_at = now()
         WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL
           AND status = 'PUBLISHED' AND website_published_at IS NULL RETURNING id`,
+      { website_published: false },
       { website_published: true },
     );
     if (done) return;
@@ -118,6 +122,7 @@ export class WebsiteResultsService {
       `UPDATE exams SET website_published_at = NULL
         WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL
           AND website_published_at IS NOT NULL RETURNING id`,
+      { website_published: true },
       { website_published: false },
     );
     if (!done) await this.findExam(examId, tenantId); // 404 for a missing exam, else no-op
@@ -130,60 +135,66 @@ export class WebsiteResultsService {
     ctx: RequestContext,
     showNames: boolean,
   ) {
-    await this.findExam(examId, tenantId);
+    const exam = await this.findExam(examId, tenantId);
+    if (exam.website_show_names === showNames) return; // nothing changed: no bump, no audit row
     await this.exams.manager.transaction(async (m) => {
       await m.query(`UPDATE exams SET website_show_names = $3 WHERE id = $1 AND tenant_id = $2`, [
         examId,
         tenantId,
         showNames,
       ]);
-      await this.bumpAndAudit(m, examId, tenantId, userId, ctx, {
-        website_show_names: showNames,
-      });
+      await this.bumpAndAudit(
+        m,
+        examId,
+        tenantId,
+        userId,
+        ctx,
+        { website_show_names: exam.website_show_names },
+        { website_show_names: showNames },
+      );
     });
   }
 
   /** Exams on the website with the sections that have results: the island's three selects. */
   async listPublished(tenantId: string) {
+    const exams: { id: string; name: string; show_names: boolean }[] =
+      await this.exams.manager.query(
+        `SELECT id, name, website_show_names AS show_names FROM exams
+          WHERE tenant_id = $1 AND deleted_at IS NULL AND status = 'PUBLISHED'
+            AND website_published_at IS NOT NULL
+          ORDER BY website_published_at DESC, id LIMIT $2`,
+        [tenantId, LISTED_EXAMS_MAX],
+      );
+    if (exams.length === 0) return [];
     const rows: {
       exam_id: string;
-      exam_name: string;
-      show_names: boolean;
       class_name: string;
       section_id: string;
       section_name: string;
     }[] = await this.exams.manager.query(
-      `SELECT e.id AS exam_id, e.name AS exam_name, e.website_show_names AS show_names,
-              c.name AS class_name, cs.id AS section_id, cs.section_name
-         FROM (SELECT * FROM exams
-                WHERE tenant_id = $1 AND deleted_at IS NULL AND status = 'PUBLISHED'
-                  AND website_published_at IS NOT NULL
-                ORDER BY website_published_at DESC, id LIMIT ${LISTED_EXAMS_MAX}) e
-         JOIN (SELECT DISTINCT exam_id, section_id FROM results
-                WHERE tenant_id = $1 AND deleted_at IS NULL AND section_id IS NOT NULL) r
-           ON r.exam_id = e.id
+      `SELECT r.exam_id, c.name AS class_name, cs.id AS section_id, cs.section_name
+         FROM (SELECT DISTINCT exam_id, section_id FROM results
+                WHERE tenant_id = $1 AND deleted_at IS NULL AND exam_id = ANY($2::uuid[])
+                  AND section_id IS NOT NULL) r
          JOIN class_sections cs
            ON cs.id = r.section_id AND cs.tenant_id = $1 AND cs.deleted_at IS NULL
-         JOIN classes c ON c.id = cs.class_id AND c.tenant_id = $1
-        ORDER BY e.website_published_at DESC, e.id, c.numeric_grade NULLS LAST, c.name,
-                 cs.section_name`,
-      [tenantId],
+         JOIN classes c ON c.id = cs.class_id AND c.tenant_id = $1 AND c.deleted_at IS NULL
+        ORDER BY c.numeric_grade NULLS LAST, c.name, cs.section_name`,
+      [tenantId, exams.map((e) => e.id)],
     );
-    const byExam = new Map<
-      string,
-      { id: string; name: string; showNames: boolean; sections: unknown[] }
-    >();
+    const byExam = new Map(
+      exams.map((e) => [
+        e.id,
+        { id: e.id, name: e.name, showNames: e.show_names, sections: [] as unknown[] },
+      ]),
+    );
     for (const r of rows) {
-      const e = byExam.get(r.exam_id) ?? {
-        id: r.exam_id,
-        name: r.exam_name,
-        showNames: r.show_names,
-        sections: [],
-      };
-      e.sections.push({ id: r.section_id, className: r.class_name, sectionName: r.section_name });
-      byExam.set(r.exam_id, e);
+      byExam
+        .get(r.exam_id)
+        ?.sections.push({ id: r.section_id, className: r.class_name, sectionName: r.section_name });
     }
-    return [...byExam.values()];
+    // An exam none of whose sections is left (deleted) has nothing to pick.
+    return [...byExam.values()].filter((e) => e.sections.length > 0);
   }
 
   /** The exam's `show_names` when it is on the website for this school, else the one 404. */
@@ -210,32 +221,41 @@ export class WebsiteResultsService {
       gpa: string;
       grade: string;
       is_fail: boolean;
-      total: string;
     }[] = await this.exams.manager.query(
-      `SELECT r.id, s.roll_number AS roll, s.full_name AS name, r.gpa, r.grade, r.is_fail,
-              COUNT(*) OVER() AS total
+      `SELECT r.id, s.roll_number AS roll, s.full_name AS name, r.gpa, r.grade, r.is_fail
          FROM results r
          JOIN students s
            ON s.id = r.student_id AND s.tenant_id = r.tenant_id AND s.deleted_at IS NULL
         WHERE r.exam_id = $1 AND r.tenant_id = $2 AND r.deleted_at IS NULL
           AND r.section_id = $3 AND ($4::int IS NULL OR s.roll_number = $4::int)
         ORDER BY s.roll_number, r.id
-        LIMIT ${WEBSITE_RESULTS_PAGE_SIZE} OFFSET $5`,
+        LIMIT $5 OFFSET $6`,
       [
         q.examId,
         tenantId,
         q.classSectionId,
         q.roll ?? null,
+        WEBSITE_RESULTS_PAGE_SIZE,
         (q.page - 1) * WEBSITE_RESULTS_PAGE_SIZE,
       ],
+    );
+    // Counted on its own: a page past the end has no rows to carry the total, and the pager must
+    // still be right.
+    const [{ n }]: { n: string }[] = await this.exams.manager.query(
+      `SELECT COUNT(*) AS n FROM results r
+         JOIN students s
+           ON s.id = r.student_id AND s.tenant_id = r.tenant_id AND s.deleted_at IS NULL
+        WHERE r.exam_id = $1 AND r.tenant_id = $2 AND r.deleted_at IS NULL
+          AND r.section_id = $3 AND ($4::int IS NULL OR s.roll_number = $4::int)`,
+      [q.examId, tenantId, q.classSectionId, q.roll ?? null],
     );
     return {
       page: q.page,
       pageSize: WEBSITE_RESULTS_PAGE_SIZE,
-      total: rows.length ? Number(rows[0].total) : 0,
+      total: Number(n),
       showNames,
       rows: rows.map((r): WebsiteResultRow => ({
-        id: r.id,
+        handle: signResultHandle(tenantId, q.examId, r.id),
         roll: r.roll,
         name: showNames ? r.name : null,
         gpa: Number(r.gpa),
@@ -245,8 +265,11 @@ export class WebsiteResultsService {
     };
   }
 
-  /** Per-subject marks of one result row (D9). The row id came from a `query` answer. */
-  async detail(tenantId: string, examId: string, resultId: string) {
+  /** Per-subject marks of one result row (D9). Only a handle a `query` answer carried opens it. */
+  async detail(tenantId: string, handle: unknown) {
+    const h = verifyResultHandle(handle, tenantId);
+    if (!h) throw resultsNotFound();
+    const { examId, resultId } = h;
     await this.visible(tenantId, examId);
     const rows: {
       name_en: string;

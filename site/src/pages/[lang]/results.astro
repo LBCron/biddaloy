@@ -31,12 +31,12 @@ const labels = Object.fromEntries(
   ['roll', 'name', 'gpa', 'grade', 'result', 'pass', 'fail', 'subjects'].map((k) => [`data-l-${k}`, m(k)]),
 );
 ---
-<Layout manifest={site} lang={lang} rest="results/" title={t(lang, 'nav.results')}>
+<Layout manifest={{ ...site, noindex: true }} lang={lang} rest="results/" title={t(lang, 'nav.results')}>
   <section class="sec" id="results"><div class="wrap">
     <div class="sec-head"><h1>{t(lang, 'nav.results')}</h1></div>
     {exams.length === 0 ? <p class="empty">{m('none')}</p> : !siteKey ? <p class="empty">{m('unavailable')}</p> : (
       <div class="island" data-results data-lang={lang} data-sitekey={siteKey} data-exams={JSON.stringify(exams)}
-        data-pick={m('pick')} data-prev={m('prev')} data-next={m('next')} {...msgs} {...labels}>
+        data-pick={m('pick')} data-prev={m('prev')} data-next={m('next')} data-m-count={m('count')} {...msgs} {...labels}>
         <form class="results-form" novalidate>
           <label class="field"><span>{m('exam')}</span>
             <select name="exam" required>
@@ -52,7 +52,7 @@ const labels = Object.fromEntries(
         </form>
         <p data-status role="status" aria-live="polite"></p>
         <Skeleton label={m('loading')} />
-        <div class="ready" data-out aria-live="polite"></div>
+        <div class="ready" data-out></div>
         <p class="print-row"><button class="btn btn-ghost btn-sm" type="button" data-print>{m('print')}</button></p>
       </div>
     )}

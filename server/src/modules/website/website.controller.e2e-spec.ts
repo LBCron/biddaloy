@@ -308,7 +308,7 @@ describe('Website API E2E', () => {
       const titles = res.body.map((n: { title: string }) => n.title);
       expect(titles).toContain(`site-${tag}-public`);
       expect(titles).not.toContain(`site-${tag}-private`);
-      // `results` has its own route and no feed here; an unknown kind is the same 404.
+      // `results` is off until the school adds the Results page (D12): the same 404 as an unknown kind.
       await by(host, '/island/results').expect(404);
     });
 

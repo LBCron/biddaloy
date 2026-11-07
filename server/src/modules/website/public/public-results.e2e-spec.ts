@@ -44,7 +44,7 @@ describe('Public website results (e2e)', () => {
   const api = () => supertest(app.getHttpServer());
 
   const admin = (
-    method: 'post' | 'patch',
+    method: 'get' | 'post' | 'patch',
     path: string,
     o: { tenant?: string | null; key?: string } = {},
   ) => {
@@ -57,17 +57,27 @@ describe('Public website results (e2e)', () => {
     return o.key ? r.set('Idempotency-Key', o.key) : r;
   };
 
-  /** Switches the seed school's site on and returns its host. */
-  const liveHost = async () => {
-    const [{ subdomain }] = await ds.query(
-      `SELECT subdomain FROM school_sites WHERE tenant_id = $1`,
-      [SEED_TENANT_ID],
-    );
+  /**
+   * Switches the seed school's site on and returns its host. The test setup empties `school_sites`
+   * before every `it`, so the row is opened here (an admin read creates it). `resultsPage: false`
+   * leaves the Results page out, as every theme does by default (D12).
+   */
+  const liveHost = async (o: { resultsPage?: boolean } = {}) => {
+    const site = (await admin('get', '/website').expect(200)).body;
     await ds.query(
       `UPDATE school_sites SET published = draft, enabled = true WHERE tenant_id = $1`,
       [SEED_TENANT_ID],
     );
-    return `${subdomain}.${ROOT}`;
+    if (o.resultsPage !== false) {
+      await ds.query(
+        `UPDATE school_sites
+            SET published = jsonb_set(published, '{pages}', (published->'pages') ||
+                '[{"page":"results","enabled":true,"sections":[]}]'::jsonb)
+          WHERE tenant_id = $1`,
+        [SEED_TENANT_ID],
+      );
+    }
+    return `${site.subdomain}.${ROOT}`;
   };
   const table = (host: string, body: object) =>
     api()
@@ -137,6 +147,9 @@ describe('Public website results (e2e)', () => {
         section_id: section.id,
         is_fail: false,
         grading_scale_id: scale.id,
+        grading_scale_revision: 1,
+        rule_version: 'test',
+        computed_at: new Date(),
       } as Result);
       await ds.getRepository(ResultSubject).save({
         tenant_id: SEED_TENANT_ID,
@@ -171,13 +184,6 @@ describe('Public website results (e2e)', () => {
         .send({ email: SEED_ADMIN_EMAIL, password: SEED_ADMIN_PASSWORD })
         .expect(200)
     ).body.access_token;
-    // Opens the seed school's site row (created on the first admin read).
-    await api()
-      .get('/api/v1/website')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .set('X-Role', UserRole.ADMIN)
-      .set('X-Tenant-ID', SEED_TENANT_ID)
-      .expect(200);
     const email = `results-teacher-${tag}@e2e.example`;
     const [{ id }] = await ds.query(
       `INSERT INTO users (email, password_hash, full_name, status, created_at, updated_at)
@@ -369,24 +375,44 @@ describe('Public website results (e2e)', () => {
       }
     });
 
-    it('detail: per-subject marks of a row; a result id of nowhere is the same 404', async () => {
-      const { exam, resultIds } = await seed(ExamStatus.PUBLISHED);
+    it('detail: only a handle from a table answer opens a row; guesses are the same 404', async () => {
+      const { exam, section, resultIds } = await seed(ExamStatus.PUBLISHED);
       await ds.query(`UPDATE exams SET website_published_at = now() WHERE id = $1`, [exam.id]);
       const host = await liveHost();
-      const detail = (id: string) =>
-        api()
-          .post(`/api/v1/public/site/by-host/${host}/island/results/detail`)
-          .send({ exam_id: exam.id, result_id: id });
-      const ok = await detail(resultIds[0]).expect(200);
+      const detail = (handle: unknown) =>
+        api().post(`/api/v1/public/site/by-host/${host}/island/results/detail`).send({ handle });
+      const t = await table(host, { exam_id: exam.id, class_section_id: section.id }).expect(200);
+      const ok = await detail(t.body.rows[0].handle).expect(200);
       expect(ok.body.subjects).toEqual([
         { name: { en: 'Math', bn: null }, obtained: 80, grade: 'A+', gpa: 5, passed: true },
       ]);
-      const miss = await detail(NO_EXAM).expect(404);
-      expect(miss.body.message).toBe('results.not_found');
+      // A real result id, a random UUID and junk all answer the one 404.
+      for (const guess of [
+        resultIds[0],
+        NO_EXAM,
+        'junk',
+        `${exam.id}.${resultIds[0]}.99999999999999.${'A'.repeat(43)}`,
+      ]) {
+        const miss = await detail(guess).expect(404);
+        expect(miss.body.message).toBe('results.not_found');
+      }
+      await detail(undefined).expect(400);
+      // Withdrawn: the same handle stops working at once.
+      await admin('post', `/exams/${exam.id}/website-unpublish`).expect(200);
+      await detail(t.body.rows[0].handle).expect(404);
+    });
+
+    it('D12: with the Results page off, the list and both POSTs are the one 404, exam published or not', async () => {
+      const { exam, section } = await seed(ExamStatus.PUBLISHED);
+      await ds.query(`UPDATE exams SET website_published_at = now() WHERE id = $1`, [exam.id]);
+      const host = await liveHost({ resultsPage: false });
+      const off = await api().get(`/api/v1/public/site/by-host/${host}/island/results`).expect(404);
+      await table(host, { exam_id: exam.id, class_section_id: section.id }).expect(404);
       await api()
         .post(`/api/v1/public/site/by-host/${host}/island/results/detail`)
-        .send({ exam_id: exam.id, result_id: 'not-a-uuid' })
-        .expect(400);
+        .send({ handle: 'x' })
+        .expect(404);
+      expect(off.body.message).toBe('site.not_found');
     });
 
     it('another school’s host cannot read this school’s exam: the same 404 as a missing one', async () => {
@@ -400,7 +426,9 @@ describe('Public website results (e2e)', () => {
         [other, `Other ${tag}`, `other-${tag}`],
       );
       await ds.query(
-        `INSERT INTO school_sites (tenant_id, subdomain, palette, enabled, draft, published) VALUES ($1,$2,'green',true,'{}'::jsonb,'{}'::jsonb)`,
+        `INSERT INTO school_sites (tenant_id, subdomain, palette, enabled, draft, published)
+         VALUES ($1,$2,'green',true,'{}'::jsonb,
+                 '{"pages":[{"page":"results","enabled":true,"sections":[]}]}'::jsonb)`,
         [other, sub],
       );
       try {

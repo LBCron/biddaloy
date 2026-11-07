@@ -830,11 +830,18 @@ export class ResultsService {
       // on this exam, Postgres aborts one side (40P01, whole transaction rolled back). Rare; the
       // filter maps 40P01 to a retryable 409 CONCURRENT_UPDATE (known-errors.ts), never a 500.
       await demoteFinalsCountingExam();
+      // [40.5.01] A reopened exam leaves the school website too; the admin puts it back on
+      // after the next publish. The site version moves so the cached exam list drops it.
+      if (exam.website_published_at) {
+        await manager.query(`UPDATE school_sites SET version = version + 1 WHERE tenant_id = $1`, [
+          tenantId,
+        ]);
+      }
       await manager
         .getRepository(Exam)
         .update(
           { id: examId, tenant_id: tenantId },
-          { status: ExamStatus.PROCESSED, published_at: null },
+          { status: ExamStatus.PROCESSED, published_at: null, website_published_at: null },
         );
       await manager
         .getRepository(Result)

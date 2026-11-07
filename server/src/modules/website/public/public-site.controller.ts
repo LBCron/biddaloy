@@ -152,7 +152,7 @@ export class PublicSiteController {
     @Body() dto: ResultsQueryDto,
     @Req() request: Request,
   ): Promise<WebsiteResultsPageDto> {
-    const live = await this.site.liveForWrite(host);
+    const live = await this.site.liveForResults(host);
     await this.turnstile.verify(dto.captcha_token, requestContext(request).ip);
     await this.schoolBudget(live.tenantId);
     return this.results.query(live.tenantId, {
@@ -164,8 +164,8 @@ export class PublicSiteController {
   }
 
   /**
-   * Per-subject marks of one row. No Turnstile: a token works once, and the id comes only from a
-   * verified table answer. Same IP throttle and school budget.
+   * Per-subject marks of one row. No Turnstile: a token works once, and the signed handle comes only
+   * from a verified table answer (a guessed id opens nothing). Same IP throttle and school budget.
    */
   @Post('island/results/detail')
   @HttpCode(200)
@@ -176,9 +176,9 @@ export class PublicSiteController {
     @Param('host') host: string,
     @Body() dto: ResultsDetailQueryDto,
   ): Promise<WebsiteResultDetailDto> {
-    const live = await this.site.liveForWrite(host);
+    const live = await this.site.liveForResults(host);
     await this.schoolBudget(live.tenantId);
-    return this.results.detail(live.tenantId, dto.exam_id, dto.result_id);
+    return this.results.detail(live.tenantId, dto.handle);
   }
 
   // `key` is `logo` or a media id, so it cannot carry ParseUUIDPipe: the service answers the one 404.
