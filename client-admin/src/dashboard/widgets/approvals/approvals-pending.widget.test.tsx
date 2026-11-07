@@ -124,4 +124,32 @@ describe('approvals-pending widget', () => {
     await screen.findByText('8 waiting');
     await expect(container).toHaveNoViolations();
   });
+
+  it('signal: pending shows needs-action text', async () => {
+    serve(BASE);
+    renderWidget('full');
+    await screen.findByText('8 waiting');
+    expect(screen.getByText('Needs action')).toBeTruthy();
+  });
+
+  it('signal: none pending shows healthy, not needs-action', async () => {
+    serve({ ...BASE, total: 0, by_type: [], oldest_pending_at: null });
+    renderWidget('full');
+    await screen.findByRole('link', { name: /./ });
+    expect(screen.queryByText('Needs action')).toBeNull();
+    expect(screen.getByText('All good')).toBeTruthy();
+  });
+
+  it('tile carries the signal too (phone key numbers, #3594)', async () => {
+    serve(BASE);
+    renderWidget('tile');
+    const marker = await waitFor(() => {
+      const el = document.querySelector('[data-signal]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    expect(marker.getAttribute('data-signal')).toBe('critical');
+    expect(marker.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
+    expect(marker.querySelector('.sr-only')!.textContent).toBe('Needs action');
+  });
 });

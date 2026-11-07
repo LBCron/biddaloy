@@ -186,7 +186,10 @@ export class AuditService {
       .leftJoin('audit_log.performed_by', 'performed_by')
       .addSelect(['performed_by.id', 'performed_by.full_name'])
       .where('audit_log.tenant_id = :tenantId', { tenantId })
-      .orderBy('audit_log.created_at', 'DESC');
+      .orderBy('audit_log.created_at', 'DESC')
+      // Tie-break on id: two rows can share created_at, and without a
+      // total order the widget and the list can return them swapped (#3427).
+      .addOrderBy('audit_log.id', 'DESC');
 
     this.hideCallersAcr(qb, callerId);
 
@@ -360,7 +363,10 @@ export class AuditService {
       .where('audit_log.tenant_id = :tenantId', { tenantId })
       .andWhere('audit_log.entity_type = :entityType', { entityType })
       .andWhere('audit_log.entity_id = :entityId', { entityId })
-      .orderBy('audit_log.created_at', 'DESC');
+      .orderBy('audit_log.created_at', 'DESC')
+      // Tie-break on id: two rows can share created_at, and without a
+      // total order the widget and the list can return them swapped (#3427).
+      .addOrderBy('audit_log.id', 'DESC');
 
     this.hideCallersAcr(qb, callerId);
 

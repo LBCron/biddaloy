@@ -43,7 +43,8 @@ export function StaffTodayView({
   failed = false,
   onRetry,
 }: StaffTodayViewProps) {
-  const { t } = useTranslation(['dashboard', 'leave']);
+  // One array call: the namespaces load in parallel. Every t() names its ns explicitly.
+  const { t } = useTranslation(['dashboard', 'leave', 'signal']);
   const region = useTenantRegionConfig();
   const tw = (key: string, opts?: Record<string, unknown>) =>
     t(`widgets.${K}.${key}`, { ns: 'dashboard', ...opts });
@@ -63,12 +64,15 @@ export function StaffTodayView({
       })
     : undefined;
 
+  const watch = !failed && !!data && !empty && data.absent_without_leave > 0;
+
   return (
     <WidgetCard
       title={title}
       variant={compact ? 'compact' : 'full'}
       {...(value && !empty ? { value } : {})}
       {...(summary && !empty ? { summary } : {})}
+      {...(watch ? { signal: 'warn' as const, signalLabel: t('watch', { ns: 'signal' }) } : {})}
       loading={loading}
       loadingLabel={t('states.loading', { ns: 'dashboard', title })}
       {...(failed && onRetry

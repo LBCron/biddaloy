@@ -1,5 +1,6 @@
 // [169.1-1846] Dashboard kit barrel. Class maps and scale helpers stay internal.
 export { WidgetCard, WidgetHelpContext, type WidgetCardProps } from './widget-card';
+export type { SignalLevel } from './signal';
 export { StatTile, type StatTileProps } from './stat-tile';
 export { Sparkline, type SparklineProps } from './sparkline';
 export { Meter, type MeterProps } from './meter';

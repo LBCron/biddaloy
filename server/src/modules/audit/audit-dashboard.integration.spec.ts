@@ -190,6 +190,24 @@ describe('AuditService.findRecentForDashboard (integration)', () => {
     expect(res.items.map((i) => i.id)).toEqual(list.data.map((r) => r.id));
   });
 
+  it('rows sharing one created_at come back id DESC from the widget and the list (#3427)', async () => {
+    const t = await newSchool();
+    // Same instant for all six, so only the id tie-break can order them. With no tie-break
+    // the widget (limit 8) and the list (limit 100) could return them in different orders.
+    const at = new Date(Date.now() - 60_000);
+    const rows: AuditLog[] = [];
+    for (let i = 0; i < 6; i += 1) rows.push(await addRow(t, 0, { created_at: at }));
+    // Lowercase UUID text sorts the same as Postgres sorts uuid.
+    const expected = rows
+      .map((r) => r.id)
+      .sort()
+      .reverse();
+    const res = await service.findRecentForDashboard(t, CALLER_ID);
+    const list = await service.findAll({ page: 1, limit: 100 } as QueryAuditLogDto, t, CALLER_ID);
+    expect(res.items.map((i) => i.id)).toEqual(expected);
+    expect(list.data.map((r) => r.id)).toEqual(expected);
+  });
+
   it('never leaks another tenant’s or platform (tenant_id null) rows', async () => {
     const mine = await newSchool();
     const other = await newSchool();

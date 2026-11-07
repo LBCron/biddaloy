@@ -44,6 +44,7 @@ export function FailedMessagesView({
   onRetry,
 }: FailedMessagesViewProps) {
   const { t } = useTranslation('dashboard');
+  useTranslation('signal'); // [#3592] separate binding: check-i18n-keys reads the first single-quoted call
   const region = useTenantRegionConfig();
   const tw = (key: string, opts: Record<string, unknown> = {}) => t(`widgets.${K}.${key}`, opts);
   const title = tw('title');
@@ -58,6 +59,12 @@ export function FailedMessagesView({
         : {})}
       {...(data && !some ? { summary: tw('none') } : {})}
       loading={loading}
+      {...(data && !failed
+        ? {
+            signal: some ? 'critical' : 'ok',
+            signalLabel: t(`signal:${some ? 'needsAction' : 'healthy'}`),
+          }
+        : {})}
       loadingLabel={t('states.loading', { title })}
       {...(failed && onRetry
         ? { error: { message: t('states.error'), retryLabel: t('states.retry'), onRetry } }

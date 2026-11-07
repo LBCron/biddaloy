@@ -51,6 +51,36 @@ describe('BriefingSlot (attention summary, Epic 67 D1)', () => {
     expect(links[0]!.textContent).toBe('See all to-do (3)');
   });
 
+  it('signal (#3594 D12): critical → needs action, warning only → watch, reminder only → none', async () => {
+    serve(attentionSummaryFactory({ critical: 1, warning: 2, activeTotal: 3 }));
+    const first = renderSlot();
+    const marker = await waitFor(() => {
+      const el = first.container.querySelector('[data-signal]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    expect(marker.getAttribute('data-signal')).toBe('critical');
+    expect(marker.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
+    expect(marker.querySelector('.sr-only')!.textContent).toBe('Needs action');
+    first.unmount();
+    await cleanupTestState();
+
+    serve(attentionSummaryFactory({ warning: 2, activeTotal: 2 }));
+    const second = renderSlot();
+    await screen.findByText(/2 warnings/);
+    expect(second.container.querySelector('[data-signal]')!.getAttribute('data-signal')).toBe(
+      'warn',
+    );
+    expect(screen.getByText('Keep an eye on this').className).toContain('sr-only');
+    second.unmount();
+    await cleanupTestState();
+
+    serve(attentionSummaryFactory({ reminder: 1, activeTotal: 1 }));
+    const third = renderSlot();
+    await screen.findByRole('link');
+    expect(third.container.querySelector('[data-signal]')).toBeNull();
+  });
+
   it('count 0 → all-clear line, no button', async () => {
     serve(attentionSummaryFactory());
     renderSlot();

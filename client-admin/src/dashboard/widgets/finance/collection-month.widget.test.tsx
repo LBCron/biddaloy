@@ -124,4 +124,35 @@ describe('collection-month widget', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(calls).toBe(2));
   });
+
+  it.each([
+    [50, 'Needs action'],
+    [60, 'Behind'],
+    [65, 'On track'],
+    [73, 'Ahead'],
+  ])('signal at %s pct received: %s', async (pct, label) => {
+    serve({ ...BASE, received_pct: pct });
+    renderWidget('full');
+    expect(await screen.findByText(label, { selector: '.sr-only' })).toBeTruthy();
+  });
+
+  it('shows no signal when nothing is billed', async () => {
+    serve({ ...BASE, billed_for_month: 0, received_pct: null });
+    renderWidget('full');
+    await screen.findByText('No fees billed this month yet.');
+    expect(document.querySelector('.sr-only')).toBeNull();
+  });
+
+  it('tile carries the signal too (phone key numbers, #3594)', async () => {
+    serve({ ...BASE, received_pct: 60 });
+    renderWidget('tile');
+    const marker = await waitFor(() => {
+      const el = document.querySelector('[data-signal]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    expect(marker.getAttribute('data-signal')).toBe('warn');
+    expect(marker.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
+    expect(marker.querySelector('.sr-only')!.textContent).toBe('Behind');
+  });
 });

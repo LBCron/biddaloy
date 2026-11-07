@@ -189,8 +189,9 @@ test.describe('admin', () => {
     const review = page.getByTestId('sheet-review');
     await expect(review.getByText(t('marksImport.summary.changed', { count: 2 }))).toBeVisible();
     await expect(review.getByText(t('marksImport.summary.unchanged', { count: 1 }))).toBeVisible();
-    // "Written: 40.00 → 45": the table row carries both the old and the new mark.
-    await expect(review.getByText(/Written: 40(\.00)? → 45/)).toBeVisible();
+    // "Written: 40.00 → 45.00": the table row carries both the old and the new mark. The
+    // numbers follow the locale, so bn shows "৪০.০০ → ৪৫.০০".
+    await expect(review.getByText(/Written: (40|৪০)([.](00|০০))? → (45|৪৫)/)).toBeVisible();
     await expect(saveButton(page, 2)).toBeEnabled();
   });
 

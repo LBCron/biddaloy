@@ -45,6 +45,8 @@ describe('latest-notices widget', () => {
     // #3430 finding 3: `/portal/notices` bounced staff to the dashboard, and the staff list is gated
     // by NOTICE_POST (staff with only NOTICE_READ have no reader route, #3448): no list link.
     expect(screen.queryByRole('link', { name: 'All notices' })).toBeNull();
+    // [#3598] informational list: neutral, no signal text.
+    expect(screen.queryByText(/Needs action|Keep an eye on this|All good/)).toBeNull();
   });
 
   it('empty state', async () => {

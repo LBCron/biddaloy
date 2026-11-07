@@ -45,7 +45,8 @@ export function ApprovalsPendingView({
   failed = false,
   onRetry,
 }: ApprovalsPendingViewProps) {
-  const { t } = useTranslation(['dashboard', 'applications']);
+  // One array call: the namespaces load in parallel. Every t() names its ns explicitly.
+  const { t } = useTranslation(['dashboard', 'applications', 'signal']);
   const region = useTenantRegionConfig();
   const tw = (key: string, opts: Record<string, unknown> = {}) =>
     t(`dashboard:widgets.${K}.${key}`, opts);
@@ -61,12 +62,21 @@ export function ApprovalsPendingView({
       })
     : '';
 
+  // Computed before the tile return so the phone tile carries the same signal (#3594).
+  const urgentSignal =
+    !data || failed
+      ? {}
+      : data.total > 0
+        ? { signal: 'critical' as const, signalLabel: t('needsAction', { ns: 'signal' }) }
+        : { signal: 'ok' as const, signalLabel: t('healthy', { ns: 'signal' }) };
+
   if (variant === 'tile' && data && !failed) {
     return (
       <StatTile
         label={tw('tileLabel')}
         value={formatNumber(data.total, region)}
         note={oldest || tw('none')}
+        {...urgentSignal}
       />
     );
   }
@@ -77,6 +87,7 @@ export function ApprovalsPendingView({
       variant={full ? 'full' : 'compact'}
       {...(data ? { value: tw('value', { count: data.total }) } : {})}
       {...(data ? { summary: data.total === 0 ? tw('none') : oldest } : {})}
+      {...urgentSignal}
       loading={loading}
       loadingLabel={t('states.loading', { ns: 'dashboard', title })}
       {...(failed && onRetry

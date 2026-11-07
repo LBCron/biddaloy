@@ -329,6 +329,16 @@ body[data-scroll-locked] {
   --color-status-overdue-fg: #b91c1c;
   --color-status-overdue-bg: #fee2e2;
 
+  /* Dashboard signal scale (epic #3592). Mirrors tailwind.preset.ts `signal`. */
+  --color-signal-critical-fg: oklch(0.5 0.19 27);
+  --color-signal-critical-bg: oklch(0.95 0.022 25);
+  --color-signal-warn-fg: oklch(0.48 0.1 65);
+  --color-signal-warn-bg: oklch(0.96 0.04 85);
+  --color-signal-ok-fg: oklch(0.48 0.13 150);
+  --color-signal-ok-bg: oklch(0.95 0.05 150);
+  --color-signal-neutral-fg: oklch(0.45 0.02 255);
+  --color-signal-neutral-bg: oklch(0.95 0.005 255);
+
   /* Semantic roles — what a component should actually use. These keep a
      fixed *meaning* across themes (--color-text-primary is always "the
      primary text colour"), unlike the raw scale above which keeps a fixed
@@ -846,6 +856,16 @@ body[data-scroll-locked] {
   --color-status-due-bg: #451a03;
   --color-status-overdue-fg: #f87171;
   --color-status-overdue-bg: #450a0a;
+
+  /* Dashboard signal scale (epic #3592). Mirrors tailwind.preset.ts `signal`. */
+  --color-signal-critical-fg: oklch(0.75 0.15 25);
+  --color-signal-critical-bg: oklch(0.25 0.07 25);
+  --color-signal-warn-fg: oklch(0.82 0.15 80);
+  --color-signal-warn-bg: oklch(0.28 0.06 70);
+  --color-signal-ok-fg: oklch(0.8 0.17 150);
+  --color-signal-ok-bg: oklch(0.27 0.06 150);
+  --color-signal-neutral-fg: oklch(0.78 0.02 255);
+  --color-signal-neutral-bg: oklch(0.3 0.01 255);
 
   /* Chart colours, dark. Anchor flips in dark: least = darkest. */
   --color-chart-cat-1: #3987e5;

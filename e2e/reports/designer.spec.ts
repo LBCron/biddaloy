@@ -83,11 +83,11 @@ test.describe('report designer', () => {
             exact: true,
           });
           if (await asTable.isVisible()) await asTable.click();
-          await expect(preview.getByRole('table')).toBeVisible({ timeout: 1_000 });
+          // Inside the retry: a late preview refresh can remount the view back to the list.
+          await expect(
+            preview.getByRole('columnheader', { name: t('reportView.total'), exact: true }),
+          ).toBeVisible({ timeout: 1_000 });
         }).toPass();
-        await expect(
-          preview.getByRole('columnheader', { name: t('reportView.total'), exact: true }),
-        ).toBeVisible();
       });
 
       await test.step('admin: save for teachers and switch it on for everyone', async () => {

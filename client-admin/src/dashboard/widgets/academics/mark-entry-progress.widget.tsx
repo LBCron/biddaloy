@@ -5,7 +5,7 @@
  */
 import { DashboardWidgetKey } from '@biddaloy/shared';
 import { apiClient, type components } from '@biddaloy/ui/api';
-import { BarWidget, ChartTableToggle, WidgetCard } from '@biddaloy/ui/components';
+import { BarWidget, ChartTableToggle, type SignalLevel, WidgetCard } from '@biddaloy/ui/components';
 import { useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { formatDate, formatNumber, parseServerDate, tenantTodayIso } from '@biddaloy/ui/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -45,6 +45,7 @@ export function MarkEntryView({
   onRetry,
 }: MarkEntryViewProps) {
   const { t } = useTranslation('dashboard');
+  useTranslation('signal'); // [#3592] separate binding: check-i18n-keys reads the first single-quoted call
   const region = useTenantRegionConfig();
   const tw = (key: string, opts: Record<string, unknown> = {}) => t(`widgets.${K}.${key}`, opts);
   const pct = (v: number) => `${formatNumber(v, region)}%`;
@@ -60,12 +61,25 @@ export function MarkEntryView({
   );
 
   let deadline: string | undefined;
+  let daysLeft: number | undefined;
   if (data?.mark_entry_deadline) {
     const day = parseServerDate(data.mark_entry_deadline);
     const today = parseServerDate(tenantTodayIso(region));
     const days = Math.round((day.getTime() - today.getTime()) / 86_400_000);
     const date = formatDate(day, region);
+    daysLeft = days;
     deadline = days < 0 ? tw('deadlinePassed', { date }) : tw('deadlineIn', { count: days, date });
+  }
+
+  // [#3598] done = healthy; past the deadline = needs action; within 3 days = watch (D9).
+  let signal: { level: SignalLevel; key: string } | undefined;
+  if (data && !empty) {
+    // Raw counts, not `percentage`: the server rounds it, so 199/200 would read 100 (done).
+    if (data.overall.submitted >= data.overall.total) signal = { level: 'ok', key: 'done' };
+    else if (daysLeft !== undefined && daysLeft < 0)
+      signal = { level: 'critical', key: 'pastDeadline' };
+    else if (daysLeft !== undefined && daysLeft <= 3)
+      signal = { level: 'warn', key: 'approaching' };
   }
 
   const behind = lowest ? tw('furthestBehind', { class: lowest.class_name }) : undefined;
@@ -118,6 +132,9 @@ export function MarkEntryView({
       variant={full ? 'full' : 'compact'}
       {...(value && !empty ? { value } : {})}
       {...(summary && !empty ? { summary } : {})}
+      {...(signal && !failed
+        ? { signal: signal.level, signalLabel: t(`signal:${signal.key}`) }
+        : {})}
       loading={loading}
       loadingLabel={t('states.loading', { title })}
       {...(failed && onRetry

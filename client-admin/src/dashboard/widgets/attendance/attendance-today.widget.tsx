@@ -18,6 +18,9 @@ export const widgetKey = DashboardWidgetKey.ATTENDANCE_TODAY;
 export type AttendanceTodayDto = components['schemas']['AttendanceTodayWidgetDto'];
 
 const K = widgetKey;
+/** ponytail: fixed daily whole-school heuristic, NOT the per-student monthly
+ * `risk.monthlyAttendancePct` (same 75 default, different measure). Make it a setting if a school asks. */
+const LOW_ATTENDANCE_PCT = 75;
 
 function useAttendanceToday() {
   return useQuery({
@@ -46,6 +49,7 @@ export function AttendanceTodayView({
   updatedLabel,
 }: AttendanceTodayViewProps) {
   const { t } = useTranslation('dashboard');
+  useTranslation('signal'); // [#3592] separate binding: check-i18n-keys reads the first single-quoted call
   const region = useTenantRegionConfig();
   const tw = (key: string, opts: Record<string, unknown> = {}) => t(`widgets.${K}.${key}`, opts);
   const pct = (v: number) => `${formatNumber(v, region, { decimals: 1 })}%`;
@@ -79,9 +83,20 @@ export function AttendanceTodayView({
   const sparkLabel = tw('sparkLabel', { min, max });
   const spark = <Sparkline values={values} label={sparkLabel} showLastDot />;
 
+  // Computed before the tile return so the phone tile carries the same signal (#3594).
+  const low =
+    !failed &&
+    !closed &&
+    !empty &&
+    data?.percentage != null &&
+    data.percentage < LOW_ATTENDANCE_PCT;
+  const lowSignal = low
+    ? { signal: 'warn' as const, signalLabel: t('watch', { ns: 'signal' }) }
+    : {};
+
   if (variant === 'tile' && data && value && !empty) {
     return (
-      <StatTile label={tw('compactTitle')} value={value}>
+      <StatTile label={tw('compactTitle')} value={value} {...lowSignal}>
         {spark}
       </StatTile>
     );
@@ -121,6 +136,7 @@ export function AttendanceTodayView({
       {...(value ? { value } : {})}
       {...(summary ? { summary } : {})}
       {...(updatedLabel && variant === 'full' ? { updatedLabel } : {})}
+      {...lowSignal}
       loading={loading}
       loadingLabel={t('states.loading', { title })}
       {...(failed && onRetry

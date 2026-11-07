@@ -4,7 +4,7 @@
  */
 import { CommunicationMedium, DashboardWidgetKey } from '@biddaloy/shared';
 import { apiClient, type components } from '@biddaloy/ui/api';
-import { WidgetCard } from '@biddaloy/ui/components';
+import { WidgetCard, type SignalLevel } from '@biddaloy/ui/components';
 import { useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { formatNumber } from '@biddaloy/ui/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -18,6 +18,11 @@ export const widgetKey = DashboardWidgetKey.SMS_BALANCE;
 export type SmsBalanceDto = components['schemas']['SmsBalanceWidgetDto'];
 
 const K = widgetKey;
+/** Server default of `smsCreditLowThreshold`, fixed on purpose (#3592 D9, PR #3686 review): one fixed
+ * number, no extra rate-limited settings call per dashboard load. The card is ADMIN-only
+ * (SETTINGS_MANAGE), so it could read the school's own value; it does not. So "low" here can
+ * differ from the school's own `sms_credit_low` alert threshold. */
+const SMS_LOW = 200;
 
 function useSmsBalance() {
   return useQuery({
@@ -44,12 +49,23 @@ export function SmsBalanceView({
   onRetry,
 }: SmsBalanceViewProps) {
   const { t } = useTranslation('dashboard');
+  useTranslation('signal'); // [#3592] separate binding: check-i18n-keys reads the first single-quoted call
   const region = useTenantRegionConfig();
   const tw = (key: string, opts: Record<string, unknown> = {}) => t(`widgets.${K}.${key}`, opts);
   // `count` picks the plural; `value` is the grouped display (১,২৪০).
   const n = (v: number) => formatNumber(v, region);
   const title = tw('title');
   const metered = !!data && data.metering !== 'OFF';
+  // ponytail: no `ok` level — the school may set its low mark above 200, and "All good" must not
+  // contradict its own sms_credit_low alert. Add `ok` once the DTO carries the school's threshold.
+  const level: SignalLevel | undefined =
+    !metered || failed
+      ? undefined
+      : data.available <= 0
+        ? 'critical'
+        : data.available < SMS_LOW
+          ? 'warn'
+          : undefined;
 
   return (
     <WidgetCard
@@ -63,6 +79,12 @@ export function SmsBalanceView({
         ? { summary: tw('reserved', { value: n(data.reserved) }) }
         : {})}
       loading={loading}
+      {...(level
+        ? {
+            signal: level,
+            signalLabel: t(`signal:${level === 'warn' ? 'low' : 'needsAction'}`),
+          }
+        : {})}
       loadingLabel={t('states.loading', { title })}
       {...(failed && onRetry
         ? { error: { message: t('states.error'), retryLabel: t('states.retry'), onRetry } }

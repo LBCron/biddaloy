@@ -101,6 +101,42 @@ describe('mark-entry-progress widget', () => {
     expect(await screen.findByText(/Deadline passed on/)).toBeTruthy();
   });
 
+  it('signal: past deadline = needs action, 2 days left = watch, far/none = no signal, 100% = done', async () => {
+    const run = async (body: object, text: string | null) => {
+      serve(body);
+      const { unmount } = renderWidget('full');
+      await screen.findByText('Half Yearly');
+      if (text) expect(await screen.findByText(text)).toBeTruthy();
+      else
+        expect(
+          screen.queryByText(/Needs action|Deadline is near|Done|Past the deadline/),
+        ).toBeNull();
+      unmount();
+      await cleanupTestState();
+    };
+    await run({ ...BASE, mark_entry_deadline: inDays(-1) }, 'Past the deadline');
+    await run({ ...BASE, mark_entry_deadline: inDays(2) }, 'Deadline is near');
+    await run({ ...BASE, mark_entry_deadline: inDays(10) }, null);
+    await run(BASE, null);
+    await run(
+      {
+        ...BASE,
+        mark_entry_deadline: inDays(-1),
+        overall: { submitted: 200, total: 200, percentage: 100 },
+      },
+      'Done',
+    );
+    // The server rounds 199/200 to 100%: one mark still missing is past the deadline, not done.
+    await run(
+      {
+        ...BASE,
+        mark_entry_deadline: inDays(-1),
+        overall: { submitted: 199, total: 200, percentage: 100 },
+      },
+      'Past the deadline',
+    );
+  });
+
   it('no deadline → no deadline text', async () => {
     serve(BASE);
     renderWidget('full');

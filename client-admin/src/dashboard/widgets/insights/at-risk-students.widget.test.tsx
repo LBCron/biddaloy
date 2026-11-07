@@ -173,4 +173,33 @@ describe('at-risk-students widget', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(calls).toBe(2));
   });
+
+  it('signal: students at risk show needs-action text', async () => {
+    serve(BASE);
+    renderWidget('full');
+    await screen.findByRole('table');
+    expect(screen.getByText('Needs action')).toBeTruthy();
+  });
+
+  it('signal: computing shows none', async () => {
+    serve({ ...BASE, state: 'COMPUTING', students: [], total: 0 });
+    renderWidget('full');
+    // Wait for the data render (the heading is already there while loading).
+    await screen.findByText('The list is being prepared. Check back in a minute.');
+    expect(document.querySelector('[data-signal]')).toBeNull();
+    expect(screen.queryByText('Needs action')).toBeNull();
+  });
+
+  it('tile carries the signal too (phone key numbers, #3594)', async () => {
+    serve(BASE);
+    renderWidget('tile');
+    const marker = await waitFor(() => {
+      const el = document.querySelector('[data-signal]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    expect(marker.getAttribute('data-signal')).toBe('critical');
+    expect(marker.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
+    expect(marker.querySelector('.sr-only')!.textContent).toBe('Needs action');
+  });
 });

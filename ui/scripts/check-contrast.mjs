@@ -38,6 +38,23 @@ import { fileURLToPath } from 'node:url';
 const pkgRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const HEX_RE = /^#[0-9a-f]{6}$/i;
+// Supported subset only: three bare unsigned numbers, `oklch(L C h)`. Alpha (`/ a`), `%`
+// and `deg` forms do not match and fail loudly below; write tokens in the bare form.
+const OKLCH_RE = /^oklch\(\s*(\d*\.?\d+)\s+(\d*\.?\d+)\s+(\d*\.?\d+)\s*\)$/i;
+
+/** `oklch(L C h)` -> linear sRGB [r,g,b], clipped to gamut (Ottosson's matrices). */
+function oklchToLinear(L, C, hDeg) {
+  const a = C * Math.cos((hDeg * Math.PI) / 180);
+  const b = C * Math.sin((hDeg * Math.PI) / 180);
+  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+  return [
+    4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+    -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+  ].map((x) => Math.min(1, Math.max(0, x)));
+}
 
 function srgbToLinear(c) {
   const n = c / 255;
@@ -45,10 +62,20 @@ function srgbToLinear(c) {
 }
 
 function relativeLuminance(hex) {
+  const ok = OKLCH_RE.exec(hex);
+  if (ok) {
+    const parts = [+ok[1], +ok[2], +ok[3]];
+    // A NaN would pass every ratio check (NaN < min is false), so refuse it.
+    if (!parts.every(Number.isFinite)) {
+      throw new TypeError(`malformed oklch() colour: ${JSON.stringify(hex)}`);
+    }
+    const [r, gr, b] = oklchToLinear(...parts);
+    return 0.2126 * r + 0.7152 * gr + 0.0722 * b;
+  }
   if (!HEX_RE.test(hex)) {
     // NaN < min is false, so an unvalidated bad value would silently pass
     // every ratio check below it — fail loudly instead.
-    throw new TypeError(`expected a #RRGGBB colour, got ${JSON.stringify(hex)}`);
+    throw new TypeError(`expected a #RRGGBB or oklch() colour, got ${JSON.stringify(hex)}`);
   }
   const clean = hex.replace('#', '');
   const r = parseInt(clean.slice(0, 2), 16);
@@ -237,6 +264,14 @@ for (const [statusKey, entry] of Object.entries(preset.status)) {
   expectVar(lightVars, '@theme', `--color-status-${statusKey}-bg`, entry.bg);
   expectVar(darkVars, ':root[data-theme="dark"]', `--color-status-${statusKey}-fg`, entry.fgDark);
   expectVar(darkVars, ':root[data-theme="dark"]', `--color-status-${statusKey}-bg`, entry.bgDark);
+}
+
+// Signal (epic #3592): same shape as status, values are OKLCH strings.
+for (const [key, entry] of Object.entries(preset.signal)) {
+  expectVar(lightVars, '@theme', `--color-signal-${key}-fg`, entry.fg);
+  expectVar(lightVars, '@theme', `--color-signal-${key}-bg`, entry.bg);
+  expectVar(darkVars, ':root[data-theme="dark"]', `--color-signal-${key}-fg`, entry.fgDark);
+  expectVar(darkVars, ':root[data-theme="dark"]', `--color-signal-${key}-bg`, entry.bgDark);
 }
 
 // Typography (design contract §2). Typography is a token family like colour

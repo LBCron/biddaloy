@@ -83,4 +83,28 @@ describe('sms-balance widget', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(calls).toBe(2));
   });
+
+  it.each([
+    [0, 'Needs action'],
+    [150, 'Running low'],
+  ])('signal at %s credits: %s', async (available, label) => {
+    serve({ metering: 'PLATFORM', available, reserved: 0 });
+    renderWidget('full');
+    expect(await screen.findByText(label, { selector: '.sr-only' })).toBeTruthy();
+  });
+
+  it('never says "All good": the school may set its low mark above 200 (no threshold in the DTO)', async () => {
+    serve({ metering: 'PLATFORM', available: 1240, reserved: 0 });
+    renderWidget('full');
+    await screen.findByText('1,240 SMS left');
+    expect(document.querySelector('[data-signal]')).toBeNull();
+    expect(screen.queryByText('All good')).toBeNull();
+  });
+
+  it('shows no signal when not metered', async () => {
+    serve({ metering: 'OFF', available: 0, reserved: 0 });
+    renderWidget('full');
+    await screen.findByText(/not metered/i);
+    expect(document.querySelector('.sr-only')).toBeNull();
+  });
 });

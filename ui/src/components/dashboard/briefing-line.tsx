@@ -12,11 +12,14 @@ import * as React from 'react';
 import { cn } from '../../primitives/lib/utils';
 import { Skeleton } from '../skeleton';
 
-export interface BriefingLineProps {
+import { SIGNAL, type SignalProps } from './signal';
+
+export type BriefingLineProps = SignalProps & {
   /** "Good morning! 4 things need your attention today" */
   headline: string;
   /** "Most urgent: attendance not taken in 3 sections." */
   mostUrgent?: string;
+  // `signal` (#3594, D12): level of the most urgent item, same scale as widgets; with `signalLabel`.
   /** ONE primary Button (asChild Link) — the page's only filled button. */
   action?: React.ReactNode;
   /** `BriefingChip` elements for the other items. */
@@ -31,7 +34,7 @@ export interface BriefingLineProps {
   caption?: string;
   loading?: boolean;
   loadingLabel?: string;
-}
+};
 
 export function BriefingChip({
   icon,
@@ -56,6 +59,8 @@ export function BriefingChip({
 export function BriefingLine({
   headline,
   mostUrgent,
+  signal,
+  signalLabel,
   action,
   items,
   itemsLabel,
@@ -67,6 +72,7 @@ export function BriefingLine({
 }: BriefingLineProps) {
   const uid = React.useId();
   const [open, setOpen] = React.useState(false);
+  const sig = signal && signal !== 'neutral' ? SIGNAL[signal] : null;
 
   if (loading) {
     return (
@@ -84,7 +90,7 @@ export function BriefingLine({
     <section aria-labelledby={headingId} className="rounded-lg bg-secondary p-4 md:p-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          {icon ? (
+          {!sig && icon ? (
             <span
               aria-hidden="true"
               className="hidden size-10 shrink-0 items-center justify-center rounded-full bg-surface md:inline-flex"
@@ -99,6 +105,20 @@ export function BriefingLine({
             {mostUrgent ? <p className="text-body-lg">{mostUrgent}</p> : null}
             {caption ? <p className="text-label text-muted-foreground">{caption}</p> : null}
           </div>
+          {/* After the headline in reading order (title first, then level), shown before it.
+              Visible on phones too, unlike the decorative icon: it carries the level text. */}
+          {sig ? (
+            <span
+              data-signal={signal}
+              className={cn(
+                'order-first inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-surface',
+                sig.text,
+              )}
+            >
+              <sig.Icon aria-hidden="true" className="size-5" />
+              <span className="sr-only">{signalLabel}</span>
+            </span>
+          ) : null}
         </div>
         {action ? (
           <div className="w-full shrink-0 lg:w-auto [&>*]:h-11 [&>*]:w-full lg:[&>*]:w-auto">

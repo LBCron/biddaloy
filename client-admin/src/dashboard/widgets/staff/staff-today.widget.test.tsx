@@ -113,4 +113,18 @@ describe('staff-today widget', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(calls).toBe(2));
   });
+
+  it('signal: absences show watch text', async () => {
+    serve({ ...BASE, absent: 2, absent_without_leave: 2 });
+    renderWidget('full');
+    await screen.findByRole('link', { name: 'View staff attendance' });
+    expect(screen.getByText('Keep an eye on this')).toBeTruthy();
+  });
+
+  it('signal: no absences shows none', async () => {
+    serve(BASE);
+    renderWidget('full');
+    await screen.findByRole('link', { name: 'View staff attendance' });
+    expect(screen.queryByText('Keep an eye on this')).toBeNull();
+  });
 });

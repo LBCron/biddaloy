@@ -135,3 +135,32 @@ export const WithHelp: Story = {
     ),
   ],
 };
+
+const levels = [
+  ['critical', 'Needs action'],
+  ['warn', 'Watch'],
+  ['ok', 'Healthy'],
+  ['neutral', 'No signal'],
+] as const;
+
+const SignalGrid = ({ variant }: { variant: 'full' | 'compact' }) => (
+  <div className="grid max-w-3xl gap-3 md:grid-cols-2">
+    {levels.map(([signal, signalLabel]) => (
+      <WidgetCard
+        key={signal}
+        title={`Fee collection (${signal})`}
+        variant={variant}
+        value="64%"
+        signal={signal}
+        signalLabel={signalLabel}
+      />
+    ))}
+  </div>
+);
+
+export const SignalLevels: Story = { render: () => <SignalGrid variant="full" /> };
+export const SignalLevelsCompact: Story = { render: () => <SignalGrid variant="compact" /> };
+export const SignalLevelsDark: Story = {
+  render: () => <SignalGrid variant="full" />,
+  globals: { theme: 'dark' },
+};

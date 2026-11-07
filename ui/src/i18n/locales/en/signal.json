@@ -1,0 +1,12 @@
+{
+  "needsAction": "Needs action",
+  "watch": "Keep an eye on this",
+  "healthy": "All good",
+  "behind": "Behind",
+  "onTrack": "On track",
+  "ahead": "Ahead",
+  "pastDeadline": "Past the deadline",
+  "approaching": "Deadline is near",
+  "done": "Done",
+  "low": "Running low"
+}

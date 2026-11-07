@@ -56,4 +56,13 @@ describe('failed-messages widget', () => {
     renderWidget('compact');
     expect(await screen.findByText('2 failed')).toBeTruthy();
   });
+
+  it.each([
+    [3, 'Needs action'],
+    [0, 'All good'],
+  ])('signal at %s failed: %s', async (failed, label) => {
+    serve({ failed, window: WINDOW });
+    renderWidget('full');
+    expect(await screen.findByText(label, { selector: '.sr-only' })).toBeTruthy();
+  });
 });

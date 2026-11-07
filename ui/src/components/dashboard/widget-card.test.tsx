@@ -218,3 +218,96 @@ describe('WidgetCard help (E23)', () => {
     await expect(container).toHaveNoViolations();
   });
 });
+
+describe('WidgetCard signal (#3594)', () => {
+  it('critical shows an aria-hidden icon plus screen-reader label', () => {
+    render(<WidgetCard {...base} signal="critical" signalLabel="Needs action" />);
+    const label = screen.getByText('Needs action');
+    expect(label.className).toContain('sr-only');
+    expect(label.parentElement!.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
+    expect(screen.getByRole('region').className).toContain('border-s-signal-critical-fg');
+  });
+
+  it('ok shows the check icon (aria-hidden), its sr-only label and a green bar, no band', () => {
+    render(<WidgetCard {...base} signal="ok" signalLabel="All good" />);
+    const marker = document.querySelector('[data-signal="ok"]')!;
+    expect(marker.querySelector('.sr-only')!.textContent).toBe('All good');
+    const icon = marker.querySelector('svg')!;
+    expect(icon.getAttribute('aria-hidden')).toBe('true');
+    // The check icon, not the critical triangle or warn clock: colour is never the only cue (D8).
+    expect(icon.getAttribute('class')).toContain('lucide-circle-check');
+    expect(marker.className).toContain('text-signal-ok-fg');
+    expect(screen.getByRole('region').className).toContain('border-s-signal-ok-fg');
+    expect(screen.getByRole('heading').parentElement!.className).not.toContain('bg-signal');
+  });
+
+  it('compact critical tints its header band too; warn does not', () => {
+    const { rerender } = render(
+      <WidgetCard {...base} variant="compact" signal="critical" signalLabel="Needs action" />,
+    );
+    expect(screen.getByRole('heading').parentElement!.className).toContain('bg-signal-critical-bg');
+    rerender(<WidgetCard {...base} variant="compact" signal="warn" signalLabel="Watch" />);
+    expect(screen.getByRole('heading').parentElement!.className).not.toContain('bg-signal');
+  });
+
+  it('critical header band cancels its own padding, so the header does not shift', () => {
+    render(<WidgetCard {...base} signal="critical" signalLabel="Needs action" />);
+    const band = screen.getByRole('heading').parentElement!.className;
+    expect(band).toContain('bg-signal-critical-bg');
+    expect(band).toContain('py-1');
+    expect(band).toContain('-my-1');
+  });
+
+  it('neutral and unset render no icon, bar or band', () => {
+    const { rerender } = render(<WidgetCard {...base} signal="neutral" signalLabel="None" />);
+    expect(screen.queryByText('None')).toBeNull();
+    expect(screen.getByRole('region').className).not.toContain('border-s-');
+    rerender(<WidgetCard {...base} />);
+    expect(screen.getByRole('region').className).not.toContain('signal');
+  });
+
+  it('fail-open (D9): an errored or loading card shows no bar, icon or label', () => {
+    const sig = { signal: 'critical' as const, signalLabel: 'Needs action' };
+    const error = { message: 'Could not load', retryLabel: 'Try again', onRetry: () => {} };
+    for (const variant of ['full', 'compact'] as const) {
+      const { container, unmount } = render(
+        <WidgetCard {...base} {...sig} variant={variant} error={error} />,
+      );
+      expect(screen.getByRole('region').className).not.toContain('border-s-');
+      expect(container.querySelector('[data-signal]')).toBeNull();
+      expect(container.querySelector('.text-signal-critical-fg')).toBeNull();
+      expect(screen.queryByText('Needs action')).toBeNull();
+      unmount();
+      const loading = render(
+        <WidgetCard {...base} {...sig} variant={variant} loading loadingLabel="Loading" />,
+      );
+      expect(screen.getByRole('region').className).not.toContain('border-s-');
+      expect(loading.container.querySelector('.text-signal-critical-fg')).toBeNull();
+      expect(screen.queryByText('Needs action')).toBeNull();
+      loading.unmount();
+    }
+  });
+
+  it('full: the marker follows the heading in reading order; the name stays the title', () => {
+    render(<WidgetCard {...base} signal="warn" signalLabel="Keep an eye on this" />);
+    const heading = screen.getByRole('heading', { name: 'Student attendance' });
+    const marker = document.querySelector('[data-signal="warn"]')!;
+    expect(heading.compareDocumentPosition(marker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(marker.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
+    expect(marker.querySelector('.sr-only')!.textContent).toBe('Keep an eye on this');
+    expect(screen.getByRole('region', { name: 'Student attendance' })).toBeTruthy();
+  });
+
+  it('compact: the level is the button description, not part of its name', () => {
+    render(<WidgetCard {...base} variant="compact" signal="critical" signalLabel="Needs action" />);
+    const btn = screen.getByRole('button', { name: 'Student attendance' });
+    expect(btn.getAttribute('aria-describedby')).toBeTruthy();
+    expect(document.getElementById(btn.getAttribute('aria-describedby')!)!.textContent).toBe(
+      'Needs action',
+    );
+    expect(btn.querySelector('svg.text-signal-critical-fg')!.getAttribute('aria-hidden')).toBe(
+      'true',
+    );
+    expect(screen.getByRole('region', { name: 'Student attendance' })).toBeTruthy();
+  });
+});

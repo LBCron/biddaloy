@@ -58,6 +58,7 @@ export function AtRiskView({
   defaultExpanded = false,
 }: AtRiskViewProps) {
   const { t } = useTranslation('dashboard');
+  useTranslation('signal'); // [#3592] separate binding: check-i18n-keys reads the first single-quoted call
   const region = useTenantRegionConfig();
   const [showAll, setShowAll] = React.useState(defaultExpanded);
   const tw = (key: string, opts: Record<string, unknown> = {}) => t(`widgets.${K}.${key}`, opts);
@@ -76,11 +77,18 @@ export function AtRiskView({
   const value =
     data && ready ? tw('value', { count: data.total, value: n(data.total) }) : undefined;
 
+  // Computed before the tile return so the phone tile carries the same signal (#3594).
+  const riskSignal =
+    !failed && ready && !empty && !!data
+      ? { signal: 'critical' as const, signalLabel: t('needsAction', { ns: 'signal' }) }
+      : {};
+
   if (variant === 'tile' && data && ready && !empty) {
     return (
       <StatTile
         label={title}
         value={n(data.total)}
+        {...riskSignal}
         {...(diff != null && trend
           ? {
               trend: {
@@ -169,6 +177,7 @@ export function AtRiskView({
       {...(data?.computed_at && variant === 'full'
         ? { updatedLabel: tw('computedAt', { time: formatTime(data.computed_at, region) }) }
         : {})}
+      {...riskSignal}
       loading={loading}
       loadingLabel={t('states.loading', { title })}
       {...(failed && onRetry

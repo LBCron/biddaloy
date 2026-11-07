@@ -133,4 +133,31 @@ describe('attendance-today widget', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(calls).toBe(2));
   });
+
+  it('signal: low attendance shows watch text', async () => {
+    serve({ ...BASE, percentage: 60 });
+    renderWidget('full');
+    await screen.findByText('60.0%');
+    expect(screen.getByText('Keep an eye on this')).toBeTruthy();
+  });
+
+  it('signal: healthy attendance shows none', async () => {
+    serve(BASE);
+    renderWidget('full');
+    await screen.findByText('91.4%');
+    expect(screen.queryByText('Keep an eye on this')).toBeNull();
+  });
+
+  it('tile carries the signal too (phone key numbers, #3594)', async () => {
+    serve({ ...BASE, percentage: 60 });
+    renderWidget('tile');
+    const marker = await waitFor(() => {
+      const el = document.querySelector('[data-signal]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    expect(marker.getAttribute('data-signal')).toBe('warn');
+    expect(marker.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
+    expect(marker.querySelector('.sr-only')!.textContent).toBe('Keep an eye on this');
+  });
 });
