@@ -10,7 +10,8 @@ export interface ResultsExam {
   sections: { id: string; className: string; sectionName: string }[];
 }
 export interface ResultRow {
-  id: string;
+  /** Signed pointer for `detail`; the server never sends a result or student id. */
+  handle: string;
   roll: number;
   /** null when the school switched names off: the column is then left out. */
   name: string | null;
@@ -44,6 +45,15 @@ export interface Query {
 export const classesOf = (e: ResultsExam) => [...new Set(e.sections.map((s) => s.className))];
 export const sectionsOf = (e: ResultsExam, className: string) =>
   e.sections.filter((s) => s.className === className);
+/**
+ * The roll the visitor typed, as a positive whole number. Bangla digits count (০-৯); an empty field
+ * means "whole section" (`undefined`); anything else is `null` (refuse, never guess).
+ */
+export function parseRoll(raw: string): number | undefined | null {
+  const v = raw.trim().replace(/[০-৯]/g, (c) => String(c.charCodeAt(0) - 0x09e6));
+  if (v === '') return undefined;
+  return /^[0-9]{1,6}$/.test(v) && Number(v) > 0 ? Number(v) : null;
+}
 export const pageCount = (p: Pick<ResultsPage, 'total' | 'pageSize'>) =>
   Math.max(1, Math.ceil(p.total / p.pageSize));
 
@@ -77,16 +87,11 @@ export async function queryResults(
 
 /** Per-subject marks of one row; `undefined` on any failure. */
 export async function loadDetail(
-  examId: string,
-  resultId: string,
+  handle: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<SubjectMark[] | undefined> {
   try {
-    const res = await post(
-      '/_api/island/results/detail',
-      { exam_id: examId, result_id: resultId },
-      fetchImpl,
-    );
+    const res = await post('/_api/island/results/detail', { handle }, fetchImpl);
     return res.ok ? ((await res.json()) as { subjects: SubjectMark[] }).subjects : undefined;
   } catch {
     return undefined;
@@ -103,6 +108,8 @@ export interface Labels {
   fail: string;
   subjects: string;
   error: string;
+  /** Table caption, e.g. the exam name; also the focus target after a lookup. */
+  caption?: string;
 }
 
 function build<K extends keyof HTMLElementTagNameMap>(
@@ -136,7 +143,8 @@ export function renderTable(
     const detail = build('div', { className: 'subjects' }, []);
     const open = build('details', {}, [build('summary', {}, [String(r.roll)]), detail]);
     open.addEventListener('toggle', () => {
-      if (open.open && !detail.hasChildNodes()) onOpen(r, detail);
+      // Not `hasChildNodes`: a failed load leaves an error line, and the next open must retry.
+      if (open.open && !detail.querySelector('ul')) onOpen(r, detail);
     });
     const first = build('td', {}, [open]);
     first.dataset.l = l.roll;
@@ -148,7 +156,9 @@ export function renderTable(
       cell(l.result, r.passed ? l.pass : l.fail),
     ]);
   });
+  const caption = build('caption', { className: 'sr', tabIndex: -1 }, [l.caption ?? l.result]);
   return build('table', { className: 'results-table' }, [
+    caption,
     build('thead', {}, [head]),
     build('tbody', {}, body),
   ]);
@@ -161,7 +171,7 @@ export function renderSubjects(marks: SubjectMark[], l: Labels, lang: string): H
     {},
     marks.map((m) =>
       build('li', {}, [
-        `${text(m.name, lang)}  ${m.obtained}  ${m.grade}  ${m.passed ? l.pass : l.fail}`,
+        `${text(m.name, lang)}: ${m.obtained} (${m.grade}) ${m.passed ? l.pass : l.fail}`,
       ]),
     ),
   );
@@ -252,14 +262,27 @@ async function init(root: HTMLElement) {
 
   let token = '';
   let widget: string | undefined;
+  const button = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
+  const setToken = (t: string) => {
+    token = t;
+    button.disabled = t === '';
+  };
+  // First thing, before any await: a click while the Turnstile script is still loading (or is
+  // blocked) must never fall through to the browser's own GET submit, which would put the roll in
+  // the URL, the history and the access log.
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    void run(1);
+  });
+  button.disabled = true;
   const ts = await loadTurnstile();
   const key = d.sitekey ?? '';
   if (ts && key) {
     widget = ts.render(box, {
       sitekey: key,
-      callback: (t: string) => (token = t),
-      'expired-callback': () => (token = ''),
-      'error-callback': () => (token = ''),
+      callback: (t: string) => setToken(t),
+      'expired-callback': () => setToken(''),
+      'error-callback': () => setToken(''),
     });
   }
   if (widget === undefined) return say(d.mUnavailable ?? ''); // blocked script: the form stays closed
@@ -268,29 +291,32 @@ async function init(root: HTMLElement) {
     const class_section_id = sectionSel.value;
     if (!examSel.value || !class_section_id) return;
     if (!token) return say(d.mCaptcha ?? '');
-    const roll = rollIn.value.trim() ? Number(rollIn.value.trim()) : undefined;
+    const roll = parseRoll(rollIn.value);
+    if (roll === null) return say(d.mInvalid ?? '');
     say('');
     busy(true);
     const r = await queryResults({
       captcha_token: token,
       exam_id: examSel.value,
       class_section_id,
-      ...(roll !== undefined && Number.isInteger(roll) && roll > 0 ? { roll } : {}),
+      ...(roll !== undefined ? { roll } : {}),
       page: pageNo,
     });
     // A Turnstile token works once: the next lookup (or page) needs a fresh one.
-    token = '';
+    setToken('');
     ts?.reset(widget);
     busy(false);
     out.replaceChildren();
     if ('failure' in r) return say(d[`m${r.failure[0].toUpperCase()}${r.failure.slice(1)}`] ?? '');
     if (r.page.rows.length === 0) return say(d.mEmpty ?? '');
-    out.append(
-      renderTable(r.page, labels, async (row, into) => {
-        const marks = await loadDetail(examSel.value, row.id);
-        into.replaceChildren(marks ? renderSubjects(marks, labels, lang) : labels.error);
-      }),
-    );
+    const table = renderTable(r.page, { ...labels, caption: exam()?.name }, async (row, into) => {
+      const marks = await loadDetail(row.handle);
+      into.replaceChildren(marks ? renderSubjects(marks, labels, lang) : labels.error);
+    });
+    out.append(table);
+    // One polite announcement in the status line, then focus moves to the table.
+    say((d.mCount ?? '').replace('{n}', String(r.page.total)));
+    table.querySelector('caption')?.focus();
     const pages = pageCount(r.page);
     if (pages > 1) {
       const go = (n: number, label: string, off: boolean) =>
@@ -313,10 +339,6 @@ async function init(root: HTMLElement) {
       );
     }
   }
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    void run(1);
-  });
   root.querySelector('[data-print]')?.addEventListener('click', () => window.print());
 }
 

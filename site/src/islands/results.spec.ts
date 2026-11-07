@@ -4,6 +4,7 @@ import {
   classesOf,
   loadDetail,
   pageCount,
+  parseRoll,
   queryResults,
   renderTable,
   sectionsOf,
@@ -34,7 +35,7 @@ const exam: ResultsExam = {
   ],
 };
 const row = (roll: number, name: string | null): ResultRow => ({
-  id: `r${roll}`,
+  handle: `h${roll}`,
   roll,
   name,
   gpa: 4.5,
@@ -123,12 +124,35 @@ describe('results island', () => {
     d.open = true;
     d.dispatchEvent(new Event('toggle'));
     expect(open).toHaveBeenCalledTimes(1);
-    expect(open.mock.calls[0][0].id).toBe('r1');
+    expect(open.mock.calls[0][0].handle).toBe('h1');
   });
 
   it('detail: the subjects on success, undefined on any failure', async () => {
     const marks = [{ name: { en: 'Math', bn: 'গণিত' }, obtained: 80, grade: 'A+', passed: true }];
-    expect(await loadDetail('e1', 'r1', reply(200, { subjects: marks }))).toEqual(marks);
-    expect(await loadDetail('e1', 'r1', reply(404))).toBeUndefined();
+    expect(await loadDetail('h1', reply(200, { subjects: marks }))).toEqual(marks);
+    expect(await loadDetail('h1', reply(404))).toBeUndefined();
+  });
+
+  it('a failed detail load leaves no list, so the next open retries', () => {
+    const open = vi.fn((_r: ResultRow, into: HTMLElement) => void (into.textContent = 'Error'));
+    const t = renderTable(page([row(1, 'A')]), L, open);
+    const d = t.querySelector('details')!;
+    d.open = true;
+    d.dispatchEvent(new Event('toggle'));
+    d.dispatchEvent(new Event('toggle'));
+    expect(open).toHaveBeenCalledTimes(2);
+  });
+
+  it('roll: Bangla and English digits both work; junk is refused, empty means whole section', () => {
+    expect(parseRoll('১২')).toBe(12);
+    expect(parseRoll(' 7 ')).toBe(7);
+    expect(parseRoll('')).toBeUndefined();
+    for (const bad of ['0', '12a', '-3', '1.5', '1234567', '১২x'])
+      expect(parseRoll(bad)).toBeNull();
+  });
+
+  it('the table has a caption for screen readers', () => {
+    const t = renderTable(page([row(1, 'A')]), { ...L, caption: 'Term 1' }, () => {});
+    expect(t.querySelector('caption')?.textContent).toBe('Term 1');
   });
 });

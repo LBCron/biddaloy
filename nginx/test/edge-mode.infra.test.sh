@@ -102,6 +102,36 @@ nginx_t direct ops && pass "nginx -t, direct" || fail "nginx -t, direct" "non-ze
 nginx_t direct "" && pass "nginx -t, direct without ops" || fail "nginx -t, direct without ops" "non-zero"
 nginx_t tunnel "" && pass "nginx -t, tunnel without ops" || fail "nginx -t, tunnel without ops" "non-zero"
 
+# A long fixed host (60 characters) sits in the site-host map as an exact name; without
+# map_hash_bucket_size the default 64-byte bucket would fail `nginx -t` (Epic 40, #3655).
+LONG=$(printf 'a%.0s' $(seq 48)).example.test
+for m in tunnel direct; do
+  docker run --rm --network "$NET" -e "EDGE_MODE=$m" -e OPS_UPSTREAM_HOST= -e "EDGE_TRUSTED_CIDR=$TRUSTED" \
+    "${EDGE_ARGS[@]}" -e ROOT_DOMAIN=example.test -e "LOGS_DOMAIN=$LONG" "$NGINX_IMG" nginx -t >/dev/null 2>&1 \
+    && pass "nginx -t, $m, 60-character fixed host + ROOT_DOMAIN" || fail "nginx -t, $m, long fixed host" "non-zero"
+done
+# The compose default ROOT_DOMAIN=root.invalid means "no school sites": the gate is closed for every host.
+docker run --rm -e EDGE_MODE=tunnel -e EDGE_TRUSTED_CIDR=198.51.100.0/24 -e ROOT_DOMAIN=root.invalid -e APP_DOMAIN=example.test \
+  -v "$PWD/nginx/edge-mode.sh:/e.sh:ro" --entrypoint sh "$NGINX_IMG" -c 'sh /e.sh >/dev/null && cat /etc/nginx/conf.d/01-site-host.conf' 2>&1 \
+  | grep -q '~\^(\[a-z0-9-\]' && fail "ROOT_DOMAIN=root.invalid opens the custom path" "regex rules present" || pass "ROOT_DOMAIN=root.invalid: gate stays closed (no regex rules)"
+
+# A host value that could break out of the generated map (quote, semicolon, brace, newline) must stop
+# the container loudly, never write a config. Same for a bad ROOT_DOMAIN.
+for bad_val in 'a"b.example.test' 'a;b.example.test' 'a}b.example.test' "$(printf 'a.example.test\nb')"; do
+  set +e
+  out=$(docker run --rm --network "$NET" -e EDGE_MODE=tunnel -e EDGE_TRUSTED_CIDR=$TRUSTED -e ROOT_DOMAIN=example.test \
+    "${EDGE_ARGS[@]}" -e "KUMA_DOMAIN=$bad_val" "$NGINX_IMG" 2>&1)
+  rc=$?
+  set -e
+  [[ "$rc" != 0 && "$out" == *"KUMA_DOMAIN must be a host name"* ]] \
+    && pass "bad fixed-host value is refused at start" || fail "bad fixed-host value $(printf %q "$bad_val")" "exit=$rc"
+done
+# Empty ROOT_DOMAIN: the gate has no regex rules, so no host reaches the site container.
+out=$(docker run --rm -e EDGE_MODE=tunnel -e EDGE_TRUSTED_CIDR=$TRUSTED -e ROOT_DOMAIN= -e APP_DOMAIN=example.test \
+  -v "$PWD/nginx/edge-mode.sh:/e.sh:ro" --entrypoint sh "$NGINX_IMG" -c 'sh /e.sh >/dev/null && cat /etc/nginx/conf.d/01-site-host.conf' 2>&1)
+[[ "$out" == *"default 0;"* && "$out" != *'" 1;'* ]] \
+  && pass "empty ROOT_DOMAIN: every host answers 0 (444)" || fail "empty ROOT_DOMAIN gate" "$out"
+
 # --- a bad EDGE_MODE stops the container and says why ---
 set +e
 bad=$(docker run --rm --name edgemode-bad --network "$NET" -e EDGE_MODE=bogus "${EDGE_ARGS[@]}" "$NGINX_IMG" 2>&1)

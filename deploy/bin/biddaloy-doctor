@@ -164,7 +164,9 @@ website_checks() {
   if [[ -n "$tok" && -n "$zone" ]]; then emit "custom domains env" OK "Cloudflare token and zone id both set"
   elif [[ -n "$tok$zone" ]]; then emit "custom domains env" WARN "only one of CF_SAAS_API_TOKEN / CF_ZONE_ID is set, custom domains stay off" "set both or neither in infra/secrets/prod.enc.env (runbook 17e step 3)"
   else emit "custom domains env" OK "not configured, custom domains off"; fi
-  if need "site probes" curl; then
+  if [[ "$(envval "$edgef" EDGE_MODE)" == direct ]]; then
+    emit "site probes" OK "direct mode: school sites are tunnel-only, nothing to probe"
+  elif need "site probes" curl; then
     for h in "doctor-probe.$root" "sites.$root"; do
       code="$(tmo curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "https://$h/" 2>/dev/null)"
       if [[ "$code" == 404 ]]; then emit "site probe $h" OK "404 (the site's own no-such-site page)"
@@ -174,8 +176,9 @@ website_checks() {
   uurl="$(envval "$prodf" UMAMI_API_URL)"; utok="$(envval "$prodf" UMAMI_API_TOKEN)"
   if [[ -n "$uurl" && -n "$utok" ]]; then
     if have curl; then
-      # Token via curl's config on stdin, never on the command line (visible in `ps`).
-      code="$(printf 'header = "Authorization: Bearer %s"\n' "$utok" | tmo curl -sS -o /dev/null -w '%{http_code}' --max-time 10 -K - "${uurl%/}/api/websites" 2>/dev/null)"
+      # Token via a curl config file descriptor, never on the command line (visible in `ps`).
+      # (tmo points stdin at /dev/null, so the config comes from a process substitution, not a pipe.)
+      code="$(tmo curl -sS -o /dev/null -w '%{http_code}' --max-time 10 -K <(printf 'header = "Authorization: Bearer %s"\n' "$utok") "${uurl%/}/api/websites" 2>/dev/null)"
       if [[ "$code" == 200 ]]; then emit "umami api" OK "reachable"
       else emit "umami api" WARN "answered ${code:-no reply}, expected 200" "check UMAMI_API_URL and UMAMI_API_TOKEN (runbook 17e step 5)"; fi
     fi

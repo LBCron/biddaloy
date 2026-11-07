@@ -65,7 +65,7 @@ start_edge() { # <mode>
   docker volume rm "$CACHEVOL" >/dev/null 2>&1 || true
   docker volume create "$CACHEVOL" >/dev/null
   docker run -d --name site-edge --network "$NET" --ip "$EDGE_IP" -e "EDGE_MODE=$1" \
-    -e EDGE_TRUSTED_CIDR=172.30.97.0/24 -e APP_DOMAIN=example.test -e "ROOT_DOMAIN=$ROOT" -e OPS_UPSTREAM_HOST= \
+    -e EDGE_TRUSTED_CIDR=172.30.97.0/24 -e APP_DOMAIN=example.test -e "STAGING_DOMAIN=staging.$ROOT" -e "KUMA_DOMAIN=kuma.$ROOT" -e "LANDING_DOMAIN=$ROOT" -e "ROOT_DOMAIN=$ROOT" -e OPS_UPSTREAM_HOST= \
     -v "$PWD/nginx/templates:/etc/nginx/templates:ro" \
     -v "$PWD/nginx/reload-loop.sh:/docker-entrypoint.d/99-reload-loop.sh:ro" \
     -v "$PWD/nginx/edge-mode.sh:/docker-entrypoint.d/15-edge-mode.sh:ro" \
@@ -102,9 +102,19 @@ run_mode() { # <mode>
   if [ "$mode" = tunnel ]; then
     b=$(body 80 example.test /api/x); [[ "$b" == app-ok* ]] && pass "$mode: APP_DOMAIN on :80 unchanged" || fail "$mode: APP_DOMAIN :80" "$b"
   fi
-  # The case trick (STAGING.<root> / staging.<root>) can only land on the site listener, where
-  # there is no staging server{}: the site stub answers, never the app.
-  b=$(body 8081 "STAGING.$ROOT" /bn/); [[ "$b" == site-ok* ]] && pass "$mode: case-changed fixed name on :8081 reaches site only" || fail "$mode: case trick" "$b"
+  # Fixed hosts that sit UNDER the root (staging., kuma., the landing apex and www.) match the
+  # one-label shape too: the exact names in the map must beat the regex, in any letter case
+  # (cloudflared's case-sensitive rule match can send STAGING.<root> to this listener).
+  for fh in "staging.$ROOT" "STAGING.$ROOT" "Staging.$ROOT" "kuma.$ROOT" "KUMA.$ROOT" "$ROOT" "www.$ROOT" "WWW.$ROOT"; do
+    c=$(code 8081 "$fh" /); [ "$c" = 000 ] && pass "$mode: fixed host $fh on :8081 dropped (444)" || fail "$mode: fixed host $fh" "$c"
+  done
+  # Odd Host values must never reach the site container (curl --resolve cannot send these in the URL).
+  hostcode() { docker run --rm --network "$NET" "$CURL_IMG" -s -o /dev/null -w '%{http_code}' -H "Host: $1" "http://$EDGE_IP:8081/" || true; }
+  for oh in '[::1]' 'a.b.123' '1.2.3.4' 'bücher.example' 'ex ample.test' '-x.example.test'; do
+    c=$(hostcode "$oh"); [ "$c" = 000 ] || [ "$c" = 400 ] && pass "$mode: odd Host '$oh' never reaches the site (444, or nginx's own 400)" || fail "$mode: odd host $oh" "$c"
+  done
+  # A trailing dot is the same name: it is either dropped or reaches the site, never anything else.
+  b=$(body_h 8081 www.school.edu.bd /dot/ 'Host: www.school.edu.bd.'); [[ "$b" == site-ok* || -z "$b" ]] && pass "$mode: trailing-dot Host is site-only or dropped" || fail "$mode: trailing dot" "$b"
   # The root's dots are literal, and a label is 3-30 characters (SITE_SUBDOMAIN_RE).
   # schoolsXtest is not under the root (the dot is literal), so it is just some other well-formed
   # name: it is handed to the site container like any custom domain, which answers 404 in real life.

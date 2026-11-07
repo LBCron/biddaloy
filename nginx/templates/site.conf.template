@@ -10,7 +10,7 @@
 # RESERVED_SUBDOMAINS, #3615, so no school can own them.)
 # :8081 is published nowhere: only cloudflared reaches it over the `biddaloy-edge` network.
 # Direct mode (D5) has no wildcard certificate here and no published port: school sites are
-# tunnel-only for now, the listener still boots so both modes share one config.
+# tunnel-only for now (no school site answers in direct mode), the listener still boots so both modes share one config.
 #
 # Production only: the upstream names are the `prod-*` aliases (deploy/stack.yml), as in
 # default.conf.template. No cookie ever reaches the site container (it is anonymous), and
