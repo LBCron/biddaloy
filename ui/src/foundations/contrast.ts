@@ -14,6 +14,7 @@
  */
 
 const HEX_RE = /^#[0-9a-f]{6}$/i;
+const OKLCH_RE = /^oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\)$/i;
 const SHORT_HEX_RE = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i;
 
 /**
@@ -40,7 +41,26 @@ function srgbToLinear(c: number): number {
   return n <= 0.03928 ? n / 12.92 : ((n + 0.055) / 1.055) ** 2.4;
 }
 
+/** `oklch(L C h)` -> linear sRGB [r,g,b], clipped to gamut (Ottosson's matrices). Mirrors check-contrast.mjs. */
+function oklchToLinear(L: number, C: number, hDeg: number): number[] {
+  const a = C * Math.cos((hDeg * Math.PI) / 180);
+  const b = C * Math.sin((hDeg * Math.PI) / 180);
+  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+  return [
+    4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+    -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+  ].map((x) => Math.min(1, Math.max(0, x)));
+}
+
 export function relativeLuminance(hex: string): number {
+  const ok = OKLCH_RE.exec(hex);
+  if (ok) {
+    const [r, g, b] = oklchToLinear(+ok[1], +ok[2], +ok[3]);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
   if (!HEX_RE.test(hex)) {
     // NaN < min is false, so an unvalidated bad value would silently pass
     // every ratio check below it — fail loudly instead, same as the script.
