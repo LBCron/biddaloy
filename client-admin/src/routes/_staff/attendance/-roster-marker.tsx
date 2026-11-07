@@ -15,7 +15,7 @@
  *   ("{{name}} marked absent"), read once per change.
  */
 import { AttendanceStatus } from '@biddaloy/shared';
-import { AttendanceStatusControl } from '@biddaloy/ui/components';
+import { AttendanceMarkBadges, AttendanceStatusControl } from '@biddaloy/ui/components';
 import { useArrivalSubscriptions, type RegisterStudent } from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
 import { Bell } from 'lucide-react';
@@ -34,6 +34,8 @@ export interface RosterMarkerProps {
   onStatusChange: (studentId: string, status: AttendanceStatus) => void;
   onMinutesLateChange: (studentId: string, minutes: number | null) => void;
   onAllPresent: () => void;
+  /** [76.5.03] Shift+A: every unmarked row becomes ABSENT. */
+  onRestAbsent?: (() => void) | undefined;
   onSubmit: () => void;
   disabled?: boolean;
   /** [9.7] Passed straight through to `AttendanceStatusControl` — a future
@@ -81,6 +83,7 @@ export function RosterMarker({
   onStatusChange,
   onMinutesLateChange,
   onAllPresent,
+  onRestAbsent,
   onSubmit,
   disabled = false,
   allowedStatuses,
@@ -126,6 +129,9 @@ export function RosterMarker({
   }
 
   function handleListKeyDown(event: React.KeyboardEvent<HTMLUListElement>) {
+    // A read-only register takes no shortcut at all: badges and row actions stay focusable
+    // inside this list, so hiding the buttons is not enough (review, PR #3661).
+    if (disabled) return;
     if (isTypingTarget(event.target)) return;
 
     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
@@ -133,11 +139,20 @@ export function RosterMarker({
       onSubmit();
       return;
     }
+    if (event.shiftKey && event.key.toLowerCase() === 'a' && onRestAbsent) {
+      event.preventDefault();
+      if (isStatusAllowed(AttendanceStatus.ABSENT)) onRestAbsent();
+      return;
+    }
     if (event.shiftKey && event.key.toLowerCase() === 'p') {
       event.preventDefault();
       if (isStatusAllowed(AttendanceStatus.PRESENT)) onAllPresent();
       return;
     }
+    // List-wide keys above work from anywhere in the list; the row keys below only from a row
+    // button, the one `focusedIndex` points at. A key on a badge or row action must not change
+    // some other row.
+    if (!rowRefs.current.includes(event.target as HTMLButtonElement)) return;
 
     switch (event.key) {
       case 'ArrowDown':
@@ -231,6 +246,14 @@ export function RosterMarker({
                   </Bell>
                 )}
               </button>
+              <AttendanceMarkBadges
+                scanned_at={student.scanned_at}
+                source={student.source}
+                scannedLabel={(time) => t('scannedBadge', { time })}
+                scannedHint={t('scannedHint')}
+                fromSheetLabel={t('fromSheetBadge')}
+                fromSheetHint={t('fromSheetHint')}
+              />
               <AttendanceStatusControl
                 value={status}
                 onChange={(next) => setStatus(student.student_id, next)}

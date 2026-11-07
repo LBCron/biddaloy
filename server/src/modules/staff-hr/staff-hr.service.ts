@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { StaffProfile } from '../staff-profiles/entities/staff-profile.entity';
 import { cardNoTaken } from '../../common/filters/known-errors';
 import { AuditAction, StaffEmploymentStatus } from '@biddaloy/shared';
@@ -64,9 +64,23 @@ export class StaffHrService {
    * tenant's whole HR-record list client-side, same reasoning as
    * `TeacherService`'s `user_id` filter. */
   async findAll(tenantId: string, userId?: string): Promise<StaffHrRecord[]> {
-    return this.hrRecordRepo.find({
+    const records = await this.hrRecordRepo.find({
       where: { tenant_id: tenantId, ...(userId !== undefined ? { user_id: userId } : {}) },
     });
+    return this.withCardNo(records, tenantId);
+  }
+
+  /** [76.2.06] Fills `card_no` from each record's `staff_profiles` row in
+   * the SAME tenant (one query), `null` when unset or no profile. */
+  private async withCardNo(records: StaffHrRecord[], tenantId: string): Promise<StaffHrRecord[]> {
+    if (records.length === 0) return records;
+    const profiles = await this.staffProfileRepo.find({
+      where: { tenant_id: tenantId, user_id: In(records.map((r) => r.user_id)) },
+      select: { user_id: true, card_no: true },
+    });
+    const cardByUser = new Map(profiles.map((p) => [p.user_id, p.card_no]));
+    for (const r of records) r.card_no = cardByUser.get(r.user_id) ?? null;
+    return records;
   }
 
   /** Every designation-history row for one user, newest first — [23.9]'s
@@ -84,7 +98,8 @@ export class StaffHrService {
   async findOne(id: string, tenantId: string): Promise<StaffHrRecord> {
     const record = await this.hrRecordRepo.findOne({ where: { id, tenant_id: tenantId } });
     if (!record) throw new NotFoundException('Staff HR record not found');
-    return record;
+    const [withCard] = await this.withCardNo([record], tenantId);
+    return withCard;
   }
 
   /** Throws unless `userId` has a real `user_tenants` membership in
@@ -136,7 +151,8 @@ export class StaffHrService {
       performed_by_user_id: actorUserId,
       new_values: { ...dto },
     });
-    return created;
+    const [withCard] = await this.withCardNo([created], tenantId);
+    return withCard;
   }
 
   async update(
@@ -146,6 +162,8 @@ export class StaffHrService {
     actorUserId: string,
   ): Promise<StaffHrRecord> {
     const existing = await this.findOne(id, tenantId);
+    // The card value never reaches the audit log (Rule 13), so drop it from old_values.
+    const { card_no: _oldCardNo, ...oldValues } = existing;
     // [76.2.06] card_no lives on the linked staff_profiles row, not on the HR record.
     const { card_no: cardNo, ...hrFields } = dto;
     if (Object.keys(dto).length === 0) return existing;
@@ -179,7 +197,7 @@ export class StaffHrService {
           entity_id: id,
           tenant_id: tenantId,
           performed_by_user_id: actorUserId,
-          old_values: { ...existing },
+          old_values: oldValues,
           // card_no changes are recorded as a key only, never the value (Rule 13).
           new_values: { ...hrFields, ...(cardNo !== undefined ? { card_no: '[redacted]' } : {}) },
         },

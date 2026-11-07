@@ -567,7 +567,8 @@
     "employeeId": "Employee ID",
     "designations": "Designations",
     "subjectSpecialization": "Subject specialization",
-    "joiningDate": "Joining date"
+    "joiningDate": "Joining date",
+    "cardNo": "Card number"
   },
   "help": {
     "fullName": "The person's full name.",
@@ -578,7 +579,8 @@
     "employeeId": "This teacher's own ID in the school; no two people share one. If they already have an employee ID, that one stays.",
     "designations": "One or more of Class teacher, Subject teacher, Head teacher, Assistant teacher, Principal, Vice principal, Coordinator.",
     "subjectSpecialization": "The subject the teacher is strong in, for example Maths. Free text.",
-    "joiningDate": "When they joined the school."
+    "joiningDate": "When they joined the school.",
+    "cardNo": "The number on the staff member's attendance card. No two people share one."
   },
   "helpRequired": {
     "fullName": "Yes",
@@ -587,5 +589,16 @@
     "role": "Yes",
     "member": "Yes",
     "employeeId": "Yes"
+  },
+  "cardNo": {
+    "label": "Card number",
+    "help": "The number on the staff member's attendance card. No two people share one.",
+    "scan": "Scan card",
+    "scanHint": "Touch the card to the reader, or type the number.",
+    "duplicate": "This card number already belongs to another staff member.",
+    "invalid": "Use 1 to 64 letters, numbers or dashes."
+  },
+  "bulkUpload": {
+    "cardNoDuplicate": "Row {{row}}: this card number is already used — use a different number."
   }
 }

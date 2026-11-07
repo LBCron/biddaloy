@@ -303,20 +303,55 @@ describe('Staff HR E2E (23.2.1)', () => {
         )
       )[0].card_no;
 
-    await patch(first, { card_no: 'STAFF-77' }).expect(200);
+    // The same user also has a profile in tenant B with another card; a
+    // tenant-A read must never return it.
+    await dataSource.query(
+      `INSERT INTO staff_profiles (user_id, tenant_id, employee_id, card_no)
+       VALUES ($1, $2, 'E2E-CARD-B', 'TENANT-B-CARD') ON CONFLICT DO NOTHING`,
+      [STAFF_USER_ID, TENANT_B],
+    );
+    const readCard = async (id: string, uid: string) => {
+      const one = await supertest(app.getHttpServer())
+        .get(`${API}/staff-hr-records/${id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set('X-Tenant-ID', TENANT_A)
+        .expect(200);
+      const list = await supertest(app.getHttpServer())
+        .get(`${API}/staff-hr-records?user_id=${uid}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set('X-Tenant-ID', TENANT_A)
+        .expect(200);
+      // GET /:id and the list must agree; the key is always present.
+      expect(list.body).toHaveLength(1);
+      expect(list.body[0].card_no).toEqual(one.body.card_no);
+      return one.body.card_no as string | null;
+    };
+
+    // Unset card reads back as null, not a missing key and not tenant B's card.
+    await patch(first, { card_no: null }).expect(200);
+    expect(await readCard(first, STAFF_USER_ID)).toBeNull();
+
+    const set = await patch(first, { card_no: 'STAFF-77' }).expect(200);
+    expect(set.body.card_no).toBe('STAFF-77');
     expect(await cardOf(STAFF_USER_ID)).toBe('STAFF-77');
+    expect(await readCard(first, STAFF_USER_ID)).toBe('STAFF-77');
+
+    // Re-saving the person's own card is not a conflict.
+    await patch(first, { card_no: 'STAFF-77' }).expect(200);
 
     // A second person cannot take it; the 409 names nobody.
     const dup = await patch(second, { card_no: 'STAFF-77' }).expect(409);
     expect(JSON.stringify(dup.body)).toContain('This card number is already in use');
 
     await patch(first, { card_no: 'bad card!' }).expect(400);
-    await patch(first, { card_no: null }).expect(200);
+    const cleared = await patch(first, { card_no: null }).expect(200);
+    expect(cleared.body.card_no).toBeNull();
     expect(await cardOf(STAFF_USER_ID)).toBeNull();
+    expect(await readCard(first, STAFF_USER_ID)).toBeNull();
 
     // The audit row never carries the value (Rule 13).
     const logs = await dataSource.query(
-      `SELECT new_values FROM audit_logs WHERE entity_id = $1 AND action = 'UPDATE'`,
+      `SELECT old_values, new_values FROM audit_logs WHERE entity_id = $1 AND action = 'UPDATE'`,
       [first],
     );
     expect(JSON.stringify(logs)).not.toContain('STAFF-77');

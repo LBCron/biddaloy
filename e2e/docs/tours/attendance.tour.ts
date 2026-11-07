@@ -8,14 +8,18 @@
  * the two the tour submits back to that state so every run starts the same.
  */
 import { expect, test, type Page } from '@playwright/test';
+import ExcelJS from 'exceljs';
 
 import bnAttendance from '../../../ui/src/i18n/locales/bn/attendance.json';
 import bnNav from '../../../ui/src/i18n/locales/bn/nav.json';
+import bnAttendanceImport from '../../../ui/src/i18n/locales/bn/attendanceImport.json';
 import bnDashboard from '../../../ui/src/i18n/locales/bn/dashboard.json';
 import enAttendance from '../../../ui/src/i18n/locales/en/attendance.json';
+import enAttendanceImport from '../../../ui/src/i18n/locales/en/attendanceImport.json';
 import enDashboard from '../../../ui/src/i18n/locales/en/dashboard.json';
 import enNav from '../../../ui/src/i18n/locales/en/nav.json';
 import { beat, guideLang, imgDir, loginAs, prepare, recordGif, shoot } from '../helpers/capture';
+import { tr } from '../helpers/nav';
 
 const DAY = process.env.GUIDE_DAY ?? '2026-10-22';
 const OLD_DAY = process.env.GUIDE_OLD_DAY ?? '2026-10-15';
@@ -25,6 +29,7 @@ const GIF_SECTION = 'Class 6 – B';
 const lang = guideLang();
 const a = lang === 'bn' ? bnAttendance : enAttendance;
 const nav = lang === 'bn' ? bnNav : enNav;
+const up = lang === 'bn' ? bnAttendanceImport : enAttendanceImport;
 const dashboard = lang === 'bn' ? bnDashboard : enDashboard;
 const dir = imgDir('attendance');
 const file = (name: string) => `${dir}/attendance-${name}`;
@@ -299,4 +304,94 @@ test('evidence: admin edit of an old register', async ({ page }, info) => {
   await page.screenshot({
     path: process.env.GUIDE_EVIDENCE ?? 'test-results/guide/evidence-admin-old-register.png',
   });
+});
+
+// [76.6.01] Upload an attendance sheet: pick, download, drop a filled file, review, save, detail.
+// Last in the file on purpose: the sheet is for DAY, so saving writes DAY's register of
+// SHOT_SECTION, and the earlier shots of that section need it unmarked (`resetCaptureDay` clears
+// it before the next run). Shot 04 (the sheet open in Excel) is not made here; take it by hand.
+test('desktop: upload an attendance sheet', async ({ page }, info) => {
+  test.skip(info.project.metadata.device !== 'desktop');
+  test.setTimeout(120_000);
+  await prepare(page);
+  // Admin, not the class teacher: Class 10 – B is a DEVICE section, which only admin may write by sheet.
+  await loginAs(page, 'admin');
+  await page.goto(`/attendance?date=${DAY}`);
+
+  // 01 — the way in: Attendance > Uploaded sheets in the menu, then the page's upload button.
+  // There is no menu item for the wizard itself (D14); the palette is the other way in.
+  const sidebar = page.getByRole('complementary').getByRole('navigation');
+  const menuLink = sidebar.getByRole('link', { name: nav.items.uploads, exact: true });
+  // The group opens by itself on /attendance; a click would fold it shut.
+  await sidebar.getByRole('button', { name: nav.groups.attendance, exact: true }).waitFor();
+  await page.waitForTimeout(1500); // let the sidebar settle: isVisible() does not wait
+  if (!(await menuLink.isVisible())) {
+    await sidebar.getByRole('button', { name: nav.groups.attendance, exact: true }).click();
+  }
+  await menuLink.click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(up.history.title);
+  const uploadNew = page.getByRole('button', { name: up.history.uploadNew, exact: true });
+  await shoot(page, file('uploads-01-menu.png'), [{ target: menuLink }, { target: uploadNew }]);
+  await uploadNew.click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(up.pageTitle);
+
+  // 02 — pick the section and DAY (the wizard starts on the real today).
+  await page.getByLabel(SHOT_SECTION).check();
+  // The date field is a button named "<label>, <value>", not a labelled input.
+  const dateButton = page.getByRole('button', { name: new RegExp(`^${up.pick.date},`) });
+  await dateButton.click();
+  await expect(page.getByRole('grid', { name: tr('common', 'date.calendar') })).toBeVisible();
+  const dayCell = page.locator(`[role="grid"] [data-date="${DAY}"]`);
+  for (let i = 0; i < 12 && !(await dayCell.isVisible()); i++) {
+    await page.getByRole('button', { name: tr('common', 'date.previousMonth') }).click();
+  }
+  await dayCell.click();
+  await expect(dayCell).toBeHidden();
+  await shoot(page, file('uploads-02-pick.png'), [
+    { target: page.getByRole('group', { name: up.pick.sections }) },
+    { target: dateButton },
+  ]);
+
+  // 03 — the download button, then the real sheet is filled in below.
+  const downloadButton = page.getByRole('button', { name: up.download.button });
+  await shoot(page, file('uploads-03-download.png'), [{ target: downloadButton }]);
+  const downloadPromise = page.waitForEvent('download');
+  await downloadButton.click();
+  const sheetPath = await (await downloadPromise).path();
+
+  // Fill the downloaded sheet: three students present, plus one row with a roll that does not exist.
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.readFile(sheetPath);
+  const ws = wb.worksheets[0];
+  const code = lang === 'bn' ? 'উ' : 'P';
+  for (let r = 2; r <= 5; r += 1) ws.getRow(r).getCell(6).value = code;
+  ws.getRow(5).getCell(4).value = 999;
+  const buffer = Buffer.from(await wb.xlsx.writeBuffer());
+
+  // 05 — the drop box.
+  const chooser = page.getByLabel(up.upload.chooseFile);
+  await expect(chooser).toBeAttached();
+  await shoot(page, file('uploads-05-drop.png'), [
+    { target: page.getByText(up.upload.dropzone).first() },
+  ]);
+  await chooser.setInputFiles({
+    name: 'sheet.xlsx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    buffer,
+  });
+  await page.getByRole('button', { name: up.upload.reviewChanges }).click();
+
+  // 06 — the review: counts, the error row and the skip box.
+  const skip = page.getByLabel(up.review.skipErrors);
+  await expect(skip).toBeVisible();
+  await shoot(page, file('uploads-06-review.png'), [
+    { target: page.getByRole('table').first() },
+    { target: skip },
+  ]);
+  await skip.check();
+  await page.getByRole('button', { name: up.review.save.split('{{count}}')[1].trim() }).click();
+
+  // 08 — the upload's page, after saving.
+  await expect(page).toHaveURL(/\/attendance\/imports\/[0-9a-f-]{36}$/);
+  await shoot(page, file('uploads-08-detail.png'), [{ target: page.getByRole('table').first() }]);
 });

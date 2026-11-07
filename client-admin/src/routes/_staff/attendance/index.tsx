@@ -66,6 +66,53 @@ function StateBadge({ section }: { section: MySection }) {
   return <StatusBadge tone="success" label={t('mark.stateFinalized')} />;
 }
 
+function CountChips({ section }: { section: MySection }) {
+  const { t } = useTranslation('attendance');
+  const today = section.today;
+  if (!today) return null;
+  // D5, D28: hidden at 0.
+  const chips = [
+    {
+      n: today.scanned_but_absent,
+      label: t('list.scannedAbsent', {
+        count: today.scanned_but_absent,
+        defaultValue: '{{count}} scanned but marked absent',
+      }),
+      hint: t('list.scannedAbsentHint', {
+        defaultValue:
+          'The card machine saw these students today, but the register marks them absent or on leave.',
+      }),
+    },
+    {
+      n: today.unmarked,
+      label: t('list.withoutStatus', {
+        count: today.unmarked,
+        defaultValue: '{{count}} without a status',
+      }),
+      hint: t('list.withoutStatusHint', {
+        defaultValue: 'These students have not been marked present, absent, late or on leave yet.',
+      }),
+    },
+  ].filter((c) => c.n > 0);
+  if (chips.length === 0) return null;
+  return (
+    <span className="mt-1 flex flex-wrap gap-1.5">
+      {chips.map((c) => (
+        // The hint is read with the chip (screen readers, touch); `title` stays for mouse hover.
+        // No tooltip trigger here: the chip sits inside the row's link.
+        <span
+          key={c.label}
+          title={c.hint}
+          className="rounded-full bg-muted px-2 py-0.5 text-text-secondary"
+        >
+          {c.label}
+          <span className="sr-only">. {c.hint}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function AttendanceListPage() {
   const { t } = useTranslation('attendance');
   const regionConfig = useTenantRegionConfig();
@@ -245,6 +292,7 @@ function AttendanceListPage() {
                       {t('list.classTeacher')}:{' '}
                       {section.class_teacher_name ?? t('list.noClassTeacher')}
                     </span>
+                    <CountChips section={section} />
                   </span>
                   <StateBadge section={section} />
                   <ChevronRight aria-hidden className="size-4 shrink-0 text-text-secondary" />

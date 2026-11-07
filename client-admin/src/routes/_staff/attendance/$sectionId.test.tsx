@@ -1,6 +1,6 @@
 import { toast } from '@biddaloy/ui/components';
 import { cleanupTestState, renderWithRouter, server } from '@biddaloy/ui/test';
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -232,6 +232,173 @@ describe('/attendance/$sectionId', () => {
 
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Could not save attendance'));
     expect(toastSpy).toHaveBeenCalledTimes(1);
+  });
+
+  describe('[76.5.03] write gate, first-period hint, rest absent', () => {
+    function mount(body: Record<string, unknown>) {
+      server.use(
+        http.get('/api/v1/attendance/sections/section-1/register', () =>
+          HttpResponse.json(registerBody(body)),
+        ),
+      );
+      renderWithRouter(routeTree, {
+        initialEntries: ['/attendance/section-1?date=2026-09-04'],
+        tenantId: 'tenant-1',
+        role: 'TEACHER',
+        locale: 'en',
+      });
+    }
+
+    it('shows the banner and no Save or marking buttons when can_write is false', async () => {
+      mount({ can_write: false, write_reason: 'CLASS_TEACHER_ONLY' });
+      expect(await screen.findByText(/Only the class teacher saves this register/)).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Submit attendance' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Mark the rest absent' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'All present' })).toBeNull();
+    });
+
+    it('shows Save and no banner when can_write is true', async () => {
+      mount({ can_write: true, write_reason: null });
+      expect(await screen.findByRole('button', { name: 'Submit attendance' })).toBeTruthy();
+      expect(screen.queryByText(/Only the class teacher saves/)).toBeNull();
+    });
+
+    it('shows the first-period hint only when flagged', async () => {
+      mount({ first_period_today: true });
+      expect(await screen.findByText(/You teach the first period/)).toBeTruthy();
+    });
+
+    it('hides the first-period hint when not flagged', async () => {
+      mount({ first_period_today: false });
+      await screen.findByText('Rafi Ahmed');
+      expect(screen.queryByText(/You teach the first period/)).toBeNull();
+    });
+
+    it('"Mark the rest absent" sends ABSENT for unmarked rows only', async () => {
+      let body: { entries?: { student_id: string; status: string }[] } | null = null;
+      server.use(
+        http.put('/api/v1/attendance/sections/section-1/register', async ({ request }) => {
+          body = (await request.json()) as typeof body;
+          return HttpResponse.json({}, { status: 500 });
+        }),
+      );
+      vi.spyOn(toast, 'error').mockImplementation(() => '');
+      mount({});
+      const user = userEvent.setup();
+      await user.click(await screen.findByText('Rafi Ahmed')); // PRESENT
+      await user.click(screen.getByRole('button', { name: 'Mark the rest absent' }));
+      await user.click(screen.getByRole('button', { name: 'Submit attendance' }));
+      await waitFor(() => expect(body).not.toBeNull());
+      const byId = Object.fromEntries(body!.entries!.map((r) => [r.student_id, r.status]));
+      expect(byId).toEqual({ 'student-1': 'PRESENT', 'student-2': 'ABSENT' });
+    });
+
+    it('"Mark the rest absent" toasts the count with Undo, and Undo restores the draft', async () => {
+      const success = vi.spyOn(toast, 'success').mockImplementation(() => '');
+      mount({});
+      const user = userEvent.setup();
+      await user.click(await screen.findByText('Rafi Ahmed')); // PRESENT
+      await user.click(screen.getByRole('button', { name: 'Mark the rest absent' }));
+      expect(success).toHaveBeenCalledTimes(1);
+      expect(success.mock.calls[0]![0]).toBe('1 student marked absent');
+      const options = success.mock.calls[0]![1] as unknown as {
+        action: { onClick: () => void };
+      };
+      expect(screen.getByLabelText(/currently Absent/)).toBeTruthy();
+      act(() => options.action.onClick());
+      expect(screen.queryByLabelText(/currently Absent/)).toBeNull();
+    });
+
+    const SCANNED_STUDENTS = [
+      {
+        student_id: 'student-1',
+        roll_number: 1,
+        full_name: 'Rafi Ahmed',
+        record_id: 'rec-1',
+        status: 'PRESENT',
+        minutes_late: null,
+        remarks: null,
+        source: 'DEVICE',
+        scanned_at: '2026-09-04T01:55:00Z',
+        correction_count: 0,
+      },
+      {
+        student_id: 'student-2',
+        roll_number: 2,
+        full_name: 'Nusrat Jahan',
+        record_id: 'rec-2',
+        status: 'ABSENT',
+        minutes_late: null,
+        remarks: null,
+        source: 'IMPORT',
+        correction_count: 0,
+      },
+    ];
+
+    // [review] No test wrapper here on purpose: the page alone must supply the tooltip context.
+    it('renders scanned and from-sheet badges without crashing, in English digits', async () => {
+      mount({ students: SCANNED_STUDENTS });
+      const scanned = await screen.findByText(/^Scanned /);
+      expect(scanned.textContent).not.toMatch(/[০-৯]/);
+      expect(screen.getByText('From sheet')).toBeTruthy();
+    });
+
+    // [review] A focusable badge must not let the list shortcuts change a read-only register.
+    it('ignores list shortcuts on a read-only register, even with a badge focused', async () => {
+      let puts = 0;
+      server.use(
+        http.put('/api/v1/attendance/sections/section-1/register', () => {
+          puts += 1;
+          return HttpResponse.json({});
+        }),
+      );
+      const success = vi.spyOn(toast, 'success').mockImplementation(() => '');
+      mount({
+        can_write: false,
+        write_reason: 'CLASS_TEACHER_ONLY',
+        students: SCANNED_STUDENTS.map((s) => ({ ...s, status: null })),
+      });
+      const user = userEvent.setup();
+      const badge = await screen.findByText(/^Scanned /);
+      act(() => badge.focus());
+      expect(document.activeElement).toBe(badge.closest('[tabindex]'));
+      await user.keyboard('{Shift>}a{/Shift}');
+      await user.keyboard('{Shift>}p{/Shift}');
+      await user.keyboard(' ');
+      await user.keyboard('{Control>}{Enter}{/Control}');
+      expect(success).not.toHaveBeenCalled();
+      expect(screen.getByLabelText('Rafi Ahmed, currently Unmarked. Change status')).toBeTruthy();
+      expect(puts).toBe(0);
+    });
+
+    it('tells a caller who cannot mark that the register is view only, with no "right now" banner', async () => {
+      server.use(
+        http.get('/api/v1/attendance/sections/section-1/register', () =>
+          HttpResponse.json(registerBody({ can_write: false, write_reason: null })),
+        ),
+      );
+      renderWithRouter(routeTree, {
+        initialEntries: ['/attendance/section-1?date=2026-09-04'],
+        tenantId: 'tenant-1',
+        role: 'ACCOUNTANT',
+        locale: 'en',
+      });
+      await screen.findByText('Rafi Ahmed');
+      expect(screen.queryByText(/cannot save this register right now/)).toBeNull();
+      expect(
+        screen.getByText('You can see this register, but your role cannot mark attendance.'),
+      ).toBeTruthy();
+    });
+
+    it('"Mark the rest absent" with nothing unmarked shows no toast', async () => {
+      const success = vi.spyOn(toast, 'success').mockImplementation(() => '');
+      mount({});
+      const user = userEvent.setup();
+      await user.click(await screen.findByText('Rafi Ahmed'));
+      await user.click(screen.getByText('Nusrat Jahan'));
+      await user.click(screen.getByRole('button', { name: 'Mark the rest absent' }));
+      expect(success).not.toHaveBeenCalled();
+    });
   });
 
   it('sends finalize: true when the register is submitted', async () => {

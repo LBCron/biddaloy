@@ -23,7 +23,7 @@ import {
 } from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
 import { PageContainer } from '@biddaloy/ui/shells';
-import { Link, useLocation, useSearch } from '@tanstack/react-router';
+import { Link, useLocation, useNavigate, useSearch } from '@tanstack/react-router';
 import { ChevronLeftIcon } from 'lucide-react';
 import * as React from 'react';
 
@@ -32,6 +32,7 @@ import { SeatsBillingSection } from '../features/billing/SeatsBillingSection';
 import { AcrCriteriaSection } from './settings/AcrCriteriaSection';
 import { AlertsSection } from './settings/AlertsSection';
 import { ApplicationsSection } from './settings/ApplicationsSection';
+import { AttendanceDevicesSection } from './settings/AttendanceDevicesSection';
 import { AttendanceSection } from './settings/AttendanceSection';
 import { BackupSection } from './settings/backup-section';
 import { CalendarSection } from './settings/CalendarSection';
@@ -121,7 +122,8 @@ export function SchoolSettingsPage({ backupJobId }: SchoolSettingsPageProps = {}
   const canManagePrinting = useHasPermission(Permission.PRINT_TEMPLATE_MANAGE);
   const canManageBackup = useHasPermission(Permission.BACKUP_MANAGE);
 
-  const { section, buy, order, payment } = useSearch({ from: '/_staff/settings' });
+  const { section, buy, order, payment, devices } = useSearch({ from: '/_staff/settings' });
+  const navigate = useNavigate();
   const hash = useLocation().hash;
   const categories = SETTINGS_CATEGORIES.filter(
     (c) =>
@@ -177,6 +179,20 @@ export function SchoolSettingsPage({ backupJobId }: SchoolSettingsPageProps = {}
             {loaded && (
               <>
                 <AttendanceSection schoolId={loaded.schoolId} attendance={loaded.data.attendance} />
+                {/* Machine requests go to the active school (X-Tenant-ID), not the picked one:
+                    a SUPER_ADMIN viewing another school must not change that school's machines. */}
+                {(!isSuperAdmin || loaded.schoolId === ownSchoolId) && (
+                  <AttendanceDevicesSection
+                    openAdd={devices === 'new'}
+                    onAddClosed={() =>
+                      void navigate({
+                        to: '/settings',
+                        search: (prev) => ({ ...prev, devices: undefined }),
+                        replace: true,
+                      })
+                    }
+                  />
+                )}
                 <EvaluationsSection
                   key={loaded.schoolId}
                   schoolId={loaded.schoolId}

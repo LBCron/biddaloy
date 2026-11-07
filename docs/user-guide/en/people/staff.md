@@ -16,11 +16,13 @@ sources:
   - client-admin/src/routes/_staff/staff/-detail/reset-password-dialog.tsx
   - client-admin/src/routes/_staff/staff/-detail/profile-tab.tsx
   - client-admin/src/routes/_staff/staff/-detail/teaching-assignments-tab.tsx
+  - client-admin/src/routes/_staff/staff/-detail/hr-record-card-section.tsx
   - server/src/modules/users/users.controller.ts
   - server/src/modules/users/users.service.ts
 labels:
   [
     staff:list.*,
+    staff:cardNo.*,
     staff:filters.*,
     staff:former.*,
     staff:roles.*,
@@ -49,6 +51,7 @@ helpIds:
     people.staff.field.role,
     people.staff.field.employeeId,
     people.staff.field.designations,
+    people.staff.field.cardNo,
     people.staff.action.edit,
   ]
 devices: [desktop]
@@ -86,6 +89,7 @@ This page is about the **staff list**. The list holds everyone at the school: te
   - [Remove from the school](#task-remove)
   - [Bring a former staff member back](#task-restore)
   - [Print staff ID cards](#task-print)
+  - [Give a staff member a card number](#task-card)
   - [The staff member's page: the tabs](#task-detail)
 - [Problems and fixes](#trouble)
 - [Who can do what](#roles)
@@ -322,6 +326,19 @@ You cannot remove yourself: it shows **You cannot remove your own account from t
 
    → The print preview page opens. The rest of the steps: [Staff ID cards](../administration/print-templates/id-cards.md).
 
+### Give a staff member a card number <a href="#task-card" id="task-card"></a>
+
+The **Card number** is the number on the staff member's attendance card. No two people share one.
+
+1. Open the person's page ([the tabs](#task-detail)) and press the **HR record** tab.
+2. Find the section **Card number** at the top. If the page says **No HR record yet**, press **Add job details** first and save; the card number needs an HR record.
+3. Press **Scan card** and touch the card to the reader, or type the number.
+4. Press **Save**. The **Save** button stays grey until the number is different from the saved one.
+
+When you open the **HR record** tab again, the saved number is shown in the box. To remove a number, clear the box and press **Save**. A Bangla-digit number you type or scan is stored as ordinary digits.
+
+→ If another staff member already has the number, the box says "This card number already belongs to another staff member." Use 1 to 64 English letters (A–Z, a–z), numbers or dashes. Bangla letters are not saved. To add the machine itself: [Settings](../administration/settings.md#task-devices). For students: [Students](students.md#task-card).
+
 ### The staff member's page: the tabs <a href="#task-detail" id="task-detail"></a>
 
 Press a person's name in the list, or **View**, to open their page. At the top are their name, status, role, the date they joined this school and their last sign-in (**Not yet** if they have never signed in). The tabs are below:
@@ -407,6 +424,7 @@ Someone without permission who opens the page sees **You don't have access to th
 | Designations           | One or more of Class teacher, Subject teacher, Head teacher, Assistant teacher, Principal, Vice principal, Coordinator.              | No                               |
 | Subject specialization | The subject the teacher is strong in, for example Maths. Free text.                                                                  | No                               |
 | Joining date           | When they joined the school.                                                                                                         | No                               |
+| Card number            | The number on the staff member's attendance card. No two people share one.                                                           | No                               |
 
 <!-- /guide:generated -->
 

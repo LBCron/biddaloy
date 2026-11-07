@@ -261,4 +261,43 @@ describe('/students/$studentId/edit', () => {
     await screen.findByDisplayValue(student.full_name);
     await expect(container).toHaveNoViolations();
   });
+
+  it('[76.5.07] ?focus=card focuses the card field; a 409 shows the fixed sentence under it', async () => {
+    const student = studentFactory({ id: 'student-1', card_no: null, guardians: [] });
+    let patchBody: unknown;
+    server.use(
+      http.get('/api/v1/students/:id', () => HttpResponse.json(student)),
+      http.patch('/api/v1/students/:id', async ({ request }) => {
+        patchBody = await request.json();
+        return HttpResponse.json(
+          {
+            ...apiErrorBody(409, 'x', '/api/v1/students/student-1'),
+            details: { code: 'CARD_NO_TAKEN' },
+          },
+          { status: 409 },
+        );
+      }),
+    );
+    renderWithRouter(routeTree, {
+      initialEntries: ['/students/student-1/edit?focus=card'],
+      tenantId: 'tenant-1',
+      role: 'ADMIN',
+      locale: 'en',
+    });
+    const input = await screen.findByLabelText('Card number');
+    await waitFor(() => expect(document.activeElement).toBe(input));
+    const user = userEvent.setup();
+    await user.type(input, 'AB-7');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(
+      (await screen.findAllByText('This card number already belongs to another student.')).length,
+    ).toBeGreaterThan(0);
+    expect(patchBody).toEqual({ card_no: 'AB-7' });
+    // [review] The input carries the form's field id, so the error summary link can reach it.
+    expect(input.id).toBe('student-form-card_no');
+    // [review] Editing the number after the 409 must not bring the stale error back as a generic one.
+    await user.type(input, '8');
+    // MutationErrorMessage maps a 409 to common:errors.conflict.
+    expect(screen.queryByText(/clashes with a record that already exists/)).toBeNull();
+  });
 });

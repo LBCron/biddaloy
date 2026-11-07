@@ -59,6 +59,7 @@
 - [উপস্থিতি](attendance/attendance.md)
   - [উপস্থিতি নেওয়া](attendance/attendance.md)
   - [উপস্থিতির খাতা](attendance/attendance-register.md)
+  - [হাজিরা শীট আপলোড](attendance/uploads.md)
   - [উপস্থিতি প্রতিবেদন](attendance/attendance-reports.md)
   - [কর্মীর উপস্থিতি ও ছুটি](attendance/staff-attendance.md)
 - [পরীক্ষা ও ফলাফল](exams-results/exam-templates.md)

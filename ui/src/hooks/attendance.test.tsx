@@ -438,3 +438,58 @@ describe('[41.3.1] period / subject-summary / month-save hooks', () => {
     expect(enqueueMutationMock).not.toHaveBeenCalled();
   });
 });
+
+describe('[76.4.01] attendance-source fields pass through', () => {
+  it('my-sections carries scanned_but_absent', async () => {
+    server.use(
+      http.get('/api/v1/attendance/my-sections', () =>
+        HttpResponse.json([
+          {
+            section_id: 's1',
+            section_name: 'A',
+            class_name: 'C5',
+            student_count: 1,
+            today: {
+              state: 'DRAFT',
+              present: 0,
+              absent: 1,
+              late: 0,
+              leave: 0,
+              unmarked: 0,
+              scanned_but_absent: 1,
+              marked_at: null,
+            },
+          },
+        ]),
+      ),
+    );
+    const { result } = renderHookWithProviders(() => useMySections(), { tenantId: 't1' });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.[0]?.today?.scanned_but_absent).toBe(1);
+  });
+
+  it('register carries can_write, write_reason, first_period_today and scanned_at', async () => {
+    server.use(
+      http.get('/api/v1/attendance/sections/s1/register', () =>
+        HttpResponse.json({
+          editable: false,
+          period_attendance_enabled: true,
+          can_write: false,
+          write_reason: 'FIRST_PERIOD_ONLY',
+          first_period_today: false,
+          students: [{ student_id: 'x', scanned_at: '2026-09-04T03:00:00Z' }],
+        }),
+      ),
+    );
+    const { result } = renderHookWithProviders(() => useSectionRegister('s1', '2026-09-04'), {
+      tenantId: 't1',
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const data = result.current.data;
+    expect(data?.can_write).toBe(false);
+    expect(data?.write_reason).toBe('FIRST_PERIOD_ONLY');
+    expect(data?.first_period_today).toBe(false);
+    expect(data?.period_attendance_enabled).toBe(true);
+    expect(data?.students[0]?.scanned_at).toBe('2026-09-04T03:00:00Z');
+  });
+});

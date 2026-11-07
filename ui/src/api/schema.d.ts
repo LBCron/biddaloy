@@ -18004,6 +18004,7 @@ export interface components {
             blood_group: string | null;
             name_bn: string | null;
             religion: string | null;
+            card_no: string | null;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
