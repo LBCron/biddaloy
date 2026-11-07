@@ -206,6 +206,10 @@ export default defineConfig({
       '@biddaloy/shared': resolve(__dirname, '../shared/src'),
       '@biddaloy/ui/components': resolve(__dirname, '../ui/src/components/index.ts'),
       '@biddaloy/ui/shells': resolve(__dirname, '../ui/src/shells/index.ts'),
+      '@biddaloy/ui/rich-text-editor': resolve(
+        __dirname,
+        '../ui/src/components/rich-text-editor/index.ts',
+      ),
       '@biddaloy/ui/hooks': resolve(__dirname, '../ui/src/hooks/index.ts'),
       '@biddaloy/ui/routes': resolve(__dirname, '../ui/src/routes/index.ts'),
       '@biddaloy/ui/utils': resolve(__dirname, '../ui/src/utils/index.ts'),

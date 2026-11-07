@@ -23,6 +23,7 @@
       "@biddaloy/ui": ["../ui/src"],
       "@biddaloy/ui/components": ["../ui/src/components/index.ts"],
       "@biddaloy/ui/shells": ["../ui/src/shells/index.ts"],
+      "@biddaloy/ui/rich-text-editor": ["../ui/src/components/rich-text-editor/index.ts"],
       "@biddaloy/ui/hooks": ["../ui/src/hooks/index.ts"],
       "@biddaloy/ui/routes": ["../ui/src/routes/index.ts"],
       "@biddaloy/ui/utils": ["../ui/src/utils/index.ts"],
