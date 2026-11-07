@@ -5,7 +5,13 @@
  */
 import { DashboardWidgetKey } from '@biddaloy/shared';
 import { apiClient, type components } from '@biddaloy/ui/api';
-import { ChartTableToggle, Meter, StatTile, WidgetCard } from '@biddaloy/ui/components';
+import {
+  ChartTableToggle,
+  type SignalLevel,
+  Meter,
+  StatTile,
+  WidgetCard,
+} from '@biddaloy/ui/components';
 import { useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { formatNumber, formatServerAmount } from '@biddaloy/ui/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -44,7 +50,7 @@ export function CollectionMonthView({
   failed = false,
   onRetry,
 }: CollectionMonthViewProps) {
-  const { t } = useTranslation('dashboard');
+  const { t } = useTranslation(['dashboard', 'signal']);
   const region = useTenantRegionConfig();
   const tw = (key: string, opts: Record<string, unknown> = {}) => t(`widgets.${K}.${key}`, opts);
   const pct = (v: number) => `${formatNumber(v, region)}%`;
@@ -60,6 +66,15 @@ export function CollectionMonthView({
       ? data.received_pct - lm.received_pct
       : null;
   const diffText = diff == null ? '' : formatNumber(Math.abs(diff), region);
+  // ponytail: 10+ points behind last month's pace = "well behind"; tune with product.
+  const level: SignalLevel | undefined =
+    empty || failed || diff == null
+      ? undefined
+      : diff <= -10
+        ? 'critical'
+        : diff < 0
+          ? 'warn'
+          : 'ok';
   const value = data?.received_pct != null ? pct(data.received_pct) : undefined;
 
   const delta = diff == null ? undefined : tw('compactDelta', { diff: diffText });
@@ -137,6 +152,14 @@ export function CollectionMonthView({
       {...(data && !empty ? { value: variant === 'full' ? received : (value ?? received) } : {})}
       {...(summary && !empty ? { summary } : {})}
       loading={loading}
+      {...(level
+        ? {
+            signal: level,
+            signalLabel: t(
+              `signal:${level === 'ok' ? (diff! > 0 ? 'ahead' : 'onTrack') : level === 'warn' ? 'behind' : 'needsAction'}`,
+            ),
+          }
+        : {})}
       loadingLabel={t('states.loading', { title })}
       {...(failed && onRetry
         ? { error: { message: t('states.error'), retryLabel: t('states.retry'), onRetry } }

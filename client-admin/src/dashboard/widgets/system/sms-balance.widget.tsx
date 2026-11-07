@@ -4,7 +4,7 @@
  */
 import { CommunicationMedium, DashboardWidgetKey } from '@biddaloy/shared';
 import { apiClient, type components } from '@biddaloy/ui/api';
-import { WidgetCard } from '@biddaloy/ui/components';
+import { WidgetCard, type SignalLevel } from '@biddaloy/ui/components';
 import { useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
 import { formatNumber } from '@biddaloy/ui/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -18,6 +18,7 @@ export const widgetKey = DashboardWidgetKey.SMS_BALANCE;
 export type SmsBalanceDto = components['schemas']['SmsBalanceWidgetDto'];
 
 const K = widgetKey;
+const SMS_LOW = 200;
 
 function useSmsBalance() {
   return useQuery({
@@ -43,13 +44,22 @@ export function SmsBalanceView({
   failed = false,
   onRetry,
 }: SmsBalanceViewProps) {
-  const { t } = useTranslation('dashboard');
+  const { t } = useTranslation(['dashboard', 'signal']);
   const region = useTenantRegionConfig();
   const tw = (key: string, opts: Record<string, unknown> = {}) => t(`widgets.${K}.${key}`, opts);
   // `count` picks the plural; `value` is the grouped display (১,২৪০).
   const n = (v: number) => formatNumber(v, region);
   const title = tw('title');
   const metered = !!data && data.metering !== 'OFF';
+  // Mirrors the server default smsCreditLowThreshold (200); the DTO carries no threshold (D9).
+  const level: SignalLevel | undefined =
+    !metered || failed
+      ? undefined
+      : data.available <= 0
+        ? 'critical'
+        : data.available < SMS_LOW
+          ? 'warn'
+          : 'ok';
 
   return (
     <WidgetCard
@@ -63,6 +73,14 @@ export function SmsBalanceView({
         ? { summary: tw('reserved', { value: n(data.reserved) }) }
         : {})}
       loading={loading}
+      {...(level
+        ? {
+            signal: level,
+            signalLabel: t(
+              `signal:${level === 'ok' ? 'healthy' : level === 'warn' ? 'low' : 'needsAction'}`,
+            ),
+          }
+        : {})}
       loadingLabel={t('states.loading', { title })}
       {...(failed && onRetry
         ? { error: { message: t('states.error'), retryLabel: t('states.retry'), onRetry } }
