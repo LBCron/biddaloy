@@ -97,6 +97,10 @@ const REVIEWED_OUTBOUND: Record<string, string> = {
     'SMTP host is checked by assertSafeSmtpDestination before the transport is created',
   'modules/communications/providers/sink/mailpit-sink.provider.ts':
     'fixed compose alias mailpit:1025 or operator env MESSAGE_SINK_SMTP_URL; never tenant-influenced; only reached when MESSAGE_SINK=mailpit, which boot refuses on prod (D5, D22)',
+  'modules/website/cloudflare-saas.client.ts':
+    'api.cloudflare.com constant host, operator token (CF_SAAS_API_TOKEN); the school hostname travels in the JSON body only and the id in the path is checked as 32 hex, so pinned-http.ts is not used (Rule 7)',
+  'modules/website/umami.client.ts':
+    'UMAMI_API_URL env, operator config (platform Umami); the website id in the path is checked as a UUID, nothing tenant-supplied reaches the URL',
   'modules/storage/storage.service.ts': 'S3_ENDPOINT env, operator config',
   'common/sentry.ts': 'SENTRY_DSN env, operator config',
 };

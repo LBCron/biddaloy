@@ -10,6 +10,7 @@ import type { ThemeManifest } from '@biddaloy/site-themes';
 import { School } from '../schools/entities/school.entity';
 import { SchoolSite } from './entities/school-site.entity';
 import { SiteCacheService } from './public/site-cache.service';
+import { UmamiService } from './umami.service';
 import type { SaveDraftDto, SiteDto } from './dto/site-config.dto';
 
 type Obj = Record<string, unknown>;
@@ -142,6 +143,8 @@ export class SiteConfigService {
     @InjectRepository(SchoolSite) private readonly sites: Repository<SchoolSite>,
     @InjectRepository(School) private readonly schools: Repository<School>,
     private readonly cache: SiteCacheService,
+    // optional only so the unit spec can build the service with three arguments
+    private readonly umami?: UmamiService,
   ) {}
 
   /** The first call creates the row with the Basic theme and bn/en default texts (D25). */
@@ -192,6 +195,8 @@ export class SiteConfigService {
       .execute();
     if (!res.affected) throw siteStale();
     await this.cache.invalidate(tenantId);
+    // Analytics site on first publish; never throws, never blocks the publish (D42).
+    await this.umami?.ensureWebsite(tenantId);
     return this.get(tenantId);
   }
 

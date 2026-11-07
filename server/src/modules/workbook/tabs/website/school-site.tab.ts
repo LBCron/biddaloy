@@ -73,6 +73,9 @@ const excluded: readonly string[] = [
   'custom_domain', // DNS state of the destination
   'custom_domain_status', // see custom_domain
   'custom_domain_external_id', // see custom_domain
+  'custom_domain_records', // see custom_domain
+  'custom_domain_since', // see custom_domain
+  'custom_domain_checked_at', // see custom_domain
   'version', // cache counter: a restore only moves it forward (see upsert)
   'draft_revision', // stale-save counter: a restore only moves it forward
   'umami_website_id', // analytics site of the destination

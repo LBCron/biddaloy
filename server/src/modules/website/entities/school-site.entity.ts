@@ -69,6 +69,17 @@ export class SchoolSite {
   @Column({ type: 'varchar', length: 64, nullable: true })
   custom_domain_external_id: string | null;
 
+  /** DNS records the admin must add: `[{ type, name, value }]`. */
+  @Column({ type: 'jsonb', nullable: true })
+  custom_domain_records: { type: 'CNAME' | 'TXT'; name: string; value: string }[] | null;
+
+  /** When the status last changed; a PENDING_* status older than 7 days becomes FAILED. */
+  @Column({ type: 'timestamptz', nullable: true })
+  custom_domain_since: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  custom_domain_checked_at: Date | null;
+
   @Column({ type: 'varchar', length: 20, default: 'basic' })
   theme: string;
 

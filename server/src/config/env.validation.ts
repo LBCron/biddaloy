@@ -65,6 +65,29 @@ class EnvironmentVariables {
   )
   SITE_ROOT_DOMAIN?: string;
 
+  // Epic 40.4.08: school custom domains through Cloudflare for SaaS. Token and zone are set together
+  // (assertProductionConfig); both empty = custom domains off. Fallback origin defaults to sites.<SITE_ROOT_DOMAIN>.
+  @IsOptional()
+  @IsString()
+  CF_SAAS_API_TOKEN?: string;
+
+  @IsOptional()
+  @IsString()
+  CF_ZONE_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  CF_SAAS_FALLBACK_ORIGIN?: string;
+
+  // Umami analytics for school sites. Both empty = no analytics.
+  @IsOptional()
+  @IsString()
+  UMAMI_API_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  UMAMI_API_TOKEN?: string;
+
   // Test inbox (Epic 87). `mailpit` sends every message to the Mailpit sink; prod leaves it unset.
   @ValidateIf((o: EnvironmentVariables) => !!o.MESSAGE_SINK)
   @IsIn(['mailpit', 'real'])
@@ -521,6 +544,10 @@ export function assertProductionConfig(config: Record<string, unknown>): void {
 
   if (Boolean(str('TURNSTILE_SITE_KEY')) !== Boolean(str('TURNSTILE_SECRET_KEY'))) {
     problems.push('TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY must be set together or not at all');
+  }
+
+  if (Boolean(str('CF_SAAS_API_TOKEN')) !== Boolean(str('CF_ZONE_ID'))) {
+    problems.push('CF_SAAS_API_TOKEN and CF_ZONE_ID must be set together or not at all');
   }
 
   if (str('OUTBOUND_TEST_ALLOW_LOOPBACK')) {

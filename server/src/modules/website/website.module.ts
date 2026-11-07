@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { School } from '../schools/entities/school.entity';
 import { Notice } from '../notices/entities/notice.entity';
@@ -38,6 +39,12 @@ import { BlogFeed } from './public/feeds/blog.feed';
 import { FeesFeed } from './public/feeds/fees.feed';
 import { AdmissionsFeed } from './public/feeds/admissions.feed';
 import { FeedRegistry } from './public/feeds/feed-registry';
+import { CustomDomainController } from './custom-domain.controller';
+import { CustomDomainService } from './custom-domain.service';
+import { CUSTOM_DOMAIN_QUEUE, CustomDomainProcessor } from './custom-domain.processor';
+import { CloudflareSaasClient } from './cloudflare-saas.client';
+import { UmamiClient } from './umami.client';
+import { UmamiService } from './umami.service';
 
 /**
  * [40.1.04] The school website: ADMIN editing (`/website`) and the anonymous by-host reads the
@@ -55,6 +62,7 @@ import { FeedRegistry } from './public/feeds/feed-registry';
       StaffWebProfile,
       UserTenant,
     ]),
+    BullModule.registerQueue({ name: CUSTOM_DOMAIN_QUEUE }),
     StorageModule,
     SchoolsModule,
     CommunicationsModule,
@@ -62,6 +70,7 @@ import { FeedRegistry } from './public/feeds/feed-registry';
   controllers: [
     SiteConfigController,
     SubdomainController,
+    CustomDomainController,
     SiteMediaController,
     PublicSiteController,
     SitePostsController,
@@ -72,6 +81,11 @@ import { FeedRegistry } from './public/feeds/feed-registry';
   providers: [
     SiteConfigService,
     SubdomainService,
+    CustomDomainService,
+    CustomDomainProcessor,
+    CloudflareSaasClient,
+    UmamiClient,
+    UmamiService,
     PreviewTokenService,
     SiteMediaService,
     PublicSiteService,
