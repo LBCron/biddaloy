@@ -14,7 +14,15 @@ export function findAbove(editor: Editor, type: string) {
   return Editor.above(editor, { match: (n) => isEl(n) && n.type === type });
 }
 
-export const inTable = (editor: Editor) => !!findAbove(editor, 'table');
+/** True when any part of the selection is in a table, not only a table around its start. */
+export const inTable = (editor: Editor) =>
+  !!editor.selection &&
+  Array.from(
+    Editor.nodes(editor, {
+      at: Editor.unhangRange(editor, editor.selection),
+      match: (n) => isEl(n) && n.type === 'table',
+    }),
+  ).length > 0;
 
 export function isBlockActive(editor: Editor, type: string): boolean {
   const { selection } = editor;
@@ -61,10 +69,17 @@ const row = (n: number): Element => ({
 
 export function insertTable(editor: Editor) {
   if (inTable(editor)) return;
-  Transforms.insertNodes(editor, [
-    { type: 'table', children: [row(2), row(2)] },
-    { type: 'paragraph', children: [{ text: '' }] },
-  ]);
+  // After the top-level block the cursor is in, so the table never lands inside a list.
+  const top = editor.selection?.anchor.path[0];
+  const at = top === undefined ? [editor.children.length] : [top + 1];
+  Transforms.insertNodes(
+    editor,
+    [
+      { type: 'table', children: [row(2), row(2)] },
+      { type: 'paragraph', children: [{ text: '' }] },
+    ],
+    { at, select: true },
+  );
 }
 
 export function addTableRow(editor: Editor) {
@@ -92,8 +107,13 @@ export function deleteTable(editor: Editor) {
 export function setLink(editor: Editor, raw: string): boolean {
   const href = normalizeHref(raw);
   if (!href) return false;
-  unwrapLink(editor);
   const { selection } = editor;
+  const current = selection && Range.isCollapsed(selection) ? findAbove(editor, 'link') : undefined;
+  if (current) {
+    Transforms.setNodes(editor, { href } as never, { at: current[1] });
+    return true;
+  }
+  unwrapLink(editor);
   if (selection && !Range.isCollapsed(selection)) {
     Transforms.wrapNodes(editor, { type: 'link', href, children: [] }, { split: true });
   } else {
