@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { MockAgent, getGlobalDispatcher, setGlobalDispatcher } from 'undici';
 import { UserRole } from '@biddaloy/shared';
 import { AppModule } from '../../app.module';
+import { CustomDomainController } from './custom-domain.controller';
 import { AllExceptionsFilter } from '../../common/filters/http-exception.filter';
 import { configureApiVersioning } from '@test/helpers/e2e-app.helper';
 import { buildValidationPipeOptions } from '../../validation-pipe';
@@ -275,6 +276,98 @@ describe('Custom domain API E2E', () => {
       delete process.env.UMAMI_API_URL;
       const res = await admin('get', '/website/analytics').expect(200);
       expect(res.body).toEqual({ available: false });
+    });
+  });
+  describe('more routes and refusals', () => {
+    const fresh = () => {
+      agent = new MockAgent();
+      agent.disableNetConnect();
+      setGlobalDispatcher(agent);
+    };
+    const cfOk = (id: string) => ({
+      success: true,
+      result: {
+        id,
+        status: 'pending',
+        ssl: { status: 'initializing' },
+        ownership_verification: { value: 'own-x' },
+      },
+    });
+
+    it('PUT and DELETE carry the same throttle tier as recheck', () => {
+      const proto = CustomDomainController.prototype;
+      for (const name of ['set', 'remove', 'recheck'] as const) {
+        expect(Reflect.getMetadata('THROTTLER:LIMITdefault', proto[name])).toBe(20);
+        expect(Reflect.getMetadata('THROTTLER:TTLdefault', proto[name])).toBe(60_000);
+      }
+    });
+
+    it('an apex host returns the CNAME-flattening hint, and x.edu.bd counts as an apex', async () => {
+      fresh();
+      cfPool().intercept({ path: BASE, method: 'POST' }).reply(200, cfOk(CF_ID));
+      const res = await admin('put', '/website/custom-domain')
+        .set('Idempotency-Key', randomUUID())
+        .send({ host: `cd-e2e-${tag}.edu.bd` })
+        .expect(202);
+      expect(res.body.hintKey).toBe('apex_needs_flattening');
+    });
+
+    it('recheck asks Cloudflare once and returns the status; Cloudflare down is 503', async () => {
+      fresh();
+      cfPool().intercept({ path: BASE, method: 'POST' }).reply(200, cfOk(CF_ID));
+      await admin('put', '/website/custom-domain')
+        .set('Idempotency-Key', randomUUID())
+        .send({ host })
+        .expect(202);
+      cfPool()
+        .intercept({ path: `${BASE}/${CF_ID}`, method: 'GET' })
+        .reply(200, cfOk(CF_ID));
+      const ok = await admin('post', '/website/custom-domain/recheck').expect(200);
+      expect(ok.body).toMatchObject({ host, status: 'PENDING_DNS' });
+      expect(ok.body.lastCheckedAt).not.toBeNull();
+      cfPool()
+        .intercept({ path: `${BASE}/${CF_ID}`, method: 'GET' })
+        .reply(503, {});
+      const down = await admin('post', '/website/custom-domain/recheck').expect(503);
+      expect(down.body.message).toBe('site.custom_domain_try_later');
+    });
+
+    it('a Cloudflare 4xx with error text is the fixed 409 and nothing is echoed', async () => {
+      fresh();
+      cfPool()
+        .intercept({ path: BASE, method: 'POST' })
+        .reply(400, { success: false, errors: [{ message: 'banned by policy 77' }] });
+      cfPool()
+        .intercept({ path: `${BASE}?hostname=${encodeURIComponent(host)}`, method: 'GET' })
+        .reply(200, { success: true, result: [] });
+      const res = await admin('put', '/website/custom-domain')
+        .set('Idempotency-Key', randomUUID())
+        .send({ host })
+        .expect(409);
+      expect(res.body.message).toBe(FIXED);
+      expect(res.text).not.toContain('banned');
+    });
+
+    it('analytics: Umami configured but down is { available: false }', async () => {
+      fresh();
+      process.env.UMAMI_API_URL = 'https://umami.platform.test';
+      process.env.UMAMI_API_TOKEN = 'u-token';
+      try {
+        await admin('get', '/website').expect(200);
+        await ds.query(`UPDATE school_sites SET umami_website_id = $2 WHERE tenant_id = $1`, [
+          SEED_TENANT_ID,
+          '11111111-2222-4333-8444-555555555555',
+        ]);
+        agent
+          .get('https://umami.platform.test')
+          .intercept({ path: (p: string) => p.includes('/stats?'), method: 'GET' })
+          .reply(500, {});
+        const res = await admin('get', '/website/analytics').expect(200);
+        expect(res.body).toEqual({ available: false });
+      } finally {
+        delete process.env.UMAMI_API_URL;
+        delete process.env.UMAMI_API_TOKEN;
+      }
     });
   });
 });

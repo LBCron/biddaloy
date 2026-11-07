@@ -36,6 +36,21 @@ describe('normalizeCustomHost (what a school may type)', () => {
     ['-bad.example.edu'],
     [''],
     [`${'a'.repeat(64)}.example.edu`],
+    ['school.local'], // special-use TLDs
+    ['school.internal'],
+    ['school.test'],
+    ['school.localhost'],
+    ['school.invalid'],
+    ['abc.onion'],
+    ['school.example'],
+    ['1.0.0.127.in-addr.arpa'],
+    ['edu.bd'], // bare public suffixes
+    ['com.bd'],
+    ['ac.bd'],
+    ['gov.bd'],
+    ['org.bd'],
+    ['net.bd'],
+    ['mil.bd'],
     [42],
     [null],
   ])('refuses %s', (raw) => {
@@ -47,6 +62,17 @@ describe('isApex', () => {
   it('is true for two labels only', () => {
     expect(isApex('example.edu')).toBe(true);
     expect(isApex('www.example.edu')).toBe(false);
+  });
+
+  it.each(['x.edu.bd', 'x.com.bd', 'x.ac.bd', 'x.org.bd', 'x.net.bd', 'x.gov.bd', 'x.mil.bd'])(
+    '%s is an apex (one label above a public suffix)',
+    (h) => {
+      expect(isApex(h)).toBe(true);
+    },
+  );
+
+  it('www.x.edu.bd is not an apex', () => {
+    expect(isApex('www.x.edu.bd')).toBe(false);
   });
 });
 

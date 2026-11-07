@@ -4,7 +4,10 @@ import { fetch } from 'undici';
 /** Cloudflare unreachable, slow, or answered something we cannot trust. Callers leave state unchanged. */
 export class CloudflareUnavailableError extends Error {}
 /** Cloudflare refused this hostname (already exists, not allowed). Never carries Cloudflare's text. */
-export class CloudflareRejectedError extends Error {}
+export class CloudflareRejectedError extends Error {
+  /** Cloudflare's own text said the hostname does not exist (read, never passed on). */
+  notFound = false;
+}
 
 export interface CfHostname {
   id: string;
@@ -59,14 +62,21 @@ export class CloudflareSaasClient {
       await res.body?.cancel().catch(() => undefined);
       return null;
     }
-    let json: { success?: boolean; result?: unknown } | null = null;
+    type Answer = { success?: boolean; result?: unknown; errors?: { message?: unknown }[] };
+    let json: Answer | null = null;
     try {
-      json = (await res.json()) as { success?: boolean; result?: unknown };
+      json = (await res.json()) as Answer;
     } catch {
       throw new CloudflareUnavailableError('unreadable answer');
     }
-    if (!res.ok || json?.success !== true)
-      throw new CloudflareRejectedError(`status ${res.status}`);
+    if (!res.ok || json?.success !== true) {
+      const err = new CloudflareRejectedError(`status ${res.status}`);
+      // Only a flag leaves this file; Cloudflare's wording is never kept or echoed (Rule 23).
+      err.notFound = (json?.errors ?? []).some(
+        (e) => typeof e?.message === 'string' && /not found|does not exist/i.test(e.message),
+      );
+      throw err;
+    }
     return json.result;
   }
 
@@ -98,9 +108,23 @@ export class CloudflareSaasClient {
     return result === null ? null : this.parse(result);
   }
 
-  /** A hostname already gone counts as removed. */
+  /** Lookup by name, to adopt a hostname whose create answer we never saw. `null` = none. */
+  async findByHostname(hostname: string): Promise<CfHostname | null> {
+    const result = await this.call('GET', `?hostname=${encodeURIComponent(hostname)}`);
+    const hit = (Array.isArray(result) ? result : []).find(
+      (r) => (r as { hostname?: unknown })?.hostname === hostname,
+    );
+    return hit ? this.parse(hit) : null;
+  }
+
+  /** A hostname already gone (404, or a 4xx saying it does not exist) counts as removed. */
   async remove(id: string): Promise<void> {
     if (!CF_ID_RE.test(id)) return;
-    await this.call('DELETE', `/${id}`);
+    try {
+      await this.call('DELETE', `/${id}`);
+    } catch (e) {
+      if (e instanceof CloudflareRejectedError && e.notFound) return;
+      throw e;
+    }
   }
 }
