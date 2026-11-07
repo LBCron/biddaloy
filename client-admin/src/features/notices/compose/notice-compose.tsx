@@ -88,6 +88,7 @@ function Counter({ value, max }: { value: string; max: number }) {
 
 export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeProps) {
   const { t } = useTranslation('noticeCompose');
+  const { t: tn } = useTranslation('notices');
   const config = useRegionConfig();
   const isTeacher = useActiveRole() === UserRole.TEACHER;
 
@@ -100,6 +101,7 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
   const [important, setImportant] = React.useState(false);
   const [pinned, setPinned] = React.useState(false);
   const [isPublic, setIsPublic] = React.useState(false);
+  const [pinnedOnWebsite, setPinnedOnWebsite] = React.useState(false);
   const [sms, setSms] = React.useState(false);
   const [expires, setExpires] = React.useState<Date | undefined>(undefined);
   const [pending, setPending] = React.useState<File[]>([]);
@@ -125,6 +127,7 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
     setImportant(n.important);
     setPinned(n.pinned);
     setIsPublic(n.isPublic);
+    setPinnedOnWebsite(n.pinnedOnWebsite);
     setExpires(parseDate(n.expiresOn));
     setStatus(n.status as NoticeStatus);
     // Saved files show in the form and count against the file limit.
@@ -200,6 +203,7 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
           important,
           pinned,
           isPublic,
+          pinnedOnWebsite: isPublic && pinnedOnWebsite,
           expiresOn: expires ? toIsoDate(expires) : null,
         },
       });
@@ -425,24 +429,43 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
                   setIsPublic,
                   { helpId: 'communications.notices.field.isPublic' },
                 ],
+                ['pinnedOnWebsite', pinnedOnWebsite, setPinnedOnWebsite, {}],
                 ['sms', sms, setSms, { helpId: 'communications.notices.field.sms' }],
               ] as const
-            ).map(([key, value, set, { helpId }]) => (
-              <div key={key} className="flex items-center gap-2">
-                <Checkbox
-                  id={`notice-${key}`}
-                  checked={value}
-                  onCheckedChange={(c) => {
-                    set(c === true);
-                    // The SMS request is asked at publish time; it is not part of the draft.
-                    if (key !== 'sms') touch();
-                  }}
-                />
-                <Label htmlFor={`notice-${key}`} helpId={helpId} helpLabel={t(`fields.${key}`)}>
-                  {t(`fields.${key}`)}
-                </Label>
-              </div>
-            ))}
+            ).map(([key, value, set, { helpId }]) => {
+              const label =
+                key === 'isPublic'
+                  ? tn('compose.showOnWebsite')
+                  : key === 'pinnedOnWebsite'
+                    ? tn('compose.pinOnHome')
+                    : t(`fields.${key}`);
+              return (
+                <div key={key} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`notice-${key}`}
+                    checked={value}
+                    disabled={key === 'pinnedOnWebsite' && !isPublic}
+                    onCheckedChange={(c) => {
+                      set(c === true);
+                      if (key === 'isPublic' && c !== true) setPinnedOnWebsite(false);
+                      // The SMS request is asked at publish time; it is not part of the draft.
+                      if (key !== 'sms') touch();
+                    }}
+                  />
+                  <Label
+                    htmlFor={`notice-${key}`}
+                    {...(helpId ? { helpId, helpLabel: label } : {})}
+                  >
+                    {label}
+                  </Label>
+                  {key === 'isPublic' && (
+                    <span className="text-caption text-text-secondary">
+                      {t('fields.isPublicNote')}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <div className="flex flex-col gap-1.5">

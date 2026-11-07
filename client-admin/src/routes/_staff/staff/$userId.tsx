@@ -13,7 +13,7 @@
  * disabled with an explanation — self-removal is prevented client-side
  * and again by the server's own 400.
  */
-import { Permission } from '@biddaloy/shared';
+import { Permission, UserRole } from '@biddaloy/shared';
 import { ApiError, isNotFoundError } from '@biddaloy/ui/api';
 import {
   ErrorState,
@@ -51,6 +51,7 @@ import { PermissionsTab } from './-detail/permissions-tab';
 import { ProfileTab } from './-detail/profile-tab';
 import { ResetPasswordDialog } from './-detail/reset-password-dialog';
 import { TeachingAssignmentsTab } from './-detail/teaching-assignments-tab';
+import { WebsiteProfileTab } from './-detail/website-profile-tab';
 import { EditTeacherDialog } from './-edit-teacher-dialog';
 import { EditUserDialog } from './-edit-user-dialog';
 import { RemoveMemberDialog } from './-remove-member-dialog';
@@ -102,6 +103,7 @@ function StaffDetailPage() {
   const canReadHrRecord = useHasPermission(Permission.STAFF_HR_READ);
   const canReadAcr = useHasPermission(Permission.ACR_READ);
   const canReadStaffAttendance = useHasPermission(Permission.STAFF_ATTENDANCE_READ);
+  const canManageWebsite = useHasPermission(Permission.WEBSITE_MANAGE);
   const canManageApplications = useHasPermission(Permission.APPLICATION_MANAGE);
   const search = Route.useSearch();
   // D18: a staff card exposes HR data, so printing needs both permissions.
@@ -112,6 +114,9 @@ function StaffDetailPage() {
   // A deep link to the teacher tab must survive until `useTeachers` answers.
   const teacherTabPending = teacherQuery.isPending && search.tab === 'teachingAssignments';
   const hasStaffProfile = userQuery.data?.staff_profile_id != null;
+  // The server lists only teachers and office staff (400 / absent otherwise).
+  const isWebPerson =
+    userQuery.data?.role === UserRole.TEACHER || userQuery.data?.role === UserRole.OFFICE_STAFF;
   const tabIds = [
     'profile',
     'permissions',
@@ -121,6 +126,7 @@ function StaffDetailPage() {
     ...(canPrintStaffCard ? (['documents'] as const) : []),
     ...(hasStaffProfile && canReadStaffAttendance ? (['attendanceLeave'] as const) : []),
     ...(hasStaffProfile && canManageApplications ? (['applications'] as const) : []),
+    ...(canManageWebsite && isWebPerson ? (['websiteProfile'] as const) : []),
     ...(canReadAuditLogs ? (['loginHistory'] as const) : []),
   ] as const;
   const [activeTab, setActiveTab] = useDetailShellTab(tabIds);
@@ -233,6 +239,15 @@ function StaffDetailPage() {
                 ns="staff"
               />
             ),
+          },
+        ]
+      : []),
+    ...(canManageWebsite && isWebPerson
+      ? [
+          {
+            id: 'websiteProfile',
+            label: t('tabs.websiteProfile'),
+            content: <WebsiteProfileTab userId={userId} />,
           },
         ]
       : []),

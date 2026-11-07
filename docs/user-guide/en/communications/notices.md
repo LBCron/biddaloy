@@ -90,12 +90,13 @@ A notice is an announcement from the school: a title, some text, and up to three
 
 4. Tick the boxes you need:
 
-   | Box                                        | What happens when ticked                                                         |
-   | ------------------------------------------ | -------------------------------------------------------------------------------- |
-   | **Urgent**                                 | The notice counts as urgent ([Urgent and normal notices](#task-important))       |
-   | **Pin to the top**                         | The notice stays at the top of the board                                         |
-   | **Public (anyone with the link can read)** | The notice gets a link ([Public link](#task-public))                             |
-   | **Also ask to send an SMS**                | A request for an SMS goes to an admin for approval ([Sending an SMS](#task-sms)) |
+   | Box                         | What happens when ticked                                                                    |
+   | --------------------------- | ------------------------------------------------------------------------------------------- |
+   | **Urgent**                  | The notice counts as urgent ([Urgent and normal notices](#task-important))                  |
+   | **Pin to the top**          | The notice stays at the top of the board                                                    |
+   | **Show on the website**     | The notice gets a link ([Public link](#task-public)) and also appears on the school website |
+   | **Pin on the home page**    | Only after **Show on the website** is ticked. The notice stays on the website home page     |
+   | **Also ask to send an SMS** | A request for an SMS goes to an admin for approval ([Sending an SMS](#task-sms))            |
 
    Pick **Valid until**. After that date the notice leaves the board. Leave it empty for **No end date**.
 

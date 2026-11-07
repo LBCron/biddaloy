@@ -26,6 +26,7 @@
     "important": "Urgent",
     "pinned": "Pin to the top",
     "isPublic": "Public (anyone with the link can read)",
+    "isPublicNote": "Anyone with the link can also read it without logging in.",
     "sms": "Also ask to send an SMS",
     "expires": "Valid until",
     "noExpiry": "No end date",

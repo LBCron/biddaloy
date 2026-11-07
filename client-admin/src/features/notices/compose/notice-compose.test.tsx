@@ -16,6 +16,7 @@ const notice = (extra: Record<string, unknown> = {}) => ({
   important: false,
   pinned: false,
   isPublic: false,
+  pinnedOnWebsite: false,
   expiresOn: null,
   smsStatus: 'NONE',
   recipientCount: 1,
@@ -211,6 +212,36 @@ describe('NoticeCompose audience (#3430)', () => {
     );
     expect(screen.queryByText('Pick a role to see people.')).toBeNull();
     expect(screen.queryByText('Could not load people')).toBeNull();
+  });
+});
+
+describe('NoticeCompose website switches (#3636)', () => {
+  it('pin on home is disabled until public; both flags are sent; unticking public clears the pin', async () => {
+    let body: Record<string, unknown> | undefined;
+    mock();
+    server.use(
+      http.post('/api/v1/notices', async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(notice(), { status: 201 });
+      }),
+    );
+    const user = userEvent.setup();
+    const { localeReady } = mount();
+    await localeReady;
+    const show = await screen.findByRole('checkbox', { name: 'Show on the website' });
+    const pin = screen.getByRole('checkbox', { name: 'Pin on the home page' });
+    expect(pin.hasAttribute('disabled')).toBe(true);
+    await user.click(show);
+    await user.click(pin);
+    await user.click(show);
+    expect(pin.hasAttribute('disabled')).toBe(true);
+    expect(pin.getAttribute('aria-checked')).toBe('false');
+    await user.click(show);
+    await user.click(pin);
+    await user.type(screen.getByLabelText('Title'), 'Winter break');
+    await user.type(screen.getByLabelText('Notice text'), 'Closed.');
+    await user.click(screen.getByRole('button', { name: 'Keep as draft' }));
+    await waitFor(() => expect(body).toMatchObject({ isPublic: true, pinnedOnWebsite: true }));
   });
 });
 
