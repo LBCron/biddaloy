@@ -12,7 +12,7 @@ import { Link } from '@tanstack/react-router';
 import { ChevronRightIcon, CircleCheckIcon, CircleIcon } from 'lucide-react';
 import { useId } from 'react';
 
-const TARGETS: Record<OnboardingItemId, { to: string; search?: Record<string, string | number> }> =
+const TARGETS: Record<Exclude<OnboardingItemId, 'website'>, { to: string; search?: Record<string, string | number> }> =
   {
     profile: { to: '/settings', search: { section: 'school' } },
     structure: { to: '/classes' },
@@ -69,6 +69,7 @@ export function SetupChecklistCard() {
         <ProgressBar done={done} total={data.items.length} label={t('title')} />
         <ul className="divide-y divide-border-subtle">
           {data.items.map((item) => {
+            if (item.id === 'website') return null; // TODO(#3626): link once the onboarding item ships
             const target = TARGETS[item.id];
             const Icon = item.done ? CircleCheckIcon : CircleIcon;
             return (

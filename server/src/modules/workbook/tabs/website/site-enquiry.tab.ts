@@ -23,5 +23,15 @@ export const siteEnquiriesTab = createRefChildTab<SiteEnquiry>({
   ],
   // No business key: the send time and the sender keep two messages apart.
   naturalKey: ['created_at', 'name', 'phone', 'message'],
+  checkRow: (row) => {
+    const over = (k: string, max: number) =>
+      typeof row[k] === 'string' && (row[k] as string).length > max;
+    if (over('name', 120)) return { column: 'name', message: 'Name is longer than 120 characters' };
+    if (over('phone', 20))
+      return { column: 'phone', message: 'Phone is longer than 20 characters' };
+    if (over('message', 2000))
+      return { column: 'message', message: 'Message is longer than 2000 characters' };
+    return null;
+  },
   deleteByAbsence: false,
 });

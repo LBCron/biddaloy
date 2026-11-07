@@ -13,7 +13,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Permission } from '@biddaloy/shared';
 import { ContextGuard, RolesGuard } from '../auth/guards/context.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -48,7 +48,7 @@ export class SitePostsController {
     summary:
       'Create a post (not yet shown). Send an `Idempotency-Key` (Rule 25). 400 site.post_invalid for a bad title, body or picture.',
   })
-  @ApiOkResponse({ type: PostDto })
+  @ApiCreatedResponse({ type: PostDto })
   create(@Body() dto: SavePostDto, @CurrentTenant() t: Tenant) {
     return this.posts.create(t.id, dto);
   }

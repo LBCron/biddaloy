@@ -8,7 +8,7 @@ const PREVIEW_HEADER = () => (process.env.SITE_PREVIEW_HEADER ?? 'X-Site-Preview
 
 /** Preview content comes from the theme's own defaults (D33). */
 function demoFor(theme: SiteTheme): { site: SiteManifest; home: SitePageData } | undefined {
-  const m = THEMES[theme];
+  const m = Object.hasOwn(THEMES, theme) ? THEMES[theme] : undefined;
   if (!m) return undefined;
   const cfg = defaultConfigFor(theme);
   const home = cfg.pages.find((p) => p.page === SitePage.HOME);
@@ -40,7 +40,7 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   // The error pages are rendered by rewrite below; do not look the site up again.
   if (pathname === '/404/' || pathname === '/503/') return next();
 
-  if (pathname === '/') return ctx.redirect('/bn/', 302);
+  if (pathname === '/') return ctx.redirect(`/bn/${ctx.url.search}`, 302);
 
   const previewTheme = ctx.request.headers.get(PREVIEW_HEADER()) ?? undefined;
   let res: Response;

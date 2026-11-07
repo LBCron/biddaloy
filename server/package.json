@@ -23,6 +23,7 @@
     "migrate:dist": "node dist/scripts/migrate.js",
     "migrate:pending": "node dist/scripts/migrate.js pending",
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/data-source.ts",
+    "preseed": "yarn workspace @biddaloy/site-themes build",
     "seed": "ts-node src/scripts/seed.ts",
     "seed:demo": "ts-node src/scripts/demo-seed/index.ts",
     "load:seed": "ts-node src/scripts/load/seed-load-10k.ts",
@@ -33,7 +34,7 @@
     "sms-credit:reconcile": "ts-node src/scripts/reconcile-sms-credit.ts",
     "backfill-trials": "ts-node src/scripts/backfill-trials.ts",
     "perf:attention": "ts-node src/scripts/perf-attention.ts",
-    "predocs:generate": "yarn workspace @biddaloy/shared build",
+    "predocs:generate": "yarn workspace @biddaloy/shared build && yarn workspace @biddaloy/site-themes build",
     "docs:generate": "nest build && node dist/scripts/generate-openapi.js"
   },
   "dependencies": {

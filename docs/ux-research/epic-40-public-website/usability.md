@@ -15,7 +15,7 @@ Target for every task: done **unaided**, **3 minutes or less**, and the tester i
 | T1 | "স্কুলের ওয়েবসাইট চালু করে প্রকাশ করুন" | `wizard-1-address.html` | reaches `wizard-done.html` |
 | T2 | "এই নোটিশটা ওয়েবসাইটে দেখান" | `notice-form-tick.html` | turns on the website switch |
 | T3 | "বার্ষিক পরীক্ষার ফল ওয়েবসাইটে দিন" | `exam-publish-website.html` | confirms publish |
-| T4 | "হোমপেজের 'আমাদের কথা' অংশ শিক্ষকদের নিচে নামান আর ইংরেজি লেখাটা বদলান" | `pages.html` | moves section down, opens `section-editor.html`, edits English text |
+| T4 | "হোমপেজের 'আমাদের কথা' অংশ শিক্ষকদের নিচে নামান আর ইংরেজি লেখাটা বদলান" | `pages.html` | moves section below teachers (not just down), opens `section-editor.html`, edits English text |
 | T5 | "স্কুলের নিজের ঠিকানা rumsc.edu-তে সাইট দেখাতে কী করতে হবে, নির্দেশ পড়ে বলুন" | `address.html` | names the two lines to add and where |
 
 Guardian tasks (public mockup `site/basic/home.html`, on a phone): G1 "কোথায় ভর্তির তথ্য?" and G2 "আজকের নোটিশ কোথায়?", each 1 minute or less.

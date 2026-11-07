@@ -20,7 +20,7 @@ const showAll = page === undefined || page === 'home';
     <div class="grid g4">
       {feed.map((p) => (
         <div class="card tcard">
-          {s(p.photo) ? <img src={`/media/${s(p.photo)}`} alt="" loading="lazy" width="96" height="96" /> : <div class="avatar" aria-hidden="true">{name(p).slice(0, 1)}</div>}
+          {s(p.photo) ? <img src={`/media/${encodeURIComponent(s(p.photo)!)}`} alt="" loading="lazy" width="96" height="96" /> : <div class="avatar" aria-hidden="true">{name(p).slice(0, 1)}</div>}
           <b>{name(p)}</b>
           <span class="small">{field(p.designation, lang) ?? s(p.designation)}</span>
           {subjects(p) && <span class="tiny">{t(lang, 'teachers.subjects')}: {subjects(p)}</span>}

@@ -77,7 +77,8 @@ function PostPage() {
 
   // One stable key: creating a post navigates new -> its id, and the editor must keep its state.
   if (isNew) return <PostEditor key="editor" post={null} />;
-  if (query.isError) {
+  // A failed background refetch keeps `data`; only a load with nothing to show is an error.
+  if (query.isError && !query.data) {
     return (
       <ErrorState
         message={t('blog.loadPostError')}

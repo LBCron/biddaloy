@@ -29,7 +29,7 @@ export function defaultConfigFor(theme: SiteTheme): SiteConfig {
   return {
     theme,
     palette: m.palettes[0].id,
-    typography: m.defaultTypography,
+    typography: structuredClone(m.defaultTypography),
     announcements: {
       style: SiteAnnouncementStyle.STATIC,
       speed: SiteMarqueeSpeed.NORMAL,

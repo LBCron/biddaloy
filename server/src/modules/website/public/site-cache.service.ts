@@ -64,15 +64,14 @@ export class SiteCacheService {
   }
 
   /**
-   * Counts one hit under `key` in a fixed window (INCR + EXPIRE on the first hit, the same shape
-   * as `StepUpService`). Returns the new count, or `null` when Redis is down: callers that guard
+   * Counts one hit under `key` in a fixed window. The key is created with its TTL in one atomic
+   * `SET NX EX`, so a crash between the two calls can never leave a counter that never expires. Returns the new count, or `null` when Redis is down: callers that guard
    * a paid action treat `null` as "over the cap" (Rule 15, fail closed).
    */
   async countHit(key: string, windowSeconds: number): Promise<number | null> {
     try {
-      const n = await this.redis.incr(key);
-      if (n === 1) await this.redis.expire(key, windowSeconds);
-      return n;
+      await this.redis.set(key, '0', 'EX', windowSeconds, 'NX');
+      return await this.redis.incr(key);
     } catch (error) {
       this.logOnce(`counter failed: ${String(error)}`);
       return null;

@@ -103,13 +103,18 @@ export class StaffWebProfilesService {
     }
     if (dto.featured) {
       // The cap counts everyone else; this person being featured already is not a 9th.
-      const others = await this.profiles
-        .createQueryBuilder('p')
-        .where('p.tenant_id = :tenantId AND p.featured = true AND p.user_id <> :userId', {
-          tenantId,
-          userId,
-        })
-        .getCount();
+      // Only people the site can actually show count: a leaver would hold a slot nobody can free.
+      const [{ n }] = (await this.profiles.query(
+        `SELECT COUNT(*)::int AS n
+           FROM staff_web_profiles p
+           JOIN users u ON u.id = p.user_id AND u.deleted_at IS NULL AND u.status = 'ACTIVE'
+          WHERE p.tenant_id = $1 AND p.featured = true AND p.user_id <> $2
+            AND EXISTS (SELECT 1 FROM user_tenants m
+                         WHERE m.user_id = p.user_id AND m.tenant_id = p.tenant_id
+                           AND m.deleted_at IS NULL AND m.role IN ('TEACHER','OFFICE_STAFF'))`,
+        [tenantId, userId],
+      )) as { n: number }[];
+      const others = n;
       if (others >= SITE_FEATURED_TEACHERS_MAX) throw profileInvalid();
     }
 

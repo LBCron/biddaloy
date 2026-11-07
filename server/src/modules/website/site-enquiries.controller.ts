@@ -14,7 +14,7 @@ import {
 import type { Request } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Permission } from '@biddaloy/shared';
 import { ContextGuard, RolesGuard } from '../auth/guards/context.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -60,7 +60,7 @@ export class PublicEnquiryController {
     summary:
       'Send an enquiry from the school site. 400 CAPTCHA_FAILED without a valid Turnstile token, 404 site.not_found, 429 over 5 a minute.',
   })
-  @ApiOkResponse({ type: EnquiryReceivedDto })
+  @ApiCreatedResponse({ type: EnquiryReceivedDto })
   async create(
     @Param('host') host: string,
     @Body() dto: CreateEnquiryDto,

@@ -139,6 +139,7 @@ run_mode() { # <mode>
   grep -qi '^x-cache-status: STALE' <<<"$h" && pass "$mode: site down, expired page served STALE" || fail "$mode: STALE" "$h"
   h=$(hdrs 8081 "rumsc.$ROOT" /never-seen/)
   grep -q ' 503' <<<"$h" && pass "$mode: site down, empty cache -> 503" || fail "$mode: 503" "$h"
+  grep -qi '^retry-after: 30' <<<"$h" && pass "$mode: 503 carries Retry-After" || fail "$mode: Retry-After" "$h"
   b=$(body 8081 "rumsc.$ROOT" /never-seen/)
   [[ "$b" == *"Please try again in a moment"* ]] && pass "$mode: maintenance page body shown" || fail "$mode: maintenance body" "$b"
   start_site_stub
