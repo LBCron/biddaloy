@@ -1,0 +1,583 @@
+/* International theme: one typographic hero on a deep ground, one real pathway. Dark header and hero, light
+   body, a framed photo plate (never a background), thin rules, no cards-everywhere. Loaded after Basic's
+   theme.css, which supplies the shared structure (islands, forms, carousel, announcement bar, footer); this
+   file only reskins it.
+   Colours come from the five palette vars (--primary --secondary --accent --surface --ink) set on <html> by
+   css-vars.ts, so a palette switch needs no CSS change (D28). The accent is text only on primary or secondary,
+   never on the surface. The fixed colours are --on-primary and --danger (urgent notices). No section styles
+   itself from a neighbour: no position selectors on section wrappers (D31). */
+:root {
+  --on-primary: #fff;
+  --danger: #a2321f;
+  --r: 2px;
+  --r-s: 2px;
+  --max: 1160px;
+  --warn: var(--danger);
+  --warn-soft: color-mix(in srgb, var(--danger) 10%, var(--surface));
+  --bg-2: color-mix(in srgb, var(--primary) 6%, var(--surface));
+  --line: color-mix(in srgb, var(--ink) 20%, var(--surface));
+  --line-accent: color-mix(in srgb, var(--primary) 40%, var(--surface));
+  --paper: color-mix(in srgb, var(--accent) 22%, var(--surface));
+  --ann-bg: var(--secondary);
+  --ann-ink: var(--surface);
+  --ann-label-bg: var(--accent);
+  --ann-label-ink: var(--primary);
+  --ann-r: 0;
+  --ann-m: 0;
+  --hc-bg: var(--secondary);
+  --hc-ink: var(--surface);
+  --hc-line: var(--accent);
+  --hc-cap-r: 0;
+  --hc-cap-bg: var(--primary);
+  --sa-ink: var(--primary);
+  --sa-r: 0;
+  --hc-focus: var(--accent);
+}
+body {
+  background: var(--surface);
+  color: var(--ink);
+}
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: 0;
+}
+html[lang='en'] h1,
+html[lang='en'] h2,
+html[lang='en'] h3,
+html[lang='en'] h4 {
+  font-weight: var(--h-weight, 300);
+}
+/* header: the deep ground, light type */
+.letterhead {
+  background: var(--primary);
+  color: var(--surface);
+  font-size: 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--surface) 22%, var(--primary));
+}
+.letterhead .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 22px;
+  align-items: center;
+  min-height: 36px;
+  padding-block: 4px;
+}
+.defs {
+  position: absolute;
+}
+.top {
+  background: var(--primary);
+  backdrop-filter: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--surface) 22%, var(--primary));
+} /* a backdrop filter would trap the fixed menu sheet inside the header */
+.brand {
+  color: var(--surface);
+}
+.brand b {
+  font-size: 17px;
+  font-weight: 700;
+}
+.logo {
+  background: none;
+  width: 44px;
+  height: 44px;
+}
+.logo img {
+  border-radius: 50%;
+}
+.logo svg {
+  width: 44px;
+  height: 44px;
+}
+.mono-ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.mono-letter {
+  fill: var(--surface);
+  font: 300 20px var(--en-h);
+}
+html[lang='bn'] .mono-letter {
+  font-family: var(--bn-h);
+  font-weight: 700;
+}
+.nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border-radius: 0;
+  color: color-mix(in srgb, var(--surface) 86%, var(--primary));
+  border-bottom: 2px solid transparent;
+}
+.nav a[aria-current] {
+  background: none;
+  color: var(--surface);
+  border-bottom-color: var(--accent);
+}
+@media (hover: hover) {
+  .nav a:hover {
+    background: none;
+    color: var(--surface);
+  }
+}
+.btn {
+  border-radius: 0;
+}
+.btn-sm {
+  min-height: 44px;
+}
+.btn-primary {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.btn-primary:hover {
+  background: var(--secondary);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--ink);
+}
+.top .btn-primary,
+.hero .btn-primary {
+  background: var(--accent);
+  color: var(--primary);
+}
+.top .btn-primary:hover,
+.hero .btn-primary:hover {
+  background: var(--surface);
+}
+.hero .btn-ghost {
+  color: var(--surface);
+  border-color: var(--surface);
+}
+@media (hover: hover) {
+  .hero .btn-ghost:hover {
+    background: color-mix(in srgb, var(--surface) 14%, var(--primary));
+  }
+}
+.lang {
+  border-radius: 0;
+  border-color: var(--surface);
+}
+.lang a {
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 0;
+  color: var(--surface);
+}
+.lang a[aria-current='true'] {
+  background: var(--accent);
+  color: var(--primary);
+}
+/* phone menu: a bottom sheet (<details>, no script) */
+.menu {
+  position: relative;
+}
+.menu summary {
+  list-style: none;
+}
+.menu summary::-webkit-details-marker {
+  display: none;
+}
+.menu .menu-btn {
+  border-radius: 0;
+  border-color: var(--surface);
+  background: transparent;
+  cursor: pointer;
+}
+.menu-btn span {
+  background: var(--surface);
+  box-shadow:
+    0 -6px 0 var(--surface),
+    0 6px 0 var(--surface);
+}
+.sheet-panel {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 40;
+  max-height: 80vh;
+  overflow: auto;
+  background: var(--primary);
+  color: var(--surface);
+  border-top: 3px solid var(--accent);
+  padding: 20px var(--pad) 28px;
+}
+.sheet-panel nav {
+  display: grid;
+  gap: 0;
+  margin: 0 0 16px;
+}
+.sheet-panel nav a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 4px;
+  font-size: 19px;
+  text-decoration: none;
+  color: var(--surface);
+  border-bottom: 1px solid color-mix(in srgb, var(--surface) 22%, var(--primary));
+}
+.sheet-panel nav a[aria-current] {
+  color: var(--accent);
+}
+.sheet-panel .btn {
+  width: 100%;
+}
+.menu[open] summary::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+@media (min-width: 1024px) {
+  .menu {
+    display: none;
+  }
+}
+/* hero: one typographic idea on the deep ground; the photo is a framed plate */
+.hero {
+  background: var(--primary);
+  color: var(--surface);
+  padding: 44px 0 52px;
+}
+.hero .wrap {
+  display: grid;
+  gap: 32px;
+}
+.hero .kicker {
+  margin: 0 0 16px;
+  color: var(--accent);
+  font-weight: 700;
+}
+.hero h1 {
+  font-size: calc(clamp(40px, 10vw, 88px) * var(--h-size, 1));
+  line-height: 1.08;
+  font-weight: var(--h-weight, 300);
+  color: var(--surface);
+  overflow-wrap: anywhere;
+}
+html[lang='bn'] .hero h1 {
+  font-weight: var(--h-weight, 700);
+}
+.hero h1 em {
+  font-style: italic;
+  color: var(--accent);
+}
+.hero p.lead {
+  font-size: 18px;
+  max-width: 52ch;
+  margin: 20px 0 28px;
+  color: color-mix(in srgb, var(--surface) 90%, var(--primary));
+}
+.plate {
+  border: 1px solid var(--accent);
+  padding: 10px;
+  background: var(--secondary);
+}
+.plate .hc {
+  border-radius: 0;
+}
+.plate-art {
+  min-height: 160px;
+  aspect-ratio: 16/9;
+  background: var(--secondary);
+  border-top: 4px solid var(--accent);
+  border-inline: 0;
+  border-bottom: 0;
+  padding: 0;
+}
+@media (min-width: 900px) {
+  .hero {
+    padding: 80px 0 88px;
+  }
+  .hero .wrap {
+    grid-template-columns: 1.3fr 1fr;
+    align-items: center;
+  }
+}
+/* sections: every one carries its own background, none depends on a neighbour */
+.sec {
+  padding: 56px 0;
+}
+.sec-tint {
+  background: var(--bg-2);
+  border-block: 1px solid var(--line);
+}
+.sec h2 {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 10px;
+  color: var(--primary);
+}
+.sec h2::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 56px;
+  height: 3px;
+  background: var(--accent);
+}
+.sec-head {
+  margin-bottom: 24px;
+}
+.prose-p {
+  white-space: pre-line;
+  margin-top: 14px;
+  max-width: 64ch;
+}
+.photo,
+.cover {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  padding: 8px;
+  background: var(--surface);
+  aspect-ratio: 3/2;
+}
+.cover {
+  aspect-ratio: 1200/630;
+  border: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--line);
+}
+.card {
+  border-radius: 0;
+  border-color: var(--line);
+  background: var(--surface);
+}
+.empty {
+  border-radius: 0;
+  border-color: var(--line);
+}
+.slot {
+  aspect-ratio: 1200/630;
+  border: 0;
+  border-radius: 0;
+  background: var(--bg-2);
+}
+/* academics: the pathway, a numbered sequence joined by one rule */
+.blocks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  counter-reset: b;
+  position: relative;
+}
+.blocks::before {
+  content: '';
+  position: absolute;
+  left: 21px;
+  top: 22px;
+  bottom: 22px;
+  width: 2px;
+  background: var(--line-accent);
+}
+.block {
+  counter-increment: b;
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 16px;
+  align-items: start;
+  padding: 0 0 28px;
+  position: relative;
+}
+.block::before {
+  content: counter(b);
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background: var(--primary);
+  color: var(--accent);
+  font: 300 22px/1 var(--en-h);
+}
+html[lang='bn'] .block::before {
+  content: counter(b, bengali);
+  font-family: var(--bn-h);
+  font-weight: 700;
+}
+.block .prose-p {
+  margin: 0;
+  max-width: none;
+  padding-top: 8px;
+}
+@media (min-width: 900px) {
+  .blocks {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px 24px;
+  }
+  .blocks::before {
+    content: none;
+  }
+  .block {
+    grid-template-columns: 1fr;
+    padding: 14px 0 0;
+    gap: 14px;
+    border-top: 2px solid var(--line-accent);
+  }
+}
+/* admissions: a ruled box with an accent edge */
+.notice-box {
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--primary);
+  padding: 24px 20px;
+  background: var(--surface);
+}
+.intakes {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.intakes .card {
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  border: 1px solid var(--line);
+}
+/* notices, events */
+.notice-list {
+  border: 1px solid var(--line);
+  border-radius: 0;
+}
+.date {
+  border-radius: 0;
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.date span {
+  color: var(--accent);
+}
+.ev .date {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.chip {
+  border-radius: 0;
+}
+.chip-accent {
+  background: var(--paper);
+  color: var(--ink);
+}
+.sk i {
+  border-radius: 0;
+  background: linear-gradient(90deg, var(--bg-2) 25%, var(--paper) 50%, var(--bg-2) 75%);
+  background-size: 200% 100%;
+}
+/* teachers: square plates */
+.tcard {
+  padding: 18px 14px;
+}
+.avatar {
+  border-radius: 0;
+  width: 96px;
+  height: 96px;
+  background: var(--primary);
+  display: grid;
+  place-items: center;
+  font: 300 36px var(--en-h);
+  color: var(--accent);
+}
+html[lang='bn'] .avatar {
+  font-family: var(--bn-h);
+  font-weight: 700;
+}
+.avatar::before,
+.avatar::after {
+  content: none;
+}
+.tcard img {
+  width: 96px;
+  height: 96px;
+  border-radius: 0;
+  object-fit: cover;
+  margin: 0 auto;
+}
+.seeall a {
+  color: var(--primary);
+  border-color: var(--primary);
+  border-radius: 0;
+}
+@media (hover: hover) {
+  .seeall a:hover {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+}
+/* blog, contact, forms */
+.post {
+  border-radius: 0;
+}
+.field input,
+.field select,
+.field textarea {
+  border-radius: 0;
+  border-color: var(--ink);
+}
+.kv.spaced {
+  margin: 16px 0 20px;
+}
+.mapframe {
+  border-radius: 0;
+  border-color: var(--ink);
+}
+/* footer */
+.foot {
+  background: var(--secondary);
+  color: var(--surface);
+  margin-top: 0;
+  border-top: 3px solid var(--accent);
+}
+.foot h4 {
+  color: var(--accent);
+}
+.foot a {
+  color: var(--surface);
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+.credit {
+  border-top-color: color-mix(in srgb, var(--surface) 24%, var(--secondary));
+  color: color-mix(in srgb, var(--surface) 82%, var(--secondary));
+}
+.credit a {
+  color: var(--surface);
+  display: inline;
+  min-height: 0;
+}
+/* focus, motion */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 0;
+}
+.top a:focus-visible,
+.top summary:focus-visible,
+.hero a:focus-visible,
+.letterhead a:focus-visible,
+.sheet-panel a:focus-visible,
+.foot a:focus-visible {
+  outline-color: var(--accent);
+}
+@media (max-width: 719px) {
+  .sec {
+    padding: 40px 0;
+  }
+}

@@ -1,0 +1,35 @@
+---
+import { SITE_FEATURED_TEACHERS_MAX } from '@biddaloy/shared';
+import { t } from '../../../i18n/t';
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang, feed, page } = Astro.props as SectionProps;
+const title = field(data.title, lang) ?? t(lang, 'section.teachers');
+const s = (v: unknown) => (typeof v === 'string' ? v : undefined);
+const name = (p: Record<string, unknown>) => field(p.name, lang) ?? s(p.name) ?? '';
+const subjects = (p: Record<string, unknown>) =>
+  Array.isArray(p.subjects) ? p.subjects.filter((x): x is string => typeof x === 'string').join(', ') : '';
+// The home page shows the featured few and links on (D27); the teachers page lists everyone it was given.
+const showAll = page === undefined || page === 'home';
+const rows = showAll ? feed.slice(0, SITE_FEATURED_TEACHERS_MAX) : feed;
+---
+<section class="sec sec-tint" id="teachers"><div class="wrap">
+  <div class="sec-head"><h2>{title}</h2></div>
+  {rows.length === 0 ? (
+    <p class="empty">{t(lang, 'empty')}</p>
+  ) : (
+    <div class="grid g4">
+      {rows.map((p) => (
+        <div class="card tcard">
+          {s(p.photo) ? <img src={`/media/${s(p.photo)}`} alt="" loading="lazy" width="96" height="96" /> : <div class="avatar" aria-hidden="true">{name(p).slice(0, 1)}</div>}
+          <b>{name(p)}</b>
+          <span class="small">{field(p.designation, lang) ?? s(p.designation)}</span>
+          {subjects(p) && <span class="tiny">{t(lang, 'teachers.subjects')}: {subjects(p)}</span>}
+          {field(p.credentials, lang) && <span class="tiny">{field(p.credentials, lang)}</span>}
+        </div>
+      ))}
+    </div>
+  )}
+  {showAll && <p class="seeall"><a href={`/${lang}/teachers/`}>{t(lang, 'teachers.all')}</a></p>}
+</div></section>

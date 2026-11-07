@@ -1,0 +1,19 @@
+---
+import Skeleton from '../../../components/Skeleton.astro';
+import { t } from '../../../i18n/t';
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang } = Astro.props as SectionProps;
+const title = field(data.title, lang) ?? t(lang, 'section.events');
+---
+<section class="sec" id="events"><div class="wrap">
+  <div class="sec-head"><h2>{title}</h2></div>
+  <div class="island" data-events data-lang={lang} data-empty={t(lang, 'events.empty')} data-error={t(lang, 'events.error')} data-loading aria-busy="true">
+    <Skeleton label={t(lang, 'events.loading')} />
+    <div class="ready grid g3 event-list"></div>
+  </div>
+</div></section>
+<script>
+  import '../../../islands/events';
+</script>
