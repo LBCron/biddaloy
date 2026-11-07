@@ -17,6 +17,7 @@ import { Subject } from '../academics/entities/subject.entity';
 import { Student } from '../students/entities/student.entity';
 import { WebsiteResultsService } from './website-results.service';
 
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'int-secret';
 const CTX = { ip: null, userAgent: null };
 const audits: Record<string, unknown>[] = [];
 
@@ -85,7 +86,7 @@ describe('WebsiteResultsService (integration)', () => {
       tenant_id: s.tenant,
       academic_year_id: s.year.id,
       class_id: s.cls.id,
-      name: 'Term 1',
+      name: `Term ${randomUUID().slice(0, 8)}`, // unique per tenant, year and class
       kind: ExamKind.TERM,
       status,
       ...extra,
@@ -115,6 +116,9 @@ describe('WebsiteResultsService (integration)', () => {
       section_id: s.section.id,
       is_fail: !!o.fail,
       grading_scale_id: s.scale.id,
+      grading_scale_revision: 1,
+      rule_version: 'test',
+      computed_at: new Date(),
     } as Result);
     await ds.getRepository(ResultSubject).save({
       tenant_id: s.tenant,
@@ -197,7 +201,7 @@ describe('WebsiteResultsService (integration)', () => {
     expect(Object.keys(all.rows[0]).sort()).toEqual([
       'gpa',
       'grade',
-      'id',
+      'handle',
       'name',
       'passed',
       'roll',
@@ -277,11 +281,12 @@ describe('WebsiteResultsService (integration)', () => {
     const a = await school();
     const b = await school();
     const e = await exam(a, ExamStatus.PUBLISHED, { website_published_at: new Date() });
-    const { r } = await pupil(a, e, 1);
+    await pupil(a, e, 1);
+    const handle = (await q(a, e)).rows[0].handle;
     await expect(
       svc.query(b.tenant, { examId: e.id, classSectionId: a.section.id, page: 1 }),
     ).rejects.toThrow('results.not_found');
-    await expect(svc.detail(b.tenant, e.id, r.id)).rejects.toThrow('results.not_found');
+    await expect(svc.detail(b.tenant, handle)).rejects.toThrow('results.not_found');
     expect(await svc.listPublished(b.tenant)).toEqual([]);
     expect(await svc.listPublished(a.tenant)).toHaveLength(1);
   });
@@ -290,13 +295,18 @@ describe('WebsiteResultsService (integration)', () => {
     const s = await school();
     const e = await exam(s, ExamStatus.PUBLISHED, { website_published_at: new Date() });
     const other = await exam(s, ExamStatus.PUBLISHED, { website_published_at: new Date() });
-    const { r } = await pupil(s, e, 1, { name: 'Private Name' });
-    const d = await svc.detail(s.tenant, e.id, r.id);
+    await pupil(s, e, 1, { name: 'Private Name' });
+    const handle = (await q(s, e)).rows[0].handle;
+    const d = await svc.detail(s.tenant, handle);
     expect(d.subjects).toEqual([
       { name: { en: 'Math', bn: 'গণিত' }, obtained: 80, grade: 'A+', gpa: 5, passed: true },
     ]);
     expect(JSON.stringify(d)).not.toContain('Private Name');
-    await expect(svc.detail(s.tenant, other.id, r.id)).rejects.toThrow('results.not_found');
+    // A result id on its own opens nothing; a handle dies with the exam's website switch.
+    const { r: bare } = await pupil(s, other, 2);
+    await expect(svc.detail(s.tenant, bare.id)).rejects.toThrow('results.not_found');
+    await svc.unpublish(e.id, s.tenant, SEED_ADMIN_USER_ID, CTX);
+    await expect(svc.detail(s.tenant, handle)).rejects.toThrow('results.not_found');
   });
 
   it('listPublished: exams with their sections, newest first, unpublished left out', async () => {

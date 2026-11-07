@@ -296,3 +296,11 @@ two Cloudflare values empty. Every refusal (off, malformed, platform name, taken
   because the results feed is never cached (a page of student data must not outlive a withdrawal). A Turnstile
   token works once, so only the table call carries it; the per-subject call takes the unguessable result id from a
   table answer and is throttled the same.
+- **2026-11-07 (W5 review fixes, 40.5.01).** Three limits guard the results table: Turnstile and 30/min per IP
+  (Nest throttler) and 300/min per school (Redis counter). When Redis is down the per-IP and per-school limits are
+  OFF (D42: fail open); Turnstile still stands. The per-subject call has no Turnstile (a token works once), so what
+  protects it is a signed handle: `website-results.handle.ts` signs exam id, result id and a 30-minute expiry (HMAC,
+  key `JWT_SECRET`, domain `site-result:`), and `detail` accepts nothing else, so a result id can never be guessed.
+  The whole results surface (list and both POSTs) answers the one 404 unless the school's Results page is switched
+  on (D12). Reopening an exam takes it off the website (clears `website_published_at`, bumps the site version).
+  The results page carries `noindex`; it is not in the sitemap.

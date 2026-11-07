@@ -7,7 +7,7 @@ const req = { ip: '1.2.3.4', headers: {}, socket: {} } as never;
 function build(hit: number | null) {
   const order: string[] = [];
   const site = {
-    liveForWrite: vi.fn(async () => {
+    liveForResults: vi.fn(async () => {
       order.push('live');
       return { tenantId: 'T' };
     }),
@@ -67,8 +67,8 @@ describe('PublicSiteController results routes (unit)', () => {
 
   it('detail: no Turnstile, same school budget, tenant from the host only', async () => {
     const { c, turnstile, results } = build(1);
-    await c.resultDetail('h', { exam_id: 'e', result_id: 'r' } as never);
+    await c.resultDetail('h', { handle: 'hh' } as never);
     expect(turnstile.verify).not.toHaveBeenCalled();
-    expect(results.detail).toHaveBeenCalledWith('T', 'e', 'r');
+    expect(results.detail).toHaveBeenCalledWith('T', 'hh');
   });
 });

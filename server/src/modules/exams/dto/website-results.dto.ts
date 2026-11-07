@@ -57,17 +57,15 @@ export class ResultsQueryDto {
 
 /** Public `POST island/results/detail`: the per-subject marks of one row of a `query` answer. */
 export class ResultsDetailQueryDto {
-  @ApiProperty({ format: 'uuid' })
-  @IsUUID()
-  exam_id: string;
-
-  @ApiProperty({ format: 'uuid', description: 'The `id` of a row the table answer returned.' })
-  @IsUUID()
-  result_id: string;
+  @ApiProperty({ description: 'The `handle` of a row the table answer returned (30 minutes).' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  handle: string;
 }
 
 export class WebsiteResultRowDto {
-  @ApiProperty({ format: 'uuid' }) id: string;
+  @ApiProperty() handle: string;
   @ApiProperty() roll: number;
   @ApiProperty({ nullable: true, type: String }) name: string | null;
   @ApiProperty() gpa: number;
