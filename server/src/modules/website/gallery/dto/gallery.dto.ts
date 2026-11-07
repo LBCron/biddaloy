@@ -53,10 +53,15 @@ export class ReorderGalleryDto {
 export class GalleryPhotoDto {
   @ApiProperty() id: string;
   @ApiProperty({ format: 'uuid' }) mediaId: string;
-  @ApiProperty({ nullable: true, description: '{ bn, en } or null' }) caption: {
-    bn: string;
-    en: string;
-  } | null;
+  // The swagger plugin reads the inline object type and drops `nullable`, so the schema is explicit.
+  @ApiProperty({
+    nullable: true,
+    type: 'object',
+    properties: { bn: { type: 'string' }, en: { type: 'string' } },
+    required: ['bn', 'en'],
+    description: '{ bn, en } or null when the photo has no caption',
+  })
+  caption: { bn: string; en: string } | null;
   @ApiProperty() sortOrder: number;
 }
 
