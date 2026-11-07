@@ -666,6 +666,9 @@ jobs:
         # built dist/ here, entity loading fails at DataSource.initialize().
         run: yarn build:shared
 
+      - name: Build site-themes package
+        run: yarn build:site-themes
+
       # server/openapi.json is gitignored (a generated artifact, not checked
       # in) — a fresh CI checkout never has it. Generating it requires a real
       # DATABASE_URL/JWT_SECRET/REDIS_URL, because generate-openapi.ts's
@@ -854,6 +857,9 @@ jobs:
         # (dist/index.js, not src) — same reason the other jobs build this
         # first.
         run: yarn build:shared
+
+      - name: Build site-themes package
+        run: yarn build:site-themes
 
       # Playwright's package version, used below so the browser cache key
       # actually matches its own comment (it previously keyed on
@@ -1070,6 +1076,9 @@ jobs:
 
       - name: Build shared package
         run: yarn build:shared
+
+      - name: Build site-themes package
+        run: yarn build:site-themes
 
       - name: Resolve Playwright version
         id: pw
