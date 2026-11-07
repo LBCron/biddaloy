@@ -66,6 +66,7 @@ import { CorrectionDialog } from './-correction-dialog';
 import { PeriodSwitcher } from './-period-switcher';
 import { RecordHistoryPanel } from './-record-history-panel';
 import { RosterMarker, useArrivalBells, type Draft } from './-roster-marker';
+import { saveErrorKey, writeReasonKey } from './-write-reason';
 
 // Browser-local, not `.toISOString()` (UTC), for the search-schema default
 // only: `validateSearch` runs outside React, before the tenant's timezone is
@@ -86,8 +87,6 @@ const searchSchema = z.object({
 });
 
 /** Reasons the server can give for a read-only register; anything else gets the generic banner. */
-const KNOWN_WRITE_REASONS = new Set(['CLASS_TEACHER_ONLY', 'FIRST_PERIOD_ONLY', 'DEVICE_SCHOOL']);
-
 export const Route = createFileRoute('/_staff/attendance/$sectionId')({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => ({ date: search.date, period: search.period }),
@@ -408,7 +407,7 @@ function SectionRegisterPage() {
           return;
         }
         if (isReasonRequired(error)) return showReasonError(true);
-        toast.error(t('mark.errorToast'));
+        toast.error(t(saveErrorKey(error)));
       },
     });
   }
@@ -463,7 +462,7 @@ function SectionRegisterPage() {
             setConflict(null);
             return showReasonError(true);
           }
-          toast.error(t('mark.errorToast'));
+          toast.error(t(saveErrorKey(error)));
         },
       },
     );
@@ -665,9 +664,7 @@ function SectionRegisterPage() {
           className="flex items-start gap-2 rounded-lg border border-border-subtle bg-muted p-4 text-text-secondary"
         >
           <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          {t(
-            `registerBanner.${KNOWN_WRITE_REASONS.has(register.write_reason ?? '') ? register.write_reason : 'UNKNOWN'}`,
-          )}
+          {t(writeReasonKey(register.write_reason))}
         </p>
       )}
       {register.first_period_today === true && period === undefined && (

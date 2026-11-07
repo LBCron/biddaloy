@@ -14237,6 +14237,13 @@ export interface components {
                 [key: string]: number;
             };
             rows: components["schemas"]["RegisterMatrixRowDto"][];
+            /** @description Whether you may save this month grid: your mark permission plus the school daily-attendance setting. A first-period teacher may not (D31). */
+            can_write: boolean;
+            /**
+             * @description Why you cannot save; null when you can (or never could).
+             * @enum {string|null}
+             */
+            write_reason: "CLASS_TEACHER_ONLY" | "FIRST_PERIOD_ONLY" | "DEVICE_SCHOOL" | null;
         };
         SubjectSummarySubjectDto: {
             subject_id: string;

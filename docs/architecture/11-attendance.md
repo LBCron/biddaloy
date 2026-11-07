@@ -588,6 +588,8 @@ Admin-level roles (tenant-wide access) always pass. The month grid
 `attendance-access.service.ts` `assertCanWriteDayRegister` (throws) and
 `dayRegisterWriteState` (never throws, feeds the read view). The refusal is
 `403` with `details: { reason }` and a message that names nobody (Rule 23).
+`GET .../register-matrix` sends the same answer as `can_write` and `write_reason`, so
+the month page hides **Edit** and says why instead of letting a save fail.
 
 ### A DEVICE school's day
 

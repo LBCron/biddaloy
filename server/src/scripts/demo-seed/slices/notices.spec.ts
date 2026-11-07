@@ -17,6 +17,8 @@ describe('noticePool', () => {
       'T',
       () => false,
     );
+    // A graduated or transferred student here would be dropped by the recipient insert, and a
+    // notice left with nobody cannot be published.
     expect(pool.map((s) => s.id)).toEqual(['active']);
   });
 
@@ -31,6 +33,8 @@ describe('noticePool', () => {
       'T',
       (s) => s.id === 'card-family',
     );
+    // A notice stays inside its branch, the card family must keep seeing exactly 3 notices, and
+    // a guardian recipient needs a guardian.
     expect(pool.map((s) => s.id)).toEqual(['keep']);
   });
 });

@@ -147,12 +147,19 @@ export class AttendanceSummaryController {
       { includeCoordinated: true }, // [83.3.1] D4 read
     );
     const { from, to } = resolveDateRange({ month: query.month });
-    return this.summaryService.getSectionRegisterMatrix({
-      tenantId: tenant.id,
-      sectionId,
-      from,
-      to,
-    });
+    // Same gate the save uses, so Edit never offers a save that would be refused.
+    const [matrix, write] = await Promise.all([
+      this.summaryService.getSectionRegisterMatrix({ tenantId: tenant.id, sectionId, from, to }),
+      this.attendanceAccessService.dayRegisterWriteState(
+        tenant.role,
+        user.sub,
+        sectionId,
+        from,
+        tenant.id,
+        { monthGrid: true },
+      ),
+    ]);
+    return { ...matrix, can_write: write.can_write, write_reason: write.write_reason };
   }
 
   @Get('sections/:sectionId/subject-summary')

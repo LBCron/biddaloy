@@ -65,7 +65,7 @@ import {
   toIsoDate,
 } from '@biddaloy/ui/utils';
 import { createFileRoute, Link, useBlocker } from '@tanstack/react-router';
-import { FileSpreadsheet, PencilIcon, PrinterIcon, SaveIcon, XIcon } from 'lucide-react';
+import { FileSpreadsheet, InfoIcon, PencilIcon, PrinterIcon, SaveIcon, XIcon } from 'lucide-react';
 import * as React from 'react';
 import { z } from 'zod';
 
@@ -78,6 +78,7 @@ import {
   toneClass,
   type Draft,
 } from './-register-edit-grid';
+import { saveErrorKey, writeReasonKey } from './-write-reason';
 
 import './-register-print.css';
 
@@ -178,7 +179,9 @@ function RegisterPageContent() {
   // OLD one. In edit mode that would let a cell edit land on a date (or a
   // student) that is no longer on screen, so edit mode waits for real data.
   const loading = matrixQuery.isPending || (search.edit === true && matrixQuery.isPlaceholderData);
-  const editing = search.edit === true && isMd && canMark && rows.length > 0 && !loading;
+  const writeBlocked = matrix?.can_write === false;
+  const editing =
+    search.edit === true && isMd && canMark && !writeBlocked && rows.length > 0 && !loading;
   const saveMatrix = useSaveRegisterMatrix(search.section_id ?? '');
 
   // Changed cells only. A ref mirrors it so the route blocker (and a save
@@ -309,7 +312,7 @@ function RegisterPageContent() {
             setReasonAsked(true);
             setReasonError(true);
           } else {
-            toast.error(t('mark.errorToast'));
+            toast.error(t(saveErrorKey(error)));
           }
         },
       },
@@ -366,7 +369,7 @@ function RegisterPageContent() {
             helpId: 'attendance.attendanceRegister.action.edit',
             label: t('register.edit'),
             icon: <PencilIcon aria-hidden="true" />,
-            allowed: !editing && !loading && isMd && canMark && rows.length > 0,
+            allowed: !editing && !loading && isMd && canMark && !writeBlocked && rows.length > 0,
             onClick: () => void navigate({ search: (prev) => ({ ...prev, edit: true }) }),
           },
           {
@@ -389,6 +392,15 @@ function RegisterPageContent() {
           },
         ]}
       />
+      {writeBlocked && (matrix?.write_reason != null || canMark) && (
+        <p
+          role="status"
+          className="flex items-start gap-2 rounded-lg border border-border-subtle bg-muted p-4 text-text-secondary"
+        >
+          <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          {t(writeReasonKey(matrix?.write_reason))}
+        </p>
+      )}
 
       <section aria-label={t('register.pickersLabel')} className="grid gap-4 md:grid-cols-12">
         <div className="grid gap-1.5 md:col-span-3">

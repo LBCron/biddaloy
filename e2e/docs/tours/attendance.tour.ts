@@ -314,7 +314,8 @@ test('desktop: upload an attendance sheet', async ({ page }, info) => {
   test.skip(info.project.metadata.device !== 'desktop');
   test.setTimeout(120_000);
   await prepare(page);
-  // Admin, not the class teacher: Class 10 – B is a DEVICE section, which only admin may write by sheet.
+  // Admin, not the demo class teacher (8-A): Class 10 – B is a DEVICE section, which only admin or
+  // its own class teacher may write by sheet.
   await loginAs(page, 'admin');
   await page.goto(`/attendance?date=${DAY}`);
 

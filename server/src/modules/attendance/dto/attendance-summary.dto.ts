@@ -3,8 +3,7 @@ import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 import { IsRealDate, IsRealMonth } from '../../../common/decorators/is-real-date.decorator';
-import { AttendanceStatus } from '@biddaloy/shared';
-
+import { AttendanceStatus, DailyRegisterWriteReason } from '@biddaloy/shared';
 
 // ---------------------------------------------------------------------------
 // Shared month/range resolution
@@ -202,6 +201,17 @@ export class RegisterMatrixDto {
   /** date -> version of that date's whole-day session; only marked dates. */
   @ApiProperty({ type: Object }) versions: Record<string, number>;
   @ApiProperty({ type: RegisterMatrixRowDto, isArray: true }) rows: RegisterMatrixRowDto[];
+  @ApiProperty({
+    description:
+      'Whether you may save this month grid: your mark permission plus the school daily-attendance setting. A first-period teacher may not (D31).',
+  })
+  can_write: boolean;
+  @ApiProperty({
+    enum: DailyRegisterWriteReason,
+    nullable: true,
+    description: 'Why you cannot save; null when you can (or never could).',
+  })
+  write_reason: DailyRegisterWriteReason | null;
 }
 
 export class AttendanceStreakDto {
