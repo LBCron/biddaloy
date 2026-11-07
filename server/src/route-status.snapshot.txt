@@ -792,5 +792,12 @@ PATCH  /api/v1/users/me/preferences/notifications                               
 GET    /api/v1/website                                                           401 PASS PASS PASS 403 403 403 403 403 403 403 403
 PUT    /api/v1/website/draft                                                     401 PASS PASS PASS 403 403 403 403 403 403 403 403
 POST   /api/v1/website/enabled                                                   401 PASS PASS PASS 403 403 403 403 403 403 403 403
+GET    /api/v1/website/media                                                     401 PASS PASS PASS 403 403 403 403 403 403 403 403
+POST   /api/v1/website/media                                                     401 PASS PASS PASS 403 403 403 403 403 403 403 403
+DELETE /api/v1/website/media/:id                                                 401 PASS PASS PASS 403 403 403 403 403 403 403 403
+GET    /api/v1/website/preview-token                                             401 PASS PASS PASS 403 403 403 403 403 403 403 403
 POST   /api/v1/website/publish                                                   401 PASS PASS PASS 403 403 403 403 403 403 403 403
+PUT    /api/v1/website/subdomain                                                 401 PASS PASS PASS 403 403 403 403 403 403 403 403
+GET    /api/v1/website/subdomain/check                                           401 PASS PASS PASS 403 403 403 403 403 403 403 403
+GET    /api/v1/website/subdomain/suggest                                         401 PASS PASS PASS 403 403 403 403 403 403 403 403
 GET    /api/v1/website/themes                                                    401 PASS PASS PASS 403 403 403 403 403 403 403 403

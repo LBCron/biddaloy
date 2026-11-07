@@ -1,4 +1,4 @@
-import { Controller, Get, Headers, Param, Res, StreamableFile } from '@nestjs/common';
+import { Controller, Get, Headers, Param, Query, Res, StreamableFile } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
@@ -26,6 +26,13 @@ export const SITE_READ_RATE_LIMIT: RateLimitTierOptions = { limit: 1200, ttl: 60
 export class PublicSiteController {
   constructor(private readonly site: PublicSiteService) {}
 
+  // A draft preview must never be indexed or cached (D33); set whenever `?preview=` is present.
+  private noIndex(res: Response, preview?: string) {
+    if (preview === undefined) return;
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.setHeader('Cache-Control', 'no-store');
+  }
+
   private send<T>(res: Response, r: HostAnswer<T>): T | { to: string } {
     if ('redirectTo' in r) {
       res.status(301);
@@ -37,8 +44,13 @@ export class PublicSiteController {
   @Get('manifest')
   @ApiOperation({ summary: 'Theme, nav, announcements and school facts of a published site.' })
   @ApiOkResponse()
-  async manifest(@Param('host') host: string, @Res({ passthrough: true }) res: Response) {
-    return this.send(res, await this.site.manifest(host));
+  async manifest(
+    @Param('host') host: string,
+    @Query('preview') preview: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    this.noIndex(res, preview);
+    return this.send(res, await this.site.manifest(host, preview));
   }
 
   @Get('page/:page')
@@ -47,9 +59,11 @@ export class PublicSiteController {
   async page(
     @Param('host') host: string,
     @Param('page') page: string,
+    @Query('preview') preview: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.send(res, await this.site.page(host, page));
+    this.noIndex(res, preview);
+    return this.send(res, await this.site.page(host, page, preview));
   }
 
   @Get('island/:kind')
@@ -70,9 +84,11 @@ export class PublicSiteController {
     @Param('host') host: string,
     @Param('key') key: string,
     @Headers('if-none-match') ifNoneMatch: string | undefined,
+    @Query('preview') preview: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile | { to: string } | undefined> {
-    const r = await this.site.mediaFile(host, key, ifNoneMatch);
+    this.noIndex(res, preview);
+    const r = await this.site.mediaFile(host, key, ifNoneMatch, preview);
     if ('redirectTo' in r) {
       res.status(301);
       return { to: r.redirectTo };

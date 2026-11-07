@@ -8,6 +8,11 @@ import { SchoolSite } from './entities/school-site.entity';
 import { SiteMedia } from './entities/site-media.entity';
 import { SiteConfigController } from './site-config.controller';
 import { SiteConfigService } from './site-config.service';
+import { SubdomainController } from './subdomain.controller';
+import { SubdomainService } from './subdomain.service';
+import { PreviewTokenService } from './preview-token.service';
+import { SiteMediaController } from './site-media.controller';
+import { SiteMediaService } from './site-media.service';
 import { PublicSiteController } from './public/public-site.controller';
 import { PublicSiteService } from './public/public-site.service';
 import { SiteHostService } from './public/site-host.service';
@@ -24,8 +29,22 @@ import { NoticesFeed } from './public/feeds/notices.feed';
     StorageModule,
     SchoolsModule,
   ],
-  controllers: [SiteConfigController, PublicSiteController],
-  providers: [SiteConfigService, PublicSiteService, SiteHostService, SiteCacheService, NoticesFeed],
+  controllers: [
+    SiteConfigController,
+    SubdomainController,
+    SiteMediaController,
+    PublicSiteController,
+  ],
+  providers: [
+    SiteConfigService,
+    SubdomainService,
+    PreviewTokenService,
+    SiteMediaService,
+    PublicSiteService,
+    SiteHostService,
+    SiteCacheService,
+    NoticesFeed,
+  ],
   exports: [SiteCacheService],
 })
 export class WebsiteModule {}

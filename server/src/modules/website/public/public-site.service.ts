@@ -18,6 +18,7 @@ import {
   withAnnouncementWindow,
 } from './page-read-model';
 import { NoticesFeed } from './feeds/notices.feed';
+import { PreviewTokenService } from '../preview-token.service';
 
 /** One 404 for an unknown host, an off site, a missing page and a missing picture (Rule 23). */
 export const siteNotFound = () => new NotFoundException('site.not_found');
@@ -25,6 +26,7 @@ export const siteNotFound = () => new NotFoundException('site.not_found');
 export type HostAnswer<T> = { redirectTo: string } | { data: T };
 
 interface LiveSite {
+  preview?: true;
   site: SchoolSite;
   published: SiteConfig;
   school: School;
@@ -42,6 +44,7 @@ export class PublicSiteService {
     @InjectRepository(School) private readonly schools: Repository<School>,
     @InjectRepository(SiteMedia) private readonly media: Repository<SiteMedia>,
     private readonly notices: NoticesFeed,
+    private readonly previews: PreviewTokenService,
   ) {}
 
   /**
@@ -49,10 +52,21 @@ export class PublicSiteService {
    * Checked before a renamed subdomain's 301 too: an off or suspended site's old address must
    * answer the same 404, never reveal the new one.
    */
-  private async live(host: string): Promise<{ redirectTo: string } | LiveSite> {
+  private async live(host: string, preview?: string): Promise<{ redirectTo: string } | LiveSite> {
     const found = await this.hosts.resolve(host);
     if (!found) throw siteNotFound();
     const { site } = found;
+    // D33: a valid signed token for THIS host's tenant shows the draft, switched on or not.
+    // A bad or expired one is ignored, so it answers exactly what no token would.
+    if (
+      preview !== undefined &&
+      !('redirectTo' in found) &&
+      this.previews.verify(preview, site.tenant_id)
+    ) {
+      const school = await this.schools.findOne({ where: { id: site.tenant_id } });
+      if (!school || school.status !== SchoolStatus.ACTIVE) throw siteNotFound();
+      return { preview: true, site, published: site.draft, school };
+    }
     if (!site.enabled || !site.published) throw siteNotFound();
     const school = await this.schools.findOne({ where: { id: site.tenant_id } });
     if (!school || school.status !== SchoolStatus.ACTIVE) throw siteNotFound();
@@ -60,9 +74,14 @@ export class PublicSiteService {
     return { site, published: site.published, school };
   }
 
-  async manifest(host: string): Promise<HostAnswer<PublicManifest>> {
-    const l = await this.live(host);
+  async manifest(host: string, preview?: string): Promise<HostAnswer<PublicManifest>> {
+    const l = await this.live(host, preview);
     if ('redirectTo' in l) return l;
+    if (l.preview) {
+      return {
+        data: withAnnouncementWindow(buildManifest(l.published, true, l.school), new Date()),
+      };
+    }
     const m = await this.cache.getOrLoad(
       l.site.tenant_id,
       l.site.version,
@@ -73,11 +92,16 @@ export class PublicSiteService {
     return { data: withAnnouncementWindow(m, new Date()) };
   }
 
-  async page(host: string, page: string): Promise<HostAnswer<PublicPage>> {
-    const l = await this.live(host);
+  async page(host: string, page: string, preview?: string): Promise<HostAnswer<PublicPage>> {
+    const l = await this.live(host, preview);
     if ('redirectTo' in l) return l;
     // Only known page names reach a cache key, so a caller cannot grow Redis with made-up keys.
     if (!(Object.values(SitePage) as string[]).includes(page)) throw siteNotFound();
+    if (l.preview) {
+      const draft = buildPage(l.published, page); // never cached: the draft changes while it is edited
+      if (!draft) throw siteNotFound();
+      return { data: draft };
+    }
     const built = await this.cache.getOrLoad(
       l.site.tenant_id,
       l.site.version,
@@ -104,12 +128,13 @@ export class PublicSiteService {
     host: string,
     key: string,
     ifNoneMatch?: string,
+    preview?: string,
   ): Promise<
     | { redirectTo: string }
     | { notModified: true; etag: string }
     | { body: Readable; contentType: string; etag?: string }
   > {
-    const l = await this.live(host);
+    const l = await this.live(host, preview);
     if ('redirectTo' in l) return l;
     const tenantId = l.site.tenant_id;
 
