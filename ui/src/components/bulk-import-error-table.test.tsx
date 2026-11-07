@@ -93,7 +93,7 @@ describe('BulkImportErrorTable', () => {
       await waitFor(() => expect(blobs).toHaveLength(1));
       const text = await new Promise<string>((resolve) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
+        reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
         reader.readAsText(blobs[0]!);
       });
       expect(text).not.toContain('Value in your file');
