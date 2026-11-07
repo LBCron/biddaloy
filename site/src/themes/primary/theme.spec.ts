@@ -12,7 +12,7 @@ const m = THEMES[SiteTheme.PRIMARY];
 
 describe('primary theme.css', () => {
   it('has brand hex only in the :root token block (a palette switch needs no CSS change, D28)', () => {
-    const outside = css.replace(/:root\{[^}]*\}/, '');
+    const outside = css.replace(/:root\s*\{[^}]*\}/, '');
     expect(outside.match(/#[0-9a-f]{3,8}\b/gi) ?? []).toEqual([]);
   });
 
