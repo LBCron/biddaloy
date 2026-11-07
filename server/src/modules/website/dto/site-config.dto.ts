@@ -53,6 +53,8 @@ export class SiteDto {
   @ApiProperty() draft_revision: number;
   @ApiPropertyOptional({ nullable: true }) published_at: string | null;
   @ApiProperty() has_published: boolean;
+  @ApiProperty({ description: 'True when nothing is published yet or the draft differs from it.' })
+  has_unpublished_changes: boolean;
   @ApiProperty({ type: Object }) draft: Record<string, unknown>;
 }
 

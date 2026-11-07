@@ -18,7 +18,8 @@ import { useIdempotencyKey } from './idempotency-key';
 import { shouldRetryQuery } from './retry';
 import { useDebouncedValue } from './use-debounce';
 
-export type WebsiteConfig = components['schemas']['SiteDto'];
+/** TODO(#3627): `has_unpublished_changes` joins the generated `SiteDto` when `schema.d.ts` is regenerated. */
+export type WebsiteConfig = components['schemas']['SiteDto'] & { has_unpublished_changes: boolean };
 export type WebsiteTheme = components['schemas']['ThemeSummaryDto'];
 export type SaveDraftInput = components['schemas']['SaveDraftDto'];
 export type PublishInput = components['schemas']['PublishDto'];

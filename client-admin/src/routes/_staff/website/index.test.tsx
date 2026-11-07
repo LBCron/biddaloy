@@ -43,6 +43,39 @@ describe('/website Overview', () => {
     expect(screen.getByText(/12\.0 MB \/ 100 MB/)).toBeTruthy();
   });
 
+  it('shows the unpublished badge and enables Publish only while there are changes', async () => {
+    mockWebsite({ has_published: true, enabled: true, version: 2 });
+    render();
+    expect(await screen.findByText('Changes not published')).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(
+      false,
+    );
+  });
+
+  it('disables Publish when the published copy equals the draft', async () => {
+    mockWebsite({ has_published: true, enabled: true, version: 2, has_unpublished_changes: false });
+    render();
+    await screen.findByText('Your website is on');
+    expect(screen.queryByText('Changes not published')).toBeNull();
+    expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+  });
+
+  it('hides the live link while the website is off', async () => {
+    mockWebsite({ has_published: true, enabled: false, version: 2 });
+    render();
+    await screen.findByText('Draft');
+    expect(screen.queryByText('Your website link')).toBeNull();
+  });
+
+  it('?publish=1 on a never-published site opens the wizard at its last step', async () => {
+    mockWebsite();
+    const { router } = render('/website?publish=1');
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ step: 'publish' }));
+    expect(await screen.findByRole('button', { name: 'Publish and turn on' })).toBeTruthy();
+  });
+
   it('shows Draft for a published site that is switched off', async () => {
     mockWebsite({ has_published: true, enabled: false, version: 2 });
     render();

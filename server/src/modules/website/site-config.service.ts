@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { randomBytes } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { RESERVED_SUBDOMAINS, SiteTheme } from '@biddaloy/shared';
 import type { SiteConfig } from '@biddaloy/shared';
 import { THEMES, defaultConfigFor, validateSiteConfig } from '@biddaloy/site-themes';
@@ -127,6 +128,9 @@ export function toSiteDto(site: SchoolSite): SiteDto {
     draft_revision: site.draft_revision,
     published_at: site.published_at ? site.published_at.toISOString() : null,
     has_published: site.published !== null,
+    // ponytail: a JSON compare on every read; cache a hash column if drafts get large.
+    has_unpublished_changes:
+      site.published === null || !isDeepStrictEqual(site.draft, site.published),
     draft: site.draft as unknown as Obj,
   };
 }
