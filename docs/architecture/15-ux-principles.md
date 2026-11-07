@@ -172,7 +172,8 @@ Administration
     Organisation structure [have, 33.0 — Settings section, no new route; a
     shift/version/group field only shows once the tenant has 2+ entries in
     it] · Result templates library [19.0] · Backup & restore [have]
-  Website [Epic 40] — Administration › ওয়েবসাইট: first-run wizard, then Overview (status, live link, preview, on/off); ADMIN only
+  Website [Epic 40] — Administration › ওয়েবসাইট: first-run wizard, then Overview (status, live link, preview, on/off); ADMIN only.
+    Its tabs Pages, Design, Blog and Enquiries are child routes of /website, reached from its own tab bar and listed in `NOT_IN_NAV`; the blog post editor is a detail route off the Blog tab
   (Users merged into People › Staff — Epic 24.0; "Add user" is a dialog there)
   Roles & access [have, 24.0 — read-only] · Audit logs [have] · Security [have]
 

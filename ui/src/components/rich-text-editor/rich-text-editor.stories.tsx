@@ -66,7 +66,7 @@ function Demo() {
       onChange={setV}
       lang="bn"
       labels={labels}
-      onUploadImage={async () => ({ mediaId: 'demo' })}
+      onUploadImage={() => Promise.resolve({ mediaId: 'demo' })}
     />
   );
 }
