@@ -318,5 +318,7 @@ two Cloudflare values empty. Every refusal (off, malformed, platform name, taken
   protects it is a signed handle: `website-results.handle.ts` signs exam id, result id and a 30-minute expiry (HMAC,
   key `JWT_SECRET`, domain `site-result:`), and `detail` accepts nothing else, so a result id can never be guessed.
   The whole results surface (list and both POSTs) answers the one 404 unless the school's Results page is switched
-  on (D12). Reopening an exam takes it off the website (clears `website_published_at`, bumps the site version).
+  on (D12): the page is in every theme's manifest as a section-less `results` page, off by default
+  (`ThemePage.enabledByDefault: false`); the admin switches it on in the Pages tab "Results page" card, which
+  adds it to an older draft that lacks it (`setPageEnabled`), then publishes. Reopening an exam takes it off the website (clears `website_published_at`, bumps the site version).
   The results page carries `noindex`; it is not in the sitemap.

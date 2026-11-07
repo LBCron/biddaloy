@@ -137,7 +137,7 @@ Parents can look up a result on your website. You need the **Result publish** pe
 1. Open the exam, then press **Show results on the website** ([Exams](../exams-results/exams.md#task-website)).
 2. Leave **Show student names** on, or turn it off. Off means visitors see only roll number and marks.
 3. Press **Show on website**. → **Results are now on the website.**
-4. On the **Pages** tab, check that the **Results** page is switched on. Then press **Publish** on the **Overview** tab.
+4. On the **Pages** tab, in the **Results page** card, switch on **Show the Results page on my website**. Anyone who knows a class, section and roll can then look up a result. Press **Save draft**, then **Publish** on the **Overview** tab. It is off until you do this.
 
 <figure>
 <img src="diagrams/administration-website-results.svg" alt="The Admin publishes the exam, shows it on the website and publishes the website. A visitor picks exam, class and section, ticks the box, and sees the results." width="720">
