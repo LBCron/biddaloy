@@ -47,4 +47,9 @@ describe('StatTile signal (#3594)', () => {
     rerender(<StatTile label="L" value="9" signal="neutral" signalLabel="Watch" />);
     expect(screen.queryByText('Watch')).toBeNull();
   });
+
+  it('an unsignalled value keeps its old layout (no flex row)', () => {
+    render(<StatTile label="L" value="9" />);
+    expect(screen.getByText('9').className).not.toContain('flex');
+  });
 });

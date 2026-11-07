@@ -196,7 +196,8 @@ test.describe('attendance machines', () => {
       .first()
       .click();
     const dialog = page.getByRole('dialog', { name: t('settings.attendanceDevices.add.title') });
-    await dialog.getByLabel(t('settings.attendanceDevices.form.name')).fill(name);
+    // exact: 'নাম' (name) is also a substring of the roster switch's label ('নামাতে').
+    await dialog.getByLabel(t('settings.attendanceDevices.form.name'), { exact: true }).fill(name);
     await dialog.getByRole('button', { name: t('settings.attendanceDevices.form.save') }).click();
 
     // The key is shown once; closing without copying asks first.

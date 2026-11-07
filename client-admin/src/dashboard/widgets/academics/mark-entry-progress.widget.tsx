@@ -74,7 +74,8 @@ export function MarkEntryView({
   // [#3598] done = healthy; past the deadline = needs action; within 3 days = watch (D9).
   let signal: { level: SignalLevel; key: string } | undefined;
   if (data && !empty) {
-    if (data.overall.percentage >= 100) signal = { level: 'ok', key: 'done' };
+    // Raw counts, not `percentage`: the server rounds it, so 199/200 would read 100 (done).
+    if (data.overall.submitted >= data.overall.total) signal = { level: 'ok', key: 'done' };
     else if (daysLeft !== undefined && daysLeft < 0)
       signal = { level: 'critical', key: 'pastDeadline' };
     else if (daysLeft !== undefined && daysLeft <= 3)

@@ -331,9 +331,9 @@ body[data-scroll-locked] {
 
   /* Dashboard signal scale (epic #3592). Mirrors tailwind.preset.ts `signal`. */
   --color-signal-critical-fg: oklch(0.5 0.19 27);
-  --color-signal-critical-bg: oklch(0.95 0.03 25);
-  --color-signal-warn-fg: oklch(0.48 0.12 65);
-  --color-signal-warn-bg: oklch(0.96 0.05 85);
+  --color-signal-critical-bg: oklch(0.95 0.022 25);
+  --color-signal-warn-fg: oklch(0.48 0.1 65);
+  --color-signal-warn-bg: oklch(0.96 0.04 85);
   --color-signal-ok-fg: oklch(0.48 0.13 150);
   --color-signal-ok-bg: oklch(0.95 0.05 150);
   --color-signal-neutral-fg: oklch(0.45 0.02 255);

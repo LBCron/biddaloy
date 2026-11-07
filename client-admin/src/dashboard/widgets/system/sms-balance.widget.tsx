@@ -18,8 +18,10 @@ export const widgetKey = DashboardWidgetKey.SMS_BALANCE;
 export type SmsBalanceDto = components['schemas']['SmsBalanceWidgetDto'];
 
 const K = widgetKey;
-/** Server default of `smsCreditLowThreshold`. The school's own value is in the ADMIN-only
- * settings read (SETTINGS_MANAGE), which EXECUTIVE cannot call, and D9 adds no DTO field. */
+/** Server default of `smsCreditLowThreshold`, fixed on purpose (#3592 D9 round 2): one fixed
+ * number, no extra rate-limited settings call per dashboard load. The card is ADMIN-only
+ * (SETTINGS_MANAGE), so it could read the school's own value; it does not. So "low" here can
+ * differ from the school's own `sms_credit_low` alert threshold. */
 const SMS_LOW = 200;
 
 function useSmsBalance() {

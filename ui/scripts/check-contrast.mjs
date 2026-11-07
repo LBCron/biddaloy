@@ -38,6 +38,8 @@ import { fileURLToPath } from 'node:url';
 const pkgRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const HEX_RE = /^#[0-9a-f]{6}$/i;
+// Supported subset only: three bare unsigned numbers, `oklch(L C h)`. Alpha (`/ a`), `%`
+// and `deg` forms do not match and fail loudly below; write tokens in the bare form.
 const OKLCH_RE = /^oklch\(\s*(\d*\.?\d+)\s+(\d*\.?\d+)\s+(\d*\.?\d+)\s*\)$/i;
 
 /** `oklch(L C h)` -> linear sRGB [r,g,b], clipped to gamut (Ottosson's matrices). */

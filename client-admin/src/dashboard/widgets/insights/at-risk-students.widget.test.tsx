@@ -184,7 +184,9 @@ describe('at-risk-students widget', () => {
   it('signal: computing shows none', async () => {
     serve({ ...BASE, state: 'COMPUTING', students: [], total: 0 });
     renderWidget('full');
-    await screen.findByRole('heading');
+    // Wait for the data render (the heading is already there while loading).
+    await screen.findByText('The list is being prepared. Check back in a minute.');
+    expect(document.querySelector('[data-signal]')).toBeNull();
     expect(screen.queryByText('Needs action')).toBeNull();
   });
 

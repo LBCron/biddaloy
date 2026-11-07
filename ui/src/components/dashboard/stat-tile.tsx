@@ -4,28 +4,25 @@ import * as React from 'react';
 import { cn } from '../../primitives/lib/utils';
 import { Card } from '../card';
 
-import { SIGNAL, type SignalLevel } from './signal';
+import { SIGNAL, type SignalProps } from './signal';
 
 /**
  * [169.1-02] Phone KPI tile (also the committee desktop KPI row). Trend is
  * icon + text, never colour alone. Presentational; strings arrive formatted.
+ * `signal` (#3594): coloured number + icon + sr-only `signalLabel`; unset/`neutral` = as before.
  */
-export interface StatTileProps {
+export type StatTileProps = SignalProps & {
   label: string;
   value: string;
   trend?: { direction: 'up' | 'down' | 'flat'; text: string; tone?: 'neutral' | 'good' | 'bad' };
   /** Caption without an icon, e.g. "guardians". */
   note?: string;
-  /** Priority/health accent (#3594): coloured number + icon. Unset/`neutral` = as before. */
-  signal?: SignalLevel;
-  /** Translated level text for screen readers. */
-  signalLabel?: string;
   /** Sparkline or Meter. With `asChild`: the single link element (its children fill this slot). */
   children?: React.ReactNode;
   /** Wrap a router Link, like Card's asChild. */
   asChild?: boolean;
   className?: string;
-}
+};
 
 const ICON = { up: TrendingUpIcon, down: TrendingDownIcon, flat: MinusIcon } as const;
 const TONE = {
@@ -52,11 +49,11 @@ export function StatTile({
       <span className="truncate text-label text-text-secondary">{label}</span>
       <span
         data-signal={sig ? signal : undefined}
-        className={cn('flex items-center gap-2 text-h1 tabular-nums', sig?.text)}
+        className={cn('text-h1 tabular-nums', sig && 'flex items-center gap-2', sig?.text)}
       >
         {sig ? <sig.Icon aria-hidden="true" className="size-5 shrink-0" /> : null}
         {value}
-        {sig && signalLabel ? <span className="sr-only">{signalLabel}</span> : null}
+        {sig ? <span className="sr-only">{signalLabel}</span> : null}
       </span>
       {trend && Icon ? (
         <span className={cn('flex items-center gap-1 text-caption', TONE[trend.tone ?? 'neutral'])}>

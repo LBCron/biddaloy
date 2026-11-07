@@ -157,13 +157,13 @@ The banner at the top of the page uses the same marks: a red triangle when any t
 | Mark entry progress       | Deadline has passed, not finished   | Deadline within 3 days           | Finished                       |
 | Syllabus progress         |                                     | A class is behind the study plan | On the study plan              |
 | Fee collection this month | 10 points or more behind last month | Behind last month                | Same as or ahead of last month |
-| SMS balance               | Balance is 0                        | Under 200                        | Never (see note)               |
+| SMS balance               | Balance is 0 or less                | Under 200                        | Never (see note)               |
 | Failed messages           | One or more failed                  |                                  | None failed                    |
 | Finish setting up (admin) |                                     | Setup is not finished yet        |                                |
 
 Notes:
 
-- **SMS balance** never turns green. Your school can set its own "low SMS" level in Settings, maybe higher than 200, and the card cannot see it. So a plain card means "not under 200", not "all good".
+- **SMS balance** always uses 200 as "low" and never turns green. Your school can set its own "low SMS" level in Settings, and the card does not use it. So the card and the "low SMS" alert can disagree. A plain card means "not under 200", not "all good".
 - **Today's attendance** compares the whole school today with 75%. It is not the per-student monthly attendance level in the at-risk settings.
 - **Failed messages** turns red at even one failed SMS: one failed absence notice is a parent who was not told. The to-do alert waits for 10.
 

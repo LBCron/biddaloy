@@ -7,6 +7,10 @@ import { CircleCheckIcon, ClockIcon, MinusIcon, TriangleAlertIcon } from 'lucide
  */
 export type SignalLevel = 'critical' | 'warn' | 'ok' | 'neutral';
 
+/** A signal always travels with its translated level text (D8): both or neither. */
+export type SignalProps =
+  { signal: SignalLevel; signalLabel: string } | { signal?: undefined; signalLabel?: undefined };
+
 export const SIGNAL: Record<
   SignalLevel,
   { Icon: typeof MinusIcon; text: string; bar: string; band: string }

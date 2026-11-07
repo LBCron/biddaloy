@@ -45,9 +45,8 @@ export function ApprovalsPendingView({
   failed = false,
   onRetry,
 }: ApprovalsPendingViewProps) {
-  const { t } = useTranslation('dashboard');
-  useTranslation('applications'); // [#3592] load namespace before first render
-  useTranslation('signal'); // [#3592] separate binding: check-i18n-keys reads the first single-quoted call
+  // One array call: the namespaces load in parallel. Every t() names its ns explicitly.
+  const { t } = useTranslation(['dashboard', 'applications', 'signal']);
   const region = useTenantRegionConfig();
   const tw = (key: string, opts: Record<string, unknown> = {}) =>
     t(`dashboard:widgets.${K}.${key}`, opts);

@@ -366,7 +366,8 @@ flowchart LR
 - **Fail open.** A widget that is loading, errored, empty or has no data sets **no** signal. The card then renders exactly as before. A missing signal never means "all good". `WidgetCard` enforces it too: with `loading` or `error` set it drops any `signal` it was given.
 - **Read order.** The marker (`<span data-signal="warn">` = icon + `sr-only` label) sits after the heading in the DOM and is moved before it with `order-first`. A screen reader lands on the title, then hears the level. The card's accessible name stays just the title. On the compact (phone) card the label is the toggle button's `aria-describedby`, not part of its name.
 - **Phone tiles too.** A widget that returns a `StatTile` for the phone key numbers passes the same `signal` / `signalLabel` to it.
-- **Briefing line (D12).** Any critical alert = needs action; else any warning = watch; reminders only = no signal.
+- **Briefing line (D12).** Any critical alert = needs action; else any warning = watch; reminders only = no signal. The marker follows the headline in the DOM (read title first) and shows before it with `order-first`. Unlike the old decorative icon it shows on phones too, because it carries the level text.
+- **Bar, and a band for critical only (D4).** Every level but `neutral` draws a 3px start-side bar. Only `critical` also tints the header band (`bg-signal-critical-bg`), on the full and the compact card. The band's padding is cancelled by a negative margin, so a red card's title lines up with its neighbours.
 - **`neutral` and a missing signal draw nothing.** The healthy card must not shout.
 - **A widget picks its own level.** It passes `signal` and `signalLabel` to `WidgetCard`. Wiring and thresholds today:
 
@@ -378,14 +379,15 @@ flowchart LR
 | `approvals-pending`                                    | any waiting                  | none                        | none waiting        |
 | `attendance-today`                                     | none                         | below 75% today             | none                |
 | `staff-today`                                          | none                         | anyone absent without leave | none                |
-| `mark-entry-progress`                                  | past the deadline            | deadline within 3 days      | 100 percent done    |
+| `mark-entry-progress`                                  | past the deadline            | deadline within 3 days      | every mark in       |
 | `syllabus-progress`                                    | none                         | any class behind the plan   | on pace             |
 | `at-risk-students`                                     | any at-risk student          | none                        | none                |
 | `setup-checklist` (onboarding card, not a grid widget) | none                         | unfinished                  | none                |
 
-**Thresholds the widget cannot see.** The DTOs carry no per-school threshold (D9), and the school's settings read is ADMIN-only (`SETTINGS_MANAGE`), so EXECUTIVE cannot use it.
+**Fixed thresholds.** The DTOs carry no per-school threshold (D9), so a widget compares with a fixed number.
 
-- `sms-balance` uses the server default 200. The school can set its own `smsCreditLowThreshold`, maybe higher. So the card never shows `ok`: "All good" could contradict the school's own `sms_credit_low` alert.
+- `sms-balance` uses the server default 200 on purpose (D9, decided in review round 2 of PR #3686). The card is ADMIN-only (`SETTINGS_MANAGE`), so it could read the school's own `smsCreditLowThreshold`. It does not: one fixed number, no extra rate-limited settings call per dashboard load. So the card's "low" can differ from the school's own `sms_credit_low` alert. Example: threshold 500 and 300 left, the alert fires but the card shows nothing. Threshold 50 and 150 left, the card says "Running low" but the alert stays quiet. That is also why the card never shows `ok`.
+- `mark-entry-progress` is done only when `submitted >= total`, not `percentage >= 100`: the server rounds the percentage, so 199 of 200 would read 100.
 - `attendance-today` uses a fixed 75% of the whole school **today**. That is not `risk.monthlyAttendancePct`, which is one student's attendance over a month (same default, different measure).
 - `failed-messages` is critical at **any** failed SMS on purpose: one failed absence notice is a parent who was not told. The server alert waits for `failedMessagesThreshold` (10).
 

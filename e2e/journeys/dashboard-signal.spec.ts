@@ -12,22 +12,9 @@ import { t } from '../i18n';
  * worker defeats `page.route` on the built app, so it cannot be forced here.
  */
 
-// The labels a desktop card can announce (bn is the default e2e locale): the level words
-// plus the per-widget phrasings the wired widgets use.
-const LEVEL_TEXTS = (
-  [
-    'needsAction',
-    'watch',
-    'healthy',
-    'behind',
-    'onTrack',
-    'ahead',
-    'pastDeadline',
-    'approaching',
-    'done',
-    'low',
-  ] as const
-).map((key) => bnSignal[key]);
+// Every signal label (level words and per-widget phrasings). The spec pins `bn` below, so a
+// new key in signal.json is covered without editing this list.
+const LEVEL_TEXTS: string[] = Object.values(bnSignal);
 
 async function openDashboard(page: Page) {
   await page.goto('/dashboard');
@@ -38,7 +25,7 @@ async function openDashboard(page: Page) {
 }
 
 test.describe('dashboard signal colour: admin', () => {
-  test.use(loggedIn('admin'));
+  test.use({ ...loggedIn('admin'), e2eLocale: 'bn' });
 
   test('every signal marker has an icon and level text; none is colour only', async ({ page }) => {
     await openDashboard(page);

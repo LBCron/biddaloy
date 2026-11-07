@@ -82,4 +82,12 @@ describe('BriefingLine signal (#3594)', () => {
       'text-signal-critical-fg',
     );
   });
+
+  it('reads the headline first: the marker follows the h2 in the DOM, shown first with order-first', () => {
+    render(<BriefingLine headline="H" signal="warn" signalLabel="Watch" />);
+    const heading = screen.getByRole('heading', { name: 'H' });
+    const marker = document.querySelector('[data-signal="warn"]')!;
+    expect(heading.compareDocumentPosition(marker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(marker.className).toContain('order-first');
+  });
 });

@@ -228,6 +228,23 @@ describe('WidgetCard signal (#3594)', () => {
     expect(screen.getByRole('region').className).toContain('border-s-signal-critical-fg');
   });
 
+  it('compact critical tints its header band too; warn does not', () => {
+    const { rerender } = render(
+      <WidgetCard {...base} variant="compact" signal="critical" signalLabel="Needs action" />,
+    );
+    expect(screen.getByRole('heading').parentElement!.className).toContain('bg-signal-critical-bg');
+    rerender(<WidgetCard {...base} variant="compact" signal="warn" signalLabel="Watch" />);
+    expect(screen.getByRole('heading').parentElement!.className).not.toContain('bg-signal');
+  });
+
+  it('critical header band cancels its own padding, so the header does not shift', () => {
+    render(<WidgetCard {...base} signal="critical" signalLabel="Needs action" />);
+    const band = screen.getByRole('heading').parentElement!.className;
+    expect(band).toContain('bg-signal-critical-bg');
+    expect(band).toContain('py-1');
+    expect(band).toContain('-my-1');
+  });
+
   it('neutral and unset render no icon, bar or band', () => {
     const { rerender } = render(<WidgetCard {...base} signal="neutral" signalLabel="None" />);
     expect(screen.queryByText('None')).toBeNull();

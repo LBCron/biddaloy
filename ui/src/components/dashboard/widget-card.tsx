@@ -8,7 +8,7 @@ import { HelpHint } from '../help-hint';
 import { Menu, MenuContent, MenuTrigger } from '../menu';
 import { Skeleton } from '../skeleton';
 
-import { SIGNAL, type SignalLevel } from './signal';
+import { SIGNAL, type SignalProps } from './signal';
 
 /** [44.2.02] WidgetSlot sets this to `widget.<key>`, so no widget file passes a help id (E23). */
 export const WidgetHelpContext = React.createContext<string | null>(null);
@@ -20,12 +20,12 @@ export const WidgetHelpContext = React.createContext<string | null>(null);
  * stays visible in every state so one failing card never reflows its
  * neighbours. Priority: loading > error > empty > content.
  */
-export interface WidgetCardProps {
+/**
+ * `signal` (#3594): priority/health accent; unset or `neutral` renders exactly as before.
+ * `signalLabel`: translated level text read by screen readers; required with `signal`.
+ */
+export type WidgetCardProps = SignalProps & {
   title: string;
-  /** Priority/health accent (#3594). Unset or `neutral` renders exactly as before. */
-  signal?: SignalLevel;
-  /** Translated level text, read by screen readers beside the icon. Required with `signal`. */
-  signalLabel?: string;
   /** Help id of the (?) beside the title; defaults to `WidgetHelpContext`. */
   helpId?: string;
   variant?: 'full' | 'compact';
@@ -51,7 +51,7 @@ export interface WidgetCardProps {
   defaultExpanded?: boolean;
   onExpandedChange?: (open: boolean) => void;
   className?: string;
-}
+};
 
 export function WidgetCard({
   title,
@@ -125,12 +125,13 @@ export function WidgetCard({
     return (
       <Card asChild className={cn('flex flex-col', sig?.bar, className)}>
         <section aria-labelledby={id}>
-          <div className="flex items-center">
+          {/* Critical only: the same tinted header band as the full card (D4). */}
+          <div className={cn('flex items-center', sig?.band && `rounded-lg ${sig.band}`)}>
             <Heading id={id} className="m-0 min-w-0 flex-1">
               <button
                 type="button"
                 aria-expanded={open}
-                {...(sig && signalLabel ? { 'aria-describedby': sigLabelId } : {})}
+                {...(sig ? { 'aria-describedby': sigLabelId } : {})}
                 onClick={toggle}
                 className="flex min-h-11 w-full items-center gap-3 rounded-lg p-3 text-start outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
@@ -167,7 +168,7 @@ export function WidgetCard({
               </button>
             </Heading>
             {/* Outside the button and heading: the level is read as a description, not the name. */}
-            {sig && signalLabel ? (
+            {sig ? (
               <span id={sigLabelId} className="sr-only">
                 {signalLabel}
               </span>
@@ -191,7 +192,8 @@ export function WidgetCard({
         <div
           className={cn(
             'flex items-start justify-between gap-2',
-            sig?.band && `-mx-2 rounded-md px-2 py-1 ${sig.band}`,
+            // Negative margins cancel the padding: the band never shifts the header vs its neighbours.
+            sig?.band && `-mx-2 -my-1 rounded-md px-2 py-1 ${sig.band}`,
           )}
         >
           <Heading id={id} className="me-auto text-h3">
@@ -205,7 +207,7 @@ export function WidgetCard({
               className={cn('order-first inline-flex shrink-0 items-center', sig.text)}
             >
               <sig.Icon aria-hidden="true" className="size-4" />
-              {signalLabel ? <span className="sr-only">{signalLabel}</span> : null}
+              <span className="sr-only">{signalLabel}</span>
             </span>
           ) : null}
           {helpEl}

@@ -126,6 +126,15 @@ describe('mark-entry-progress widget', () => {
       },
       'Done',
     );
+    // The server rounds 199/200 to 100%: one mark still missing is past the deadline, not done.
+    await run(
+      {
+        ...BASE,
+        mark_entry_deadline: inDays(-1),
+        overall: { submitted: 199, total: 200, percentage: 100 },
+      },
+      'Past the deadline',
+    );
   });
 
   it('no deadline → no deadline text', async () => {
