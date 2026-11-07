@@ -2,10 +2,17 @@ import {
   SITE_ANNOUNCEMENTS_MAX,
   SITE_HERO_MAX_PHOTOS,
   SITE_POST_BODY_MAX_CHARS,
+  SiteAnnouncementStyle,
+  SiteMarqueeSpeed,
   SitePage,
   SiteSectionKey,
 } from '@biddaloy/shared';
-import type { SiteConfig, SitePageConfig, SiteSectionConfig } from '@biddaloy/shared';
+import type {
+  SiteConfig,
+  SitePageConfig,
+  SiteSectionConfig,
+  SiteSectionTypography,
+} from '@biddaloy/shared';
 import type { ThemeManifest } from './manifest';
 
 export const SITE_TEXT_MAX_CHARS = 2000;
@@ -15,6 +22,45 @@ export type ValidateResult = { ok: true; value: SiteConfig } | { ok: false; erro
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isStr = (v: unknown): v is string => typeof v === 'string';
+
+const SIZES = ['S', 'M', 'L', 'XL'];
+const WEIGHTS = ['regular', 'medium', 'bold'];
+const ALIGNS = ['start', 'center'];
+
+/** Keeps only known typography keys with known values. */
+function cleanTypography(raw: Obj, bad: (code: string) => void): SiteSectionTypography {
+  const out: SiteSectionTypography = {};
+  for (const lang of ['bn', 'en'] as const) {
+    if (raw[lang] === undefined) continue;
+    if (!isObj(raw[lang])) {
+      bad('typography.invalid');
+      continue;
+    }
+    const pair: Obj = {};
+    for (const role of ['heading', 'body'] as const) {
+      const st = (raw[lang] as Obj)[role];
+      if (st === undefined) continue;
+      if (!isObj(st)) {
+        bad('typography.invalid');
+        continue;
+      }
+      const o: Obj = {};
+      if (st.size !== undefined)
+        isStr(st.size) && SIZES.includes(st.size) ? (o.size = st.size) : bad('typography.invalid');
+      if (st.weight !== undefined)
+        isStr(st.weight) && WEIGHTS.includes(st.weight)
+          ? (o.weight = st.weight)
+          : bad('typography.invalid');
+      if (st.align !== undefined)
+        isStr(st.align) && ALIGNS.includes(st.align)
+          ? (o.align = st.align)
+          : bad('typography.invalid');
+      pair[role] = o;
+    }
+    out[lang] = pair as SiteSectionTypography['bn'];
+  }
+  return out;
+}
 
 /**
  * Checks a SiteConfig against a theme manifest. Plain functions, no zod.
@@ -45,7 +91,46 @@ export function validateSiteConfig(config: unknown, manifest: ThemeManifest): Va
   const bar = isObj(config.announcements) ? config.announcements : {};
   const items = Array.isArray(bar.items) ? bar.items : [];
   if (items.length > SITE_ANNOUNCEMENTS_MAX) bad('announcements.tooMany');
-  const announcements = { ...(bar as object), items } as SiteConfig['announcements'];
+  const style = Object.values(SiteAnnouncementStyle).find((v) => v === bar.style);
+  const speed = Object.values(SiteMarqueeSpeed).find((v) => v === bar.speed);
+  if (!style || !speed) bad('announcements.invalid');
+  const cleanItems: SiteConfig['announcements']['items'] = [];
+  for (const it of items.slice(0, SITE_ANNOUNCEMENTS_MAX)) {
+    const ok =
+      isObj(it) &&
+      isStr(it.id) &&
+      it.id.length <= 64 &&
+      isObj(it.text) &&
+      isStr(it.text.bn) &&
+      isStr(it.text.en) &&
+      it.text.bn.length <= SITE_TEXT_MAX_CHARS &&
+      it.text.en.length <= SITE_TEXT_MAX_CHARS &&
+      typeof it.enabled === 'boolean' &&
+      (it.href === undefined ||
+        (isStr(it.href) &&
+          it.href.length <= 500 &&
+          /^(https?:\/\/|\/)/i.test(it.href) &&
+          !it.href.startsWith('//'))) &&
+      (it.from === undefined || (isStr(it.from) && !Number.isNaN(Date.parse(it.from)))) &&
+      (it.until === undefined || (isStr(it.until) && !Number.isNaN(Date.parse(it.until))));
+    if (!ok) {
+      bad('announcements.item.invalid');
+      continue;
+    }
+    cleanItems.push({
+      id: it.id as string,
+      text: { bn: (it.text as Obj).bn as string, en: (it.text as Obj).en as string },
+      enabled: it.enabled as boolean,
+      ...(it.href !== undefined ? { href: it.href as string } : {}),
+      ...(it.from !== undefined ? { from: it.from as string } : {}),
+      ...(it.until !== undefined ? { until: it.until as string } : {}),
+    });
+  }
+  const announcements: SiteConfig['announcements'] = {
+    style: style ?? SiteAnnouncementStyle.STATIC,
+    speed: speed ?? SiteMarqueeSpeed.NORMAL,
+    items: cleanItems,
+  };
 
   const pageKeys = new Set<string>(Object.values(SitePage));
   const rawPages = Array.isArray(config.pages) ? config.pages : [];
@@ -90,7 +175,7 @@ export function validateSiteConfig(config: unknown, manifest: ThemeManifest): Va
       sections.push({
         key: s.key as SiteSectionKey,
         enabled: s.enabled !== false,
-        ...(isObj(s.typography) ? { typography: s.typography } : {}),
+        ...(isObj(s.typography) ? { typography: cleanTypography(s.typography, bad) } : {}),
         data,
       });
     }

@@ -183,3 +183,5 @@ details p{padding:0 0 14px;color:var(--ink-2)}
 @media(max-width:719px){.g4{grid-template-columns:1fr 1fr}.tcard{padding:12px}.avatar{width:72px;height:72px}.avatar::before{top:16px;width:24px;height:24px}.avatar::after{top:44px;width:46px;height:40px}}
 
 :root{--ann-bg:#e8eefc;--ann-ink:#0f3aa8;--ann-label-bg:#1a4fd6;--ann-label-ink:#fff;--ann-r:6px;--ann-m:6px 0 6px 10px;--hc-bg:#e8eefc;--hc-ink:#0f3aa8;--hc-line:#c9d6f7;--hc-cap-r:6px;--sa-ink:#0f3aa8;--sa-r:10px}.hero .hc{border-radius:var(--r)}.hero .hc-ph{aspect-ratio:16/9;border-radius:var(--r)}.hero .hc-slide .slot{height:100%}main>.strip:last-child{margin-bottom:40px}
+/* after the all:unset rules above */
+.lang button:focus-visible,.filters button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
