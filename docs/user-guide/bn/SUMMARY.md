@@ -100,6 +100,7 @@
   - [ভূমিকা ও অনুমতি](administration/roles.md)
   - [কার্যক্রমের রেকর্ড](administration/audit-logs.md)
   - [তৈরি শিক্ষাক্রম](administration/curriculum-preset.md)
+  - [স্কুলের ওয়েবসাইট](administration/website.md)
   - [পরিচয়পত্র, সনদ ও পরীক্ষার কাগজ ছাপা](administration/print-templates.md)
     - [ডিজাইনারের গাইড](administration/print-templates/designer-guide.md)
     - [প্রিন্টার ও ক্যালিব্রেশন](administration/print-templates/printers-and-calibration.md)

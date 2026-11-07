@@ -1,0 +1,7 @@
+%% title: How the school website goes live
+%% desc: The Admin picks a web address, a design and colours, and can add a logo. The website stays private until the Admin presses Publish and turn on. After that anyone can read it without logging in. The Admin can turn it off and on again.
+flowchart LR
+  S["Admin sets up<br/>address · design · logo"]:::admin --> B["Admin presses<br/>Publish and turn on"]:::admin
+  B --> W["Website is on<br/>anyone can read it"]
+  W --> O["Admin can turn it off<br/>and on again"]:::admin
+  classDef admin fill:#fff4e6,stroke:#e8590c,color:#7a2e05
