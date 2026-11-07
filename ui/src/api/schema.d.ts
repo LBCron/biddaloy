@@ -6189,6 +6189,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exams/{examId}/website-publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Show a PUBLISHED exam on the school website. 409 for any other status, 404 for an unknown exam. */
+        post: operations["WebsiteResultsController_publish_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/{examId}/website-unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take an exam off the school website, effective at once. */
+        post: operations["WebsiteResultsController_unpublish_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/{examId}/website-names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Show or hide student names on the exam's public results table. */
+        patch: operations["WebsiteResultsController_setNames_v1"];
+        trace?: never;
+    };
     "/api/v1/students/{studentId}/transcript": {
         parameters: {
             query?: never;
@@ -10572,6 +10623,40 @@ export interface paths {
         get: operations["PublicSiteController_island_v1"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/site/by-host/{host}/island/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** One section of a website-published exam, or one roll of it, 100 rows a page. 400 CAPTCHA_FAILED, 404 results.not_found, 429 over 30 a minute, 503 when the check is unavailable. */
+        post: operations["PublicSiteController_resultsTable_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/site/by-host/{host}/island/results/detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Per-subject marks of one row of the results table. */
+        post: operations["PublicSiteController_resultDetail_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -16689,6 +16774,14 @@ export interface components {
         ProcessExamDto: {
             force?: boolean;
         };
+        WebsiteResultsStateDto: {
+            /** @description Whether the exam is on the school website after the call. */
+            websitePublished: boolean;
+        };
+        WebsiteNamesDto: {
+            /** @description Show student names on the public results table. */
+            showNames: boolean;
+        };
         DocumentPrintDto: {
             /** @enum {string} */
             document: "REPORT_CARD" | "TRANSCRIPT" | "FINAL_REPORT_CARD";
@@ -19615,6 +19708,55 @@ export interface components {
             items: components["schemas"]["SiteMediaDto"][];
             usedBytes: number;
             quotaBytes: number;
+        };
+        ResultsQueryDto: {
+            /** @description Cloudflare Turnstile token. */
+            captcha_token: string;
+            /** Format: uuid */
+            exam_id: string;
+            /** Format: uuid */
+            class_section_id: string;
+            roll?: number;
+            /** @default 1 */
+            page: number;
+        };
+        WebsiteResultRowDto: {
+            /** Format: uuid */
+            id: string;
+            roll: number;
+            name: string | null;
+            gpa: number;
+            grade: string;
+            passed: boolean;
+        };
+        WebsiteResultsPageDto: {
+            page: number;
+            pageSize: number;
+            total: number;
+            showNames: boolean;
+            rows: components["schemas"]["WebsiteResultRowDto"][];
+        };
+        ResultsDetailQueryDto: {
+            /** Format: uuid */
+            exam_id: string;
+            /**
+             * Format: uuid
+             * @description The `id` of a row the table answer returned.
+             */
+            result_id: string;
+        };
+        WebsiteResultSubjectDto: {
+            name: {
+                en: string;
+                bn: string | null;
+            };
+            obtained: number;
+            grade: string;
+            gpa: number;
+            passed: boolean;
+        };
+        WebsiteResultDetailDto: {
+            subjects: components["schemas"]["WebsiteResultSubjectDto"][];
         };
         PostDto: {
             id: string;
@@ -35858,6 +36000,107 @@ export interface operations {
             };
         };
     };
+    WebsiteResultsController_publish_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                examId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteResultsStateDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    WebsiteResultsController_unpublish_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                examId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteResultsStateDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    WebsiteResultsController_setNames_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path: {
+                examId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsiteNamesDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     TranscriptController_getTranscript_v1: {
         parameters: {
             query: {
@@ -46729,6 +46972,56 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    PublicSiteController_resultsTable_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                host: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResultsQueryDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteResultsPageDto"];
+                };
+            };
+        };
+    };
+    PublicSiteController_resultDetail_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                host: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResultsDetailQueryDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteResultDetailDto"];
+                };
             };
         };
     };
