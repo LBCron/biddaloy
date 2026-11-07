@@ -24,8 +24,8 @@ export class ClassSectionsFeed implements Feed {
         WHERE cs.tenant_id = $1 AND cs.deleted_at IS NULL AND c.deleted_at IS NULL
           AND y.is_current = true AND y.deleted_at IS NULL
         ORDER BY c.name, cs.section_name, cs.id
-        LIMIT ${CLASS_SECTIONS_MAX}`,
-      [tenantId],
+        LIMIT $2`,
+      [tenantId, CLASS_SECTIONS_MAX],
     );
     return rows.map((r) => {
       const label = `${r.class_name} ${r.section_name}`;

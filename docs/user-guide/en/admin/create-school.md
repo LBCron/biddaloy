@@ -139,6 +139,8 @@ The wizard has three steps at the top: **Set up**, **Add people**, **Done**.
    | **From an Excel file**         | You download a file, fill it in and upload it                                                                                          | No, not yet    |
    | **I will do it later**         | You go to the **Add your people** page, where you can press **Next** without adding anyone                                             | No             |
 
+   Under **Step by step** you also see the question **Do you want a school website too?** Choose **Yes, set it up** or **Not now**. If you choose yes, the checklist on the dashboard gets one more row, **Set up the website**.
+
 2. If you chose **Step by step**, three pages come. At the bottom of each, press **Next**. To go back, press **Back**.
    - **Your school:** type the **School name (English)** and the **School name (Bangla)** (the Bangla name is optional). If you like, add a **School logo**. If you leave the English name empty, the message **Enter the school name.** appears.
    - **Classes and subjects:** pick a ready-made list, or press **Set up by hand**, or press **Skip this step**. If the school already has classes or students, a ready-made list cannot be applied.
