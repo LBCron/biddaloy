@@ -5,10 +5,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { GallerySectionCard } from './-gallery-section-card';
 
-const photo = (n: number) => ({
+// The server returns `caption: null` for a photo uploaded without a caption.
+const photo = (n: number, caption: { bn: string; en: string } | null = { bn: '', en: '' }) => ({
   id: `p${n}`,
   mediaId: `m${n}`,
-  caption: { bn: '', en: '' },
+  caption,
   sortOrder: n - 1,
 });
 const album = (photos: ReturnType<typeof photo>[]) => ({
@@ -75,6 +76,13 @@ describe('GallerySectionCard', () => {
     await screen.findByRole('heading');
     const img = document.querySelector('img')!;
     expect(img.getAttribute('src')).toBe('https://school.example.test/media/m1');
+  });
+
+  it('a photo with no caption (caption: null) renders and does not crash the tab', async () => {
+    render([photo(1, null), photo(2, { bn: 'ছবি', en: 'Picture' })]);
+    await screen.findByRole('heading');
+    expect(document.querySelectorAll('img')).toHaveLength(2);
+    expect(screen.queryByText(/could not be loaded/i)).toBeNull();
   });
 
   it('a long caption is cut at 120 characters before it is sent', async () => {
