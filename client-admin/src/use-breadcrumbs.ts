@@ -26,6 +26,7 @@ import {
   surveyKeys,
   useEntityLabel,
   userQueryOptions,
+  websiteContentKeys,
 } from '@biddaloy/ui/hooks';
 import { i18n, useRegionConfig, useTranslation, type RegionConfig } from '@biddaloy/ui/i18n';
 import { formatDate, renderDigits } from '@biddaloy/ui/utils';
@@ -107,6 +108,11 @@ export const ENTITY_RESOLVERS: Record<string, EntityResolver> = {
   noticeDetail: {
     queryKeys: (id) => [noticeKeys.detail(id), ['notice-compose', id]],
     getName: byField('title'),
+  },
+  // [40.3.07] Blog post: the Bangla title, from the post the editor already loaded.
+  blogPost: {
+    queryKeys: (id) => [websiteContentKeys.post(id)],
+    getName: (data) => field((data as { title?: unknown } | null)?.title, 'bn'),
   },
   // [32.4.1] Keyed by the crumb's own label key: "template" has no `EntityLabel` noun.
   printTemplateEdit: {

@@ -290,6 +290,13 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
   '/_staff/settings': [{ label: { key: 'settings' } }],
   '/_staff/curriculum-preset': [{ label: { key: 'curriculumPreset' } }],
   '/_staff/website/': [{ label: { key: 'website' } }],
+  // [40.3.07] [40.3.08] Blog and Enquiries are tabs of the website page: same single crumb.
+  '/_staff/website/blog/': [{ label: { key: 'website' } }],
+  '/_staff/website/blog/$postId': [
+    { label: { key: 'website' } },
+    { label: { key: 'blogPost' }, dynamic: 'entity' },
+  ],
+  '/_staff/website/enquiries': [{ label: { key: 'website' } }],
 
   // --- Staff shell: sub-pages nest under their list route's segment ---
   '/_staff/students/new': [{ label: { entity: 'student' } }, { label: { key: 'new' } }],

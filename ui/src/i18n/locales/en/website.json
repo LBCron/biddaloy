@@ -199,7 +199,26 @@
       "linkApply": "Add link",
       "linkRemove": "Remove link",
       "linkInvalid": "Use an address that starts with http or https."
-    }
+    },
+    "listCaption": "Write news and posts for your school website.",
+    "colTitle": "Title",
+    "colStatus": "Status",
+    "colDate": "Date",
+    "tableCaption": "Posts",
+    "emptyTitle": "Write your first post",
+    "emptyBody": "Posts show on your website under News and posts.",
+    "openPost": "Open {{title}}",
+    "untitled": "(No title)",
+    "slugLabel": "Web address of this post",
+    "slugNew": "The address is made when you save the post for the first time.",
+    "bodyEmpty": "Write some text first.",
+    "newTitle": "New post",
+    "unpublishedToast": "Post is no longer on the website",
+    "deletedToast": "Post deleted",
+    "slugTaken": "That address is already used. Please save again.",
+    "invalid": "The title or the text is not valid. Please check it and try again.",
+    "loadPostError": "We could not load this post.",
+    "publishNeeds": "Add a Bangla title before you save."
   },
   "enquiries": {
     "title": "Enquiries",
@@ -219,7 +238,19 @@
     "deleteBody": "You cannot get the message back after deleting it.",
     "smsSwitch": "Send an SMS to the office phone for each new message",
     "smsHelp": "When this is on, one SMS goes out for each new message.",
-    "loadError": "We could not load the messages."
+    "loadError": "We could not load the messages.",
+    "emptyBody": "When someone writes through the contact form on your website, it shows here.",
+    "tableCaption": "Messages from your website",
+    "markSeenLabel": "Mark {{name}} as seen",
+    "callLabel": "Call {{name}}",
+    "more": "Read more",
+    "less": "Show less",
+    "emptyAction": "Copy website link",
+    "smsNeedsPublish": "Publish the website to make this change live.",
+    "actionError": "We could not do that. Please try again.",
+    "deleted": "Message deleted",
+    "smsSaved": "Saved",
+    "smsOff": "Set up the website first to use this switch."
   },
   "address": {
     "title": "Web address",
