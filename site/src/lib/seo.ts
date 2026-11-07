@@ -110,6 +110,7 @@ export const ROUTED_PAGES: ReadonlySet<string> = new Set([
   SitePage.NOTICES,
   SitePage.BLOG,
   SitePage.TEACHERS,
+  SitePage.GALLERY,
   SitePage.CONTACT,
 ]);
 

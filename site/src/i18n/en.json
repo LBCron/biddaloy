@@ -11,7 +11,8 @@
     "blog": "Blog",
     "teachers": "Teachers",
     "results": "Results",
-    "contact": "Contact"
+    "contact": "Contact",
+    "gallery": "Gallery"
   },
   "lang": {
     "label": "Language",
@@ -58,7 +59,9 @@
     "contact": "Contact",
     "routine": "Class routine",
     "about": "About us",
-    "academics": "Academics"
+    "academics": "Academics",
+    "gallery": "Photo gallery",
+    "video": "Video"
   },
   "empty": "Coming soon.",
   "teachers": {
@@ -140,5 +143,19 @@
   "admissions": {
     "deadline": "Last date",
     "apply": "Apply"
+  },
+  "gallery": {
+    "all": "View all photos →",
+    "label": "Photo gallery",
+    "prev": "Previous photo",
+    "next": "Next photo",
+    "close": "Close",
+    "goto": "Photo",
+    "viewer": "Photo viewer",
+    "open": "View larger"
+  },
+  "video": {
+    "play": "Play video",
+    "title": "Video"
   }
 }

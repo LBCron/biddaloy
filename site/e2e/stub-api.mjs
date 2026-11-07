@@ -63,6 +63,35 @@ const exams = [
   },
 ];
 
+// [40.6.07] gal.localhost: gallery on with the page link (12 photos on home, 30 on the page);
+// nogal.localhost: gallery switched on but no photo; vid / vidb / vidx.localhost: a video section
+// with the heading above, below, and a null id.
+const photos = (n) =>
+  Array.from({ length: n }, (_, i) => ({
+    mediaId: `p${i}`,
+    caption: i === 0 ? bt('প্রথম ছবি', '') : i === 1 ? bt('দ্বিতীয়', 'Second') : null,
+  }));
+const albums = (n) =>
+  n ? [{ id: 'al1', title: bt('বার্ষিক ক্রীড়া', 'Annual sports'), photos: photos(n) }] : [];
+const gallerySection = (feed) => ({
+  key: 'gallery',
+  enabled: true,
+  data: { heading: bt('ছবির গ্যালারি', 'Photo gallery'), albumId: null, showPageLink: true },
+  feed,
+  ...(feed.length ? {} : { empty: true }),
+});
+const videoSection = (videoId, headingPosition) => ({
+  key: 'video',
+  enabled: true,
+  data: { heading: bt('আমাদের স্কুল', 'Our school'), headingPosition, videoId, startSeconds: null },
+});
+const VIDEO_HOSTS = {
+  'vid.localhost': videoSection('dQw4w9WgXcQ', 'above'),
+  'vidb.localhost': videoSection('dQw4w9WgXcQ', 'below'),
+  'vidx.localhost': videoSection(null, 'above'),
+};
+const homeWith = (extra) => ({ ...home, sections: [...home.sections, extra] });
+
 createServer((req, res) => {
   const m = /\/public\/site\/by-host\/([^/]+)\/(manifest|page\/[a-z]+|island\/results)/.exec(
     req.url ?? '',
@@ -78,6 +107,25 @@ createServer((req, res) => {
     if (m[2] === 'island/results') return send(200, exams);
     if (m[2] === 'page/results') return send(200, { page: 'results', sections: [] });
     if (m[2] === 'page/home') return send(200, home);
+  }
+  if (host === 'gal.localhost' || host === 'nogal.localhost') {
+    const on = host === 'gal.localhost';
+    if (m[2] === 'manifest') {
+      return send(
+        200,
+        on ? { ...manifest, nav: [...manifest.nav, { page: 'gallery' }] } : manifest,
+      );
+    }
+    if (m[2] === 'page/home') return send(200, homeWith(gallerySection(albums(on ? 12 : 0))));
+    if (m[2] === 'page/gallery') {
+      return on
+        ? send(200, { page: 'gallery', sections: [gallerySection(albums(30))] })
+        : send(404, { code: 'site.not_found' });
+    }
+  }
+  if (VIDEO_HOSTS[host]) {
+    if (m[2] === 'manifest') return send(200, manifest);
+    if (m[2] === 'page/home') return send(200, homeWith(VIDEO_HOSTS[host]));
   }
   if (host !== 'ok.localhost') return send(404, { code: 'site.not_found' });
   if (m[2] === 'manifest') return send(200, manifest);

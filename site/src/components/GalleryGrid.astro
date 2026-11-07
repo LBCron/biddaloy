@@ -1,0 +1,48 @@
+---
+import { t } from '../i18n/t';
+import { pick } from '../lib/pick';
+import type { Lang, SitePublicGalleryAlbum } from '../lib/types';
+
+interface Props {
+  albums: SitePublicGalleryAlbum[];
+  lang: Lang;
+}
+const { albums, lang } = Astro.props;
+---
+{albums.length > 0 && (
+  <div class="gg">
+    {albums.map((album, a) => {
+      const title = pick(album.title, lang) ?? '';
+      return (
+        <section class="gg-album" aria-labelledby={`gg-${a}`}>
+          {title && <h2 id={`gg-${a}`}>{title}</h2>}
+          <ul class="gg-grid" data-gv-album>
+            {album.photos.map((p, i) => {
+              const caption = pick(p.caption, lang);
+              return (
+                <li>
+                  <button type="button" class="gg-tile" data-gv-open data-cap={caption}>
+                    <img src={`/media/${p.mediaId}`} alt={caption ?? title} width="1200" height="800" loading={a === 0 && i < 3 ? 'eager' : 'lazy'} decoding="async" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      );
+    })}
+    <dialog class="gv" data-gv aria-modal="true" aria-label={t(lang, 'gallery.viewer')}>
+      <div class="gv-box">
+        <button type="button" class="gv-close" aria-label={t(lang, 'gallery.close')}>×</button>
+        <img class="gv-img" alt="" />
+        <p class="gv-cap" hidden></p>
+        <button type="button" class="hc-btn gv-prev" aria-label={t(lang, 'gallery.prev')}>‹</button>
+        <button type="button" class="hc-btn gv-next" aria-label={t(lang, 'gallery.next')}>›</button>
+      </div>
+    </dialog>
+  </div>
+)}
+<script>
+  import { initGalleryViewer } from '../islands/gallery-viewer';
+  initGalleryViewer();
+</script>

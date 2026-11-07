@@ -1,0 +1,26 @@
+---
+import { SitePage, SiteSectionKey } from '@biddaloy/shared';
+import GalleryGrid from '../../components/GalleryGrid.astro';
+import { t } from '../../i18n/t';
+import { loadPage } from '../../lib/page';
+import { galleryAlbums } from '../../lib/sections';
+import type { Lang } from '../../lib/types';
+import { themes } from '../../themes';
+
+const { site } = Astro.locals;
+const lang = Astro.params.lang as Lang;
+if (!site) return new Response(null, { status: 404 });
+// A page that is off (or has no photo) answers 404 and the site shows its normal 404 (D12).
+const r = await loadPage(Astro.locals, SitePage.GALLERY);
+if (r.rewrite) return Astro.rewrite(r.rewrite);
+const row = r.page.sections.find((s) => s.key === SiteSectionKey.GALLERY);
+const albums = galleryAlbums(row?.feed);
+if (albums.length === 0) return Astro.rewrite('/404/');
+const { Layout } = themes[site.theme] ?? themes.basic;
+---
+<Layout manifest={site} lang={lang} rest="gallery/" title={t(lang, 'nav.gallery')}>
+  <section class="sec gallery-page"><div class="wrap">
+    <div class="sec-head"><h1>{t(lang, 'nav.gallery')}</h1></div>
+    <GalleryGrid albums={albums} lang={lang} />
+  </div></section>
+</Layout>

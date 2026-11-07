@@ -7,9 +7,11 @@ import admissions from './sections/admissions.astro';
 import blog from './sections/blog.astro';
 import contact from './sections/contact.astro';
 import events from './sections/events.astro';
+import gallery from './sections/gallery.astro';
 import hero from './sections/hero.astro';
 import notices from './sections/notices.astro';
 import teachers from './sections/teachers.astro';
+import video from './sections/video.astro';
 import Layout from './Layout.astro';
 
 export interface ThemeModule {
@@ -30,5 +32,7 @@ export default {
     [SiteSectionKey.EVENTS]: events,
     [SiteSectionKey.BLOG]: blog,
     [SiteSectionKey.CONTACT]: contact,
+    [SiteSectionKey.GALLERY]: gallery,
+    [SiteSectionKey.VIDEO]: video,
   },
 } satisfies ThemeModule;

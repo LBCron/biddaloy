@@ -1,0 +1,34 @@
+---
+import { t } from '../i18n/t';
+import { YOUTUBE_ID } from '../lib/sections';
+import type { Lang } from '../lib/types';
+
+interface Props {
+  videoId: string;
+  startSeconds?: number | null;
+  heading?: string;
+  /** `below`: the heading follows the player (`headingPosition`). */
+  below?: boolean;
+  lang: Lang;
+}
+const { videoId, startSeconds, heading, below = false, lang } = Astro.props;
+// Second guard beside the server's: a bad id renders nothing.
+const ok = YOUTUBE_ID.test(videoId);
+const title = heading || t(lang, 'video.title');
+---
+{ok && (
+  <figure class="ve">
+    {heading && !below && <h2 class="ve-h">{heading}</h2>}
+    <div class="ve-box" data-video-embed data-id={videoId} data-start={startSeconds ?? undefined} data-title={title}>
+      <button type="button" class="ve-play" data-video-play aria-label={`${t(lang, 'video.play')}: ${title}`}>
+        <span class="ve-icon" aria-hidden="true"></span>
+        <span class="ve-label">{t(lang, 'video.play')}</span>
+      </button>
+    </div>
+    {heading && below && <h2 class="ve-h">{heading}</h2>}
+  </figure>
+)}
+<script>
+  import { initVideoEmbeds } from '../islands/video-embed';
+  initVideoEmbeds();
+</script>

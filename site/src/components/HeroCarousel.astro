@@ -25,25 +25,7 @@ const photos = Astro.props.photos.slice(0, 5);
     </div>
   </div>
 )}
-{photos.length > 1 && (
-  <script is:inline>
-    document.querySelectorAll('[data-carousel]').forEach(function (c) {
-      var track = c.querySelector('.hc-track'), slides = c.querySelectorAll('.hc-slide'), dots = c.querySelectorAll('.hc-dots button');
-      var i = 0, timer, reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      function go(n) {
-        i = (n + slides.length) % slides.length;
-        track.style.transform = 'translateX(' + (-100 * i) + '%)';
-        slides.forEach(function (s, k) { k === i ? s.removeAttribute('aria-hidden') : s.setAttribute('aria-hidden', 'true'); });
-        dots.forEach(function (d, k) { d.setAttribute('aria-current', k === i ? 'true' : 'false'); });
-      }
-      function stop() { clearInterval(timer); timer = 0; }
-      function start() { if (!reduce && !timer) timer = setInterval(function () { go(i + 1); }, 6000); }
-      c.querySelector('.hc-prev').addEventListener('click', function () { go(i - 1); });
-      c.querySelector('.hc-next').addEventListener('click', function () { go(i + 1); });
-      dots.forEach(function (d, k) { d.addEventListener('click', function () { go(k); }); });
-      c.addEventListener('mouseenter', stop); c.addEventListener('mouseleave', start);
-      c.addEventListener('focusin', stop); c.addEventListener('focusout', start);
-      start();
-    });
-  </script>
-)}
+<script>
+  import { initCarousels } from '../lib/carousel';
+  initCarousels();
+</script>

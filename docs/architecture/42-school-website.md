@@ -135,6 +135,22 @@ Reading a failure: open the `site-reports` artifact (kept 7 days) and the assert
 threshold is a decision, never a CI fix. `site-themes` never fails on a picture diff (fonts differ a little between
 runners): read the diff list in the job summary, and commit the new pictures if the change was meant.
 
+## Gallery and video on the site
+
+```mermaid
+flowchart LR
+  A[page/home feed: one album, max 12 photos] --> B[GalleryCarousel: 3:2 slides, dots, swipe]
+  C[page/gallery feed: every album] --> D[GalleryGrid + viewer dialog]
+  E[video section: 11-char YouTube id] --> F[poster + play button] -->|click| G[one sandboxed youtube-nocookie iframe]
+```
+
+- Photos are `/media/<mediaId>` (1200x800, 3:2). Captions are bilingual and optional; the image `alt` is the caption, else the album title.
+- A gallery section with no photo, and a video section with no valid id, render nothing (D12). The gallery page is a 404 then, and absent from nav and sitemap.
+- The carousel logic is one module, `site/src/lib/carousel.ts`, shared by the hero and the gallery. It auto-advances every 6 s, pauses on hover and focus, and never auto-advances under `prefers-reduced-motion`.
+- The viewer is a native `<dialog>` (Esc closes, Tab stays inside, focus returns to the tile) with arrow keys and swipe. Script: `site/src/islands/gallery-viewer.ts`.
+- Video is click-to-play: before the click the page has no iframe and makes no request to YouTube. The island re-checks the id with `^[A-Za-z0-9_-]{11}$` before building the URL.
+- All seven themes register both sections and style them only through the `--gc-*` and `--ve-*` variables of `basic/theme.css`.
+
 ## Backup and restore
 
 `school_site`, `site_posts`, `site_enquiries` and `staff_web_profiles` are workbook tabs. Pictures (`site_media`) are

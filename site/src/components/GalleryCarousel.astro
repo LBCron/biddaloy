@@ -1,0 +1,46 @@
+---
+import { t } from '../i18n/t';
+import { GALLERY_CAROUSEL_MAX } from '../lib/sections';
+import { pick } from '../lib/pick';
+import type { Lang, SitePublicGalleryAlbum } from '../lib/types';
+
+interface Props {
+  album: SitePublicGalleryAlbum;
+  lang: Lang;
+  /** Show the "view all photos" link (the manifest lists the gallery page, D51). */
+  pageLink?: boolean;
+}
+const { album, lang, pageLink = false } = Astro.props;
+const photos = album.photos.slice(0, GALLERY_CAROUSEL_MAX);
+const title = pick(album.title, lang) ?? '';
+const many = photos.length > 1;
+---
+{photos.length > 0 && (
+  <div class="gc">
+    <div class="hc gc-frame" data-carousel data-single={many ? undefined : ''} role="group" aria-roledescription="carousel" aria-label={title || t(lang, 'gallery.label')}>
+      <div class="hc-track">
+        {photos.map((p, i) => {
+          const caption = pick(p.caption, lang);
+          return (
+            <figure class="hc-slide gc-slide" aria-hidden={i === 0 ? undefined : 'true'}>
+              <img src={`/media/${p.mediaId}`} alt={caption ?? title} width="1200" height="800" loading={i === 0 ? 'eager' : 'lazy'} decoding="async" />
+              {caption && <figcaption class="gc-cap" aria-hidden="true">{caption}</figcaption>}
+            </figure>
+          );
+        })}
+      </div>
+      {many && <button type="button" class="hc-btn hc-prev" aria-label={t(lang, 'gallery.prev')}>‹</button>}
+      {many && <button type="button" class="hc-btn hc-next" aria-label={t(lang, 'gallery.next')}>›</button>}
+      {many && (
+        <div class="hc-dots">
+          {photos.map((_, i) => <button type="button" aria-label={`${t(lang, 'gallery.goto')} ${i + 1}`} aria-current={i === 0 ? 'true' : 'false'}></button>)}
+        </div>
+      )}
+    </div>
+    {pageLink && <p class="seeall"><a href={`/${lang}/gallery/`}>{t(lang, 'gallery.all')}</a></p>}
+  </div>
+)}
+<script>
+  import { initCarousels } from '../lib/carousel';
+  initCarousels();
+</script>
