@@ -39,6 +39,8 @@ interface Facts {
   profilePositions: number[];
   featured: number;
   logoKey: string | null;
+  posts: { published: number; draft: number };
+  enquiries: { all: number; unseen: number };
 }
 
 describe('website slice (integration, scale 0.05)', () => {
@@ -68,7 +70,21 @@ describe('website slice (integration, scale 0.05)', () => {
       `SELECT user_id, featured FROM staff_web_profiles WHERE tenant_id = $1`,
       [T],
     );
+    const count = async (table: string, where = 'true') =>
+      Number(
+        (
+          await q(`SELECT count(*)::int AS n FROM ${table} WHERE tenant_id = $1 AND ${where}`, [T])
+        )[0].n,
+      );
     return {
+      posts: {
+        published: await count('site_posts', 'published_at IS NOT NULL'),
+        draft: await count('site_posts', 'published_at IS NULL'),
+      },
+      enquiries: {
+        all: await count('site_enquiries'),
+        unseen: await count('site_enquiries', 'seen_at IS NULL'),
+      },
       site: (await q(`SELECT * FROM school_sites WHERE tenant_id = $1`, [T]))[0],
       media: await q(`SELECT slot, width, height FROM site_media WHERE tenant_id = $1`, [T]),
       profilePositions: profiles
@@ -136,7 +152,7 @@ describe('website slice (integration, scale 0.05)', () => {
   });
 
   it('stores two 1920x1080 hero pictures, sets the school logo, and counts the picture bytes', () => {
-    expect(first.media).toEqual([
+    expect(first.media.filter((m) => m.slot === 'hero')).toEqual([
       { slot: 'hero', width: 1920, height: 1080 },
       { slot: 'hero', width: 1920, height: 1080 },
     ]);
@@ -147,5 +163,10 @@ describe('website slice (integration, scale 0.05)', () => {
   it('has six teacher cards, three of them featured', () => {
     expect(first.profilePositions).toHaveLength(6);
     expect(first.featured).toBe(3);
+  });
+
+  it('has two published posts, one draft, three enquiries (one unseen)', () => {
+    expect(first.posts).toEqual({ published: 2, draft: 1 });
+    expect(first.enquiries).toEqual({ all: 3, unseen: 1 });
   });
 });
