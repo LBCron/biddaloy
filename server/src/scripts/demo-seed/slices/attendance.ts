@@ -679,10 +679,13 @@ const load = async (ctx: DemoSeedContext) => {
 
   // --- staff attendance: every school day for every year (~97% present) -----------------
   const staff = await q<{ id: string; tenant_id: string }>(
+    // ORDER BY a seeded value (the email): ids are random per run, and rng draws follow this order.
     `SELECT sp.id, sp.tenant_id FROM staff_profiles sp
+        JOIN users u ON u.id = sp.user_id
         WHERE sp.tenant_id = ANY($1) AND EXISTS (
           SELECT 1 FROM user_tenants ut WHERE ut.user_id = sp.user_id
-             AND ut.tenant_id = sp.tenant_id AND ut.deleted_at IS NULL)`,
+             AND ut.tenant_id = sp.tenant_id AND ut.deleted_at IS NULL)
+        ORDER BY u.email`,
     [tenantIds],
   );
   const staffSessions: Record<string, unknown>[] = [];
