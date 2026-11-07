@@ -187,6 +187,13 @@ export const slice: DemoSlice = {
     await site.publish(T, saved.version, saved.draft_revision);
     await site.setEnabled(T, true);
 
+    // Exempt columns of school_sites (docs/architecture/22-demo-seed.md, "Known gaps"). They are left
+    // empty on purpose, so a demo school never points at a real third party:
+    //  - custom_domain_external_id, custom_domain_records: set by Cloudflare for SaaS when a school
+    //    adds a domain. The demo has no real domain, and the test host above is written as ACTIVE
+    //    without a Cloudflare hostname.
+    //  - umami_website_id: set by Umami (analytics) when the site is first published. Analytics are
+    //    off in the demo (D2), and a fake id would send real page views to a real dashboard.
     // Staging only: the always-on test host answers for this school (runbook Part 8c).
     const testHost = process.env.SITE_TEST_HOST?.trim().toLowerCase();
     if (testHost) {

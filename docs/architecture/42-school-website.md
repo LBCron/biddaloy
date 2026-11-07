@@ -250,3 +250,43 @@ two Cloudflare values empty. Every refusal (off, malformed, platform name, taken
 - **2026-11-07 (W3).** Surprise: running the integration and e2e suites together on one machine produced only
   timeouts, with a different failing file each run, and every file passed alone. Cost: hours of reruns with no
   signal. Fix: gates run one section at a time in one agent. Rule candidate: record the load average with every gate.
+
+- **2026-11-07 (W4, themes).** Surprise: the mockups were not AA-clean. Cost: every theme needed a contrast pass.
+  What changed from the mockups, per theme: Primary darkened its bright primaries; Premium's brass on oxblood failed as
+  small text, so brass is for hairlines and large labels; College and Madrasa use their accent colour as decoration
+  only, never for text; Premium's display fonts exist in one weight, so no theme asks for a bold the file lacks (fonts
+  are one weight per file). Fix: per-theme tokens and the specs in `site-themes/src/*.spec.ts`. Rule candidate: a
+  mockup colour is a starting point; run `contrast.mjs` on the real tokens before building on them.
+- **2026-11-07 (W4, themes).** Surprise: Astro bundles the CSS of every theme into one page, so one theme's rules
+  restyled another. Cost: Primary, High school, International and Premium leaked into each other until fixed. Fix: every
+  theme's CSS sits under `.t-<theme>`, and the cross-theme spec in `site/e2e/themes/` guards it. Rule candidate: a new
+  theme's selectors all start with its `.t-<theme>` class.
+- **2026-11-07 (W4, themes).** Surprise: `--ink-3` failed AA in all themes, and no test noticed; review did. Cost: one
+  fix round across seven themes. Fix: darkened per theme, and the per-theme specs now check it. Rule candidate: contrast
+  is checked for every text token, not just body and heading.
+- **2026-11-07 (W4, custom domain).** Surprise: Cloudflare for SaaS never routes a custom host through our edge, so
+  Rule 12 ("the origin is reachable only through the edge") could not be proven for custom hosts here. Cost: the
+  scope moved to #3655. Rule candidate: a rule that depends on a third party's routing gets its own ticket and a
+  staging check.
+- **2026-11-07 (W4, custom domain).** Surprise: a create call that times out after Cloudflare accepted it leaves an
+  orphaned hostname. Cost: a hostname we do not know about. Fix: the claim row is written first and a retry looks the
+  hostname up before creating one. Rule candidate: every create call to a provider is safe to repeat.
+- **2026-11-07 (W4, custom domain).** Surprise: FAILED rows kept squatting their domain, so no other school could
+  claim it. Cost: found while reading the unique index. Fix: a FAILED row releases the host. Rule candidate: a unique
+  index over a state column says which states hold the value.
+- **2026-11-07 (W4, custom domain).** Surprise: all schools share one Cloudflare token, so one busy school can
+  throttle the others. Cost: none yet. Fix: none yet; keep the number of Cloudflare calls per school low. Rule candidate: a shared provider token is
+  a shared quota; say so in the doc.
+- **2026-11-07 (W4, SEO).** Surprise: the share card draws text with system fonts, and the Alpine image had none for
+  Bangla. Cost: boxes instead of letters. Fix: the Dockerfile installs Bengali and Latin fonts. Also: the sitemap lists
+  only 12 blog posts until the feed is paged. The Lighthouse preview URL is noindex by design, so indexability is
+  asserted in a separate check. Lighthouse numbers: not measured locally; CI-only.
+- **2026-11-07 (W4 close).** Surprise: lint-staged's ESLint run is gentler than CI's `cd ui && npx eslint .`. Cost: a
+  rule error shows only in CI. Rule candidate: after touching `ui/`, run the full CI-style ESLint once.
+- **2026-11-07 (W4 close).** Surprise: the gate's `--only integration,infra,e2e` never runs unit specs, so a red unit
+  spec can pass the gate. Cost: a failing `*.spec.ts` shows only in CI's unit job. Rule candidate: run the touched unit
+  specs by hand before the gate.
+- **2026-11-07 (W4 close, #3648).** `e2e/website-themes.spec.ts` publishes in a school of its own, because
+  `journeys/website-setup.spec.ts` needs the shared school to be never-published. It checks the public read API
+  (`/public/site/by-host/<host>/manifest`), not `html[data-theme]`, since the e2e stack has no site container; pixel
+  and theme render checks are in `site/e2e/themes/*.spec.ts`. The ticket text said "six themes"; the enum has seven.

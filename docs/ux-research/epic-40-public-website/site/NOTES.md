@@ -163,3 +163,24 @@ Shared in every theme (`--check`): `header.nav.home|about|academics|admissions|n
 - basic: the admission strip assumed it sat under the hero; moved last it fused with the dark footer. Fixed in the mockup (`main>.strip:last-child` gets space above the footer). Plain and tinted section backgrounds still alternate.
 - college: the dark admission strip is a loose block bolted to the hero, not a section, so it stays pinned under the hero (a real theme must treat it as part of the hero, or make it a section). The ledger sections and the results band need nothing from a neighbour.
 - Rule for W4: no section may style itself from `:first-child`, `+` or a neighbour's background.
+
+## Built in Wave 4 (2026-11-07)
+
+Where the real theme (`site/src/themes/<theme>/`, `site-themes/src/<theme>.ts`) differs from the mockup above. The
+mockup stays the picture of intent; this is what shipped.
+
+- **primary** (built 2026-11-07, #3639): primary colours darkened until text on them passes AA, so the bright mockup
+  yellow and coral became deeper tones in the real palettes. Four palettes. All CSS sits under `.t-primary`.
+- **high-school** (built 2026-11-07, #3640): three palettes. Gold stays a hairline and a fill, never text colour on
+  light backgrounds. All CSS sits under `.t-high-school`.
+- **international** (built 2026-11-07, #3643): navy and gold kept; gold text on the navy hero was checked against AA
+  and kept only where it passes. All CSS sits under `.t-international`.
+- **premium** (built 2026-11-07, #3644): brass on oxblood failed AA as small text, so brass is used for hairlines and
+  large labels only. The display fonts exist in one weight, so no bold is asked for (a fake bold smears the
+  engraved look). All CSS sits under `.t-premium`.
+- **college** (built 2026-11-07, #3641): the accent colour is decorative only (rules, bullets, blocks); no text depends on it.
+- **madrasa** (built 2026-11-07, #3642): the accent colour is decorative only, as in college; text uses the ink tokens.
+- **basic** (built 2026-11-07, #3611 / W0): the default; unchanged by Wave 4 apart from the shared contrast fix below.
+- **All themes:** `--ink-3` (the third text tone) failed AA in every theme and was found only in review; it was darkened
+  per theme. Fonts are one weight per file (Bangla fonts ship per weight), so a theme lists only the weights it uses.
+- **Lighthouse numbers:** not measured locally; CI-only.
