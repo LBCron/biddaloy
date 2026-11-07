@@ -336,7 +336,7 @@ Rules that hold:
   `409` with `details.code = "ATTENDANCE_IMPORT_STALE"`. Upload again.
 - **Nothing to save, nothing staged.** `staging_id` is `null` when every row is
   `UNCHANGED` or `ERROR`.
-- **Same gate as the grid.** `dailySource` ([§4b](#4b-who-marks-the-day--dailysource))
+- **Same gate as the grid.** `dailySource` ([§4b](#4b-who-marks-the-day--dailysource-epic-76))
   applies; a section the caller may not write gives `NOT_ALLOWED_SECTION`.
 - A teacher sees only their own uploads in `GET /attendance/imports`;
   other roles see all. `GET /attendance/imports/:id` returns the rows plus the
@@ -386,7 +386,7 @@ The demo seed writes one (`demo-seed/slices/attendance.ts`, `bmsc-primary`):
   "count_changed": 2,
   "count_unchanged": 0,
   "count_error": 1,
-  "supersedes_import_id": null, // set when "re-upload" replaces an earlier sheet
+  "supersedes_import_id": null, // set when a re-upload supersedes an earlier sheet; history link only, marks not in the new sheet keep their values
   "rows": [
     // CHANGED: the sheet overwrote a mark
     {
@@ -871,7 +871,7 @@ wins a tie.
   (`UQ_students_tenant_card_no`, ends `AND "deleted_at" IS NULL`) and among
   staff (`UQ_staff_profiles_tenant_card_no`, no soft delete). A clash returns
   the fixed 409 from `known-errors.ts`, never the raw DB text.
-- The register read shows `scanned_at` per student (see [§4b](#4b-who-marks-the-day--dailysource)).
+- The register read shows `scanned_at` per student (see [§4b](#4b-who-marks-the-day--dailysource-epic-76)).
 - The demo seed gives students a 10-digit number from `ctx.rng`
   ([22-demo-seed.md](22-demo-seed.md)).
 
@@ -905,22 +905,22 @@ without bound; there is no retention job for it yet (see below).
 Every field lives under `School.settings.attendance`, resolved against
 these defaults (`tenant-settings-defaults.ts`):
 
-| Field                               | Default        | What visibly changes when you move it                                                                                                                       |
-| ----------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `weeklyOffDays`                     | `[5]` (Friday) | Which weekdays never need marking and never count as a working day.                                                                                         |
-| `lateAfter`                         | `08:15`        | The check-in cutoff (local time) after which a mark becomes `LATE` instead of `PRESENT`.                                                                    |
-| `absentAfter`                       | `10:00`        | The cutoff after which a mark becomes `ABSENT` instead of `LATE`.                                                                                           |
-| `correctionWindowDays`              | `2`            | How many days after a register's date it stays editable without `ATTENDANCE_CORRECT`.                                                                       |
-| `lowAttendanceThresholdPercent`     | `75`           | The cutoff `GET /attendance/flags/low` and the reports page use to flag a student.                                                                          |
-| `lateCountsAsPresent`               | `true`         | Whether a `LATE` day adds to the percentage's numerator.                                                                                                    |
-| `leaveCountsAsWorkingDay`           | `false`        | Whether a `LEAVE` day stays in the denominator (`false` = removed).                                                                                         |
-| `percentageDenominator`             | `WORKING_DAYS` | Whether the percentage divides by calendar working days or by days actually marked.                                                                         |
-| `allowFutureDates`                  | `false`        | Whether a future date can be marked at all (and then, only `LEAVE`).                                                                                        |
-| `shiftTimes`                        | `[]`           | Per-shift `lateAfter` / `absentAfter` (`{ shiftId, lateAfter, absentAfter }`). A shift with an entry uses its own cutoffs; others use the two fields above. |
-| `periodAttendance.enabled`          | `false`        | Whether teachers can take a per-period register on top of the whole-day one. Period registers never feed the percentage or fines.                           |
-| `autoAbsentNotification.enabled`    | `false`        | Whether finalizing a register triggers guardian notifications for that day's absences.                                                                      |
-| `autoAbsentNotification.cutoffTime` | `11:00`        | The local time after which the auto-absent sweep considers a register due.                                                                                  |
-| `dailySource`                       | `ANY`          | Who may write the whole-day register: `ANY`, `CLASS_TEACHER`, `FIRST_PERIOD` or `DEVICE`. A write gate only. See [§4b](#4b-who-marks-the-day--dailysource). |
+| Field                               | Default        | What visibly changes when you move it                                                                                                                               |
+| ----------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `weeklyOffDays`                     | `[5]` (Friday) | Which weekdays never need marking and never count as a working day.                                                                                                 |
+| `lateAfter`                         | `08:15`        | The check-in cutoff (local time) after which a mark becomes `LATE` instead of `PRESENT`.                                                                            |
+| `absentAfter`                       | `10:00`        | The cutoff after which a mark becomes `ABSENT` instead of `LATE`.                                                                                                   |
+| `correctionWindowDays`              | `2`            | How many days after a register's date it stays editable without `ATTENDANCE_CORRECT`.                                                                               |
+| `lowAttendanceThresholdPercent`     | `75`           | The cutoff `GET /attendance/flags/low` and the reports page use to flag a student.                                                                                  |
+| `lateCountsAsPresent`               | `true`         | Whether a `LATE` day adds to the percentage's numerator.                                                                                                            |
+| `leaveCountsAsWorkingDay`           | `false`        | Whether a `LEAVE` day stays in the denominator (`false` = removed).                                                                                                 |
+| `percentageDenominator`             | `WORKING_DAYS` | Whether the percentage divides by calendar working days or by days actually marked.                                                                                 |
+| `allowFutureDates`                  | `false`        | Whether a future date can be marked at all (and then, only `LEAVE`).                                                                                                |
+| `shiftTimes`                        | `[]`           | Per-shift `lateAfter` / `absentAfter` (`{ shiftId, lateAfter, absentAfter }`). A shift with an entry uses its own cutoffs; others use the two fields above.         |
+| `periodAttendance.enabled`          | `false`        | Whether teachers can take a per-period register on top of the whole-day one. Period registers never feed the percentage or fines.                                   |
+| `autoAbsentNotification.enabled`    | `false`        | Whether finalizing a register triggers guardian notifications for that day's absences.                                                                              |
+| `autoAbsentNotification.cutoffTime` | `11:00`        | The local time after which the auto-absent sweep considers a register due.                                                                                          |
+| `dailySource`                       | `ANY`          | Who may write the whole-day register: `ANY`, `CLASS_TEACHER`, `FIRST_PERIOD` or `DEVICE`. A write gate only. See [§4b](#4b-who-marks-the-day--dailysource-epic-76). |
 
 `policyForShift(policy, shiftId)` (`attendance-policy.util.ts`) returns the
 policy with that shift's cutoffs swapped in. No shift id, or no entry for

@@ -337,7 +337,7 @@ The **Card number** is the number on the staff member's attendance card. No two 
 
 When you open the **HR record** tab again, the saved number is shown in the box. To remove a number, clear the box and press **Save**. A Bangla-digit number you type or scan is stored as ordinary digits.
 
-→ If another staff member already has the number, the box says "This card number already belongs to another staff member." Use 1 to 64 letters, numbers or dashes. To add the machine itself: [Settings](../administration/settings.md#task-devices). For students: [Students](students.md#task-card).
+→ If another staff member already has the number, the box says "This card number already belongs to another staff member." Use 1 to 64 English letters (A–Z, a–z), numbers or dashes. Bangla letters are not saved. To add the machine itself: [Settings](../administration/settings.md#task-devices). For students: [Students](students.md#task-card).
 
 ### The staff member's page: the tabs <a href="#task-detail" id="task-detail"></a>
 
