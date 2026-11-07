@@ -1,6 +1,10 @@
 {
   "tabs": {
-    "overview": "Overview"
+    "overview": "Overview",
+    "pages": "Pages",
+    "design": "Design",
+    "blog": "News and posts",
+    "enquiries": "Enquiries"
   },
   "nav": {
     "website": "Website"
@@ -96,7 +100,9 @@
       "title": "Change the design?",
       "body": "Empty fields will get the new design's default text. Your own text stays.",
       "confirm": "Change design"
-    }
+    },
+    "designs": "Designs",
+    "previewDesign": "Preview this design"
   },
   "pages": {
     "title": "Pages",
@@ -149,7 +155,9 @@
     "up": "Move {{name}} up, place {{position}}",
     "down": "Move {{name}} down, place {{position}}",
     "editSection": "Edit {{name}}",
-    "pageOff": "This page is off"
+    "pageOff": "This page is off",
+    "unsaved": "You have changes that are not saved.",
+    "saveDraft": "Save draft"
   },
   "blog": {
     "title": "News and posts",
@@ -322,7 +330,11 @@
     "save": "Save",
     "saved": "Saved",
     "saveError": "We could not save that. Please try again.",
-    "photoLimit": "No more photos fit in this section."
+    "photoLimit": "No more photos fit in this section.",
+    "photo": "Photo {{position}}",
+    "removePhoto": "Remove photo {{position}}",
+    "remove": "Remove",
+    "enHint": "Optional. If empty, the Bangla text shows."
   },
   "announcements": {
     "title": "Announcements",
@@ -347,6 +359,7 @@
       "FAST": "Fast"
     },
     "limit": "You can keep at most 5 announcements.",
-    "empty": "No announcements yet."
+    "empty": "No announcements yet.",
+    "rangeInvalid": "The end date cannot be before the start date."
   }
 }
