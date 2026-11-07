@@ -3,6 +3,8 @@
  * Gated by `route-permissions.ts` (`WEBSITE_MANAGE`); the component checks nothing itself.
  */
 import {
+  Button,
+  DataTable,
   RoutePending,
   StatusBadge,
   type DataTableColumn,
@@ -10,9 +12,8 @@ import {
 } from '@biddaloy/ui/components';
 import { usePosts, type SitePost } from '@biddaloy/ui/hooks';
 import { useLocale, useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
-import { ListShell } from '@biddaloy/ui/shells';
 import { formatDate } from '@biddaloy/ui/utils';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 
 import { loadRouteNamespaces } from '../../../../route-loaders';
 
@@ -31,6 +32,7 @@ function BlogList() {
   const { t } = useTranslation('website');
   const { locale } = useLocale();
   const config = useTenantRegionConfig();
+  const navigate = useNavigate();
   const query = usePosts();
   const posts = (query.data?.items ?? []).filter((p) => p.kind === 'POST');
   const titleOf = (p: SitePost) => p.title[locale] || p.title.bn || t('blog.untitled');
@@ -70,28 +72,37 @@ function BlogList() {
   ];
 
   return (
-    <ListShell
-      title={t('blog.title')}
-      subtitle={t('blog.listCaption')}
-      actions={[{ id: 'new', label: t('blog.new'), priority: 'primary', to: '/website/blog/new' }]}
-      tableId="website-blog"
-      caption={t('blog.tableCaption')}
-      data={posts}
-      getRowId={(p) => p.id}
-      sorting={null}
-      onSortingChange={() => undefined}
-      // ponytail: the list API has no paging and a school writes tens of posts, so one page.
-      paginated={false}
-      page={1}
-      pageSize={Math.max(posts.length, 1)}
-      totalCount={posts.length}
-      onPageChange={() => undefined}
-      loading={query.isLoading}
-      isFetching={query.isFetching}
-      columns={columns}
-      rowActions={rowActions}
-      {...(query.isError ? { error: t('blog.loadError') } : {})}
-      emptyState={{ title: t('blog.emptyTitle'), explanation: t('blog.emptyBody') }}
-    />
+    // The layout's DetailShell owns the page H1; a tab shows its own list without a second one.
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-text-secondary">{t('blog.listCaption')}</p>
+        <Button
+          type="button"
+          onClick={() => void navigate({ to: '/website/blog/$postId', params: { postId: 'new' } })}
+        >
+          {t('blog.new')}
+        </Button>
+      </div>
+      <DataTable
+        tableId="website-blog"
+        caption={t('blog.tableCaption')}
+        data={posts}
+        getRowId={(p) => p.id}
+        sorting={null}
+        onSortingChange={() => undefined}
+        // ponytail: the list API has no paging and a school writes tens of posts, so one page.
+        paginated={false}
+        page={1}
+        pageSize={Math.max(posts.length, 1)}
+        totalCount={posts.length}
+        onPageChange={() => undefined}
+        loading={query.isLoading}
+        isFetching={query.isFetching}
+        columns={columns}
+        rowActions={rowActions}
+        {...(query.isError ? { error: t('blog.loadError') } : {})}
+        emptyState={{ title: t('blog.emptyTitle'), explanation: t('blog.emptyBody') }}
+      />
+    </div>
   );
 }

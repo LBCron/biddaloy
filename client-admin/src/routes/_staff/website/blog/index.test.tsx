@@ -55,6 +55,8 @@ describe('/website/blog', () => {
     expect(screen.getByText('Draft')).toBeTruthy();
     expect(screen.getByText('Published')).toBeTruthy();
     expect(screen.queryByText('আমাদের কথা')).toBeNull();
+    // The layout's DetailShell owns the one H1.
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
   it('shows the empty state, and New post opens the editor', async () => {

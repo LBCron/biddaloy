@@ -2,7 +2,22 @@ import { UserRole } from '@biddaloy/shared';
 import { cleanupTestState, renderWithRouter, server, userEvent } from '@biddaloy/ui/test';
 import { screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+// Slate does not take typed input in jsdom: swap the editor for a textarea that sets the same value.
+vi.mock('@biddaloy/ui/rich-text-editor', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@biddaloy/ui/rich-text-editor')>()),
+  RichTextEditor: ({ onChange }: { onChange: (v: unknown[]) => void }) => (
+    <textarea
+      // eslint-disable-next-line boundary/no-hardcoded-jsx-text -- test stand-in, not shipped UI
+      aria-label="Post text"
+      onChange={(e) => onChange([{ type: 'paragraph', children: [{ text: e.target.value }] }])}
+    />
+  ),
+}));
+
+const typeBody = async () =>
+  userEvent.type(await screen.findByRole('textbox', { name: 'Post text' }), 'আজ');
 
 import { mockWebsite } from '../-test-handlers';
 import { routeTree } from '../../../../routeTree.gen';
@@ -78,6 +93,7 @@ describe('/website/blog/$postId', () => {
     const save = (await screen.findByRole('button', { name: 'Save' })) as HTMLButtonElement;
     expect(save.disabled).toBe(true);
     await userEvent.type(screen.getByLabelText(/Title \(বাংলা\)/), 'ক্রীড়া দিবস');
+    await typeBody();
     expect(save.disabled).toBe(false);
     await userEvent.click(save);
     await waitFor(() => expect(calls).toEqual(['create:POST:ক্রীড়া দিবস']));
@@ -117,6 +133,7 @@ describe('/website/blog/$postId', () => {
     mockPosts({}, 400);
     render('/website/blog/new');
     await userEvent.type(await screen.findByLabelText(/Title \(বাংলা\)/), 'ক');
+    await typeBody();
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toMatch(/title or the text is not valid/);
@@ -146,6 +163,7 @@ describe('/website/blog/$postId', () => {
     );
     render('/website/blog/new');
     await userEvent.type(await screen.findByLabelText(/Title \(বাংলা\)/), 'ক');
+    await typeBody();
     await userEvent.click(screen.getByRole('button', { name: 'Publish' }));
     await waitFor(() => expect(calls).toEqual(['create:POST:ক', 'publish']));
     await screen.findByRole('alert');
@@ -160,6 +178,7 @@ describe('/website/blog/$postId', () => {
     server.use(http.post('/api/v1/website/posts', () => refuse(409, 'site.post_slug_taken')));
     render('/website/blog/new');
     await userEvent.type(await screen.findByLabelText(/Title \(বাংলা\)/), 'ক');
+    await typeBody();
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect((await screen.findByRole('alert')).textContent).toMatch(/address is already used/);
   });
@@ -193,5 +212,16 @@ describe('/website/blog/$postId', () => {
     render('/website/blog/p1');
     await userEvent.click(await screen.findByRole('button', { name: 'Save' }));
     expect((await screen.findByRole('alert')).textContent).toMatch(/could not do that/);
+  });
+
+  it('blocks Save and Publish on an empty body without calling the server', async () => {
+    mockWebsite();
+    const calls = mockPosts();
+    render('/website/blog/new');
+    await userEvent.type(await screen.findByLabelText(/Title \(বাংলা\)/), 'ক');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect((await screen.findByRole('alert')).textContent).toMatch(/Write some text first/);
+    await userEvent.click(screen.getByRole('button', { name: 'Publish' }));
+    expect(calls).toEqual([]);
   });
 });
