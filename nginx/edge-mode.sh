@@ -44,7 +44,10 @@ DEFAULT="$ROOT/snippets/edge-default.conf"
 
 # Docker's embedded DNS: upstreams with `resolve` re-look-up their names, so nginx boots
 # when a container (staging, the second app, ops) is not up yet.
-RESOLVER='resolver 127.0.0.11 valid=10s ipv6=off;'
+RESOLVER='resolver 127.0.0.11 valid=10s ipv6=off;
+# Long exact host names in the site-host map (conf.d/01-site-host.conf, below) overflow the default
+# 64-byte bucket and fail `nginx -t`. It must come before the FIRST map block, hence it lives here.
+map_hash_bucket_size 128;'
 
 if [ "$MODE" = tunnel ]; then
   # Required, never detected (Rule 11): cloudflared starts after nginx is healthy, so it cannot
@@ -110,17 +113,20 @@ fi
 # may hand to the site container:
 #   1. a fixed host (APP_DOMAIN, STAGING_DOMAIN, ... exact names)          -> 0 (Rule 12)
 #   2. one label of 3-30 characters under ROOT_DOMAIN (SITE_SUBDOMAIN_RE)  -> 1
-#   3. anything else under ROOT_DOMAIN (apex, sites., a.b.<root>, ...)     -> 0
+#   3. anything else under ROOT_DOMAIN (the apex, a.b.<root>, ...)         -> 0
+#      (`sites.<root>` is one label: rule 2 gives it 1, the site container 404s it)
 #   4. any other well-formed name with an alphabetic last label            -> 1  (a school's own
 #      domain, e.g. www.school.edu.bd; the site container answers 404 unless it is an ACTIVE
 #      custom domain). IP literals, empty and malformed hosts are 0.
 # Rule 3 escapes the dots, so `rumsc.schoolsXtest` is NOT under the root (it is a plain name, rule 4).
-# Unset ROOT_DOMAIN (an edge with no school sites) = every host 0. $host is already lower-cased and
+# Unset ROOT_DOMAIN, or the compose default `root.invalid` (deploy/edge.yml), means an edge with no
+# school sites: every host 0, no custom path. $host is already lower-cased and
 # port-free. nginx tries map regexes in file order, exact names first.
 # Example: ROOT_DOMAIN=schools.test -> rumsc.schools.test 1, www.school.edu.bd 1, app host 0, a.b.schools.test 0.
 site_root=$(printf '%s' "${ROOT_DOMAIN:-}" | tr 'A-Z' 'a-z')
 case "$site_root" in
   *[!a-z0-9.-]* | .* | *. | -*) die "ROOT_DOMAIN must be a host name (got '$site_root')" ;;
+  *.invalid) site_root='' ;;
 esac
 {
   echo '# Written by edge-mode.sh from ROOT_DOMAIN and the fixed host names. Do not edit.'
@@ -141,7 +147,7 @@ esac
     root_re=$(printf '%s' "$site_root" | sed 's/\./\\./g')
     printf '    "~^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]\\.%s$" 1;\n' "$root_re"
     printf '    "~*(^|\\.)%s$" 0;\n' "$root_re"
-    printf '%s\n' '    "~^([a-z0-9-]+\.)+[a-z][a-z0-9-]*$" 1;'
+    printf '%s\n' '    "~^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]([a-z0-9-]*[a-z0-9])?$" 1;'
   fi
   echo '}'
 } >"$CONF_DIR/01-site-host.conf"

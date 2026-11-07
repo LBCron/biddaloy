@@ -137,7 +137,7 @@ flowchart LR
 | Config files                | `cloudflared/config.yml`, `credentials.json`                         | `letsencrypt/`, `acme-webroot/`, `htpasswd`                                                                                                                 |
 | Hosts that answer           | the five domains in `edge.enc.env`; anything else gets `444`         | same                                                                                                                                                        |
 
-**School websites in direct mode.** Direct mode publishes no `:8081` and has no Cloudflare for SaaS fallback origin, so a school's own domain is **lost**: school sites answer on `<school>.ROOT_DOMAIN` only (D5, kept on purpose; [25-cloudflare](25-cloudflare.md#direct-mode-replaces-cloudflare)).
+**School websites in direct mode.** Direct mode publishes no `:8081` and has no Cloudflare for SaaS fallback origin, so school websites are **lost entirely** in direct mode, `<school>.ROOT_DOMAIN` and a school's own domain alike: no :80 or :443 server serves a school host (D5, kept on purpose; [25-cloudflare](25-cloudflare.md#direct-mode-replaces-cloudflare)).
 
 **First real certificate (direct mode).** Issuing it is one manual step, once.
 After the first `biddaloy-deploy edge <sha>` nginx serves the placeholder; delete

@@ -2187,8 +2187,8 @@ checks. The owner steps for Cloudflare for SaaS, Umami and Turnstile are in [17e
   host can never reach the custom path. Behind the gate nothing differs from a school subdomain: the
   cache key holds `$host`, `Cookie`, `X-Forwarded-Host` and `X-Site-Preview` are stripped. The site
   container answers `404` for any host that is not an ACTIVE `custom_domain`, so an unclaimed name
-  leaks nothing. Direct mode (D5) publishes no `:8081`, so custom domains are **lost** there:
-  subdomain sites only. Do not add a `*.schoolmanagerp.com` rule that points at `nginx:80`.
+  leaks nothing. Direct mode (D5) publishes no `:8081` and no :80 / :443 server serves a school host, so
+  school websites are **lost entirely** there (subdomain and custom domain alike). Do not add a `*.schoolmanagerp.com` rule that points at `nginx:80`.
 
 - **`ROOT_DOMAIN` (#3620, done).** One name, read by the nginx site template (`deploy/edge.yml`),
   the preflight lists in `infra/ansible/tasks/preflight.yml` (`edge_domain_keys` for edge,
@@ -2247,7 +2247,7 @@ flowchart LR
    Check: `curl -sI https://anything.schoolmanagerp.com` gives `404`.
 2. **Cloudflare for SaaS.** Dashboard > your zone > **SSL/TLS > Custom Hostnames > Enable**. The first
    100 hostnames are free (D5, D6). Set **Fallback origin** to `sites.<root>` (the proxied CNAME from
-   17b step 2, to the tunnel). Set the minimum TLS version to **1.2**.
+   17b step 2, to the tunnel). The zone-wide **SSL/TLS > Edge Certificates > Minimum TLS Version = 1.2** (25-cloudflare row 4) is what applies to the school hostnames. Whether Custom Hostnames has its own per-hostname minimum is **TO CONFIRM** (known gaps, gap 8); do not rely on it.
    Check: the Fallback origin shows **Active**.
 3. **API token.** Top right > **My Profile > API Tokens > Create Token > Create Custom Token**.
    Permission `Zone`, `SSL and Certificates`, `Edit`; Zone Resources: **Include > Specific zone >** your
@@ -2318,3 +2318,4 @@ needs a code or owner decision.
 | 5   | The 100-hostname free cap of Cloudflare for SaaS: what the API and the Address tab show at hostname 101 is not known                                                                                | 17e step 2, `custom-domain.service.ts`         | TO CONFIRM on the real account; expect the claim to FAIL with a Cloudflare error                                             |
 | 6   | Does Cloudflare auto-validate a hostname when the school's CNAME already points at the fallback origin? If yes, a school that detaches but leaves its CNAME could let another school claim the host | 17e step 4, #3646                              | TO CONFIRM against the Cloudflare docs or a test hostname; nothing was guessed                                               |
 | 7   | The custom host path (`$site_host_ok`) and every 17e step ran only in Docker (`nginx/test/site.infra.test.sh`), never behind real Cloudflare for SaaS                                               | 17e                                            | the staging acceptance of #3646 (ACTIVE within 20 minutes) is still owed                                                     |
+| 8   | Minimum TLS for a school's own hostname: the zone-wide setting is documented; whether Cloudflare for SaaS applies it or has its own per-hostname setting is not                                     | 17e step 2                                     | TO CONFIRM on the real account (SSL/TLS > Custom Hostnames, hostname settings); nothing was guessed                          |
