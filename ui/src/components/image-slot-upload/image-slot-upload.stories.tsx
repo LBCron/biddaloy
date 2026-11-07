@@ -12,6 +12,7 @@ const labels = {
   svgRefused: 'SVG ছবি নেওয়া যায় না। PNG বা JPG দিন।',
   tooLarge: 'ছবিটি ২০ MB-এর বেশি। ছোট ছবি দিন।',
   unreadable: 'ছবিটি পড়া যায়নি।',
+  pan: 'তীর চাপলে ছবি সরবে, + ও - চাপলে বড়-ছোট হবে।',
 };
 
 const meta: Meta<typeof ImageSlotUpload> = {

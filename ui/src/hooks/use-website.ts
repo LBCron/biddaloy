@@ -71,7 +71,7 @@ export function useWebsiteThemes() {
 
 /** Debounced 300 ms; nothing is sent under 3 characters. */
 export function useSubdomainCheck(value: string) {
-  const debounced = useDebouncedValue(value, 300);
+  const debounced = useDebouncedValue(value.trim().toLowerCase(), 300);
   return useQuery({
     queryKey: websiteKeys.subdomainCheck(debounced),
     queryFn: async ({ signal }) =>
@@ -119,7 +119,12 @@ export function usePreviewToken(options: { enabled?: boolean } = {}) {
 
 function useInvalidateWebsite() {
   const qc = useQueryClient();
-  return () => qc.invalidateQueries({ queryKey: websiteKeys.all });
+  // Not `all`: subdomain-check answers and preview tokens must not refetch on every save.
+  return () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: websiteKeys.config() }),
+      qc.invalidateQueries({ queryKey: websiteKeys.media() }),
+    ]);
 }
 
 export function useSaveDraft() {
@@ -182,15 +187,23 @@ export function useRenameSubdomain() {
 
 /** `blob` is the cropped output of `ImageSlotUpload`, never the original file. */
 export function useUploadSiteMedia(slot: SiteMediaSlot) {
+  const { keyFor, rotate } = useIdempotencyKey();
   const invalidate = useInvalidateWebsite();
   return useMutation({
     mutationFn: async (blob: Blob) => {
       const form = new FormData();
       form.append('slot', slot);
       form.append('file', blob, `${slot}.${blob.type === 'image/jpeg' ? 'jpg' : 'webp'}`);
-      return (await apiClient.post<{ id: string }>('/website/media', form)).data;
+      return (
+        await apiClient.post<{ id: string }>('/website/media', form, {
+          headers: { 'Idempotency-Key': keyFor({ slot, size: blob.size, type: blob.type }) },
+        })
+      ).data;
     },
-    onSuccess: invalidate,
+    onSuccess: () => {
+      rotate();
+      return invalidate();
+    },
     retry: false,
   });
 }

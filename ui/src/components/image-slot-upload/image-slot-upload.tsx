@@ -21,6 +21,8 @@ import {
 } from './crop-canvas';
 
 export const MAX_SLOT_UPLOAD_BYTES = 20 * 1024 * 1024;
+/** Decoded size cap: a small file can still be a decompression bomb. */
+export const MAX_SLOT_PIXELS = 100_000_000;
 const NUDGE = 10;
 
 export interface ImageSlotUploadLabels {
@@ -32,6 +34,8 @@ export interface ImageSlotUploadLabels {
   /** Same sentence the server answers with for a file over 20 MB. */
   tooLarge: string;
   unreadable: string;
+  /** Read by screen readers on the preview: how to pan and zoom with the keyboard. */
+  pan: string;
 }
 
 export interface ImageSlotUploadProps {
@@ -67,7 +71,16 @@ function toBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
       (webp) => {
         if (webp && webp.type === 'image/webp') return resolve(webp);
         // Browsers without WebP encoding fall back to PNG silently; ask for JPEG instead.
-        canvas.toBlob((jpeg) => resolve(jpeg), 'image/jpeg', 0.9);
+        // JPEG has no alpha: paint white first so transparent areas do not turn black.
+        const flat = document.createElement('canvas');
+        flat.width = canvas.width;
+        flat.height = canvas.height;
+        const ctx = flat.getContext('2d');
+        if (!ctx) return resolve(null);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, flat.width, flat.height);
+        ctx.drawImage(canvas, 0, 0);
+        flat.toBlob((jpeg) => resolve(jpeg), 'image/jpeg', 0.9);
       },
       'image/webp',
       0.9,
@@ -85,6 +98,7 @@ export function ImageSlotUpload({
   className,
 }: ImageSlotUploadProps) {
   const px = SITE_MEDIA_SLOT_PX[slot];
+  const hintId = React.useId();
   const inputRef = React.useRef<HTMLInputElement>(null);
   const previewRef = React.useRef<HTMLCanvasElement>(null);
   const [img, setImg] = React.useState<HTMLImageElement | null>(null);
@@ -117,6 +131,9 @@ export function ImageSlotUpload({
     if (file.size > MAX_SLOT_UPLOAD_BYTES) return setError(labels.tooLarge);
     try {
       const loaded = await loadImage(file);
+      if (loaded.naturalWidth * loaded.naturalHeight > MAX_SLOT_PIXELS) {
+        return setError(labels.tooLarge);
+      }
       const size = { w: loaded.naturalWidth, h: loaded.naturalHeight };
       const o = slotSize(px, size);
       setImg(loaded);
@@ -190,6 +207,7 @@ export function ImageSlotUpload({
             ref={previewRef}
             tabIndex={disabled ? -1 : 0}
             aria-label={labels.zoom}
+            aria-describedby={`${hintId}`}
             data-testid="slot-preview"
             className="size-full cursor-grab touch-none outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onKeyDown={onKeyDown}
@@ -218,6 +236,9 @@ export function ImageSlotUpload({
           <img src={value} alt="" className="size-full object-cover" />
         ) : null}
       </div>
+      <p id={hintId} className="sr-only">
+        {labels.pan}
+      </p>
       {out && (
         <p className="text-caption text-text-secondary">
           {`${out.w} × ${out.h}`}
