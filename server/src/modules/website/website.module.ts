@@ -2,10 +2,16 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { School } from '../schools/entities/school.entity';
 import { Notice } from '../notices/entities/notice.entity';
+import { UserTenant } from '../auth/entities/user-tenant.entity';
+import { CommunicationsModule } from '../communications/communications.module';
+import { TurnstileService } from '../registration/turnstile.service';
 import { StorageModule } from '../storage/storage.module';
 import { SchoolsModule } from '../schools/schools.module';
 import { SchoolSite } from './entities/school-site.entity';
 import { SiteMedia } from './entities/site-media.entity';
+import { SitePost } from './entities/site-post.entity';
+import { SiteEnquiry } from './entities/site-enquiry.entity';
+import { StaffWebProfile } from './entities/staff-web-profile.entity';
 import { SiteConfigController } from './site-config.controller';
 import { SiteConfigService } from './site-config.service';
 import { SubdomainController } from './subdomain.controller';
@@ -17,6 +23,12 @@ import { PublicSiteController } from './public/public-site.controller';
 import { PublicSiteService } from './public/public-site.service';
 import { SiteHostService } from './public/site-host.service';
 import { SiteCacheService } from './public/site-cache.service';
+import { SitePostsController } from './site-posts.controller';
+import { SitePostsService } from './site-posts.service';
+import { PublicEnquiryController, SiteEnquiriesController } from './site-enquiries.controller';
+import { SiteEnquiriesService } from './site-enquiries.service';
+import { StaffWebProfilesController } from './staff-web-profiles.controller';
+import { StaffWebProfilesService } from './staff-web-profiles.service';
 import { NoticesFeed } from './public/feeds/notices.feed';
 
 /**
@@ -25,15 +37,29 @@ import { NoticesFeed } from './public/feeds/notices.feed';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([SchoolSite, SiteMedia, School, Notice]),
+    TypeOrmModule.forFeature([
+      SchoolSite,
+      SiteMedia,
+      School,
+      Notice,
+      SitePost,
+      SiteEnquiry,
+      StaffWebProfile,
+      UserTenant,
+    ]),
     StorageModule,
     SchoolsModule,
+    CommunicationsModule,
   ],
   controllers: [
     SiteConfigController,
     SubdomainController,
     SiteMediaController,
     PublicSiteController,
+    SitePostsController,
+    SiteEnquiriesController,
+    PublicEnquiryController,
+    StaffWebProfilesController,
   ],
   providers: [
     SiteConfigService,
@@ -44,6 +70,10 @@ import { NoticesFeed } from './public/feeds/notices.feed';
     SiteHostService,
     SiteCacheService,
     NoticesFeed,
+    SitePostsService,
+    SiteEnquiriesService,
+    StaffWebProfilesService,
+    TurnstileService,
   ],
   exports: [SiteCacheService],
 })

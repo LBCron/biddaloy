@@ -22,6 +22,7 @@ const NON_UUID_PARAMS = new Map<string, number>([
   ['modules/website/public/public-site.controller.ts:page', 1], // SitePage name
   ['modules/website/public/public-site.controller.ts:kind', 1], // SiteIslandKind name
   ['modules/website/public/public-site.controller.ts:key', 1], // `logo` or a media id (service checks)
+  ['modules/website/site-enquiries.controller.ts:host', 1], // site host name (public enquiry)
   ['modules/presets/presets.controller.ts:id', 1], // preset key such as bd/nctb
   ['modules/print/templates/print-templates.controller.ts:key', 1], // artwork key
   ['modules/print/templates/print-templates.controller.ts:side', 1], // artwork side name
