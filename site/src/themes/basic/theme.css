@@ -257,3 +257,14 @@ details p{padding:0 0 14px;color:var(--ink-2)}
 .seeall a:active{transform:scale(.97)}
 @media (hover:hover){.seeall a:hover{background:var(--sa-ink,currentColor);color:var(--sa-hover-ink,#fff)}}
 
+
+/* inner pages (3637): forms, map, post body, routine, intakes */
+.field>span{font-weight:600;font-size:14.5px}
+.enquiry{display:grid;gap:14px;margin-top:12px}
+.enquiry [data-status]{margin:0;min-height:1.6em;font-weight:600}
+.enquiry [data-status].ok{color:var(--ok)}.enquiry [data-status].bad{color:var(--warn)}
+.mapframe{width:100%;aspect-ratio:16/9;border:1px solid var(--line);border-radius:var(--r);margin-top:16px}
+.post-page{max-width:760px;display:grid;gap:16px}
+.prose{overflow-wrap:anywhere}.prose img{max-width:100%;height:auto;border-radius:var(--r-s)}
+.routine-grid{display:grid;gap:8px;margin-top:16px}.routine-grid ul{margin:0 0 8px;padding-inline-start:20px}
+.intakes{list-style:none;margin:20px 0 0;padding:0;display:grid;gap:12px}.intakes .card{padding:16px;display:grid;gap:8px;justify-items:start}
