@@ -4,7 +4,9 @@
     "pages": "Pages",
     "design": "Design",
     "blog": "News and posts",
-    "enquiries": "Enquiries"
+    "enquiries": "Enquiries",
+    "address": "Address",
+    "analytics": "Visitors"
   },
   "nav": {
     "website": "Website"
@@ -273,22 +275,90 @@
       "title": "Your own address",
       "body": "Use an address you already own, like www.myschool.edu.bd.",
       "notMatched": "The address has not matched yet. Add the line below in your address settings, then check again.",
-      "check": "Check again"
+      "check": "Check again",
+      "host": "Your address",
+      "hostHint": "For example www.myschool.edu.bd",
+      "add": "Add",
+      "steps": "Do this where you bought your address. Add these two lines, then wait.",
+      "lineTitle": "Line {{n}}",
+      "type": "Type",
+      "name": "Name",
+      "value": "Value",
+      "lastChecked": "Last checked {{time}}",
+      "neverChecked": "Not checked yet",
+      "recheck": "Check again",
+      "recheckWait": "Check again in {{seconds}} s",
+      "apexHint": "This address has no \"www\". Some address sellers cannot set it up. If the lines are refused, use an address that starts with www.",
+      "status": {
+        "PENDING_DNS": "Waiting for the two lines",
+        "PENDING_SSL": "Almost ready",
+        "ACTIVE": "Working",
+        "FAILED": "Did not work"
+      },
+      "statusHelp": {
+        "PENDING_DNS": "We cannot see the two lines yet. This can take a few hours.",
+        "PENDING_SSL": "The lines are right. We are making the address safe to open.",
+        "ACTIVE": "Your website opens on this address.",
+        "FAILED": "We could not finish. Check the two lines, then check again."
+      },
+      "remove": {
+        "action": "Remove this address",
+        "title": "Remove your own address?",
+        "body": "Your website keeps working on the web address above.",
+        "confirm": "Remove"
+      },
+      "added": "Address added. Now add the two lines.",
+      "removed": "Address removed",
+      "errors": {
+        "unavailable": "This address cannot be added. Try another one.",
+        "tryLater": "We cannot add addresses right now. Please try again in a while.",
+        "rateLimited": "Too many tries. Please wait a little and try again.",
+        "generic": "We could not do that. Please try again."
+      }
     },
     "save": "Save address",
-    "saveError": "We could not save that. Please try again."
+    "saveError": "We could not save that. Please try again.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyFailed": "We could not copy. Please select it and copy by hand.",
+    "newLabel": "New address",
+    "checking": "Checking…",
+    "available": "This address is free.",
+    "taken": "This address cannot be used. Try another one.",
+    "invalid": "Use 3 to 30 letters, numbers or hyphens. Do not start or end with a hyphen.",
+    "suggestions": "Addresses we suggest",
+    "cancel": "Cancel",
+    "confirm": {
+      "title": "Change the web address?",
+      "body": "People who use the old address will be sent to the new one for 30 days. After that the old address stops working.",
+      "action": "Change address"
+    },
+    "renamed": "Web address changed",
+    "renameError": "We could not change the address. Please try again.",
+    "renameLater": "The address cannot be changed right now. Please try again in a while.",
+    "renameLimit": "You changed the address too many times. Please try again later.",
+    "loadError": "We could not load the address."
   },
   "analytics": {
     "title": "Visitors",
     "visitors": "Visitors",
     "pages": "Most seen pages",
-    "empty": "No visitors yet."
+    "empty": "No visitors yet.",
+    "subtitle": "Last 30 days",
+    "pageviews": "Pages seen",
+    "loadError": "We could not load the visitor numbers.",
+    "off": {
+      "title": "Visitor numbers are not available",
+      "body": "We cannot show them right now. Your website is not affected."
+    }
   },
   "help": {
     "address": "This is the address people type to find your school website, like yourschool.example.com.",
     "ownAddress": "If your school already has an address, like www.myschool.edu.bd, you can use it instead.",
     "colours": "Colours are used for buttons, headings and the top bar of your website.",
-    "textStyle": "The text style sets how the headings and the writing on your website look."
+    "textStyle": "The text style sets how the headings and the writing on your website look.",
+    "addressRename": "This is the address people type to find your school website.",
+    "ownAddressSteps": "Add the two lines where you bought your address. We check them for you. This can take a few hours."
   },
   "editor": {
     "fields": {

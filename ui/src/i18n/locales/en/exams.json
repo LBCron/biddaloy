@@ -605,5 +605,24 @@
       "someFailed": "{{n}} cards couldn't load. They are marked on the printout. Print again to retry.",
       "cardFailed": "card couldn't load"
     }
+  },
+  "website": {
+    "publish": "Show results on the website",
+    "unpublish": "Take results off the website",
+    "showNames": "Show student names",
+    "showNamesHelp": "If this is off, the website shows only roll number and marks.",
+    "publishTitle": "Show these results on the school website?",
+    "publishBody": "Everyone who visits your website will see this exam, its classes, roll numbers and grades.",
+    "publishNamesOn": " Student names will also be shown.",
+    "publishNamesOff": " Student names will not be shown.",
+    "publishConfirm": "Show on website",
+    "unpublishTitle": "Take these results off the website?",
+    "unpublishBody": "The results will no longer be visible to visitors. You can show them again later.",
+    "unpublishConfirm": "Take off website",
+    "published": "Results are now on the website",
+    "unpublished": "Results are off the website",
+    "view": "See on the website",
+    "error": "We could not do that. Please try again.",
+    "siteOff": "Set up the school website first to show results on it."
   }
 }
