@@ -27,6 +27,9 @@ test('admin writes and publishes a blog post', async ({ page }) => {
     .getByRole('textbox', { name: new RegExp(`^${t('website.blog.postTitle')} \\(`) })
     .first()
     .fill(title);
+  // Publishing refuses an empty body, so write one line into the rich-text editor first.
+  await page.getByRole('textbox', { name: t('website.blog.editor.editor') }).click();
+  await page.keyboard.type('মেলার খবর');
   await page.getByRole('button', { name: t('website.blog.publish'), exact: true }).click();
   await expect(page.getByText(t('website.blog.publishedToast'))).toBeVisible();
 
@@ -38,7 +41,14 @@ test('admin writes and publishes a blog post', async ({ page }) => {
 
 test('the enquiries tab opens', async ({ page }) => {
   await page.goto('/website/enquiries');
-  await expect(page.getByRole('heading', { name: t('website.enquiries.title') })).toBeVisible();
+  // The Website layout owns the one page heading; the open tab is what says "Enquiries".
+  await expect(page.getByRole('tab', { name: t('website.tabs.enquiries') })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(
+    page.getByRole('switch', { name: new RegExp(t('website.enquiries.smsSwitch')) }),
+  ).toBeVisible();
 });
 
 test('admin puts a teacher on the website from the staff page', async ({ page, request }) => {

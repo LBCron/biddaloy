@@ -10422,6 +10422,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/website/custom-domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Status and the DNS records to add. 409 site.custom_domain_unavailable when off. */
+        get: operations["CustomDomainController_get_v1"];
+        /** Attach a domain. Needs an `Idempotency-Key` (Rule 25). 409 site.custom_domain_unavailable for every refusal; 503 site.custom_domain_try_later when Cloudflare is down. */
+        put: operations["CustomDomainController_set_v1"];
+        post?: never;
+        /** Detach the domain; the subdomain keeps answering. */
+        delete: operations["CustomDomainController_remove_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/website/custom-domain/recheck": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask Cloudflare once now. */
+        post: operations["CustomDomainController_recheck_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/website/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pageviews and visitors, last 30 days. `{ available: false }` when Umami is off or down. */
+        get: operations["CustomDomainController_analytics_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/website/media": {
         parameters: {
             query?: never;
@@ -10483,6 +10536,23 @@ export interface paths {
         };
         /** One published page: enabled sections in order. */
         get: operations["PublicSiteController_page_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/site/by-host/{host}/blog/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One published blog post by slug: title, excerpt, sanitised html, cover. */
+        get: operations["PublicSiteController_blogPost_v1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -19505,6 +19575,33 @@ export interface components {
         PreviewTokenDto: {
             /** @description `https://<subdomain>.<root>/?preview=<token>`, valid 1 hour. */
             url: string;
+        };
+        DnsRecordDto: {
+            /** @enum {string} */
+            type: "CNAME" | "TXT";
+            name: string;
+            value: string;
+        };
+        CustomDomainStatusDto: {
+            host: string | null;
+            /** @enum {string|null} */
+            status: "PENDING_DNS" | "PENDING_SSL" | "ACTIVE" | "FAILED" | null;
+            records: components["schemas"]["DnsRecordDto"][];
+            lastCheckedAt: string | null;
+            /** @description Hint key resolved by the client: `apex_needs_flattening`. */
+            hintKey?: string | null;
+        };
+        SetCustomDomainDto: {
+            /** @description `www.example.edu` or an apex. 409 site.custom_domain_unavailable for any refusal. */
+            host: string;
+        };
+        AnalyticsDto: {
+            available: boolean;
+            pageviews?: number;
+            visitors?: number;
+            /** @description Window start, ISO date-time (30 days back). */
+            from?: string;
+            to?: string;
         };
         SiteMediaDto: {
             id: string;
@@ -46294,6 +46391,163 @@ export interface operations {
             };
         };
     };
+    CustomDomainController_get_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomDomainStatusDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CustomDomainController_set_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetCustomDomainDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomDomainStatusDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CustomDomainController_remove_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CustomDomainController_recheck_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomDomainStatusDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CustomDomainController_analytics_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Active tenant's school ID — validated against the caller's memberships by ContextGuard. */
+                "X-Tenant-ID": string;
+                /** @description Explicit role to act as, for a caller with more than one membership. Defaults to the first membership found when omitted. */
+                "X-Role"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticsDto"];
+                };
+            };
+            /** @description Missing/invalid bearer token, or missing/invalid X-Tenant-ID. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     SiteMediaController_list_v1: {
         parameters: {
             query?: never;
@@ -46438,11 +46692,29 @@ export interface operations {
             };
         };
     };
+    PublicSiteController_blogPost_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                host: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     PublicSiteController_island_v1: {
         parameters: {
-            query?: {
-                classSectionId?: unknown;
-            };
+            query?: never;
             header?: never;
             path: {
                 host: string;
