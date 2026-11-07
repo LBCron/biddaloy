@@ -14,6 +14,8 @@ declare global {
       previewToken?: string;
       /** Demo home page for a preview (no API call). */
       previewHome?: SitePageData;
+      /** A blog post page sets this; the layout prints it as NewsArticle JSON-LD. */
+      postLd?: Omit<import('./lib/seo').PostLd, 'author'>;
     }
   }
 }

@@ -50,7 +50,11 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
     ctx.locals.preview = previewTheme;
     ctx.locals.site = demo.site;
     ctx.locals.previewHome = demo.home;
-    res = LANGS.includes(seg as Lang) ? await next() : await next('/404/');
+    // Only robots.txt answers in a preview (Disallow: /); sitemap, feed, cards are a 404 there.
+    res =
+      LANGS.includes(seg as Lang) || pathname === '/robots.txt'
+        ? await next()
+        : await next('/404/');
     return withNoindex(res);
   }
 
@@ -61,9 +65,12 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   if (r.kind === 'none') return next('/404/');
   if (r.kind === 'down') return next('/503/');
   ctx.locals.site = r.data;
-  if (!LANGS.includes(seg as Lang)) return next('/404/');
+  if (!LANGS.includes(seg as Lang) && !SEO_FILES.has(seg)) return next('/404/');
   return next();
 });
+
+/** Root files of a school site (#3645); they answer only for a resolved host, so an unknown host gets the page 404. */
+const SEO_FILES = new Set(['sitemap.xml', 'robots.txt', 'feed.xml', 'llms.txt', 'og']);
 
 function withNoindex(res: Response): Response {
   res.headers.set('X-Robots-Tag', 'noindex');

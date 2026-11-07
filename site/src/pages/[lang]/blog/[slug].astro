@@ -20,6 +20,13 @@ const post = r.data;
 const s = (v: unknown) => (typeof v === 'string' ? v : undefined);
 const title = field(post.title, lang) ?? s(post.title) ?? '';
 const when = s(post.publishedAt) ? new Date(s(post.publishedAt)!) : undefined;
+Astro.locals.postLd = {
+  title,
+  url: `https://${Astro.locals.host}/${lang}/blog/${Astro.params.slug}/`,
+  publishedAt: when && !Number.isNaN(when.getTime()) ? when.toISOString() : undefined,
+  image: s(post.cover) ? `https://${Astro.locals.host}/media/${s(post.cover)}` : undefined,
+  excerpt: s(post.excerpt),
+};
 const { Layout } = themes[site.theme] ?? themes.basic;
 ---
 <Layout manifest={site} lang={lang} rest={`blog/${Astro.params.slug}/`} title={title} description={s(post.excerpt)} image={s(post.cover) ? `/media/${s(post.cover)}` : undefined}>

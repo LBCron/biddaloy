@@ -1,0 +1,62 @@
+---
+import { SitePage } from '@biddaloy/shared';
+import {
+  alternatesFor,
+  canonicalFor,
+  jsonLdBreadcrumbs,
+  jsonLdPost,
+  jsonLdSchool,
+  jsonLdScript,
+  robotsFor,
+} from '../lib/seo';
+import { t } from '../i18n/t';
+import type { Lang, SiteManifest } from '../lib/types';
+
+interface Props {
+  manifest: SiteManifest;
+  lang: Lang;
+  rest: string;
+  fullTitle: string;
+  description: string;
+  /** Absolute URL of a chosen share picture (blog cover); default is the generated card for this page. */
+  image?: string;
+  name: string;
+}
+const { manifest, lang, rest, fullTitle, description, image, name } = Astro.props;
+const host = Astro.locals.host;
+const robots = robotsFor(manifest, !!(Astro.locals.preview || Astro.locals.previewToken));
+const indexable = robots !== 'noindex';
+const pageKey = rest.split('/')[0] || SitePage.HOME;
+const card =
+  image ?? `https://${host}/og/${/^[a-z]+$/.test(pageKey) ? pageKey : 'home'}.png?lang=${lang}`;
+const canonical = canonicalFor(host, lang, rest);
+const crumbs = [{ name, url: canonicalFor(host, lang) }];
+if (rest) crumbs.push({ name: fullTitle.replace(` · ${name}`, ''), url: canonical });
+const post = Astro.locals.postLd;
+const ld = indexable
+  ? [
+      jsonLdSchool(manifest, host, lang),
+      ...(rest ? [jsonLdBreadcrumbs(crumbs)] : []),
+      ...(post ? [jsonLdPost({ ...post, author: name })] : []),
+    ]
+  : [];
+---
+<meta name="description" content={description} />
+<meta property="og:type" content={post ? 'article' : 'website'} />
+<meta property="og:site_name" content={name} />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:locale" content={lang === 'en' ? 'en_GB' : 'bn_BD'} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={card} />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={card} />
+<meta name="robots" content={robots} />
+{indexable && <>
+  {alternatesFor(host, rest).map((a) => <link rel="alternate" hreflang={a.hreflang} href={a.href} />)}
+  <link rel="canonical" href={canonical} />
+  <link rel="alternate" type="application/rss+xml" title={`${name} · ${t(lang, 'nav.blog')}`} href={`https://${host}/feed.xml?lang=${lang}`} />
+</>}
+{ld.map((o) => <script type="application/ld+json" set:html={jsonLdScript(o)} />)}

@@ -1,4 +1,5 @@
 ---
+import Seo from '../components/Seo.astro';
 import { t } from '../i18n/t';
 import { themeCss, toStyle } from '../lib/css-vars';
 import { pick } from '../lib/pick';
@@ -17,15 +18,13 @@ interface Props {
 }
 const { manifest, lang, rest = '', title, description, image } = Astro.props;
 const host = Astro.locals.host;
-const alt = (l: Lang) => `https://${host}/${l}/${rest}`;
 const { vars, fontFaces } = themeCss(manifest);
-const noindex = manifest.noindex || !!Astro.locals.preview;
 const name = pick(manifest.schoolName, lang) ?? '';
 const fullTitle = title ? `${title} · ${name}` : name;
 // Values reach the page only through Astro's escaping of attribute expressions.
 const desc = (description ?? pick(manifest.contact?.address, lang) ?? fullTitle).slice(0, 200);
-const pic = image ?? manifest.logo;
-const ogImage = pic?.startsWith('/') ? new URL(pic, `https://${host}`).href : undefined;
+// A chosen picture (blog cover) wins; otherwise Seo uses the generated card for the page.
+const ogImage = image?.startsWith('/') ? new URL(image, `https://${host}`).href : undefined;
 ---
 <!doctype html>
 <html lang={lang} style={toStyle(vars)}>
@@ -33,20 +32,7 @@ const ogImage = pic?.startsWith('/') ? new URL(pic, `https://${host}`).href : un
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>{fullTitle}</title>
-    <meta name="description" content={desc} />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content={name} />
-    <meta property="og:title" content={fullTitle} />
-    <meta property="og:description" content={desc} />
-    <meta property="og:locale" content={lang === 'en' ? 'en_GB' : 'bn_BD'} />
-    {ogImage && <meta property="og:image" content={ogImage} />}
-    {noindex && <meta name="robots" content="noindex" />}
-    {!noindex && <>
-      <link rel="alternate" hreflang="bn" href={alt('bn')} />
-      <link rel="alternate" hreflang="en" href={alt('en')} />
-      <link rel="alternate" hreflang="x-default" href={alt('bn')} />
-      <link rel="canonical" href={alt(lang)} />
-    </>}
+    <Seo manifest={manifest} lang={lang} rest={rest} fullTitle={fullTitle} description={desc} image={ogImage} name={name} />
     <style set:html={fontFaces}></style>
   </head>
   <body>
