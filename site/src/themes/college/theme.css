@@ -607,3 +607,10 @@ html[lang='bn'] .t-college .step::before {
     --line: color-mix(in srgb, var(--ink) 55%, var(--surface));
   }
 }
+
+/* gallery + video frame: the shared blocks read these variables (basic/theme.css) */
+.t-college {
+  --gc-r: 0;
+  --gc-border: 1px solid var(--line-accent);
+  --ve-icon-r: 0;
+}

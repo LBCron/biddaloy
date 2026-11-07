@@ -1,0 +1,14 @@
+---
+import VideoEmbed from '../../../components/VideoEmbed.astro';
+import { videoOf } from '../../../lib/sections';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang } = Astro.props as SectionProps;
+// No video (or an id that is not a clean YouTube id) renders nothing (D12).
+const v = videoOf(data, lang);
+---
+{v && (
+  <section class="sec" id="video"><div class="wrap">
+    <VideoEmbed videoId={v.id} startSeconds={v.start} heading={v.heading} below={v.below} lang={lang} />
+  </div></section>
+)}

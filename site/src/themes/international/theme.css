@@ -596,3 +596,10 @@ html[lang='bn'] .t-international .avatar {
     --line: color-mix(in srgb, var(--ink) 55%, var(--surface));
   }
 }
+
+/* gallery + video frame: the shared blocks read these variables (basic/theme.css) */
+.t-international {
+  --gc-r: 0;
+  --gc-border: 0;
+  --ve-icon-r: 0;
+}

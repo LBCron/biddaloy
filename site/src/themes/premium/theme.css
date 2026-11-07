@@ -582,3 +582,11 @@ html[lang='bn'] .t-premium .avatar {
     --line: color-mix(in srgb, var(--ink) 55%, var(--surface));
   }
 }
+
+/* gallery + video frame: the shared blocks read these variables (basic/theme.css) */
+.t-premium {
+  --gc-r: 0;
+  --gc-border: 1px solid var(--accent);
+  --gc-cap-align: center;
+  --ve-icon-r: 0;
+}

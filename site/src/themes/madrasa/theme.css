@@ -561,3 +561,11 @@ html[lang='bn'] .t-madrasa {
     --line: color-mix(in srgb, var(--ink) 55%, var(--surface));
   }
 }
+
+/* gallery + video frame: the shared blocks read these variables (basic/theme.css) */
+.t-madrasa {
+  --gc-r: var(--r);
+  --gc-border: 2px solid var(--line-accent);
+  --gc-cap-align: center;
+  --ve-icon-r: 50%;
+}

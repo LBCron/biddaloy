@@ -1,0 +1,18 @@
+---
+import GalleryCarousel from '../../../components/GalleryCarousel.astro';
+import { t } from '../../../i18n/t';
+import { field } from '../../../lib/pick';
+import { galleryAlbums, galleryPageLinked, GALLERY_CAROUSEL_MAX } from '../../../lib/sections';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang, feed, manifest } = Astro.props as SectionProps;
+// Empty hides itself (D12): no album, or no usable photo, renders nothing, not even the heading.
+const album = galleryAlbums(feed, GALLERY_CAROUSEL_MAX)[0];
+const title = field(data.heading, lang) ?? t(lang, 'section.gallery');
+---
+{album && (
+  <section class="sec sec-tint" id="gallery"><div class="wrap">
+    <div class="sec-head"><h2>{title}</h2></div>
+    <GalleryCarousel album={album} lang={lang} pageLink={galleryPageLinked(manifest)} />
+  </div></section>
+)}

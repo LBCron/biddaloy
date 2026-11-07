@@ -632,3 +632,11 @@
     --line: color-mix(in srgb, var(--ink) 55%, var(--surface));
   }
 }
+
+/* gallery + video frame: the shared blocks read these variables (basic/theme.css) */
+.t-primary {
+  --gc-r: var(--r);
+  --gc-border: 3px solid var(--line-accent);
+  --gc-cap-align: center;
+  --ve-icon-r: 50%;
+}
