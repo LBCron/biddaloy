@@ -160,6 +160,12 @@
     "up": "Move {{name}} up, place {{position}}",
     "down": "Move {{name}} down, place {{position}}",
     "editSection": "Edit {{name}}",
+    "results": {
+      "title": "Results page",
+      "show": "Show the Results page on my website",
+      "privacy": "When this is on, anyone who knows a class, section and roll can look up a result. Student names are shown unless you turn names off for the exam.",
+      "publish": "Like other changes, this reaches the public site only after you save the draft and publish."
+    },
     "pageOff": "This page is off",
     "unsaved": "You have changes that are not saved.",
     "saveDraft": "Save draft",

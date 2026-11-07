@@ -18,6 +18,7 @@ import {
   isPinnedSection,
   moveSection,
   setAnnouncements,
+  setPageEnabled,
   toggleSection,
   useWebsiteConfig,
   useWebsiteThemes,
@@ -111,7 +112,7 @@ function PagesEditor({ theme }: { theme: WebsiteTheme | undefined }) {
       });
   }, [unknownEdit, navigate, pageParam]);
 
-  const setPageEnabled = (next: boolean) =>
+  const setCurrentPageEnabled = (next: boolean) =>
     setDraft((d) => ({
       ...d,
       pages: d.pages.map((p) => (p.page === page ? { ...p, enabled: next } : p)),
@@ -123,6 +124,19 @@ function PagesEditor({ theme }: { theme: WebsiteTheme | undefined }) {
         value={draft.announcements}
         onChange={(bar) => setDraft((d) => setAnnouncements(d, bar))}
       />
+
+      <Card className="flex flex-col gap-2 p-4 md:p-5">
+        <h2 className="text-h2">{t('pages.results.title')}</h2>
+        <label className="flex items-center gap-2 text-sm">
+          <Switch
+            checked={draft.pages.some((p) => p.page === SitePage.RESULTS && p.enabled)}
+            onCheckedChange={(on) => setDraft((d) => setPageEnabled(d, SitePage.RESULTS, on))}
+          />
+          {t('pages.results.show')}
+        </label>
+        <p className="text-caption text-text-secondary">{t('pages.results.privacy')}</p>
+        <p className="text-caption text-text-secondary">{t('pages.results.publish')}</p>
+      </Card>
 
       <Card className="flex flex-col gap-4 p-4 md:p-5">
         <h2 className="text-h2">{t('pages.title')}</h2>
@@ -149,7 +163,7 @@ function PagesEditor({ theme }: { theme: WebsiteTheme | undefined }) {
         {current && page && (
           <>
             <label className="flex items-center gap-2 text-sm">
-              <Switch checked={current.enabled} onCheckedChange={setPageEnabled} />
+              <Switch checked={current.enabled} onCheckedChange={setCurrentPageEnabled} />
               {t('pages.show')}
             </label>
             {!current.enabled && (

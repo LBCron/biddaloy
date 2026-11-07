@@ -8,6 +8,7 @@ import { renderHookWithProviders } from '../test/render-hook-with-providers';
 
 import {
   moveSection,
+  setPageEnabled,
   setPalette,
   setSectionData,
   setTheme,
@@ -70,6 +71,17 @@ describe('draft helpers', () => {
     expect(
       toggleSection(off, SitePage.HOME, SiteSectionKey.ABOUT, true).pages[0]!.sections[1]!.enabled,
     ).toBe(true);
+  });
+
+  it('setPageEnabled toggles a page, adds a missing one, leaves the rest alone', () => {
+    const on = setPageEnabled(config, SitePage.RESULTS, true);
+    expect(on.pages.at(-1)).toEqual({ page: SitePage.RESULTS, enabled: true, sections: [] });
+    expect(on.pages.slice(0, -1)).toEqual(config.pages);
+    const off = setPageEnabled(on, SitePage.RESULTS, false);
+    expect(off.pages).toHaveLength(on.pages.length);
+    expect(off.pages.at(-1)!.enabled).toBe(false);
+    expect(setPageEnabled(on, SitePage.RESULTS, true)).toEqual(on);
+    expect(setPageEnabled(config, SitePage.HOME, false).pages[0]!.enabled).toBe(false);
   });
 
   it('setSectionData / setPalette / setTheme change only their own field', () => {

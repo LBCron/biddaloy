@@ -82,6 +82,34 @@ describe('/website/pages', () => {
     expect(saved[0]!.pages[0]!.enabled).toBe(true);
   });
 
+  it('switches the Results page on (adding it to an older draft), then off, and saves', async () => {
+    const saved = mockDraftSite();
+    render();
+    const sw = await screen.findByRole('switch', { name: 'Show the Results page on my website' });
+    expect(sw.getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByText(/anyone who knows a class, section and roll/)).toBeTruthy();
+    await userEvent.click(sw);
+    expect(await screen.findByText('You have changes that are not saved.')).toBeTruthy();
+    await userEvent.click(await screen.findByRole('button', { name: 'Save draft' }));
+    await waitFor(() => expect(saved).toHaveLength(1));
+    expect(saved[0]!.pages.find((p) => p.page === 'results')).toMatchObject({ enabled: true });
+  });
+
+  it('keeps the Results page off when switched on then off again', async () => {
+    const saved = mockDraftSite();
+    render();
+    const sw = await screen.findByRole('switch', { name: 'Show the Results page on my website' });
+    await userEvent.click(sw);
+    await userEvent.click(sw);
+    expect(sw.getAttribute('aria-checked')).toBe('false');
+    await userEvent.click(
+      await screen.findByRole('switch', { name: 'Show Teachers on the website' }),
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Save draft' }));
+    await waitFor(() => expect(saved).toHaveLength(1));
+    expect(saved[0]!.pages.find((p) => p.page === 'results')).toMatchObject({ enabled: false });
+  });
+
   it('opens the section editor from ?edit= and closes back to the list', async () => {
     mockDraftSite();
     const { router } = render('/website/pages?edit=hero');

@@ -65,6 +65,17 @@ export const toggleSection = (
   enabled: boolean,
 ) => editSection(config, page, key, (s) => ({ ...s, enabled }));
 
+/** Switches a whole page on or off; a draft that lacks the page (saved before it existed) gets it, section-less. */
+export function setPageEnabled(config: SiteConfig, page: SitePage, enabled: boolean): SiteConfig {
+  const has = config.pages.some((p) => p.page === page);
+  return {
+    ...config,
+    pages: has
+      ? config.pages.map((p) => (p.page === page ? { ...p, enabled } : p))
+      : [...config.pages, { page, enabled, sections: [] }],
+  };
+}
+
 /** A pinned section never moves, and nothing moves onto a pinned slot. */
 export function moveSection(config: SiteConfig, page: SitePage, from: number, to: number) {
   return editPage(config, page, (sections) => {
