@@ -29,7 +29,8 @@ import * as React from 'react';
 export const MAX_FEATURED = 8;
 
 const toValue = (v: WebTeacher['bio']): BilingualValue => ({ bn: v?.bn ?? '', en: v?.en ?? '' });
-const fromValue = (v: BilingualValue) => (v.bn.trim() || v.en.trim() ? v : null);
+const fromValue = (v: BilingualValue): Record<string, string> | null =>
+  v.bn.trim() || v.en.trim() ? { bn: v.bn, en: v.en } : null;
 
 export interface WebsiteProfileTabProps {
   userId: string;
@@ -55,7 +56,7 @@ export function WebsiteProfileTab({ userId }: WebsiteProfileTabProps) {
 
 function ProfileForm({ row, othersFeatured }: { row: WebTeacher; othersFeatured: number }) {
   const { t } = useTranslation('staff');
-  const f = (k: string, opts?: Record<string, unknown>) =>
+  const f = (k: string, opts: Record<string, unknown> = {}) =>
     t(`tabs.websiteProfileFields.${k}`, opts);
   const save = useUpsertWebTeacher();
   const upload = useUploadSiteMedia(SiteMediaSlot.PERSON);
