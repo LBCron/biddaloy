@@ -86,6 +86,55 @@ school.
 | `server/src/modules/workbook/tabs/website/`            | Backup and restore tabs (four tables)                                |
 | `server/src/scripts/demo-seed/slices/website.ts`       | The demo school's published site                                     |
 
+## SEO
+
+Each school host answers these itself. The site builds them from the by-host read model: no new server route.
+
+```mermaid
+flowchart LR
+  V["Search engine or share card"] --> S["site (Astro SSR)"]
+  S -->|"/sitemap.xml /robots.txt /feed.xml /llms.txt /og/home.png"| M{"Host resolved,<br/>not noindex, not preview?"}
+  M -->|yes| OK["The file"]
+  M -->|no| N["The same 404 body as an unknown host"]
+```
+
+| Endpoint            | Answer                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| `/sitemap.xml`      | Every enabled page that has a route, bn and en, each with `hreflang` alternates        |
+| `/robots.txt`       | `Allow: /`, `Disallow: /?preview=` and the sitemap; `Disallow: /` when noindex/preview |
+| `/feed.xml?lang=en` | RSS 2.0 of the blog; 404 when the blog page is switched off                            |
+| `/llms.txt`         | A plain-text summary: name, page URLs, recent posts                                    |
+| `/og/<page>.png`    | A 1200 x 630 card: palette colour, school name, page title                             |
+
+Each page also carries one canonical, bn/en/`x-default` alternates, Open Graph and Twitter tags, and JSON-LD
+(`EducationalOrganization`, `BreadcrumbList`, `NewsArticle` for a post).
+
+- **Noindex.** `school_sites.noindex`, any preview (the `X-Site-Preview` header, a `/website/preview/<theme>/` path, a
+  `?preview=<token>` draft) gives `robots: noindex`, no canonical, no JSON-LD and no sitemap, feed, llms or card.
+  Only `robots.txt` answers in a header preview (`Disallow: /`).
+- **Escaping.** JSON-LD is written with `<` escaped, so no value can close the script tag. XML drops characters XML 1.0
+  cannot carry, then escapes the rest.
+- **The card has no logo, on purpose.** Drawing it needs no fetch, so nothing a school typed can make the site call out
+  (no SSRF), and the work stays small. Cards are cached in memory (200), for one hour.
+- **Limit.** The sitemap and RSS list only the 12 newest posts, because the blog feed carries 12. A paged list feed
+  would lift it.
+- **Fonts.** The card is drawn with the system fonts of the container; the Alpine image has none for Bangla, so the
+  card text can show empty boxes until the image installs one.
+
+## Budgets in CI
+
+| Job (workflow)                        | When                                         | What it checks                                                                                                                                 |
+| ------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `site-budget` (`ci.yml`)              | When `site/**` or the website module changes | Demo school on the real API, built site, Lighthouse mobile (3G): performance, accessibility, SEO >= 0.9; layout shift <= 0.05; script <= 30 KB |
+| `site-themes` (`nightly-quality.yml`) | Nightly                                      | Runs the site e2e, which rewrites `site/e2e/__screenshots__/<theme>/`; the changed files are listed and uploaded                               |
+
+Config: `lighthouserc.site.cjs`. The preview URL is noindex by design, so it has no SEO budget. There is no results
+page URL until Epic 70.
+
+Reading a failure: open the `site-reports` artifact (kept 7 days) and the assertion name in the log. Raising a
+threshold is a decision, never a CI fix. `site-themes` never fails on a picture diff (fonts differ a little between
+runners): read the diff list in the job summary, and commit the new pictures if the change was meant.
+
 ## Backup and restore
 
 `school_site`, `site_posts`, `site_enquiries` and `staff_web_profiles` are workbook tabs. Pictures (`site_media`) are

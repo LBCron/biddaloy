@@ -4,13 +4,13 @@ import { SitePage } from '@biddaloy/shared';
 import { t } from '../../i18n/t';
 import { themeCss } from '../../lib/css-vars';
 import { pick } from '../../lib/pick';
-import { robotsFor } from '../../lib/seo';
+import { robotsFor, stripXmlControl } from '../../lib/seo';
 
 const MAX = 200;
 // ponytail: memory only, per process; move to Redis when OG traffic shows up.
 const cache = new Map<string, Buffer>();
 
-const esc = (s: string) => s.replace(/[<>&"']/g, (c) => `&#${c.charCodeAt(0)};`);
+const esc = (s: string) => stripXmlControl(s).replace(/[<>&"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const color = (v: string | undefined, fallback: string) =>
   v && /^#[0-9a-f]{3,8}$/i.test(v) ? v : fallback;
 
@@ -38,11 +38,15 @@ export const GET: APIRoute = async ({ locals, params, url, rewrite }) => {
     const fg = color(vars['--surface'], '#ffffff');
     const font = 'Hind Siliguri, Inter, Noto Sans Bengali, sans-serif';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630"><rect width="1200" height="630" fill="${bg}"/><text x="80" y="${title ? 300 : 340}" font-family="${font}" font-size="68" font-weight="700" fill="${fg}">${esc(name)}</text>${title ? `<text x="80" y="400" font-family="${font}" font-size="44" fill="${fg}" fill-opacity="0.85">${esc(title)}</text>` : ''}</svg>`;
-    png = await sharp(Buffer.from(svg)).png().toBuffer();
+    try {
+      png = await sharp(Buffer.from(svg)).png().toBuffer();
+    } catch {
+      return rewrite('/404/'); // never a 500 for a card
+    }
   }
   cache.set(key, png);
   if (cache.size > MAX) cache.delete(cache.keys().next().value as string);
   return new Response(new Uint8Array(png), {
-    headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' },
+    headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=3600' },
   });
 };

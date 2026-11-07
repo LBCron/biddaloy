@@ -7,10 +7,12 @@ import {
   jsonLdPost,
   jsonLdSchool,
   jsonLdScript,
+  metaDescription,
   robotsFor,
 } from '../lib/seo';
 import { t } from '../i18n/t';
-import type { Lang, SiteManifest } from '../lib/types';
+import { fetchByHost } from '../lib/api';
+import type { Lang, SiteManifest, SitePageData } from '../lib/types';
 
 interface Props {
   manifest: SiteManifest;
@@ -22,7 +24,8 @@ interface Props {
   image?: string;
   name: string;
 }
-const { manifest, lang, rest, fullTitle, description, image, name } = Astro.props;
+const { manifest, lang, rest, fullTitle, image, name } = Astro.props;
+const description = metaDescription(Astro.props.description);
 const host = Astro.locals.host;
 const robots = robotsFor(manifest, !!(Astro.locals.preview || Astro.locals.previewToken));
 const indexable = robots !== 'noindex';
@@ -33,9 +36,19 @@ const canonical = canonicalFor(host, lang, rest);
 const crumbs = [{ name, url: canonicalFor(host, lang) }];
 if (rest) crumbs.push({ name: fullTitle.replace(` · ${name}`, ''), url: canonical });
 const post = Astro.locals.postLd;
+const hasBlog = manifest.nav.some((n) => n.page === SitePage.BLOG);
+// Social links live in the contact page's section data, not the manifest: read them once, on the home page only.
+let school = manifest;
+if (indexable && rest === '') {
+  const r = await fetchByHost<SitePageData>(Astro.locals.host, `page/${SitePage.CONTACT}`, {
+    preview: Astro.locals.previewToken,
+  });
+  const data = r.kind === 'ok' ? r.data.sections.find((x) => x.key === 'contact')?.data : undefined;
+  if (data) school = { ...manifest, contact: { ...manifest.contact, facebook: data.facebook, whatsapp: data.whatsapp } };
+}
 const ld = indexable
   ? [
-      jsonLdSchool(manifest, host, lang),
+      jsonLdSchool(school, host, lang),
       ...(rest ? [jsonLdBreadcrumbs(crumbs)] : []),
       ...(post ? [jsonLdPost({ ...post, author: name })] : []),
     ]
@@ -47,16 +60,16 @@ const ld = indexable
 <meta property="og:title" content={fullTitle} />
 <meta property="og:description" content={description} />
 <meta property="og:locale" content={lang === 'en' ? 'en_GB' : 'bn_BD'} />
-<meta property="og:url" content={canonical} />
-<meta property="og:image" content={card} />
+{indexable && <meta property="og:url" content={canonical} />}
+{indexable && <meta property="og:image" content={card} />}
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content={fullTitle} />
 <meta name="twitter:description" content={description} />
-<meta name="twitter:image" content={card} />
+{indexable && <meta name="twitter:image" content={card} />}
 <meta name="robots" content={robots} />
 {indexable && <>
   {alternatesFor(host, rest).map((a) => <link rel="alternate" hreflang={a.hreflang} href={a.href} />)}
   <link rel="canonical" href={canonical} />
-  <link rel="alternate" type="application/rss+xml" title={`${name} · ${t(lang, 'nav.blog')}`} href={`https://${host}/feed.xml?lang=${lang}`} />
+  {hasBlog && <link rel="alternate" type="application/rss+xml" title={`${name} · ${t(lang, 'nav.blog')}`} href={`https://${host}/feed.xml?lang=${lang}`} />}
 </>}
 {ld.map((o) => <script type="application/ld+json" set:html={jsonLdScript(o)} />)}

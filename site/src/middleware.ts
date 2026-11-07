@@ -8,8 +8,9 @@ const PREVIEW_HEADER = () => (process.env.SITE_PREVIEW_HEADER ?? 'X-Site-Preview
 
 /** Preview content comes from the theme's own defaults (D33). */
 function demoFor(theme: SiteTheme): { site: SiteManifest; home: SitePageData } | undefined {
+  // hasOwn: `constructor` / `__proto__` are not themes (a prototype hit would be a 500).
+  if (!Object.hasOwn(THEMES, theme)) return undefined;
   const m = THEMES[theme];
-  if (!m) return undefined;
   const cfg = defaultConfigFor(theme);
   const home = cfg.pages.find((p) => p.page === SitePage.HOME);
   return {

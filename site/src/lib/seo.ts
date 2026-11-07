@@ -1,5 +1,6 @@
 import { SitePage } from '@biddaloy/shared';
 import { fetchByHost } from './api';
+import { httpsLink, plainValue, whatsappLink } from './contact';
 import { pick } from './pick';
 import { LANGS, type Lang, type SiteManifest, type SitePageData } from './types';
 
@@ -18,8 +19,12 @@ export const alternatesFor = (host: string, rest = '') => [
 export const robotsFor = (site: Pick<SiteManifest, 'noindex'>, isPreview: boolean) =>
   site.noindex || isPreview ? 'noindex' : 'index,follow';
 
+/** XML 1.0 cannot carry these control characters, even escaped: strip them first. */
+// eslint-disable-next-line no-control-regex
+export const stripXmlControl = (s: string) => s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+
 export function escapeXml(s: string): string {
-  return s.replace(/[<>&"']/g, (c) => `&#${c.charCodeAt(0)};`);
+  return stripXmlControl(s).replace(/[<>&"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
 /** JSON for a `<script type="application/ld+json">`: `<` and U+2028/9 escaped so no value can close the tag. */
@@ -34,14 +39,23 @@ const clean = (o: Record<string, unknown>) =>
 
 export function jsonLdSchool(site: SiteManifest, host: string, lang: Lang) {
   const c = site.contact;
+  const street = pick(c?.address, lang);
+  const sameAs = [httpsLink(plainValue(c?.facebook)), whatsappLink(plainValue(c?.whatsapp))].filter(
+    (x): x is string => !!x,
+  );
   return clean({
     '@context': 'https://schema.org',
     '@type': 'EducationalOrganization',
     name: pick(site.schoolName, lang),
     alternateName: pick(site.schoolName, lang === 'bn' ? 'en' : 'bn'),
     url: canonicalFor(host, lang),
-    logo: site.logo?.startsWith('/') ? `https://${host}${site.logo}` : undefined,
-    address: pick(c?.address, lang),
+    logo: site.logo?.startsWith('/')
+      ? { '@type': 'ImageObject', url: `https://${host}${site.logo}` }
+      : undefined,
+    address: street
+      ? { '@type': 'PostalAddress', streetAddress: street, addressCountry: 'BD' }
+      : undefined,
+    sameAs: sameAs.length ? sameAs : undefined,
     telephone: c?.phone,
     email: c?.email,
   });
@@ -82,8 +96,25 @@ export const jsonLdBreadcrumbs = (crumbs: { name: string; url: string }[]) => ({
 /** Paths (after the language prefix) of every enabled page; a switched-off page is not in `nav` (D12). */
 export const pageRests = (site: Pick<SiteManifest, 'nav'>): string[] => [
   '',
-  ...site.nav.filter((n) => n.page !== SitePage.HOME).map((n) => `${n.page}/`),
+  ...site.nav
+    .filter((n) => n.page !== SitePage.HOME && ROUTED_PAGES.has(n.page))
+    .map((n) => `${n.page}/`),
 ];
+
+/** Pages that have a route in `site/src/pages/[lang]/`; a nav entry without one (results, until Epic 70) would 404 in the sitemap. */
+export const ROUTED_PAGES: ReadonlySet<string> = new Set([
+  SitePage.ABOUT,
+  SitePage.ACADEMICS,
+  SitePage.ADMISSIONS,
+  SitePage.NEWS,
+  SitePage.NOTICES,
+  SitePage.BLOG,
+  SitePage.TEACHERS,
+  SitePage.CONTACT,
+]);
+
+/** First 155 characters, whitespace collapsed (search snippets cut there). */
+export const metaDescription = (s: string) => s.replace(/\s+/g, ' ').trim().slice(0, 155);
 
 export function sitemapXml(host: string, rests: string[]): string {
   const urls = rests
@@ -104,7 +135,7 @@ export function sitemapXml(host: string, rests: string[]): string {
 
 export const robotsTxt = (host: string, indexable: boolean) =>
   indexable
-    ? `User-agent: *\nAllow: /\nSitemap: https://${host}/sitemap.xml\n`
+    ? `User-agent: *\nAllow: /\nDisallow: /?preview=\nSitemap: https://${host}/sitemap.xml\n`
     : 'User-agent: *\nDisallow: /\n';
 
 export interface BlogRow {
@@ -150,15 +181,17 @@ export function rssXml(host: string, lang: Lang, site: SiteManifest, posts: Blog
   return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel><title>${escapeXml(name)}</title><link>${escapeXml(canonicalFor(host, lang))}</link><description>${escapeXml(name)}</description><language>${lang}</language>${items}</channel></rss>\n`;
 }
 
+const one = (s: string) => s.replace(/\s+/g, ' ').trim();
+
 export function llmsTxt(host: string, site: SiteManifest, posts: BlogRow[]): string {
   const name = pick(site.schoolName, 'en') ?? pick(site.schoolName, 'bn') ?? host;
   const about = pick(site.contact?.address, 'en') ?? '';
   const pages = pageRests(site).map((r) => `- ${canonicalFor(host, 'en', r)}`);
   const recent = posts
     .slice(0, 10)
-    .map((p) => `- ${p.title}: ${canonicalFor(host, 'en', `blog/${p.slug}/`)}`);
+    .map((p) => `- ${one(p.title)}: ${canonicalFor(host, 'en', `blog/${p.slug}/`)}`);
   return [
-    `# ${name}`,
+    `# ${one(name)}`,
     '',
     `> Official website of ${name}${about ? `, ${about}` : ''}. Pages are in Bangla (/bn/) and English (/en/).`,
     '',

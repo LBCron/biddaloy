@@ -22,7 +22,7 @@ const { vars, fontFaces } = themeCss(manifest);
 const name = pick(manifest.schoolName, lang) ?? '';
 const fullTitle = title ? `${title} · ${name}` : name;
 // Values reach the page only through Astro's escaping of attribute expressions.
-const desc = (description ?? pick(manifest.contact?.address, lang) ?? fullTitle).slice(0, 200);
+const desc = (description ?? pick(manifest.contact?.address, lang) ?? fullTitle);
 // A chosen picture (blog cover) wins; otherwise Seo uses the generated card for the page.
 const ogImage = image?.startsWith('/') ? new URL(image, `https://${host}`).href : undefined;
 ---

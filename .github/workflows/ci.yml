@@ -1280,7 +1280,6 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/biddaloy_demo_site_budget
       REDIS_URL: redis://localhost:6379
       JWT_SECRET: ci-site-budget-jwt-secret-do-not-use-in-production-1234567890
-      NODE_ENV: test
       SEED_ADMIN_PASSWORD: ci-site-budget-seed-password-123
       SETTINGS_ENCRYPTION_KEY: YmSqNpwxzusjAF12JSD+JNe+3LXrbNJiQza2yTnQyR0=
       S3_ENDPOINT: http://localhost:9000
@@ -1301,12 +1300,18 @@ jobs:
       - run: yarn build:shared
       - run: yarn build:site-themes
 
+      # NODE_ENV=test only where the API and seed need it. Set job-wide it leaks into `astro build`
+      # and produces a React dev build (slow pages, wrong Lighthouse numbers).
       - name: Migrate and seed the demo school
+        env:
+          NODE_ENV: test
         run: |
           yarn workspace @biddaloy/server migration:run
           yarn workspace @biddaloy/server seed:demo --scale 0.05 --years 2
 
       - name: Build and start the API
+        env:
+          NODE_ENV: test
         run: |
           yarn build:server
           node server/dist/main.js &

@@ -13,7 +13,7 @@ module.exports = {
       url: [
         `${SCHOOL}/bn/`,
         `${SCHOOL}/en/`,
-        `${SCHOOL}/bn/results/`,
+        // No /bn/results/ yet: that page arrives with Epic 70 (the ticket's own "if absent" escape). Add it then.
         `${SCHOOL}/bn/notices/`,
         // lhci cannot send the X-Site-Preview header; the site maps this path itself when
         // SITE_PREVIEW_PATHS=1 (middleware.ts), and nginx does the same in production.
@@ -28,14 +28,30 @@ module.exports = {
     assert: {
       // Every run must pass, not just the best of 3 (the lhci default is `optimistic`).
       aggregationMethod: 'pessimistic',
-      assertions: {
-        'categories:performance': ['error', { minScore: 0.9 }],
-        'categories:accessibility': ['error', { minScore: 0.9 }],
-        'categories:seo': ['error', { minScore: 0.9 }],
-        'cumulative-layout-shift': ['error', { maxNumericValue: 0.05 }],
-        // Islands only (D21): 30 KB of JavaScript per page, as downloaded.
-        'resource-summary:script:size': ['error', { maxNumericValue: 30720 }],
-      },
+      assertMatrix: [
+        {
+          // School pages: all four budgets, SEO included.
+          matchingUrlPattern: '^http://bmsc-high\\.site\\.localhost',
+          assertions: {
+            'categories:performance': ['error', { minScore: 0.9 }],
+            'categories:accessibility': ['error', { minScore: 0.9 }],
+            'categories:seo': ['error', { minScore: 0.9 }],
+            'cumulative-layout-shift': ['error', { maxNumericValue: 0.05 }],
+            // Islands only (D21): 30 KB of JavaScript per page, as downloaded.
+            'resource-summary:script:size': ['error', { maxNumericValue: 30720 }],
+          },
+        },
+        {
+          // The preview is noindex by design (D33), so Lighthouse's `is-crawlable` fails: no SEO budget here.
+          matchingUrlPattern: '/website/preview/',
+          assertions: {
+            'categories:performance': ['error', { minScore: 0.9 }],
+            'categories:accessibility': ['error', { minScore: 0.9 }],
+            'cumulative-layout-shift': ['error', { maxNumericValue: 0.05 }],
+            'resource-summary:script:size': ['error', { maxNumericValue: 30720 }],
+          },
+        },
+      ],
     },
     upload: { target: 'filesystem', outputDir: '.lighthouseci-site' },
   },

@@ -23,7 +23,15 @@ export interface SiteManifest {
   logo?: string;
   noindex?: boolean;
   schoolName: BilingualText;
-  contact?: { address?: BilingualText; phone?: string; email?: string; hours?: BilingualText };
+  contact?: {
+    address?: BilingualText;
+    phone?: string;
+    email?: string;
+    hours?: BilingualText;
+    /** Social links for JSON-LD `sameAs`; read through `httpsLink` / `whatsappLink`. */
+    facebook?: unknown;
+    whatsapp?: unknown;
+  };
 }
 
 /** `GET /public/site/by-host/:host/page/:page`. */
