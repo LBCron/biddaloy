@@ -12,6 +12,8 @@ import { z } from 'zod';
 
 import { loadRouteNamespaces } from '../../route-loaders';
 
+import { DraftProvider } from './website/-draft-editor';
+
 const websiteSearchSchema = z.object({
   tab: z.string().optional(),
   step: z.string().optional(),
@@ -41,18 +43,20 @@ function WebsiteLayout() {
 
   if (step !== undefined) return <Outlet />;
   return (
-    <DetailShell
-      name={t('overview.title')}
-      tabs={TAB_IDS.map((id) => ({
-        id,
-        label: t(`tabs.${id}`),
-        content: id === activeTab ? <Outlet /> : null,
-      }))}
-      activeTab={activeTab}
-      onTabChange={(id) =>
-        // Typed routes for blog and enquiries arrive with their own tickets, hence the cast.
-        void navigate({ to: (id === 'overview' ? '/website' : `/website/${id}`) as '/website' })
-      }
-    />
+    <DraftProvider>
+      <DetailShell
+        name={t('overview.title')}
+        tabs={TAB_IDS.map((id) => ({
+          id,
+          label: t(`tabs.${id}`),
+          content: id === activeTab ? <Outlet /> : null,
+        }))}
+        activeTab={activeTab}
+        onTabChange={(id) =>
+          // Typed routes for blog and enquiries arrive with their own tickets, hence the cast.
+          void navigate({ to: (id === 'overview' ? '/website' : `/website/${id}`) as '/website' })
+        }
+      />
+    </DraftProvider>
   );
 }

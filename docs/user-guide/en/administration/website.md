@@ -8,6 +8,11 @@ sources:
   - client-admin/src/routes/_staff/website/index.tsx
   - client-admin/src/routes/_staff/website/-wizard.tsx
   - client-admin/src/routes/_staff/website/-theme-card.tsx
+  - client-admin/src/routes/_staff/website/pages.tsx
+  - client-admin/src/routes/_staff/website/design.tsx
+  - client-admin/src/routes/_staff/website/-section-editor-modal.tsx
+  - client-admin/src/routes/_staff/website/-announcements-editor.tsx
+  - client-admin/src/routes/_staff/website/-draft-editor.tsx
 labels: [website:*, nav:items.website, nav:groups.administration]
 helpIds: [administration.website]
 devices: [desktop]
@@ -55,6 +60,42 @@ The **website** is the public page of your school, at its own web address. Peopl
    → **Your website is ready.** The website is on and everyone can see it at its link.
 
 > **Remember:** nothing is public until you press **Publish and turn on** here, or **Publish** on the overview page.
+
+---
+
+## Edit pages <a href="#task-pages" id="task-pages"></a>
+
+1. Open **Administration → Website**, then the **Pages** tab.
+2. Pick a page: **Home**, **About us**, **Academics** and so on.
+3. Switch a section on or off, or use the up and down arrows to move it. The front banner always stays first.
+4. Press **Edit** beside a section. Write the Bangla text, and the English text if you want it. Add photos if the section has a place for them.
+5. Press **Save**. The editor closes. → **You have changes that are not saved.** shows at the bottom.
+6. Press **Save draft**. → **Saved.**
+
+> **Remember:** the website does not change for visitors until you press **Publish** on the **Overview** tab. Unsaved changes stay while you move between tabs, but are lost if you reload the page.
+
+## Add an announcement <a href="#task-announce" id="task-announce"></a>
+
+1. On the **Pages** tab, find the **Announcements** card at the top.
+2. Press **Add an announcement**. You can keep at most 5.
+3. Write the Bangla text (needed). English is optional. Add a link that starts with `/`, like `/notices`, if you want one.
+4. Pick **Show from** and **Show until** dates if the announcement is only for some days.
+5. Choose **How it shows**: **Moving text** or **Still text**.
+6. Press **Save draft**.
+
+## Change the design <a href="#task-design" id="task-design"></a>
+
+1. Open the **Design** tab.
+2. Press another design. A box asks **Change the design?** Your own text stays; only empty fields get the new design's text.
+3. Press **Change design**, then **Save draft**.
+4. To see a design first, press **Preview this design** under it.
+
+## Change colours and fonts <a href="#task-colours" id="task-colours"></a>
+
+1. Open the **Design** tab.
+2. Under **Colours**, press the colour set you like.
+3. Under **Text style**, pick a font for **Bangla** and one for **English**.
+4. Press **Save draft**. To see the result, press **Preview**.
 
 ---
 

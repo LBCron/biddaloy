@@ -96,4 +96,15 @@ describe('AnnouncementsEditor', () => {
     await userEvent.clear(screen.getByLabelText('Show from'));
     expect('from' in seen.value.items[0]!).toBe(false);
   });
+
+  it('needs the Bangla text, and cuts text at 2000 characters', async () => {
+    const seen = { value: bar([]) };
+    await show(<Harness initial={bar([item('1', { text: { bn: '', en: '' } })])} seen={seen} />);
+    expect(screen.getByText('Write the Bangla text.')).toBeTruthy();
+    expect(announcementsInvalid(seen.value)).toBe(true);
+    await userEvent.click(screen.getAllByRole('textbox')[0]!);
+    await userEvent.paste('x'.repeat(2100));
+    expect(seen.value.items[0]!.text.bn).toHaveLength(2000);
+    expect(announcementsInvalid(seen.value)).toBe(false);
+  });
 });

@@ -29,14 +29,19 @@ import {
 import { useTranslation } from '@biddaloy/ui/i18n';
 import * as React from 'react';
 
+/** Same cap the server enforces on every site text (`SITE_TEXT_MAX_CHARS` in site-themes). */
+const TEXT_MAX = 2000;
+const clip = (v: string) => v.slice(0, TEXT_MAX);
+
 const day = (v: string | undefined) => (v ?? '').slice(0, 10);
 
 const badLink = (a: SiteAnnouncement) => !!a.href && !isSiteRelativeHref(a.href);
+const noText = (a: SiteAnnouncement) => a.text.bn.trim() === '';
 const badRange = (a: SiteAnnouncement) => !!a.from && !!a.until && day(a.until) < day(a.from);
 
 /** True while any line has a link off the site or an end date before its start date. */
 export const announcementsInvalid = (bar: SiteAnnouncementBar) =>
-  bar.items.some((a) => badLink(a) || badRange(a));
+  bar.items.some((a) => badLink(a) || badRange(a) || noText(a));
 
 export interface AnnouncementsEditorProps {
   value: SiteAnnouncementBar;
@@ -119,10 +124,15 @@ export function AnnouncementsEditor({ value, onChange }: AnnouncementsEditorProp
           <BilingualField
             label={t('announcements.text')}
             value={a.text}
-            onChange={(text) => patch(a.id, { text })}
+            onChange={(text) => patch(a.id, { text: { bn: clip(text.bn), en: clip(text.en) } })}
             enHint={t('editor.enHint')}
             required
           />
+          {noText(a) && (
+            <p role="alert" className="text-caption text-destructive">
+              {t('announcements.textRequired')}
+            </p>
+          )}
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="flex flex-col gap-1">
               <Label htmlFor={`announce-link-${a.id}`}>{t('announcements.link')}</Label>

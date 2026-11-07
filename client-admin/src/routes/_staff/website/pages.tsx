@@ -21,16 +21,16 @@ import {
   toggleSection,
   useWebsiteConfig,
   useWebsiteThemes,
-  type WebsiteConfig,
   type WebsiteTheme,
 } from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
 import { useCloseFullPage } from '@biddaloy/ui/shells';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import * as React from 'react';
 import { z } from 'zod';
 
 import { AnnouncementsEditor, announcementsInvalid } from './-announcements-editor';
-import { DraftBar, useDraftEditor } from './-draft-editor';
+import { DraftBar, useDraft } from './-draft-editor';
 import { SectionEditorModal } from './-section-editor-modal';
 
 const pagesSearchSchema = z.object({
@@ -60,7 +60,9 @@ function WebsitePages() {
   const { t } = useTranslation('website');
   const configQuery = useWebsiteConfig();
   const themesQuery = useWebsiteThemes();
-  if (configQuery.isPending || themesQuery.isPending) return <Skeleton className="h-40 w-full" />;
+  const { ready } = useDraft();
+  if (!ready || configQuery.isPending || themesQuery.isPending)
+    return <Skeleton className="h-40 w-full" />;
   if (configQuery.isError || themesQuery.isError) {
     return (
       <ErrorState
@@ -74,20 +76,14 @@ function WebsitePages() {
     );
   }
   const theme = themesQuery.data.find((x) => x.id === configQuery.data.theme);
-  return <PagesEditor config={configQuery.data} theme={theme} />;
+  return <PagesEditor theme={theme} />;
 }
 
-function PagesEditor({
-  config,
-  theme,
-}: {
-  config: WebsiteConfig;
-  theme: WebsiteTheme | undefined;
-}) {
+function PagesEditor({ theme }: { theme: WebsiteTheme | undefined }) {
   const { t } = useTranslation('website');
   const navigate = useNavigate();
   const { page: pageParam, edit } = Route.useSearch();
-  const { draft, setDraft, dirty, saving, saveDraft } = useDraftEditor(config);
+  const { draft, setDraft, dirty, saving, saveDraft } = useDraft();
 
   const closeEditor = useCloseFullPage(
     () =>
@@ -103,6 +99,17 @@ function PagesEditor({
   const current = draft.pages.find((p) => p.page === page);
   const sectionName = (key: string) => t(`pages.sectionNames.${key}`);
   const edit_ = current?.sections.find((s) => s.key === edit);
+
+  // `?edit=` naming nothing in this draft (typo, stale link) is dropped instead of showing a blank editor.
+  const unknownEdit = edit !== undefined && !edit_;
+  React.useEffect(() => {
+    if (unknownEdit)
+      void navigate({
+        to: '/website/pages',
+        search: pageParam ? { page: pageParam } : {},
+        replace: true,
+      });
+  }, [unknownEdit, navigate, pageParam]);
 
   const setPageEnabled = (next: boolean) =>
     setDraft((d) => ({
@@ -192,7 +199,7 @@ function PagesEditor({
           name={sectionName(edit_.key)}
           draft={draft}
           theme={theme}
-          onApply={setDraft}
+          onApply={(next) => setDraft(() => next)}
           onClose={closeEditor}
         />
       )}
