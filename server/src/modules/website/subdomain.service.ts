@@ -80,14 +80,31 @@ export class SubdomainService {
     if (value === dto.subdomain) return dto;
     if (!(await this.check(tenantId, value, now)).available) throw subdomainUnavailable();
     try {
-      await this.sites.update(
-        { tenant_id: tenantId },
-        {
-          subdomain: value,
-          previous_subdomain: dto.subdomain,
-          previous_until: new Date(now.getTime() + SITE_SUBDOMAIN_REDIRECT_DAYS * 86_400_000),
-        },
-      );
+      await this.sites.manager.transaction(async (m) => {
+        // Another school's expired redirect may still hold the name we are leaving (unique index): free it.
+        await m
+          .createQueryBuilder()
+          .update(SchoolSite)
+          .set({ previous_subdomain: null, previous_until: null })
+          .where(
+            'previous_subdomain = :value AND previous_until <= :now AND tenant_id <> :tenantId',
+            {
+              value: dto.subdomain,
+              now,
+              tenantId,
+            },
+          )
+          .execute();
+        await m.update(
+          SchoolSite,
+          { tenant_id: tenantId },
+          {
+            subdomain: value,
+            previous_subdomain: dto.subdomain,
+            previous_until: new Date(now.getTime() + SITE_SUBDOMAIN_REDIRECT_DAYS * 86_400_000),
+          },
+        );
+      });
     } catch (e) {
       // A concurrent rename won the unique index: same answer as "taken".
       if ((e as { driverError?: { code?: string } }).driverError?.code === '23505') {

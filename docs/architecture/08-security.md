@@ -187,7 +187,7 @@ flowchart LR
 
 ### Rule 13: Logs never carry secrets
 
-- **Rule.** Tokens, phone numbers, emails and secret query strings (`password`, `token`, `otp`, `code`, …) never reach a log. nginx logs with the `redacted` format and the API log goes through `redactPii`. A new secret-bearing URL shape is added to `redactPii` in the same ticket. Request ids are kept only if they are 1-64 of `[A-Za-z0-9_-]`.
+- **Rule.** Tokens, phone numbers, emails and secret query strings (`password`, `token`, `otp`, `code`, …) never reach a log. nginx logs with the `redacted` format and the API log goes through `redactPii`. A new secret-bearing URL shape is added to `redactPii` in the same ticket (the website draft-preview link `?preview=<token>` is one: nginx logs `$uri` without the query, `redactPii` masks `preview=`). Request ids are kept only if they are 1-64 of `[A-Za-z0-9_-]`.
 - **Why.** Logs are read by more people, and kept longer, than the data (75.23, 75.19).
 - **Example.** `GET /api/v1/public/invoices/<token>` logs as `[REDACTED]`.
 - **Test.** `redact-log.util.spec.ts`, `nginx/test/access-log.infra.test.sh`, `request-context.util.spec.ts`.

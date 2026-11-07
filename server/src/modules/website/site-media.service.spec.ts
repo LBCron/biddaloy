@@ -27,7 +27,7 @@ function setup(o: { used?: number; existing?: Partial<SiteMedia> | null } = {}) 
     update: vi.fn(async () => undefined),
   };
   const media = { manager: { transaction: async (cb: (m: unknown) => unknown) => cb(m) } };
-  const storage = { put: vi.fn(async () => undefined) };
+  const storage = { put: vi.fn(async () => undefined), delete: vi.fn(async () => undefined) };
   const config = { get: vi.fn(async () => ({})) };
   const svc = new SiteMediaService(media as never, storage as never, config as never);
   return { svc, storage, saved, m };
@@ -124,5 +124,24 @@ describe('SiteMediaService.upload', () => {
       expect.anything(),
       expect.anything(),
     );
+  });
+
+  it('deletes the stored object when the row cannot be saved', async () => {
+    const { svc, storage, m } = setup();
+    m.save.mockRejectedValueOnce(new Error('db down'));
+    const err = await svc
+      .upload('t1', 'person', { buffer: await img(400, 400), mimetype: 'image/jpeg' })
+      .catch((e) => e);
+    expect(err.message).toBe('db down');
+    const [key] = storage.put.mock.calls[0] as unknown as [string];
+    expect(storage.delete).toHaveBeenCalledWith(key);
+  });
+
+  it('a quota refusal never touched storage, so nothing is deleted', async () => {
+    const { svc, storage } = setup({ used: SITE_MEDIA_QUOTA_BYTES });
+    await svc
+      .upload('t1', 'person', { buffer: await img(400, 400), mimetype: 'image/jpeg' })
+      .catch(() => undefined);
+    expect(storage.delete).not.toHaveBeenCalled();
   });
 });

@@ -150,6 +150,32 @@ describe('Website admin API E2E (address, preview, media)', () => {
       expect(Array.isArray(sug.body.suggestions)).toBe(true);
     });
 
+    it("another school's expired redirect on my current name does not block my rename", async () => {
+      const mine = (await admin('get', '/website').expect(200)).body.subdomain;
+      await ds.query(
+        `INSERT INTO schools (id, name, slug, created_at, updated_at)
+         VALUES ($1,'Other Stale School',$2,NOW(),NOW()) ON CONFLICT DO NOTHING`,
+        [OTHER_TENANT, `other-stale-${tag}`],
+      );
+      // School X left `mine` long ago; its redirect expired but still holds the unique value.
+      await ds.query(`DELETE FROM school_sites WHERE tenant_id = $1`, [OTHER_TENANT]);
+      await ds.query(
+        `INSERT INTO school_sites (tenant_id, subdomain, previous_subdomain, previous_until, palette, draft)
+         VALUES ($1,$2,$3, NOW() - INTERVAL '1 day','blue','{}')`,
+        [OTHER_TENANT, `other-now-${tag}`, mine],
+      );
+      const res = await admin('put', '/website/subdomain')
+        .set('Idempotency-Key', randomUUID())
+        .send({ value: `after-stale-${tag}` })
+        .expect(200);
+      expect(res.body.subdomain).toBe(`after-stale-${tag}`);
+      const [x] = await ds.query(
+        `SELECT previous_subdomain FROM school_sites WHERE tenant_id = $1`,
+        [OTHER_TENANT],
+      );
+      expect(x.previous_subdomain).toBeNull();
+    });
+
     it('PUT without an Idempotency-Key is 400 (Rule 25)', async () => {
       await admin('put', '/website/subdomain').send({ value: 'whatever-1' }).expect(400);
     });
@@ -194,6 +220,17 @@ describe('Website admin API E2E (address, preview, media)', () => {
       const res = await admin('post', '/website/media')
         .field('slot', 'person')
         .attach('file', png, { filename: 'a.jpg', contentType: 'image/jpeg' })
+        .expect(400);
+      expect(res.body.message).toBe('site.media_rejected');
+    });
+
+    it('a file over the upload cap is 400 site.media_rejected, not 413', async () => {
+      const res = await admin('post', '/website/media')
+        .field('slot', 'person')
+        .attach('file', Buffer.alloc(11 * 1024 * 1024), {
+          filename: 'a.jpg',
+          contentType: 'image/jpeg',
+        })
         .expect(400);
       expect(res.body.message).toBe('site.media_rejected');
     });
