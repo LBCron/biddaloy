@@ -149,6 +149,40 @@ edge_checks() {
 }
 
 # --- per stack ----------------------------------------------------------------------------------
+# --- school websites (Epic 40, runbook part 17) --------------------------------------------------
+# The site container runs in the prod stack (prod-site-1). Probes go through Cloudflare like a
+# visitor: a made-up school name and `sites.<root>` must both answer the site's own 404 (proves
+# the wildcard DNS record, the cloudflared catch-all and the :8081 listener). Needs edge_checks'
+# DOCKER_PS. Example: ROOT_DOMAIN=schoolmanagerp.com probes https://doctor-probe.schoolmanagerp.com/
+website_checks() {
+  local edgef="$ROOT/edge/.env" prodf="$ROOT/prod/.env" root tok zone uurl utok code h
+  [[ -f "$edgef" ]] || return
+  root="$(envval "$edgef" ROOT_DOMAIN)"
+  if [[ -z "$root" ]]; then emit "school websites" WARN "ROOT_DOMAIN not set in $edgef" "set ROOT_DOMAIN in infra/secrets/edge.enc.env (runbook 17d), then biddaloy-deploy edge <sha>"; return; fi
+  if [[ -n "$DOCKER_PS" ]]; then check_container prod-site-1; fi
+  tok="$(envval "$prodf" CF_SAAS_API_TOKEN)"; zone="$(envval "$prodf" CF_ZONE_ID)"
+  if [[ -n "$tok" && -n "$zone" ]]; then emit "custom domains env" OK "Cloudflare token and zone id both set"
+  elif [[ -n "$tok$zone" ]]; then emit "custom domains env" WARN "only one of CF_SAAS_API_TOKEN / CF_ZONE_ID is set, custom domains stay off" "set both or neither in infra/secrets/prod.enc.env (runbook 17e step 3)"
+  else emit "custom domains env" OK "not configured, custom domains off"; fi
+  if need "site probes" curl; then
+    for h in "doctor-probe.$root" "sites.$root"; do
+      code="$(tmo curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "https://$h/" 2>/dev/null)"
+      if [[ "$code" == 404 ]]; then emit "site probe $h" OK "404 (the site's own no-such-site page)"
+      else emit "site probe $h" WARN "answered ${code:-no reply}, expected 404" "runbook 17a/17d: wildcard CNAME, cloudflared last rule, docker logs --tail 50 edge-nginx-1"; fi
+    done
+  fi
+  uurl="$(envval "$prodf" UMAMI_API_URL)"; utok="$(envval "$prodf" UMAMI_API_TOKEN)"
+  if [[ -n "$uurl" && -n "$utok" ]]; then
+    if have curl; then
+      # Token via curl's config on stdin, never on the command line (visible in `ps`).
+      code="$(printf 'header = "Authorization: Bearer %s"\n' "$utok" | tmo curl -sS -o /dev/null -w '%{http_code}' --max-time 10 -K - "${uurl%/}/api/websites" 2>/dev/null)"
+      if [[ "$code" == 200 ]]; then emit "umami api" OK "reachable"
+      else emit "umami api" WARN "answered ${code:-no reply}, expected 200" "check UMAMI_API_URL and UMAMI_API_TOKEN (runbook 17e step 5)"; fi
+    fi
+  elif [[ -n "$uurl$utok" ]]; then emit "umami api" WARN "only one of UMAMI_API_URL / UMAMI_API_TOKEN is set, analytics stay off" "set both or neither in infra/secrets/prod.enc.env"
+  else emit "umami api" OK "not configured, no analytics"; fi
+}
+
 last_ok() { # <stack>: last ok sha in deploys.log
   [[ -f "$ROOT/$1/deploys.log" ]] || return 0
   # No regex interval: Ubuntu's mawk has none. Same test as biddaloy-deploy's last_ok.
@@ -267,7 +301,7 @@ drill_check() {
 
 # --- run ----------------------------------------------------------------------------------------
 if [[ -z "$ONLY" ]]; then host_checks; fi
-if [[ -z "$ONLY" || "$ONLY" == edge ]]; then edge_checks; fi
+if [[ -z "$ONLY" || "$ONLY" == edge ]]; then edge_checks; website_checks; fi
 for s in prod staging demo; do
   if [[ -z "$ONLY" || "$ONLY" == "$s" ]]; then stack_checks "$s"; fi
 done

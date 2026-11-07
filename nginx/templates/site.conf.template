@@ -1,7 +1,7 @@
 # School websites (Epic 40, #3620): <school>.${ROOT_DOMAIN}, e.g. rumsc.schoolmanagerp.com.
 #
-# They live on their OWN listener, :8081, which holds nothing but this server{} and a default
-# that answers 444. No fixed host (app, staging, ops, ...) is ever served here, and the school
+# They live on their OWN listener, :8081, which holds nothing but this one server{} (it answers 444
+# to every host the $site_host_ok map refuses; a school's own custom domain is let through too, #3655). No fixed host (app, staging, ops, ...) is ever served here, and the school
 # host is not served on :80. Why: cloudflared matches host names case-sensitively, so a name like
 # STAGING.<root> skips the staging rule; the cloudflared catch-all that points at :8081 then lands
 # it on a listener with no staging block, never on one that serves staging
@@ -24,20 +24,18 @@ upstream site_upstream {
     server prod-site:4321 max_fails=1 fail_timeout=5s resolve;
 }
 
-# Unknown or fixed host on :8081: answer nothing (Rule 12).
+# ONE server on :8081, the default for every host, gated by $site_host_ok (conf.d/01-site-host.conf,
+# written by edge-mode.sh). Rule 12: a fixed host, anything else under ROOT_DOMAIN (a case variant
+# lands here too) and a malformed or IP host get 444. Let through: <3-30 char label>.ROOT_DOMAIN,
+# and any other well-formed name, which is a school's own domain arriving through Cloudflare for
+# SaaS (#3655): the site container answers 404 unless the host is that school's ACTIVE custom domain.
+# Deliberately NOT a bare `server_name _` catch-all: the map decides, and it refuses the root.
 server {
     listen 8081 default_server;
     access_log /var/log/nginx/access.log redacted;
-    return 444;
-}
-
-server {
-    listen 8081;
-    access_log /var/log/nginx/access.log redacted;
-    # One label of 3-30 characters (D5, SITE_SUBDOMAIN_RE) under ROOT_DOMAIN, dots escaped:
-    # rumsc.schools.test matches, rumsc.schoolsXtest and ab.schools.test do not. edge-mode.sh
-    # writes this server_name from ROOT_DOMAIN (envsubst cannot escape the dots).
-    include /etc/nginx/snippets/site-server-name.conf;
+    if ($site_host_ok = 0) {
+        return 444;
+    }
 
     proxy_http_version 1.1;
     proxy_set_header Host $host;

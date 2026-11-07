@@ -48,6 +48,12 @@ case "$a" in
   *"exec -T backup"*) printf "%b" "$BACKUP_LS" ;;
 esac'
 
+shim curl 'case "$*" in
+  *-K*) cat >/dev/null; printf "%s" "$UMAMI_CODE" ;;
+  *sites.*) printf "%s" "$SITES_CODE" ;;
+  *) printf "%s" "$PROBE_CODE" ;;
+esac'
+
 # --- fixture tree ---------------------------------------------------------------------------------
 for s in prod staging demo; do
   mkdir -p "$ROOT/$s"
@@ -60,7 +66,7 @@ for s in prod staging demo; do
 done
 mkdir -p "$ROOT/edge/letsencrypt/live/app.example.test"
 : >"$ROOT/edge/letsencrypt/live/app.example.test/fullchain.pem"
-set_mode() { printf 'EDGE_MODE=%s\nAPP_DOMAIN=app.example.test\n' "$1" >"$ROOT/edge/.env"; }
+set_mode() { printf 'EDGE_MODE=%s\nAPP_DOMAIN=app.example.test\nROOT_DOMAIN=schools.test\n' "$1" >"$ROOT/edge/.env"; }
 
 key_ago() { # key_ago <minutes>: an `aws s3 ls` line for a backup that old
   local e k; e=$(($(date -u +%s) - $1 * 60))
@@ -72,7 +78,8 @@ defaults() {
   export ROOT_DIR="$ROOT" BIDDALOY_ROOT="$ROOT" PATH="$BIN"
   export DF_ROOT=50 DF_DOCKER=40 MEM_AVAIL=600 SWAP_USED=0 NTP=yes FAILED_UNITS="" NIGHTLY_RESULT=success NIGHTLY_LOAD=loaded
   export CERT_DAYS=60 READY_CODE=200 CONNS=10 MAXC=100 TUNNEL_LOG="Registered tunnel connection\n"
-  export PS_LINES="edge-nginx-1|Up 2 hours (healthy)\nedge-landing-1|Up 2 hours (healthy)\nedge-cloudflared-1|Up 2 hours (healthy)\nstaging-mailpit-1|Up 2 hours (healthy)\ndemo-mailpit-1|Up 2 hours (healthy)\n"
+  export PS_LINES="edge-nginx-1|Up 2 hours (healthy)\nedge-landing-1|Up 2 hours (healthy)\nedge-cloudflared-1|Up 2 hours (healthy)\nstaging-mailpit-1|Up 2 hours (healthy)\ndemo-mailpit-1|Up 2 hours (healthy)\nprod-site-1|Up 2 hours (healthy)\n"
+  export PROBE_CODE=404 SITES_CODE=404 UMAMI_CODE=200
   export BACKUP_LS="$(key_ago 10)"
   set_mode tunnel
   echo "2026-10-29T02:30:00+0600 duration=420s schools=1 users=2 students=3" >"$ROOT/staging/last-drill"
@@ -214,6 +221,43 @@ check "--json is one document" bash -c '[ "$(printf "%s\n" "$0" | wc -l | tr -d 
 # --- no secret leakage -----------------------------------------------------------------------------------------------
 defaults; export DF_ROOT=95 READY_CODE=503 NTP=no; run; H="$OUT"; run --json; J="$OUT"
 check "token never printed" bash -c '! printf "%s%s" "$0" "$1" | grep -qE "FAKE-HEALTH-TOKEN|hunter2-secret"' "$H" "$J"
+
+# --- school websites (#3655): site container, Cloudflare env, probes, Umami ------------------------------
+site_env() { printf 'POSTGRES_PASSWORD=hunter2-secret\nHEALTH_TOKEN=%s\n%b' "$TOKEN" "$1" >"$ROOT/prod/.env"; }
+defaults; run
+check "site container present OK" row "container prod-site-1" OK
+check "no CF env is OK (custom domains off)" row "custom domains env" OK
+check "probes 404 OK" row "site probe doctor-probe.schools.test" OK
+check "sites. probe 404 OK" row "site probe sites.schools.test" OK
+check "no Umami env is OK" row "umami api" OK
+defaults; export PS_LINES="edge-nginx-1|Up 2 hours (healthy)\nedge-landing-1|Up 2 hours (healthy)\nedge-cloudflared-1|Up 2 hours (healthy)\n"; run
+check "absent site container FAIL" row "container prod-site-1" FAIL
+check "absent site container exit 2" rc_is 2
+defaults; export PROBE_CODE=502; run
+check "wildcard probe 502 WARN" row "site probe doctor-probe.schools.test" WARN
+check "wildcard probe WARN has Next" row_next "site probe doctor-probe.schools.test" WARN
+defaults; export SITES_CODE=000; run
+check "fallback origin probe not 404 WARN" row "site probe sites.schools.test" WARN
+defaults; site_env 'CF_SAAS_API_TOKEN=tok-secret\nCF_ZONE_ID=zone1\n'; run
+check "CF token + zone OK" row "custom domains env" OK
+defaults; site_env 'CF_SAAS_API_TOKEN=tok-secret\n'; run
+check "CF token without zone WARN" row "custom domains env" WARN
+check "CF half-set WARN has Next" row_next "custom domains env" WARN
+defaults; site_env 'CF_ZONE_ID=zone1\n'; run
+check "CF zone without token WARN" row "custom domains env" WARN
+defaults; site_env 'UMAMI_API_URL=https://stats.example.test\nUMAMI_API_TOKEN=umami-secret\n'; run
+check "Umami reachable OK" row "umami api" OK
+defaults; site_env 'UMAMI_API_URL=https://stats.example.test\nUMAMI_API_TOKEN=umami-secret\n'; export UMAMI_CODE=401; run
+check "Umami 401 WARN" row "umami api" WARN
+defaults; site_env 'UMAMI_API_URL=https://stats.example.test\n'; run
+check "Umami half-set WARN" row "umami api" WARN
+defaults; site_env 'CF_SAAS_API_TOKEN=tok-secret\nUMAMI_API_TOKEN=umami-secret\n'; run; H="$OUT"; run --json
+check "CF / Umami tokens never printed" bash -c '! printf "%s%s" "$0" "$1" | grep -qE "tok-secret|umami-secret"' "$H" "$OUT"
+defaults; printf 'EDGE_MODE=tunnel\nAPP_DOMAIN=app.example.test\n' >"$ROOT/edge/.env"; run
+check "no ROOT_DOMAIN WARN" row "school websites" WARN
+defaults; site_env ''; run prod
+check "prod-only run has no site probes" nrow "site probe doctor-probe.schools.test"
+site_env ""
 
 # --- missing tool => WARN, not a crash ----------------------------------------------------------------------------------
 defaults; rm -f "$BIN/free" "$BIN/docker"; run

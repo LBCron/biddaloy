@@ -37,7 +37,8 @@ tunnel | direct) ;;
 esac
 
 mkdir -p "$ROOT/conf.d" "$ROOT/snippets"
-CONF="$ROOT/conf.d/00-edge.conf"
+CONF_DIR="$ROOT/conf.d"
+CONF="$CONF_DIR/00-edge.conf"
 SERVER="$ROOT/snippets/edge-server.conf"
 DEFAULT="$ROOT/snippets/edge-default.conf"
 
@@ -104,20 +105,46 @@ ssl_reject_handshake on;   # nginx >= 1.19.4; no certificate needed
 EOF
 fi
 
-# School-site host name (Epic 40, site.conf.template): one label of 3-30 characters (the same
-# shape as SITE_SUBDOMAIN_RE in shared/src/types/site.ts) under ROOT_DOMAIN, dots escaped so
-# `rumsc.schoolsXtest` never matches `schools.test`. Built here because the template's envsubst
-# cannot escape a value. Unset ROOT_DOMAIN (an edge with no school sites) = `.invalid`, never resolves.
-# Example: ROOT_DOMAIN=schools.test -> server_name "~^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]\.schools\.test$";
-site_root=$(printf '%s' "${ROOT_DOMAIN:-root.invalid}" | tr 'A-Z' 'a-z')
+# School-site host gate (Epic 40, site.conf.template), written to conf.d/01-site-host.conf so the
+# map exists before site.conf is parsed. `$site_host_ok` is 1 only for a host the :8081 listener
+# may hand to the site container:
+#   1. a fixed host (APP_DOMAIN, STAGING_DOMAIN, ... exact names)          -> 0 (Rule 12)
+#   2. one label of 3-30 characters under ROOT_DOMAIN (SITE_SUBDOMAIN_RE)  -> 1
+#   3. anything else under ROOT_DOMAIN (apex, sites., a.b.<root>, ...)     -> 0
+#   4. any other well-formed name with an alphabetic last label            -> 1  (a school's own
+#      domain, e.g. www.school.edu.bd; the site container answers 404 unless it is an ACTIVE
+#      custom domain). IP literals, empty and malformed hosts are 0.
+# Rule 3 escapes the dots, so `rumsc.schoolsXtest` is NOT under the root (it is a plain name, rule 4).
+# Unset ROOT_DOMAIN (an edge with no school sites) = every host 0. $host is already lower-cased and
+# port-free. nginx tries map regexes in file order, exact names first.
+# Example: ROOT_DOMAIN=schools.test -> rumsc.schools.test 1, www.school.edu.bd 1, app host 0, a.b.schools.test 0.
+site_root=$(printf '%s' "${ROOT_DOMAIN:-}" | tr 'A-Z' 'a-z')
 case "$site_root" in
-  '' | *[!a-z0-9.-]* | .* | *. | -*) die "ROOT_DOMAIN must be a host name (got '$site_root')" ;;
+  *[!a-z0-9.-]* | .* | *. | -*) die "ROOT_DOMAIN must be a host name (got '$site_root')" ;;
 esac
-site_root_re=$(printf '%s' "$site_root" | sed 's/\./\\./g')
 {
-  echo '# Written by edge-mode.sh from ROOT_DOMAIN. Do not edit.'
-  printf 'server_name "~^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]\\.%s$";\n' "$site_root_re"
-} >"$ROOT/snippets/site-server-name.conf"
+  echo '# Written by edge-mode.sh from ROOT_DOMAIN and the fixed host names. Do not edit.'
+  echo 'map $host $site_host_ok {'
+  echo '    default 0;'
+  if [ -n "$site_root" ]; then
+    for v in APP_DOMAIN STAGING_DOMAIN DEMO_DOMAIN KUMA_DOMAIN BESZEL_DOMAIN LOGS_DOMAIN \
+      INBOX_DEMO_DOMAIN INBOX_STAGING_DOMAIN LANDING_DOMAIN; do
+      eval "h=\${$v:-}"
+      [ -n "$h" ] || continue
+      h=$(printf '%s' "$h" | tr 'A-Z' 'a-z')
+      case "$h" in
+        *[!a-z0-9.-]* | .* | *. | -*) die "$v must be a host name (got '$h')" ;;
+      esac
+      printf '    "%s" 0;\n' "$h"
+      if [ "$v" = LANDING_DOMAIN ]; then printf '    "www.%s" 0;\n' "$h"; fi
+    done
+    root_re=$(printf '%s' "$site_root" | sed 's/\./\\./g')
+    printf '    "~^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]\\.%s$" 1;\n' "$root_re"
+    printf '    "~*(^|\\.)%s$" 0;\n' "$root_re"
+    printf '%s\n' '    "~^([a-z0-9-]+\.)+[a-z][a-z0-9-]*$" 1;'
+  fi
+  echo '}'
+} >"$CONF_DIR/01-site-host.conf"
 
 # Ops-less hosts (OPS_UPSTREAM_HOST empty): conf.d/ops.conf is removed by reload-loop.sh,
 # which runs after the templates are rendered; this script runs before.

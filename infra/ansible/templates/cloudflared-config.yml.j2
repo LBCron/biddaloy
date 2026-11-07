@@ -31,6 +31,8 @@ ingress:
    and skip the Access check. (A trailing-dot name matches no hostname rule and falls to the last one.) School sites are the catch-all below, to a SEPARATE nginx
    listener that holds no fixed host (#3620 / #3655, runbook part 17d). #}
   # Last rule (required, matches any name no rule above matched, in any letter case):
-  # the SEPARATE site listener, :8081, which serves <school>.ROOT_DOMAIN and answers 444 to
-  # everything else, fixed hosts included (nginx/templates/site.conf.template, #3620).
+  # the SEPARATE site listener, :8081, which serves <school>.ROOT_DOMAIN and a school's own custom
+  # domain (Host = www.school.edu.bd, via sites.<root>), and answers 444 to fixed hosts and anything
+  # else under ROOT_DOMAIN (nginx/templates/site.conf.template, #3620 / #3655). No sites.<root> rule
+  # is needed: the custom host arrives under its own name.
   - service: http://nginx:8081

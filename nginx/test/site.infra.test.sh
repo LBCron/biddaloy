@@ -6,7 +6,7 @@
 #   - fixed hosts and unknown hosts are untouched (444), the site host is NOT served on :80
 #   - a school host reaches `site`, cached 30 s (HIT), stale when `site` is down (STALE), the
 #     maintenance page (503) on an empty cache
-#   - only <3-30 char label>.<ROOT_DOMAIN, dots literal> is served (rumsc.schoolsXtest is 444)
+#   - under ROOT_DOMAIN only <3-30 char label>.<root, dots literal> is served; any other well-formed host is a custom domain handed to `site` (#3655), spoofed XFH/preview/cookie stripped
 #   - /media/* is long-cached by nginx although the API says no-store, /media/logo only 5 min;
 #     /_api/* maps to the API
 #   - the preview route on the app host (bad theme name 404), X-Site-Preview and
@@ -95,7 +95,9 @@ run_mode() { # <mode>
   # --- fixed hosts and the unknown-host drop are untouched ---
   c=$(code 80 anything.example /); [ "$c" = 000 ] && pass "$mode: unknown host on :80 still dropped (444)" || fail "$mode: unknown host :80" "$c"
   c=$(code 80 "rumsc.$ROOT" /); [ "$c" = 000 ] && pass "$mode: school host is NOT served on the fixed-host listener :80" || fail "$mode: school host on :80" "$c"
-  c=$(code 8081 anything.example /); [ "$c" = 000 ] && pass "$mode: unknown host on :8081 dropped (444)" || fail "$mode: unknown host :8081" "$c"
+  # An unknown well-formed name is a would-be custom domain: only the site container sees it
+  # (its own 404 in real life), never the app or a fixed host.
+  b=$(body 8081 anything.example /); [[ "$b" == "site-ok host=anything.example "* ]] && pass "$mode: unknown well-formed host on :8081 reaches the site container only" || fail "$mode: unknown host :8081" "$b"
   c=$(code 8081 example.test /); [ "$c" = 000 ] && pass "$mode: fixed host (APP_DOMAIN) on :8081 dropped, listener holds no fixed host" || fail "$mode: fixed host :8081" "$c"
   if [ "$mode" = tunnel ]; then
     b=$(body 80 example.test /api/x); [[ "$b" == app-ok* ]] && pass "$mode: APP_DOMAIN on :80 unchanged" || fail "$mode: APP_DOMAIN :80" "$b"
@@ -104,7 +106,23 @@ run_mode() { # <mode>
   # there is no staging server{}: the site stub answers, never the app.
   b=$(body 8081 "STAGING.$ROOT" /bn/); [[ "$b" == site-ok* ]] && pass "$mode: case-changed fixed name on :8081 reaches site only" || fail "$mode: case trick" "$b"
   # The root's dots are literal, and a label is 3-30 characters (SITE_SUBDOMAIN_RE).
-  c=$(code 8081 rumsc.schoolsXtest /); [ "$c" = 000 ] && pass "$mode: rumsc.schoolsXtest dropped (dot in ROOT_DOMAIN is literal)" || fail "$mode: unescaped dot" "$c"
+  # schoolsXtest is not under the root (the dot is literal), so it is just some other well-formed
+  # name: it is handed to the site container like any custom domain, which answers 404 in real life.
+  b=$(body 8081 rumsc.schoolsXtest /); [[ "$b" == "site-ok host=rumsc.schoolsxtest "* ]] && pass "$mode: rumsc.schoolsXtest is NOT treated as under ROOT_DOMAIN (dot is literal)" || fail "$mode: unescaped dot" "$b"
+  # --- custom host path (#3655): a school's own domain arrives with its own Host ---
+  b=$(body 8081 www.school.edu.bd /bn/); [[ "$b" == "site-ok host=www.school.edu.bd "* ]] && pass "$mode: custom host reaches the site container with its own Host" || fail "$mode: custom host" "$b"
+  b=$(body 8081 WWW.School.EDU.bd /bn2/); [[ "$b" == "site-ok host=www.school.edu.bd "* ]] && pass "$mode: custom host is matched lower-cased" || fail "$mode: custom host case" "$b"
+  b=$(body_h 8081 www.school.edu.bd /spoof/ 'X-Forwarded-Host: rumsc.'"$ROOT"); [[ "$b" == *"xfh=[]"* ]] && pass "$mode: X-Forwarded-Host not trusted on a custom host" || fail "$mode: custom xfh" "$b"
+  b=$(body_h 8081 www.school.edu.bd /spoof2/ 'X-Site-Preview: basic'); [[ "$b" == *"preview=[]"* ]] && pass "$mode: X-Site-Preview not trusted on a custom host" || fail "$mode: custom preview" "$b"
+  b=$(body_h 8081 www.school.edu.bd /spoof3/ 'Cookie: sid=secret'); [[ "$b" == *"cookie=[]"* ]] && pass "$mode: Cookie never reaches site on a custom host" || fail "$mode: custom cookie" "$b"
+  # Anything under ROOT_DOMAIN that is not one school label never takes the custom path.
+  c=$(code 8081 "$ROOT" /); [ "$c" = 000 ] && pass "$mode: ROOT_DOMAIN itself dropped (444)" || fail "$mode: apex" "$c"
+  c=$(code 8081 "a.b.$ROOT" /); [ "$c" = 000 ] && pass "$mode: two labels under ROOT_DOMAIN dropped (444)" || fail "$mode: two labels" "$c"
+  c=$(code 8081 "www.$ROOT.example.test" /); [ "$c" != 000 ] && pass "$mode: a name only CONTAINING the root is a plain custom name" || fail "$mode: contains root" "$c"
+  # An IP literal in Host is not a custom domain.
+  c=$(docker run --rm --network "$NET" "$CURL_IMG" -s -o /dev/null -w '%{http_code}' -H 'Host: 10.1.2.3' "http://$EDGE_IP:8081/" || true); [ "$c" = 000 ] && pass "$mode: IP-literal Host dropped (444)" || fail "$mode: ip host" "$c"
+  # A custom host's cache entry is its own (key carries the host).
+  b=$(body 8081 www.other-school.org /bn/); [[ "$b" == "site-ok host=www.other-school.org "* ]] && pass "$mode: second custom host not served the first one's page" || fail "$mode: custom cache per host" "$b"
   c=$(code 8081 "ab.$ROOT" /); [ "$c" = 000 ] && pass "$mode: 2-character label dropped (444)" || fail "$mode: 2-char label" "$c"
   c=$(code 8081 "$(printf 'a%.0s' $(seq 31)).$ROOT" /); [ "$c" = 000 ] && pass "$mode: 31-character label dropped (444)" || fail "$mode: 31-char label" "$c"
   b=$(body 8081 "abc.$ROOT" /bn/); [[ "$b" == site-ok* ]] && pass "$mode: 3-character label reaches site" || fail "$mode: 3-char label" "$b"
