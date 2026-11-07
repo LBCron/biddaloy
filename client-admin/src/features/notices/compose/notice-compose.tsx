@@ -429,7 +429,7 @@ export function NoticeCompose({ noticeId, onClose, onPublished }: NoticeComposeP
                   setIsPublic,
                   { helpId: 'communications.notices.field.isPublic' },
                 ],
-                ['pinnedOnWebsite', pinnedOnWebsite, setPinnedOnWebsite, {}],
+                ['pinnedOnWebsite', pinnedOnWebsite, setPinnedOnWebsite, { helpId: undefined }],
                 ['sms', sms, setSms, { helpId: 'communications.notices.field.sms' }],
               ] as const
             ).map(([key, value, set, { helpId }]) => {
