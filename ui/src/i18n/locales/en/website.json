@@ -1,0 +1,130 @@
+{
+  "nav": {
+    "website": "Website"
+  },
+  "wizard": {
+    "title": "Set up your school website",
+    "steps": {
+      "address": "Web address",
+      "design": "Design",
+      "publish": "Publish"
+    },
+    "address": {
+      "label": "Your web address",
+      "checking": "Checking…",
+      "available": "This address is free.",
+      "taken": "This address is already used. Try another one.",
+      "invalid": "Use 3 to 30 letters, numbers or hyphens. Do not start or end with a hyphen.",
+      "suggestions": "Addresses we suggest"
+    },
+    "design": {
+      "pick": "Pick a design",
+      "colours": "Pick colours",
+      "textStyle": "Pick a text style"
+    },
+    "done": {
+      "title": "Your website is ready",
+      "body": "Look at it first, then publish when you are happy."
+    },
+    "next": "Next",
+    "back": "Back"
+  },
+  "overview": {
+    "title": "Website",
+    "off": {
+      "title": "Your school has no website yet",
+      "body": "Set one up in a few steps. You can look at it before anyone else sees it.",
+      "action": "Set up the website"
+    },
+    "status": {
+      "live": "Your website is on",
+      "draft": "Draft",
+      "notPublished": "Not published yet"
+    },
+    "unpublished": "Changes not published",
+    "publish": "Publish",
+    "published": "Published",
+    "preview": "Preview",
+    "usage": "{{used}} MB / {{total}} MB",
+    "usageLabel": "Photo space used",
+    "turnOff": {
+      "action": "Turn the website off",
+      "title": "Turn the website off?",
+      "body": "People will no longer see your website. You can turn it on again any time."
+    },
+    "turnOn": {
+      "action": "Turn the website on",
+      "title": "Turn the website on?",
+      "body": "Your published website will be visible to everyone."
+    },
+    "saveError": "We could not save that. Please try again.",
+    "stale": "Someone else changed the website. Reload and try again."
+  },
+  "design": {
+    "title": "Design",
+    "design": "Design",
+    "colours": "Colours",
+    "textStyle": "Text style",
+    "logo": "School logo",
+    "preview": "Preview",
+    "save": "Save"
+  },
+  "pages": {
+    "title": "Pages",
+    "section": "Section",
+    "sections": "Sections",
+    "announcement": "Announcement bar",
+    "headline": "Headline",
+    "about": "About us",
+    "photo": "Photo",
+    "show": "Show on website",
+    "hide": "Hide from website",
+    "save": "Save"
+  },
+  "blog": {
+    "title": "News and posts",
+    "new": "New post",
+    "draft": "Draft",
+    "published": "Published",
+    "highlight": "Highlight",
+    "empty": "No posts yet.",
+    "postTitle": "Title",
+    "postBody": "Text",
+    "cover": "Cover photo",
+    "save": "Save",
+    "publish": "Publish"
+  },
+  "enquiries": {
+    "title": "Enquiries",
+    "empty": "No enquiries yet.",
+    "from": "From",
+    "message": "Message",
+    "received": "Received"
+  },
+  "address": {
+    "title": "Web address",
+    "current": "Your web address",
+    "change": "Change the address",
+    "changeNote": "The old address keeps working for 30 days and sends people to the new one.",
+    "own": {
+      "title": "Your own address",
+      "body": "Use an address you already own, like www.myschool.edu.bd.",
+      "notMatched": "The address has not matched yet. Add the line below in your address settings, then check again.",
+      "check": "Check again"
+    },
+    "save": "Save address",
+    "saveError": "We could not save that. Please try again."
+  },
+  "analytics": {
+    "title": "Visitors",
+    "visitors": "Visitors",
+    "pages": "Most seen pages",
+    "empty": "No visitors yet."
+  },
+  "help": {
+    "address": "This is the address people type to find your school website, like yourschool.example.com.",
+    "ownAddress": "If your school already has an address, like www.myschool.edu.bd, you can use it instead.",
+    "colours": "Colours are used for buttons, headings and the top bar of your website.",
+    "textStyle": "The text style sets how the headings and the writing on your website look."
+  }
+}
