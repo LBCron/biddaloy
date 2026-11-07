@@ -89,6 +89,9 @@ jobs:
       - name: Build shared package
         run: yarn build:shared
 
+      - name: Build site-themes package
+        run: yarn build:site-themes
+
       - name: Install age and matching postgresql-18 client tools
         # Pinned to the -18 client package deliberately — client and server
         # majors must match. An older pg_dump refuses a newer server, and a
