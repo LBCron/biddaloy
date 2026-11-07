@@ -38,7 +38,11 @@ export interface SettingsCategory {
 
 export const SETTINGS_CATEGORIES: readonly SettingsCategory[] = [
   { id: 'school', icon: Building2Icon, anchors: ['regional-section', 'organisation-section'] },
-  { id: 'academics', icon: GraduationCapIcon, anchors: ['attendance-section'] },
+  {
+    id: 'academics',
+    icon: GraduationCapIcon,
+    anchors: ['attendance-section', 'attendance-devices-section'],
+  },
   { id: 'finance', icon: WalletIcon, anchors: [] },
   { id: 'billing', icon: ReceiptTextIcon, anchors: ['seats-billing-section'] },
   { id: 'communication', icon: MessageSquareIcon, anchors: [] },

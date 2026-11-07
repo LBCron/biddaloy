@@ -123,7 +123,7 @@ describe('/students/import', () => {
     const csv = new TextDecoder().decode(bytes);
     const headerLine = csv.split('\r\n')[0];
     expect(headerLine).toBe(TEMPLATE_HEADERS.map((h) => `"${h}"`).join(','));
-    expect(TEMPLATE_HEADERS).toHaveLength(13);
+    expect(TEMPLATE_HEADERS).toHaveLength(14);
   });
 
   it('shows the page in a full-page frame with Close, and a disabled primary before upload', async () => {
@@ -136,13 +136,13 @@ describe('/students/import', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/students'));
   });
 
-  it('keeps the column guide collapsed, with 13 labelled rows and the exact header names', async () => {
+  it('keeps the column guide collapsed, with 14 labelled rows and the exact header names', async () => {
     renderImportPage();
     const toggle = await screen.findByText('What goes in each column');
     const details = toggle.closest('details')!;
     expect(details.open).toBe(false);
     const rows = within(details).getAllByRole('listitem');
-    expect(rows).toHaveLength(13);
+    expect(rows).toHaveLength(14);
     expect(within(details).getByText('Student name')).toBeTruthy();
     expect(within(details).getByText('student_name')).toBeTruthy();
     expect(within(details).getByText(/Bangladeshi mobile number/)).toBeTruthy();

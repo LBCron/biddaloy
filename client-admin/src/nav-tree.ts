@@ -293,6 +293,13 @@ export const STAFF_NAV_ITEMS = {
     permission: Permission.ATTENDANCE_READ,
     label: { key: 'attendanceRegister' },
   },
+  // [76.4.03] Uploads history; `/attendance/import` and the detail route open from it (D14).
+  'attendance.uploads': {
+    id: 'attendance.uploads',
+    to: '/attendance/imports',
+    permission: Permission.ATTENDANCE_READ,
+    label: { key: 'uploads' },
+  },
   // [36.4] Sibling entry, same style as `attendance.attendanceReports`
   // above — a distinct route/permission from the student register, not a
   // switcher on the existing `attendance.attendance` item.
@@ -597,6 +604,7 @@ export const STAFF_NAV_GROUPS: readonly StaffNavGroupDef[] = [
       STAFF_NAV_ITEMS['attendance.attendance'],
       STAFF_NAV_ITEMS['attendance.attendanceReports'],
       STAFF_NAV_ITEMS['attendance.attendanceRegister'],
+      STAFF_NAV_ITEMS['attendance.uploads'],
       STAFF_NAV_ITEMS['attendance.staffAttendance'],
     ],
   },

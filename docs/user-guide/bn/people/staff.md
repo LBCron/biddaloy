@@ -16,11 +16,13 @@ sources:
   - client-admin/src/routes/_staff/staff/-detail/reset-password-dialog.tsx
   - client-admin/src/routes/_staff/staff/-detail/profile-tab.tsx
   - client-admin/src/routes/_staff/staff/-detail/teaching-assignments-tab.tsx
+  - client-admin/src/routes/_staff/staff/-detail/hr-record-card-section.tsx
   - server/src/modules/users/users.controller.ts
   - server/src/modules/users/users.service.ts
 labels:
   [
     staff:list.*,
+    staff:cardNo.*,
     staff:filters.*,
     staff:former.*,
     staff:roles.*,
@@ -49,6 +51,7 @@ helpIds:
     people.staff.field.role,
     people.staff.field.employeeId,
     people.staff.field.designations,
+    people.staff.field.cardNo,
     people.staff.action.edit,
   ]
 devices: [desktop]
@@ -86,6 +89,7 @@ knownIssues: []
   - [স্কুল থেকে সরান](#task-remove)
   - [প্রাক্তন কর্মীকে ফিরিয়ে আনুন](#task-restore)
   - [কর্মীর আইডি কার্ড প্রিন্ট করুন](#task-print)
+  - [কর্মীকে কার্ড নম্বর দিন](#task-card)
   - [কর্মীর পাতা: ট্যাবগুলো](#task-detail)
 - [সমস্যা ও সমাধান](#trouble)
 - [কে কী করতে পারেন](#roles)
@@ -322,6 +326,19 @@ knownIssues: []
 
    → প্রিন্টের প্রিভিউ পাতা খোলে। বাকি ধাপ: [কর্মীর আইডি কার্ড](../administration/print-templates/id-cards.md)।
 
+### কর্মীকে কার্ড নম্বর দিন <a href="#task-card" id="task-card"></a>
+
+**কার্ড নম্বর** হলো কর্মীর হাজিরা কার্ডে লেখা নম্বর। দুইজনের নম্বর এক হবে না।
+
+1. ব্যক্তির পাতা খুলুন ([ট্যাবগুলো](#task-detail)) আর **এইচআর রেকর্ড** ট্যাব চাপুন।
+2. একদম উপরে **কার্ড নম্বর** অংশ খুঁজুন। পাতায় **এখনো কোনো এইচআর রেকর্ড নেই** লেখা থাকলে আগে **চাকরির তথ্য যুক্ত করুন** চেপে সেভ করুন; কার্ড নম্বরের জন্য এইচআর রেকর্ড লাগে।
+3. **কার্ড স্ক্যান করুন** চেপে কার্ডটি রিডারে ছোঁয়ান, অথবা নম্বর লিখুন।
+4. **সংরক্ষণ করুন** চাপুন। নম্বর আগের সেভ করা নম্বরের চেয়ে আলাদা না হলে বোতামটি ধূসর থাকে।
+
+**এইচআর রেকর্ড** ট্যাব আবার খুললে সেভ করা নম্বর ঘরে দেখা যায়। নম্বর সরাতে ঘরটি খালি করে **সংরক্ষণ করুন** চাপুন। বাংলা অঙ্কে লিখলে বা স্ক্যান করলে নম্বরটি সাধারণ অঙ্ক হিসেবে সেভ হয়।
+
+→ নম্বরটি অন্য কর্মীর থাকলে বাক্সের নিচে লেখা আসে "এই কার্ড নম্বর আগেই অন্য কর্মীর।" ১ থেকে ৬৪টি ইংরেজি অক্ষর (A–Z, a–z), সংখ্যা বা ড্যাশ দিন। বাংলা অক্ষর সেভ হয় না। মেশিন যোগ করতে: [সেটিংস](../administration/settings.md#task-devices)। শিক্ষার্থীর জন্য: [শিক্ষার্থী](students.md#task-card)।
+
 ### কর্মীর পাতা: ট্যাবগুলো <a href="#task-detail" id="task-detail"></a>
 
 তালিকায় কর্মীর নামে বা **দেখুন**-এ চাপলে তাঁর পাতা খোলে। উপরে নাম, অবস্থা, ভূমিকা, এই স্কুলে যোগদানের তারিখ ও সর্বশেষ সাইন ইন (না করলে **এখনও করেননি**)। নিচে ট্যাব:
@@ -407,6 +424,7 @@ knownIssues: []
 | পদবি                    | শ্রেণি শিক্ষক, বিষয় শিক্ষক, প্রধান শিক্ষক, সহকারী শিক্ষক, অধ্যক্ষ, উপাধ্যক্ষ, সমন্বয়ক থেকে এক বা একাধিক।      | না                             |
 | বিষয়ের বিশেষত্ব        | যে বিষয়ে শিক্ষক দক্ষ, যেমন গণিত। মুক্ত লেখা।                                                                   | না                             |
 | যোগদানের তারিখ          | কবে স্কুলে যোগ দিয়েছেন।                                                                                        | না                             |
+| কার্ড নম্বর             | কর্মীর হাজিরা কার্ডে লেখা নম্বর। দুইজনের নম্বর এক হবে না।                                                       | না                             |
 
 <!-- /guide:generated -->
 

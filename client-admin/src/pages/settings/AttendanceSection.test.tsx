@@ -103,6 +103,38 @@ describe('AttendanceSection', () => {
     expect(await screen.findByText(/Changes apply from today/)).toBeTruthy();
   });
 
+  it('renders the stored daily source, saves a changed one, shows its helper lines', async () => {
+    const patchBody = vi.fn();
+    server.use(
+      http.patch('/api/v1/schools/:id/settings', async ({ request }) => {
+        patchBody(await request.json());
+        return HttpResponse.json({ version: 1 });
+      }),
+    );
+    const { user } = renderWithProviders(
+      <WithTestRouter>
+        <AttendanceSection
+          schoolId={SCHOOL_ID}
+          attendance={{ ...ATTENDANCE, dailySource: 'DEVICE' }}
+        />
+      </WithTestRouter>,
+      { locale: 'en', role: 'ADMIN', tenantId: SCHOOL_ID },
+    );
+
+    const device = await screen.findByRole('radio', { name: /Attendance machine/ });
+    expect(isChecked(device)).toBe(true);
+    expect(screen.getByText(/Decides who can save the daily register/)).toBeTruthy();
+    expect(screen.getByText(/After the absence cutoff/)).toBeTruthy();
+
+    await user.click(screen.getByRole('radio', { name: /Class teacher roll call/ }));
+    expect(screen.getByText(/Subject teachers can view the register/)).toBeTruthy();
+    expect(screen.queryByText(/After the absence cutoff/)).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(patchBody).toHaveBeenCalled());
+    expect(patchBody.mock.calls[0]![0].attendance.dailySource).toBe('CLASS_TEACHER');
+  });
+
   it('sends only the attendance slice in the saved payload', async () => {
     const patchBody = vi.fn();
     server.use(

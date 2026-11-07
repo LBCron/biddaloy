@@ -197,6 +197,19 @@
       "periodInvalid": "A period must end after it starts.",
       "periodsLoadFailed": "Could not load this shift's periods. Saved period times are kept as they are.",
       "overlap": "Another entry for the same shift already covers some of these dates."
+    },
+    "dailySource": {
+      "legend": "Who marks daily attendance",
+      "ANY": "Anyone assigned (today's rule)",
+      "ANYHelp": "Any teacher of the section can mark the day.",
+      "CLASS_TEACHER": "Class teacher roll call",
+      "CLASS_TEACHERHelp": "Only the class teacher marks the day.",
+      "FIRST_PERIOD": "First-period teacher",
+      "FIRST_PERIODHelp": "Whoever teaches the first period marks the day.",
+      "DEVICE": "Attendance machine",
+      "DEVICEHelp": "The machine fills the day. Teachers correct what it missed.",
+      "deviceNote": "After the absence cutoff, students the machine did not see are marked absent. The class teacher can still correct.",
+      "teacherNote": "Subject teachers can view the register but not save it."
     }
   },
   "signIn": {
@@ -512,7 +525,10 @@
     "printerScale": "Size",
     "printerGap": "Cutting gap between cards (mm)",
     "otpLoginEnabled": "Allow sign-in with a code sent to the phone",
-    "conductItems": "Conduct"
+    "conductItems": "Conduct",
+    "dailySource": "Who marks daily attendance",
+    "staffSmsFallback": "Text the admin if staff attendance is late",
+    "deviceSecretKey": "Machine secret key"
   },
   "help": {
     "schoolName": "The school's name. It shows on receipts, invoices and printouts. It cannot be left empty.",
@@ -574,7 +590,10 @@
         "accessToken": "Copy it from Meta Business."
       }
     },
-    "conductItems": "Each line gets a grade from A to D on the report card, for example Discipline or Neatness. Renaming a line keeps the grades already given."
+    "conductItems": "Each line gets a grade from A to D on the report card, for example Discipline or Neatness. Renaming a line keeps the grades already given.",
+    "dailySource": "Decides who can save the daily register: any assigned teacher, the class teacher, the first-period teacher, or the attendance machine.",
+    "staffSmsFallback": "If daily attendance is still not taken late in the day, send the admin a text message. Off by default.",
+    "deviceSecretKey": "The machine's secret key. It is shown once, so copy it now and keep it safe."
   },
   "helpRequired": {
     "schoolName": "Yes",
@@ -626,5 +645,76 @@
     "save": "Save",
     "saved": "Saved.",
     "saveError": "Couldn't save. Try again."
+  },
+  "attendanceDevices": {
+    "title": "Attendance machines",
+    "explainer": "Fingerprint, face and card machines send attendance to the school.",
+    "listCaption": "Attendance machines",
+    "wholeSchool": "Whole school",
+    "never": "Never",
+    "loadError": "Could not load the machines.",
+    "columns": {
+      "name": "Name",
+      "kind": "Kind",
+      "section": "Section",
+      "lastSeen": "Last seen",
+      "status": "Status"
+    },
+    "status": {
+      "ACTIVE": "Active"
+    },
+    "kind": {
+      "BIOMETRIC": "Fingerprint",
+      "FACE": "Face",
+      "RFID": "Card",
+      "OTHER": "Other"
+    },
+    "empty": {
+      "title": "No attendance machine yet",
+      "explanation": "Add one to let it fill the daily register."
+    },
+    "add": {
+      "button": "Add machine",
+      "title": "Add attendance machine"
+    },
+    "form": {
+      "name": "Name",
+      "nameError": "Enter a name for the machine.",
+      "kind": "Kind",
+      "section": "Section (optional)",
+      "roster": "Roster access",
+      "rosterHelp": "Lets the machine download the student list.",
+      "saveError": "Could not add the machine. Try again.",
+      "cancel": "Cancel",
+      "save": "Add machine"
+    },
+    "key": {
+      "title": "Copy the key now — it is shown once",
+      "explainer": "Put this key into the machine. It cannot be shown again.",
+      "label": "Secret key",
+      "copy": "Copy",
+      "copied": "Key copied",
+      "copyError": "Could not copy. Select the key and copy it by hand.",
+      "done": "Done",
+      "confirmTitle": "Did you copy the key?",
+      "confirmBody": "You will not see this key again.",
+      "confirmYes": "Yes, I copied it",
+      "confirmNo": "Go back"
+    },
+    "rotate": {
+      "action": "Make new key",
+      "title": "Make a new key?",
+      "body": "{{name}} stops working until you put the new key into it. The old key stops now.",
+      "confirm": "Make new key",
+      "error": "Could not make a new key. Try again."
+    },
+    "revoke": {
+      "action": "Revoke",
+      "title": "Revoke this machine?",
+      "body": "{{name}} will no longer send attendance. Past attendance stays.",
+      "confirm": "Revoke",
+      "done": "Machine revoked",
+      "error": "Could not revoke the machine. Try again."
+    }
   }
 }

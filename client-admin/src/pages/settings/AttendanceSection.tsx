@@ -26,6 +26,8 @@ import {
   FormMessage,
   HelpHint,
   Input,
+  RadioGroup,
+  RadioGroupItem,
   Select,
   SelectContent,
   SelectItem,
@@ -67,6 +69,8 @@ const WEEKDAY_LABEL_KEYS = [
   'attendance.weekday.6',
 ] as const;
 
+const DAILY_SOURCES = ['ANY', 'CLASS_TEACHER', 'FIRST_PERIOD', 'DEVICE'] as const;
+
 const attendanceSchema = z
   .object({
     weeklyOff0: z.boolean(),
@@ -89,6 +93,7 @@ const attendanceSchema = z
     arrivalEnabled: z.boolean(),
     arrivalSmsAllowed: z.boolean(),
     periodEnabled: z.boolean(),
+    dailySource: z.enum(['ANY', 'CLASS_TEACHER', 'FIRST_PERIOD', 'DEVICE']),
     // Keyed by shift id; '' or missing = not set. Entries for deleted shifts stay in
     // form state but are filtered out on save (see `handleSave`).
     shiftTimes: z.record(
@@ -163,6 +168,7 @@ const DEFAULT_VALUES: AttendanceFormValues = {
   arrivalEnabled: false,
   arrivalSmsAllowed: false,
   periodEnabled: false,
+  dailySource: 'ANY',
   shiftTimes: {},
   specialTimings: [],
 };
@@ -188,6 +194,7 @@ function toFormValues(attendance: AttendancePolicySettings | undefined): Attenda
     arrivalEnabled: attendance.arrivalNotice?.enabled ?? false,
     arrivalSmsAllowed: attendance.arrivalNotice?.smsAllowed ?? false,
     periodEnabled: attendance.periodAttendance?.enabled ?? false,
+    dailySource: attendance.dailySource ?? 'ANY',
     shiftTimes: Object.fromEntries(
       (attendance.shiftTimes ?? []).map((row) => [
         row.shiftId,
@@ -237,6 +244,7 @@ export function AttendanceSection({ schoolId, attendance }: AttendanceSectionPro
   }
 
   const arrivalEnabled = form.watch('arrivalEnabled');
+  const dailySource = form.watch('dailySource');
 
   function handleSave(values: AttendanceFormValues) {
     const policy: AttendancePolicySettings = {
@@ -262,6 +270,7 @@ export function AttendanceSection({ schoolId, attendance }: AttendanceSectionPro
         smsAllowed: values.arrivalEnabled && values.arrivalSmsAllowed,
       },
       periodAttendance: { enabled: values.periodEnabled },
+      dailySource: values.dailySource,
       specialTimings: values.specialTimings,
     };
     // Only once the shift list has loaded: sending [] early would wipe the
@@ -404,6 +413,51 @@ export function AttendanceSection({ schoolId, attendance }: AttendanceSectionPro
           </>
         }
       >
+        <fieldset className="mt-4">
+          <legend className="text-label text-text-primary">
+            {t('attendance.dailySource.legend')}
+          </legend>
+          <FormField
+            control={form.control}
+            name="dailySource"
+            render={({ field }) => (
+              <FormItem>
+                <FormDescription>{t('help.dailySource')}</FormDescription>
+                <RadioGroup
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  aria-label={t('attendance.dailySource.legend')}
+                  className="mt-1.5 gap-1"
+                >
+                  {DAILY_SOURCES.map((source) => (
+                    <div key={source} className="flex min-h-11 items-start gap-3 md:min-h-8">
+                      <RadioGroupItem value={source} id={`attendance-dailySource-${source}`} />
+                      <label htmlFor={`attendance-dailySource-${source}`} className="flex-1">
+                        <span className="text-label text-text-primary">
+                          {t(`attendance.dailySource.${source}`)}
+                        </span>
+                        <span className="block text-caption text-text-secondary">
+                          {t(`attendance.dailySource.${source}Help`)}
+                        </span>
+                      </label>
+                    </div>
+                  ))}
+                </RadioGroup>
+                {dailySource === 'DEVICE' && (
+                  <p className="text-caption text-text-secondary">
+                    {t('attendance.dailySource.deviceNote')}
+                  </p>
+                )}
+                {(dailySource === 'CLASS_TEACHER' || dailySource === 'FIRST_PERIOD') && (
+                  <p className="text-caption text-text-secondary">
+                    {t('attendance.dailySource.teacherNote')}
+                  </p>
+                )}
+              </FormItem>
+            )}
+          />
+        </fieldset>
+
         <fieldset className="mt-4">
           <legend className="text-label text-text-primary">
             {t('attendance.weeklyOffLegend')}

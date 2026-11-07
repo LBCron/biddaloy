@@ -15,6 +15,12 @@ labels:
     attendance:mark.*,
     attendance:period.*,
     attendance:statusControl.*,
+    attendance:registerBanner.*,
+    attendance:firstPeriod.*,
+    attendance:list.scannedAbsent*,
+    attendance:markRestAbsent*,
+    attendance:scannedBadge,
+    settings:attendance.dailySource.*,
     attendance:conflict.*,
     attendance:history.*,
     common:sync.*,
@@ -59,6 +65,7 @@ Every section (for example Class 6, section B) has one **register** per day. Thi
   - [Fixing an earlier day](#task-fix)
   - [Per-period attendance](#task-period)
   - [Attendance without internet](#task-offline)
+  - [Who marks daily attendance](#task-source)
 - [Problems and fixes](#trouble)
 - [Who can do what](#roles)
 - [Learn more](#more)
@@ -216,19 +223,41 @@ Without internet, the submit button says **Save on device**. When you press it:
 
 More help with this: [What to do when something goes wrong](../help/troubleshooting.md#offline).
 
+### Who marks daily attendance <a href="#task-source" id="task-source"></a>
+
+The school decides who may save the daily register of a section. An admin sets it in **Settings › Academics › Attendance policy** under **Who marks daily attendance**. There are four choices:
+
+| Choice                             | Who saves the day                                          |
+| ---------------------------------- | ---------------------------------------------------------- |
+| **Anyone assigned (today's rule)** | Any teacher of the section                                 |
+| **Class teacher roll call**        | Only the class teacher                                     |
+| **First-period teacher**           | Whoever teaches the first period                           |
+| **Attendance machine**             | The machine fills the day. Teachers correct what it missed |
+
+If you are not allowed to save the register, you see a calm banner, for example "Only the class teacher saves this register. You can look, but not change it." There is no **All present** and no **Submit attendance** button. If you are the first-period teacher, a green note says "You take the whole-day attendance", with a short **Before you save** checklist.
+
+**When the school uses the attendance machine:**
+
+- The machine marks a student when the student's card is scanned. A scanned mark shows the badge **Scanned** with the time.
+- After the **Absent after** time of the shift, students the machine did not see are marked absent automatically. The register stays a draft; the class teacher can still correct any mark.
+- Teacher authority wins: a mark the class teacher gives is never changed by the machine.
+- **Scanned but marked absent** means the machine saw the student today, but the register says absent or on leave. It shows on the section list as "2 scanned but marked absent". Open the section and check; the student may have come after the mark was made.
+- Next to each name a small badge tells where a mark came from: **Scanned 08:05** ("This mark came from the card machine.") or **From sheet** ("This mark came from an uploaded attendance sheet."). A mark you give yourself has no badge. See [Upload an attendance sheet](uploads.md).
+- **Mark the rest absent** (button above the register) marks every student who has no status yet as absent, in one press. Check the names first; guardians may get a message.
+
 ---
 
 ## Problems and fixes <a href="#trouble" id="trouble"></a>
 
-| What you see                                                 | What to do                                                                                                                                | Who can help                         |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| **No sections assigned yet**                                 | No section is in your name.                                                                                                               | Admin (**Teacher assignments** page) |
-| **School is closed on this day**                             | A weekly off day or a holiday in the calendar. No attendance needed. If that looks wrong, tell an admin.                                  | Admin (calendar)                     |
-| A section is missing from the list                           | The section has no students, or its class is off today. Set the **Status** filter to **Done** to check whether it was already submitted.  | Admin                                |
-| **Could not save attendance**                                | Check the internet and press **Submit attendance** again. The marks stay on screen. If it keeps failing, tell an admin, with the message. | Admin                                |
-| The button says **Save on device**                           | No internet. See [Attendance without internet](#task-offline).                                                                            | —                                    |
-| **This register changed since you loaded it**                | See below.                                                                                                                                | —                                    |
-| **This register is older than 2 days…**                      | The correction window has passed. Tell an admin which student, which date, and what to change.                                            | Admin                                |
+| What you see                                  | What to do                                                                                                                                | Who can help                         |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| **No sections assigned yet**                  | No section is in your name.                                                                                                               | Admin (**Teacher assignments** page) |
+| **School is closed on this day**              | A weekly off day or a holiday in the calendar. No attendance needed. If that looks wrong, tell an admin.                                  | Admin (calendar)                     |
+| A section is missing from the list            | The section has no students, or its class is off today. Set the **Status** filter to **Done** to check whether it was already submitted.  | Admin                                |
+| **Could not save attendance**                 | Check the internet and press **Submit attendance** again. The marks stay on screen. If it keeps failing, tell an admin, with the message. | Admin                                |
+| The button says **Save on device**            | No internet. See [Attendance without internet](#task-offline).                                                                            | —                                    |
+| **This register changed since you loaded it** | See below.                                                                                                                                | —                                    |
+| **This register is older than 2 days…**       | The correction window has passed. Tell an admin which student, which date, and what to change.                                            | Admin                                |
 
 **If "This register changed" appears:** someone else (for example an admin) submitted this register after you opened it. A list shows only the students whose mark differs between you and them, **Your mark** next to **Current mark**.
 
@@ -246,14 +275,14 @@ It is worth a word with that person about the listed students before you decide.
 
 ## Who can do what <a href="#roles" id="roles"></a>
 
-| Role                                      | Sections seen | Can take attendance | Can correct                                                                       | Gets late alerts    |
-| ----------------------------------------- | ------------- | ------------------- | --------------------------------------------------------------------------------- | ------------------- |
-| Teacher                                   | Own assigned  | Yes                 | Within the window (usually 2 days)                                                | Yes, own sections   |
-| Admin                                     | All           | Yes, any day        | Any day, with a reason | Yes, when very late |
-| Headmaster / principal                    | All           | No                  | No                                                                                | Yes, when very late |
-| Accountant, office staff, exam controller | All           | No                  | No                                                                                | No                  |
+| Role                                      | Sections seen | Can take attendance | Can correct                        | Gets late alerts    |
+| ----------------------------------------- | ------------- | ------------------- | ---------------------------------- | ------------------- |
+| Teacher                                   | Own assigned  | Yes                 | Within the window (usually 2 days) | Yes, own sections   |
+| Admin                                     | All           | Yes, any day        | Any day, with a reason             | Yes, when very late |
+| Headmaster / principal                    | All           | No                  | No                                 | Yes, when very late |
+| Accountant, office staff, exam controller | All           | No                  | No                                 | No                  |
 
-For those who cannot take attendance, the register has no **All present** and no **Submit attendance** button.
+For those who cannot take attendance, the register has no **All present** and no **Submit attendance** button. Instead it says **You can see this register, but your role cannot mark attendance.**
 
 ---
 
@@ -359,6 +388,7 @@ After you press one name:
 - [**Giving teachers class and section duties**](../people/teaching-assignments.md) — where an admin assigns sections.
 - [**Arranging a class's weekly routine**](../academics/routine-builder.md) — needed for per-period attendance.
 - [**Attendance reports**](attendance-reports.md) and [**Attendance register**](attendance-register.md) — built from the attendance taken here.
+- [**Upload an attendance sheet**](uploads.md) — fill in many days or sections from an Excel file.
 - [**Staff attendance and leave**](staff-attendance.md) — teachers' and staff's own attendance and leave.
 - **Settings › Attendance policy** (admin) — weekly off days, the correction window, per-period attendance, leave in advance.
 - [**Seeing your own class on one page**](../academics/my-class.md) — your section on one page, with today's attendance.

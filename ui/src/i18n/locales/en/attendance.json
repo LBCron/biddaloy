@@ -43,7 +43,13 @@
     "noneDoneTitle": "No section is submitted yet",
     "noneDoneBody": "A section shows here once its attendance is submitted.",
     "holidayTitle": "School is closed on this day",
-    "holidayBody": "No attendance is needed."
+    "holidayBody": "No attendance is needed.",
+    "scannedAbsent_one": "{{count}} scanned but marked absent",
+    "scannedAbsent_other": "{{count}} scanned but marked absent",
+    "scannedAbsentHint": "The card machine saw these students today, but the register marks them absent or on leave.",
+    "withoutStatus_one": "{{count}} without a status",
+    "withoutStatus_other": "{{count}} without a status",
+    "withoutStatusHint": "These students have not been marked present, absent, late or on leave yet."
   },
   "mark": {
     "title": "{{className}} – {{sectionName}}",
@@ -55,7 +61,7 @@
     "reset": "Reset",
     "undo": "Undo",
     "undoToast": "Attendance reset",
-    "shortcutHint": "Shortcuts: P present · A absent · L late · V leave · Space toggle · Shift+P all present · Ctrl/Cmd+Enter submit",
+    "shortcutHint": "Shortcuts: P present · A absent · L late · V leave · Space toggle · Shift+P all present · Shift+A rest absent · Ctrl/Cmd+Enter submit",
     "submitOnline": "Submit attendance",
     "submitOffline": "Save on device",
     "submitting": "Submitting…",
@@ -75,6 +81,7 @@
     "announceStatusChanged": "{{name}} marked {{status}}",
     "readOnlyExplanation": "This register is outside the correction window and can no longer be edited here.",
     "readOnlyNoPermission": "This register is older than {{days}} days. Ask an administrator to correct it.",
+    "viewOnly": "You can see this register, but your role cannot mark attendance.",
     "requestCorrection": "Request correction",
     "futureDateBanner": "Future date — only Leave can be marked ahead of time.",
     "rollNumber": "Roll {{roll}}",
@@ -89,7 +96,9 @@
     "leaveCount": "Leave {{n}}",
     "stateFinalized": "Submitted",
     "rosterHeading": "Students",
-    "loadError": "Could not load this section's attendance."
+    "loadError": "Could not load this section's attendance.",
+    "allPresentDone_one": "{{count}} student marked present",
+    "allPresentDone_other": "{{count}} students marked present"
   },
   "conflict": {
     "title": "This register changed since you loaded it",
@@ -263,5 +272,26 @@
   "helpRequired": {
     "date": "Yes",
     "statusEachStudent": "No — the app asks if any are left"
-  }
+  },
+  "registerBanner": {
+    "CLASS_TEACHER_ONLY": "Only the class teacher saves this register. You can look, but not change it.",
+    "FIRST_PERIOD_ONLY": "Only the first-period teacher saves this register. You can look, but not change it.",
+    "DEVICE_SCHOOL": "This school takes attendance from the attendance machine. The class teacher can still correct a mark.",
+    "UNKNOWN": "You cannot save this register right now. You can look, but not change it."
+  },
+  "firstPeriod": {
+    "title": "You take the whole-day attendance",
+    "hint": "You teach the first period, so you mark the whole day for this section.",
+    "checklistTitle": "Before you save",
+    "checklistMarked": "Everyone is marked present, absent, late or on leave",
+    "checklistLate": "Late students have their minutes filled in",
+    "checklistAbsent": "Absent students are right — guardians may get a message"
+  },
+  "markRestAbsent": "Mark the rest absent",
+  "scannedBadge": "Scanned {{time}}",
+  "fromSheetBadge": "From sheet",
+  "scannedHint": "This mark came from the card machine.",
+  "fromSheetHint": "This mark came from an uploaded attendance sheet.",
+  "markRestAbsentDone_one": "{{count}} student marked absent",
+  "markRestAbsentDone_other": "{{count}} students marked absent"
 }

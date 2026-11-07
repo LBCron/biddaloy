@@ -135,7 +135,10 @@
     "portalHomework": "হোমওয়ার্ক",
     "committeeReport": "মাসিক সভার রিপোর্ট",
     "reportsUsage": "রিপোর্ট ব্যবহার",
-    "reportRun": "আপনার রিপোর্ট"
+    "reportRun": "আপনার রিপোর্ট",
+    "upload": "শীট আপলোড",
+    "uploads": "আপলোড করা শীট",
+    "uploadDetail": "আপলোডের বিবরণ"
   },
   "groups": {
     "people": "ব্যক্তিবর্গ",

@@ -1,5 +1,7 @@
+import { TooltipProvider } from '@biddaloy/ui/components';
 import { cleanupTestState, renderWithProviders, server } from '@biddaloy/ui/test';
 import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -75,5 +77,57 @@ describe('RosterMarker arrival bell', () => {
     expect(
       screen.getByText('Karim Ali').closest('li')?.querySelector(`[aria-label="${LABEL}"]`),
     ).toBeTruthy();
+  });
+});
+
+describe('RosterMarker mark badges [76.5.03]', () => {
+  afterEach(async () => {
+    await cleanupTestState();
+  });
+
+  it('shows a scanned badge and a from-sheet badge on their own rows only', async () => {
+    const students = [
+      {
+        student_id: 'st-1',
+        full_name: 'Rahim Uddin',
+        roll_number: 1,
+        scanned_at: '2026-09-04T01:55:00Z',
+      },
+      { student_id: 'st-2', full_name: 'Karim Ali', roll_number: 2, source: 'IMPORT' },
+      { student_id: 'st-3', full_name: 'Salma Khatun', roll_number: 3 },
+    ] as never;
+    renderWithProviders(
+      <TooltipProvider>
+        <RosterMarker {...base} students={students} />
+      </TooltipProvider>,
+      {
+        tenantId: 'tenant-1',
+        locale: 'en',
+      },
+    );
+    const row = (n: string) => screen.getByText(n).closest('li')!;
+    await screen.findByText('Rahim Uddin');
+    expect(row('Rahim Uddin').textContent).toMatch(/Scanned/);
+    expect(row('Karim Ali').textContent).toMatch(/From sheet/);
+    expect(row('Salma Khatun').textContent).not.toMatch(/Scanned|From sheet/);
+  });
+
+  it('Shift+A calls onRestAbsent, Shift+P calls onAllPresent', async () => {
+    const onRestAbsent = vi.fn();
+    const onAllPresent = vi.fn();
+    renderWithProviders(
+      <TooltipProvider>
+        <RosterMarker {...base} onAllPresent={onAllPresent} onRestAbsent={onRestAbsent} />
+      </TooltipProvider>,
+      { tenantId: 'tenant-1', locale: 'en' },
+    );
+    const user = userEvent.setup();
+    const rows = await screen.findAllByRole('button', { name: /Rahim Uddin/ });
+    await user.click(rows[0]!);
+    await user.keyboard('{Shift>}a{/Shift}');
+    expect(onRestAbsent).toHaveBeenCalledTimes(1);
+    expect(onAllPresent).not.toHaveBeenCalled();
+    await user.keyboard('{Shift>}p{/Shift}');
+    expect(onAllPresent).toHaveBeenCalledTimes(1);
   });
 });

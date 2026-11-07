@@ -61,6 +61,8 @@ const NAV_PATH_TO_ROUTE_ID: Record<string, string> = {
   '/reports/printables?tab=register': '/_staff/reports/printables',
   '/reports/printables?tab=to-print': '/_staff/reports/printables',
   '/students': '/_staff/students/',
+  '/attendance/import': '/_staff/attendance/import',
+  '/attendance/imports': '/_staff/attendance/imports/',
   '/settings#printers-section': '/_staff/settings',
   '/communications/notices/new': '/_staff/communications/notices/new',
   '/communications/send': '/_staff/communications/send',
@@ -95,6 +97,7 @@ const NAV_PATH_TO_ROUTE_ID: Record<string, string> = {
   '/settings?section=backup': '/_staff/settings',
   '/settings?section=billing': '/_staff/settings',
   '/settings?section=billing&buy=1': '/_staff/settings',
+  '/settings?section=academics&devices=new': '/_staff/settings',
   '/students?openPerformance=1': '/_staff/students/',
   '/fees/fines?logFine=1': '/_staff/fees/fines/',
   '/fees/fines?generateFines=1': '/_staff/fees/fines/',
@@ -148,6 +151,7 @@ const REGISTERED_ACTION_FILES: Record<string, string> = {
   'communications.sendMessage': 'client-admin/src/routes/_staff/communications/send.tsx',
   'communications.sendFeeReminder': 'client-admin/src/routes/_staff/communications/reminders.tsx',
   'attendance.take': 'client-admin/src/routes/_staff/attendance/index.tsx',
+  'attendance.import': 'client-admin/src/routes/_staff/attendance/import.tsx',
   'attendance.register.edit': 'client-admin/src/routes/_staff/attendance/register.tsx',
   'attendance.markStaff': 'client-admin/src/routes/_staff/attendance/staff/index.tsx',
   // Holds <FullPageShell after 52.5.3; registered in advance so the palette-coverage test is satisfied.
@@ -156,6 +160,7 @@ const REGISTERED_ACTION_FILES: Record<string, string> = {
   'fines.log': `${R}_staff/fees/fines/-modals/log-fine-modal.tsx`,
   'fines.generate': `${R}_staff/fees/fines/-modals/generate-fines-modal.tsx`,
   'fines.waive': `${R}_staff/fees/fines/-modals/waive-fine-dialog.tsx`,
+  'settings.attendanceDevices.add': 'client-admin/src/pages/settings/attendance-device-dialog.tsx',
   'programs.add': `${R}_staff/programs/-program-form-dialog.tsx`,
   'programs.enrol': `${R}_staff/programs/-enrol-dialog.tsx`,
   'programs.recordMilestone': `${R}_staff/programs/-record-dialog.tsx`,
@@ -282,6 +287,18 @@ describe('action-registry.ts', () => {
     },
   );
 
+  // [76, D17] Epic 76's palette labels use the plain words: no "import", "device", "RFID", "ID card".
+  it.each(
+    ACTIONS.filter(
+      (a) =>
+        ['attendance.import', 'attendance.imports', 'students.assignCard'].includes(a.id) ||
+        a.id.startsWith('settings.attendanceDevices'),
+    ).map((action) => [action.id, action] as const),
+  )('%s: English label has no never-say word', (_id, action) => {
+    expect(action.label.en).not.toMatch(/\b(import\w*|device|rfid|biometric|id card)\b/i);
+    expect(action.label.bn).not.toMatch(/আমদানি|আইডি/);
+  });
+
   it.each(ACTIONS.map((action) => [action.id, action] as const))(
     '%s: kind is one of modal | navigate | inline',
     (_id, action) => {
@@ -324,6 +341,8 @@ describe('action-registry.ts', () => {
   // `/_staff/fees/fines/`'s own FEE_READ gate on purpose — see
   // `action-registry.ts`'s comment on those three entries.
   const ROUTE_PERMISSION_EXCEPTIONS = new Set([
+    // [76.5.02] ATTENDANCE_DEVICE_MANAGE is stricter than the settings page's SETTINGS_MANAGE gate.
+    'settings.attendanceDevices.add',
     'programs.add',
     // [81.3.3] Uploading marks is MARK_ENTER; `/marks` is MARK_VIEW.
     'marks.uploadSheet',
@@ -335,6 +354,8 @@ describe('action-registry.ts', () => {
     // DOCUMENT_PRINT is stricter than the printables page's PRINT_HISTORY_READ (the To print
     // tab needs it): the palette must not offer what the person cannot finish.
     'certificates.issue',
+    // [76.4.03] Falls back to `/students` (READ) with no student in context; the edit route needs UPDATE.
+    'students.assignCard',
     'print.toPrint',
     // [66.3] SYLLABUS_MANAGE is stricter than the syllabus page's SYLLABUS_READ
     // gate; the create wizard is the only thing it opens.

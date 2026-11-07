@@ -29,6 +29,8 @@ export interface StaffHrRecord {
   /** Bangla name, printed on staff ID cards (Epic 32, D49). */
   name_bn: string | null;
   religion: string | null;
+  /** Attendance card number (Epic 76), unique per school. */
+  card_no: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -83,6 +85,7 @@ export interface UpdateStaffHrRecordInput {
   blood_group?: string | null;
   name_bn?: string | null;
   religion?: string | null;
+  card_no?: string | null;
 }
 
 export interface PromoteStaffInput {

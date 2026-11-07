@@ -232,6 +232,17 @@ export const HELP_INDEX: HelpIndex = {
     knownIssues: 0,
     field: { ns: 'students', key: 'bloodGroup' },
   },
+  'people.students.field.cardNo': {
+    title: {
+      bn: 'শিক্ষার্থী যোগ করা ও তাদের তথ্য দেখা',
+      en: 'Adding students and viewing their details',
+    },
+    summary: { bn: '', en: '' },
+    path: 'people/students',
+    anchor: 'more',
+    knownIssues: 0,
+    field: { ns: 'students', key: 'cardNo' },
+  },
   'people.students.field.preferredCommunication': {
     title: {
       bn: 'শিক্ষার্থী যোগ করা ও তাদের তথ্য দেখা',
@@ -551,6 +562,14 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'more',
     knownIssues: 0,
     field: { ns: 'staff', key: 'designations' },
+  },
+  'people.staff.field.cardNo': {
+    title: { bn: 'কর্মী যোগ করা ও পরিচালনা', en: 'Adding and managing staff' },
+    summary: { bn: '', en: '' },
+    path: 'people/staff',
+    anchor: 'more',
+    knownIssues: 0,
+    field: { ns: 'staff', key: 'cardNo' },
   },
   'people.staff.action.edit': {
     title: { bn: 'কর্মী যোগ করা ও পরিচালনা', en: 'Adding and managing staff' },
@@ -1873,6 +1892,16 @@ export const HELP_INDEX: HelpIndex = {
     anchor: 'more',
     knownIssues: 0,
     field: { ns: 'attendanceRegister', key: 'reason' },
+  },
+  'attendance.uploads': {
+    title: { bn: 'হাজিরা শীট আপলোড', en: 'Upload an attendance sheet' },
+    summary: {
+      bn: 'এক বা একাধিক শাখার হাজিরা এক্সেল শীটে লিখে আপলোড করুন, কী বদলাবে দেখে নিন, তারপর সেভ করুন। পরে সব আপলোড দেখুন, আর ভুল হলে ঠিক করা ফাইল দিয়ে শুধরে নিন।',
+      en: 'Fill in attendance for one or more sections on an Excel sheet, upload it, check what will change, and save. See every uploaded sheet afterwards and fix a mistake with a corrected file.',
+    },
+    path: 'attendance/uploads',
+    anchor: '',
+    knownIssues: 0,
   },
   'attendance.staffAttendance': {
     title: { bn: 'কর্মীর উপস্থিতি ও ছুটি', en: 'Staff attendance and leave' },
@@ -5135,8 +5164,11 @@ export const HELP_ROUTES = {
   '/academics/syllabus': 'academics.syllabus',
   '/attendance': 'attendance.attendance',
   '/attendance/$sectionId': 'attendance.attendance',
+  '/attendance/import': 'attendance.attendance',
   '/attendance/reports': 'attendance.attendanceReports',
   '/attendance/register': 'attendance.attendanceRegister',
+  '/attendance/imports': 'attendance.uploads',
+  '/attendance/imports/$importId': 'attendance.uploads',
   '/attendance/staff': 'attendance.staffAttendance',
   '/attendance/staff/leave': 'attendance.staffAttendance',
   '/exams': 'examsResults.exams',
