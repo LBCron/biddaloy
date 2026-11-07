@@ -199,6 +199,8 @@ In the left menu, press **Academics → Routine setup** (→ [Setting up shifts,
 
 The last two rows of the card: **Invite guardians** and **Message settings**.
 
+If you answered **Yes, set it up** to **Do you want a school website too?** in the wizard, the card also has a **Set up the website** row. Press it to open the website page and follow the steps there.
+
 1. On the card, press **Invite guardians**.
 
    → On the guardians page, **Invite guardians** opens.
