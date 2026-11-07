@@ -127,7 +127,7 @@ export class PublicSiteService {
   }
 
   /** The kinds a visitor's browser may fetch live; `results` and `enquiry` have their own routes. */
-  async island(host: string, kind: string, classSectionId?: string): Promise<HostAnswer<unknown>> {
+  async island(host: string, kind: string, classSectionId?: unknown): Promise<HostAnswer<unknown>> {
     const l = await this.live(host);
     if ('redirectTo' in l) return l;
     const islands: string[] = [
@@ -136,7 +136,18 @@ export class PublicSiteService {
       SiteIslandKind.ROUTINE,
     ];
     if (!islands.includes(kind) || !this.feeds.has(kind)) throw siteNotFound();
-    return { data: await this.feeds.cached(kind, l.site.tenant_id, { classSectionId }) };
+    const tenantId = l.site.tenant_id;
+    if (kind !== SiteIslandKind.ROUTINE) return { data: await this.feeds.cached(kind, tenantId) };
+    // The section id is visitor input and becomes a Redis key: one UUID string (a repeated param
+    // arrives as an array), and a section of THIS school, before anything is cached. So the key
+    // space is at most the school's own sections; anything else is the same empty answer.
+    if (typeof classSectionId !== 'string' || !UUID_RE.test(classSectionId)) return { data: [] };
+    const own: unknown[] = await this.media.manager.query(
+      `SELECT 1 FROM class_sections WHERE id = $1::uuid AND tenant_id = $2 AND deleted_at IS NULL`,
+      [classSectionId, tenantId],
+    );
+    if (own.length === 0) return { data: [] };
+    return { data: await this.feeds.cached(kind, tenantId, { classSectionId }) };
   }
 
   /** `key` is `logo` or a `site_media` id. Returns null on `If-None-Match` hit (304). */
@@ -183,9 +194,17 @@ export class PublicSiteService {
     const rows: unknown[] = await this.media.manager.query(
       `SELECT 1 FROM staff_web_profiles
         WHERE tenant_id = $1 AND show_on_website = true AND photo_media_id::text = $2
+          AND EXISTS (SELECT 1 FROM users u WHERE u.id = user_id
+                       AND u.deleted_at IS NULL AND u.status = 'ACTIVE')
+          AND EXISTS (SELECT 1 FROM user_tenants m
+                       WHERE m.user_id = staff_web_profiles.user_id AND m.tenant_id = $1
+                         AND m.deleted_at IS NULL AND m.role IN ('TEACHER','OFFICE_STAFF'))
        UNION ALL
        SELECT 1 FROM site_posts
-        WHERE tenant_id = $1 AND published_at IS NOT NULL
+        WHERE tenant_id = $1 AND kind = 'POST'
+          AND published_at IS NOT NULL AND published_at <= now()
+          -- ponytail: substring scan of the body JSON per media request; store body_media_ids on
+          -- the post (checkSlate already returns mediaIds) when posts or traffic grow.
           AND (cover_media_id::text = $2 OR position($2 in body::text) > 0)
        LIMIT 1`,
       [tenantId, key],

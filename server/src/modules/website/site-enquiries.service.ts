@@ -4,6 +4,7 @@ import { IsNull, Repository } from 'typeorm';
 import { CommunicationMedium, SiteSectionKey } from '@biddaloy/shared';
 import type { SiteConfig } from '@biddaloy/shared';
 import { CommunicationsService } from '../communications/communications.service';
+import { SiteCacheService } from './public/site-cache.service';
 import { SiteEnquiry } from './entities/site-enquiry.entity';
 import type { CreateEnquiryDto, EnquiryDto, EnquiryListDto } from './dto/site-enquiry.dto';
 
@@ -26,6 +27,9 @@ export function officeSmsOn(published: SiteConfig): boolean {
   );
 }
 
+/** Office SMS per school per hour: the IP throttle alone cannot stop rotating IPs from running up the bill. */
+export const ENQUIRY_SMS_HOURLY_CAP = 10;
+
 /** [40.3.01] Contact-form messages from the public site (D22). */
 @Injectable()
 export class SiteEnquiriesService {
@@ -34,6 +38,7 @@ export class SiteEnquiriesService {
   constructor(
     @InjectRepository(SiteEnquiry) private readonly enquiries: Repository<SiteEnquiry>,
     private readonly communications: CommunicationsService,
+    private readonly cache: SiteCacheService,
   ) {}
 
   /**
@@ -52,6 +57,12 @@ export class SiteEnquiriesService {
       message: dto.message,
     });
     if (!office.smsOn || !office.phone) return;
+    // Rule 15: Redis down counts as over the cap, so the SMS is skipped (the enquiry is kept).
+    const n = await this.cache.countHit(`site:${tenantId}:enquiry-sms`, 3600);
+    if (n === null || n > ENQUIRY_SMS_HOURLY_CAP) {
+      this.logger.warn(`enquiry SMS skipped (hourly cap or counter down) tenant=${tenantId}`);
+      return;
+    }
     try {
       await this.communications.enqueue(
         {

@@ -74,7 +74,7 @@ export class PublicSiteController {
   async island(
     @Param('host') host: string,
     @Param('kind') kind: string,
-    @Query('classSectionId') classSectionId: string | undefined,
+    @Query('classSectionId') classSectionId: unknown,
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.send(res, await this.site.island(host, kind, classSectionId));
