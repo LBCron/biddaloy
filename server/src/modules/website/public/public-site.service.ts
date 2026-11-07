@@ -74,6 +74,17 @@ export class PublicSiteService {
     return { site, published: site.published, school };
   }
 
+  /**
+   * For public writes: the live site's tenant, published config and school. Unknown host, off
+   * site, suspended school and a renamed host's old name all throw the one 404 (never a 301:
+   * a write must not be sent on to another address).
+   */
+  async liveForWrite(host: string) {
+    const l = await this.live(host);
+    if ('redirectTo' in l) throw siteNotFound();
+    return { tenantId: l.site.tenant_id, published: l.published, school: l.school };
+  }
+
   async manifest(host: string, preview?: string): Promise<HostAnswer<PublicManifest>> {
     const l = await this.live(host, preview);
     if ('redirectTo' in l) return l;

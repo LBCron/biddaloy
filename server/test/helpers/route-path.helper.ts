@@ -268,6 +268,13 @@ export const ALLOWLIST: AllowlistEntry[] = [
     reason: `[40.1.04] Reads ${what} for the school-site container. The host name is the only tenant signal; there is no JWT, user or X-Tenant-ID. Unknown host and switched-off site answer one 404 (site.not_found). Throttled via SITE_READ_RATE_LIMIT.`,
   })),
   {
+    controller: 'PublicEnquiryController',
+    method: 'POST',
+    path: '/public/site/by-host/:host/island/enquiry',
+    reason:
+      '[40.3.01] D22, D42 — the one public write of the site. The host name is the only tenant signal (no JWT, user or X-Tenant-ID); a live site is checked first (unknown host and switched-off site answer one 404, site.not_found), then Turnstile (fail-closed in production, Rule 22), then the write. Throttled via STRICT_RATE_LIMIT (5/min per IP).',
+  },
+  {
     controller: 'PublicVerifyController',
     method: 'GET',
     path: '/public/verify/:token',
