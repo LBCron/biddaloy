@@ -549,6 +549,16 @@ export function assertProductionConfig(config: Record<string, unknown>): void {
   if (Boolean(str('CF_SAAS_API_TOKEN')) !== Boolean(str('CF_ZONE_ID'))) {
     problems.push('CF_SAAS_API_TOKEN and CF_ZONE_ID must be set together or not at all');
   }
+  if (str('CF_ZONE_ID') && !/^[0-9a-f]{32}$/.test(str('CF_ZONE_ID'))) {
+    problems.push('CF_ZONE_ID must be a 32-character lower-case hex Cloudflare zone id');
+  }
+
+  if (Boolean(str('UMAMI_API_URL')) !== Boolean(str('UMAMI_API_TOKEN'))) {
+    problems.push('UMAMI_API_URL and UMAMI_API_TOKEN must be set together or not at all');
+  }
+  if (str('UMAMI_API_URL') && !/^https:\/\/[^\s/]+(\/\S*)?$/.test(str('UMAMI_API_URL'))) {
+    problems.push('UMAMI_API_URL must be an https URL');
+  }
 
   if (str('OUTBOUND_TEST_ALLOW_LOOPBACK')) {
     problems.push('OUTBOUND_TEST_ALLOW_LOOPBACK is a test-only flag and must not be set');
