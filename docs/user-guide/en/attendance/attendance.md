@@ -238,11 +238,11 @@ If you are not allowed to save the register, you see a calm banner, for example 
 
 **When the school uses the attendance machine:**
 
-- The machine marks a student when the student's card is scanned. A scanned mark shows the badge **Scanned** with the time.
+- The machine marks a student when the student's card is scanned. A student marked **Absent** or **Leave** who was also scanned shows the badge **Scanned** with the time. Other marks from the machine have no badge.
 - After the **Absent after** time of the shift, students the machine did not see are marked absent automatically. The register stays a draft; the class teacher can still correct any mark.
 - Teacher authority wins: a mark the class teacher gives is never changed by the machine.
 - **Scanned but marked absent** means the machine saw the student today, but the register says absent or on leave. It shows on the section list as "2 scanned but marked absent". Open the section and check; the student may have come after the mark was made.
-- Next to each name a small badge tells where a mark came from: **Scanned 08:05** ("This mark came from the card machine.") or **From sheet** ("This mark came from an uploaded attendance sheet."). A mark you give yourself has no badge. See [Upload an attendance sheet](uploads.md).
+- Next to each name a small badge tells where a mark came from: **Scanned 08:05** (only on a student marked **Absent** or **Leave** whom the machine also scanned) or **From sheet** ("This mark came from an uploaded attendance sheet."). A mark you give yourself has no badge. See [Upload an attendance sheet](uploads.md).
 - **Mark the rest absent** (button above the register) marks every student who has no status yet as absent, in one press. Check the names first; guardians may get a message.
 
 ---

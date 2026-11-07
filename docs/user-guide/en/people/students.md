@@ -391,7 +391,7 @@ The **Card number** is the number written on the student's attendance card. The 
 2. Press **Scan card** and touch the card to the reader. The number fills in. Or type the number by hand.
 3. Press **Save** (or **Add student**).
 
-→ If the number belongs to another student, the box says "This card number already belongs to another student." Check the card and try again. The number may only use letters, numbers and dashes, 1 to 64 characters. An empty box is fine: the student then simply has no card.
+→ If the number belongs to another student, the box says "This card number already belongs to another student." Check the card and try again. Use 1 to 64 English letters (A–Z, a–z), numbers or dashes. Bangla letters are not saved. An empty box is fine: the student then simply has no card.
 
 To give many students a card number at once, put it in the **Card number** column of the import file ([Import many students at once](#task-import)); a number used twice shows "Row 3: this card number is already used — use a different number." For staff: [Staff](staff.md#task-card). To add the machine itself: [Settings](../administration/settings.md#task-devices).
 
@@ -533,42 +533,44 @@ A request from a guardian waits for the class teacher, who answers it in [**My c
 
 <!-- fields table: hand-written; wave close registers fields:students in guide-gen and swaps in the generated markers -->
 
-| Box                       | What to type                                                                                                               | Required? |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------- |
-| Full name                 | The student's full name.                                                                                                   | Yes       |
-| Name (Bangla)             | The name in Bangla, up to 200 characters. It is printed on the ID card.                                                    | No        |
-| Blood group               | One of A+, A-, B+, B-, AB+, AB-, O+, O-, or **Not set**.                                                                   | No        |
-| Date of birth             | A date from the calendar.                                                                                                  | No        |
-| Gender                    | **Male**, **Female** or **Other**.                                                                                         | No        |
-| Class                     | A class of the current year.                                                                                               | Yes       |
-| Section                   | A section of the chosen class.                                                                                             | Yes       |
-| Roll number               | A positive whole number, not used by anyone else in the section. If left empty, the next roll in the section is filled in. | No        |
-| Guardians                 | Search and link, or add a new one.                                                                                         | No        |
-| Preferred contact         | **SMS** (chosen at first), **WhatsApp**, **Email**, **Phone call** or **Messenger**. School messages go this way.          | No        |
-| Home address              | The student's home address.                                                                                                | No        |
-| Reason type               | **Withdrawn**, **Transferred to another school** or **Graduated**.                                                         | Yes       |
-| Date (leaving / readmit)  | Today or an earlier day.                                                                                                   | Yes       |
-| New school                | Appears only if you choose **Transferred to another school**.                                                              | No        |
-| Reason (leaving)          | Why the student is leaving.                                                                                                | Yes       |
-| Reason / Remark (readmit) | Optional.                                                                                                                  | No        |
+| Box                       | What to type                                                                                                                    | Required? |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| Full name                 | The student's full name.                                                                                                        | Yes       |
+| Name (Bangla)             | The name in Bangla, up to 200 characters. It is printed on the ID card.                                                         | No        |
+| Blood group               | One of A+, A-, B+, B-, AB+, AB-, O+, O-, or **Not set**.                                                                        | No        |
+| Date of birth             | A date from the calendar.                                                                                                       | No        |
+| Gender                    | **Male**, **Female** or **Other**.                                                                                              | No        |
+| Class                     | A class of the current year.                                                                                                    | Yes       |
+| Section                   | A section of the chosen class.                                                                                                  | Yes       |
+| Roll number               | A positive whole number, not used by anyone else in the section. If left empty, the next roll in the section is filled in.      | No        |
+| Guardians                 | Search and link, or add a new one.                                                                                              | No        |
+| Preferred contact         | **SMS** (chosen at first), **WhatsApp**, **Email**, **Phone call** or **Messenger**. School messages go this way.               | No        |
+| Home address              | The student's home address.                                                                                                     | No        |
+| Reason type               | **Withdrawn**, **Transferred to another school** or **Graduated**.                                                              | Yes       |
+| Date (leaving / readmit)  | Today or an earlier day.                                                                                                        | Yes       |
+| New school                | Appears only if you choose **Transferred to another school**.                                                                   | No        |
+| Reason (leaving)          | Why the student is leaving.                                                                                                     | Yes       |
+| Reason / Remark (readmit) | Optional.                                                                                                                       | No        |
+| Card number               | The number on the student's attendance card. It must be different for every student. Leave it empty if the student has no card. | No        |
 
 **Columns of the import template**
 
-| Column                    | What to type                                                                       | Required? |
-| ------------------------- | ---------------------------------------------------------------------------------- | --------- |
-| `student_name`            | The student's full name, for example Arifa Khatun.                                 | Yes       |
-| `class`                   | The name of a class that exists in the current academic year, for example Class 5. | Yes       |
-| `section`                 | A section of that class, for example A.                                            | Yes       |
-| `roll`                    | A whole number, unique within the section.                                         | No        |
-| `registration_number`     | Checked and kept if filled; blank gets one.                                        | No        |
-| `guardian1_name`          | The main guardian's full name.                                                     | Yes       |
-| `guardian1_phone`         | A Bangladeshi mobile number, for example 01712345678 or +8801712345678.            | Yes       |
-| `guardian1_email`         | An email address.                                                                  | No        |
-| `guardian2_name`          | The second guardian's name. Leave empty if there is only one.                      | No        |
-| `guardian2_phone`         | Required if there is a second guardian's name.                                     | No        |
-| `guardian2_email`         | The second guardian's email.                                                       | No        |
-| `home_address`            | The student's home address.                                                        | No        |
-| `preferred_communication` | Any one of SMS, WHATSAPP, EMAIL, PHONE_CALL, MESSENGER.                            | No        |
+| Column                    | What to type                                                                                                                                             | Required? |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| `student_name`            | The student's full name, for example Arifa Khatun.                                                                                                       | Yes       |
+| `class`                   | The name of a class that exists in the current academic year, for example Class 5.                                                                       | Yes       |
+| `section`                 | A section of that class, for example A.                                                                                                                  | Yes       |
+| `roll`                    | A whole number, unique within the section.                                                                                                               | No        |
+| `registration_number`     | Checked and kept if filled; blank gets one.                                                                                                              | No        |
+| `guardian1_name`          | The main guardian's full name.                                                                                                                           | Yes       |
+| `guardian1_phone`         | A Bangladeshi mobile number, for example 01712345678 or +8801712345678.                                                                                  | Yes       |
+| `guardian1_email`         | An email address.                                                                                                                                        | No        |
+| `guardian2_name`          | The second guardian's name. Leave empty if there is only one.                                                                                            | No        |
+| `guardian2_phone`         | Required if there is a second guardian's name.                                                                                                           | No        |
+| `guardian2_email`         | The second guardian's email.                                                                                                                             | No        |
+| `home_address`            | The student's home address.                                                                                                                              | No        |
+| `preferred_communication` | Any one of SMS, WHATSAPP, EMAIL, PHONE_CALL, MESSENGER.                                                                                                  | No        |
+| `card_no`                 | The number on the student's attendance card, for example A-1024. Use 1 to 64 English letters, numbers or dashes. It must be different for every student. | No        |
 
 </details>
 

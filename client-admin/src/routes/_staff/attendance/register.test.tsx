@@ -3,6 +3,7 @@ import { cleanupTestState, renderWithRouter, server, userEvent } from '@biddaloy
 import { tenantTodayIso } from '@biddaloy/ui/utils';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
+import { toast } from 'sonner';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { expectHelp } from '../../../help/test-utils';
@@ -332,6 +333,59 @@ describe('/attendance/register month edit', () => {
     await openEditor('ACCOUNTANT');
     await screen.findByRole('table');
     expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+  });
+
+  it('hides Edit and says why when the school setting blocks this section', async () => {
+    setDesktop(true);
+    server.use(
+      pinEnglishRegion,
+      http.get('/api/v1/attendance/sections/:sectionId/register-matrix', () =>
+        HttpResponse.json({
+          dates: datesOfMonth('2026-01'),
+          versions: { '2026-01-01': 3 },
+          rows: [registerRow()],
+          can_write: false,
+          write_reason: 'CLASS_TEACHER_ONLY',
+        }),
+      ),
+    );
+    await openEditor();
+    await screen.findByRole('table');
+    expect(await screen.findByText(/Only the class teacher saves this register/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+  });
+
+  it('says why when the server refuses a save under the school setting', async () => {
+    const toastError = vi.spyOn(toast, 'error');
+    setDesktop(true);
+    useMatrix(() =>
+      HttpResponse.json(
+        {
+          statusCode: 403,
+          message: 'denied',
+          timestamp: new Date().toISOString(),
+          path: '/attendance/sections/x/register-matrix',
+          requestId: 'req-1',
+          details: { reason: 'DEVICE_SCHOOL' },
+        },
+        { status: 403 },
+      ),
+    );
+    const user = userEvent.setup();
+    await openEditor();
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    const grid = await screen.findByRole('grid');
+    within(grid)
+      .getByRole('gridcell', { name: /Karim Rahman, .*: Present/ })
+      .focus();
+    await user.keyboard('a');
+    await user.type(screen.getByLabelText(/Reason for correction/), 'Copied from paper register');
+    await user.click(screen.getByRole('button', { name: 'Save (1)' }));
+    await waitFor(() =>
+      expect(toastError).toHaveBeenCalledWith(
+        expect.stringContaining('takes attendance from the attendance machine'),
+      ),
+    );
   });
 
   it('shows the reason (?) in edit mode [#3293]', async () => {
