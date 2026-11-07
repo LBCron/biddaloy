@@ -1,4 +1,7 @@
 {
+  "tabs": {
+    "overview": "Overview"
+  },
   "nav": {
     "website": "Website"
   },
@@ -27,7 +30,19 @@
       "body": "Look at it first, then publish when you are happy."
     },
     "next": "Next",
-    "back": "Back"
+    "back": "Back",
+    "finish": "Publish and turn on",
+    "error": "We could not finish setting up. Please try again.",
+    "logo": {
+      "title": "School logo (optional)",
+      "choose": "Choose a photo",
+      "zoom": "Zoom",
+      "save": "Use this photo",
+      "svgRefused": "Please use a JPG, PNG or WebP photo.",
+      "tooLarge": "This photo is too big. Use one under 20 MB.",
+      "unreadable": "We could not read this photo.",
+      "pan": "Use the arrow keys to move the photo and plus or minus to zoom."
+    }
   },
   "overview": {
     "title": "Website",
@@ -58,7 +73,16 @@
       "body": "Your published website will be visible to everyone."
     },
     "saveError": "We could not save that. Please try again.",
-    "stale": "Someone else changed the website. Reload and try again."
+    "stale": "Someone else changed the website. Reload and try again.",
+    "liveLink": "Your website link",
+    "copy": "Copy link",
+    "copied": "Link copied",
+    "copyFailed": "We could not copy the link.",
+    "previewError": "The preview is not ready. Please try again.",
+    "publishConfirm": {
+      "title": "Publish the website?",
+      "body": "Everyone will see the changes you made."
+    }
   },
   "design": {
     "title": "Design",

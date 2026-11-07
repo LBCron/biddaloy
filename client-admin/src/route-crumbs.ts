@@ -289,6 +289,7 @@ export const ROUTE_CRUMBS: Record<string, RouteCrumbs | NoCrumbReason> = {
   '/_staff/audit-logs/': [{ label: { key: 'auditLogs' } }],
   '/_staff/settings': [{ label: { key: 'settings' } }],
   '/_staff/curriculum-preset': [{ label: { key: 'curriculumPreset' } }],
+  '/_staff/website/': [{ label: { key: 'website' } }],
 
   // --- Staff shell: sub-pages nest under their list route's segment ---
   '/_staff/students/new': [{ label: { entity: 'student' } }, { label: { key: 'new' } }],

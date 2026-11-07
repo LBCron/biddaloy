@@ -171,7 +171,8 @@ Administration
     Printers [have, 32.0] (calibration, margins) · School profile & logo [have] · Region & locale [17.0] · Presets & feature toggles [N3]
     Organisation structure [have, 33.0 — Settings section, no new route; a
     shift/version/group field only shows once the tenant has 2+ entries in
-    it] · Result templates library [19.0] · Backup & restore [have] · Website sync [N13]
+    it] · Result templates library [19.0] · Backup & restore [have]
+  Website [Epic 40] — Administration › ওয়েবসাইট: first-run wizard, then Overview (status, live link, preview, on/off); ADMIN only
   (Users merged into People › Staff — Epic 24.0; "Add user" is a dialog there)
   Roles & access [have, 24.0 — read-only] · Audit logs [have] · Security [have]
 
