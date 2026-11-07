@@ -9,6 +9,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./components": "./src/components/index.ts",
+    "./rich-text-editor": "./src/components/rich-text-editor/index.ts",
     "./shells": "./src/shells/index.ts",
     "./hooks": "./src/hooks/index.ts",
     "./routes": "./src/routes/index.ts",

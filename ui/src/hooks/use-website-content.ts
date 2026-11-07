@@ -174,6 +174,7 @@ export interface WebTeacher {
   photo_media_id?: string | null;
 }
 
+/** TODO(#3638): replace with the generated `StaffWebProfileInputDto`. */
 export type WebTeacherInput = Omit<WebTeacher, 'user_id' | 'name'>;
 
 export const ENQUIRY_PAGE_SIZE = 20;

@@ -25,6 +25,7 @@ import {
   addTableColumn,
   addTableRow,
   deleteTable,
+  inList,
   inTable,
   insertImage,
   insertTable,
@@ -318,7 +319,7 @@ export function Toolbar({
       <ImageControl
         labels={labels}
         onUploadImage={onUploadImage}
-        disabled={table || imageCapReached}
+        disabled={table || inList(editor) || imageCapReached}
       />
     </div>
   );
