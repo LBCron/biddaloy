@@ -186,7 +186,12 @@ export default defineConfig({
           reuseExistingServer: !CI,
           timeout: 300_000,
           // Test-only seam (08-security Rule 7): lets the guard reach the 127.0.0.1 vendor stub.
-          env: { NODE_ENV: 'test', OUTBOUND_TEST_ALLOW_LOOPBACK: 'true' },
+          // SITE_ROOT_DOMAIN: without it `/website/preview-token` is 409 and Overview shows no live link.
+          env: {
+            NODE_ENV: 'test',
+            OUTBOUND_TEST_ALLOW_LOOPBACK: 'true',
+            SITE_ROOT_DOMAIN: 'sites.e2e.test',
+          },
         },
         {
           command: CI ? 'yarn e2e:serve:client' : 'yarn dev:client-admin',

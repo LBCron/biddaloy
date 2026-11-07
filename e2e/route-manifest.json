@@ -58,6 +58,11 @@
       "archetype": "bespoke"
     },
     {
+      "path": "/website",
+      "role": "admin",
+      "archetype": "detail"
+    },
+    {
       "path": "/security",
       "role": "admin",
       "archetype": "bespoke",
