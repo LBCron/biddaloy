@@ -191,6 +191,9 @@ services:
       # docs/architecture/07-deployment.md "Rolling restart".
       SITE_API_BASE: http://${ENV_NAME:?ENV_NAME must be set}-app:3000/api/v1
       SITE_ROOT_DOMAIN: ${ROOT_DOMAIN:?ROOT_DOMAIN must be set}
+      # Public Turnstile site key for the enquiry form (same value the app serves its SPA).
+      # Empty is allowed: the form then shows 'form unavailable, phone the school'.
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
     expose:
       - '4321'
     # SSR behind a 30 s nginx cache: small. Same knobs as the other services (SITE_MEM / SITE_CPUS).
