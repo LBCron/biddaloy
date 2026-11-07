@@ -78,8 +78,17 @@ describe('WelcomeWizard', () => {
   it('marks the wizard seen once on mount', async () => {
     const patches = useServer();
     renderEn('/welcome');
-    await screen.findByRole('radiogroup');
+    await screen.findByRole('radiogroup', { name: 'How do you want to set up your school?' });
     await waitFor(() => expect(patches).toEqual([{ seen: true }]));
+  });
+
+  it('saves a yes to the website question with the guided door', async () => {
+    const patches = useServer();
+    renderEn('/welcome');
+    await userEvent.click(await screen.findByRole('radio', { name: 'Yes, set it up' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByText('GUIDED SLOT');
+    expect(patches).toContainEqual({ setup_path: 'guided', wants_website: true });
   });
 
   it('guided is preselected; Next saves the path and opens the slot', async () => {
@@ -89,7 +98,7 @@ describe('WelcomeWizard', () => {
     expect(guided.getAttribute('aria-checked')).toBe('true');
     await userEvent.click(screen.getByRole('button', { name: 'Next' }));
     expect(await screen.findByText('GUIDED SLOT')).toBeTruthy();
-    expect(patches).toContainEqual({ setup_path: 'guided' });
+    expect(patches).toContainEqual({ setup_path: 'guided', wants_website: false });
     expect(router.state.location.search).toMatchObject({ step: 'setup', path: 'guided' });
     // Guided owns its Back / Next, so the frame footer is gone.
     expect(screen.queryByRole('button', { name: 'Next' })).toBeNull();
@@ -102,7 +111,9 @@ describe('WelcomeWizard', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Next' }));
     expect(await screen.findByText('EXCEL SLOT')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(await screen.findByRole('radiogroup')).toBeTruthy();
+    expect(
+      await screen.findByRole('radiogroup', { name: 'How do you want to set up your school?' }),
+    ).toBeTruthy();
   });
 
   it('"later" saves it and goes to the people step', async () => {
@@ -111,14 +122,14 @@ describe('WelcomeWizard', () => {
     await userEvent.click(await screen.findByRole('radio', { name: /later/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Next' }));
     expect(await screen.findByText('PEOPLE SLOT')).toBeTruthy();
-    expect(patches).toContainEqual({ setup_path: 'later' });
+    expect(patches).toContainEqual({ setup_path: 'later', wants_website: false });
     expect(router.state.location.search).toMatchObject({ step: 'people' });
   });
 
   it('keyboard only: arrow to Excel, Enter opens it', async () => {
     useServer();
     renderEn('/welcome');
-    await screen.findByRole('radiogroup');
+    await screen.findByRole('radiogroup', { name: 'How do you want to set up your school?' });
     await userEvent.tab();
     await userEvent.keyboard('{ArrowDown}{Enter}');
     expect(await screen.findByText('EXCEL SLOT')).toBeTruthy();
@@ -133,7 +144,7 @@ describe('WelcomeWizard', () => {
 
     useServer({ support_url: null });
     renderEn('/welcome');
-    await screen.findByRole('radiogroup');
+    await screen.findByRole('radiogroup', { name: 'How do you want to set up your school?' });
     expect(screen.queryByRole('link', { name: /Talk to us/ })).toBeNull();
   });
 

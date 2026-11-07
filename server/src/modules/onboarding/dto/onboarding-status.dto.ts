@@ -14,6 +14,7 @@ const ITEM_IDS: OnboardingItemId[] = [
   'feeStructures',
   'guardianInvites',
   'messageSettings',
+  'website',
 ];
 const SETUP_PATHS: OnboardingSetupPath[] = ['guided', 'excel', 'later'];
 

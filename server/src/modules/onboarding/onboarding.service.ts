@@ -14,6 +14,7 @@ import { Class } from '../academics/entities/class.entity';
 import { ClassSection } from '../academics/entities/class-section.entity';
 import { Student } from '../students/entities/student.entity';
 import { FeeStructure } from '../fees/entities/fee-structure.entity';
+import { SchoolSite } from '../website/entities/school-site.entity';
 import { UserTenant } from '../auth/entities/user-tenant.entity';
 import { SchoolsService } from '../schools/schools.service';
 import { getSeatUsage } from '../schools/trial/seat-limit.service';
@@ -61,7 +62,7 @@ export class OnboardingService {
     ]);
 
     const comms = (await this.schoolsService.getResolvedSettings(tenantId)).communications;
-    // TODO(#3626): add the `website` item (shown only when the school asked for a site).
+    const onboarding = school.onboarding ?? {};
     const done: Record<Exclude<OnboardingItemId, 'website'>, boolean> = {
       profile: !!(school.name_bn || school.logo_key),
       structure: classes >= 1,
@@ -73,7 +74,6 @@ export class OnboardingService {
       messageSettings: !!(comms?.sms || comms?.email),
     };
 
-    const onboarding = school.onboarding ?? {};
     let trial: OnboardingStatus['trial'] = null;
     if (school.trial_ends_at) {
       const seats = await getSeatUsage(m, tenantId);
@@ -85,12 +85,22 @@ export class OnboardingService {
       };
     }
 
+    const items: OnboardingStatus['items'] = (Object.keys(done) as (keyof typeof done)[]).map(
+      (id) => ({ id, done: done[id] }),
+    );
+    // [40.2.05] Only a school that said yes to a website at setup gets the item; it is done once
+    // the site is switched on.
+    if (onboarding.wants_website === true) {
+      const site = await m.findOne(SchoolSite, { where: { tenant_id: tenantId } });
+      items.push({ id: 'website', done: site?.enabled === true });
+    }
+
     return {
       finished_at: onboarding.finished_at ?? null,
       dismissed_at: onboarding.dismissed_at ?? null,
       seen: ((onboarding.seen_by as string[] | undefined) ?? []).includes(userId),
       setup_path: onboarding.setup_path ?? null,
-      items: (Object.keys(done) as (keyof typeof done)[]).map((id) => ({ id, done: done[id] })),
+      items,
       counts: { classes, sections, students, staff },
       trial,
       support_url: this.config.get<string>('SUPPORT_CONTACT_URL') ?? null,
@@ -118,6 +128,7 @@ export class OnboardingService {
       const now = new Date().toISOString();
 
       if (dto.setup_path !== undefined) next.setup_path = dto.setup_path;
+      if (dto.wants_website !== undefined) next.wants_website = dto.wants_website;
       if (dto.finished !== undefined) {
         next.finished_at = dto.finished ? (before.finished_at ?? now) : null;
       }
