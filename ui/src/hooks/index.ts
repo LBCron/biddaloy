@@ -1843,3 +1843,18 @@ export {
   type WebTeacher,
   type WebTeacherInput,
 } from './use-website-content';
+export {
+  useCaptionGalleryPhoto,
+  useCreateGalleryAlbum,
+  useDeleteGalleryAlbum,
+  useDeleteGalleryPhoto,
+  useGalleryAlbums,
+  useRenameGalleryAlbum,
+  useReorderGalleryAlbums,
+  useReorderGalleryPhotos,
+  useUploadGalleryPhoto,
+  websiteGalleryKeys,
+  type GalleryAlbum,
+  type GalleryPhoto,
+  type SaveGalleryAlbumInput,
+} from './use-website-gallery';

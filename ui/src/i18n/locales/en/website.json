@@ -6,7 +6,8 @@
     "blog": "News and posts",
     "enquiries": "Enquiries",
     "address": "Address",
-    "analytics": "Visitors"
+    "analytics": "Visitors",
+    "gallery": "Gallery"
   },
   "nav": {
     "website": "Website"
@@ -147,7 +148,9 @@
       "routine": "Class routine",
       "results": "Results",
       "contact": "Contact",
-      "custom": "Your own section"
+      "custom": "Your own section",
+      "gallery": "Photo gallery",
+      "video": "Video"
     },
     "pinned": "Stays in its place",
     "pinnedHint": "This section always stays in its place.",
@@ -358,7 +361,11 @@
     "colours": "Colours are used for buttons, headings and the top bar of your website.",
     "textStyle": "The text style sets how the headings and the writing on your website look.",
     "addressRename": "This is the address people type to find your school website.",
-    "ownAddressSteps": "Add the two lines where you bought your address. We check them for you. This can take a few hours."
+    "ownAddressSteps": "Add the two lines where you bought your address. We check them for you. This can take a few hours.",
+    "galleryCrop": "Photo size is handled for you.",
+    "galleryStorage": "Photos share the photo space with the other pictures on your website. About 700 photos fit.",
+    "galleryConsent": "Do not put up photos of children’s faces without a guardian’s permission.",
+    "videoOnly": "Only YouTube videos work."
   },
   "editor": {
     "fields": {
@@ -408,7 +415,33 @@
     "photo": "Photo {{position}}",
     "removePhoto": "Remove photo {{position}}",
     "remove": "Remove",
-    "enHint": "Optional. If empty, the Bangla text shows."
+    "enHint": "Optional. If empty, the Bangla text shows.",
+    "gallery": {
+      "heading": "Heading",
+      "chooseSection": "Which gallery section to show",
+      "firstWithPhotos": "The first section that has photos",
+      "showPageLink": "Show a separate page with all photos",
+      "helpPageLink": "Visitors get a link to see every photo on its own page.",
+      "carouselNote": "The home page shows up to {{max}} photos.",
+      "makeSectionFirst": "Make a gallery section first"
+    },
+    "video": {
+      "heading": "Heading",
+      "embedCode": "Paste the YouTube video embed code or link",
+      "embedHelp": "On YouTube choose Share, then Embed, then Copy. A plain video link works too. Only YouTube is accepted.",
+      "found": "Video found",
+      "notYoutube": "This is not a YouTube code or link",
+      "noVideoFound": "No video found yet",
+      "previewTitle": "Video preview",
+      "remove": "Remove video",
+      "headingPosition": "Heading is",
+      "above": "Above the video",
+      "below": "Below the video",
+      "startAt": "Start at (seconds, optional)",
+      "startInvalid": "Use a whole number of seconds, 0 or more.",
+      "privacy": "The video shows without cookies and does not start by itself.",
+      "saveBlocked": "Fix the video code or link first."
+    }
   },
   "announcements": {
     "title": "Announcements",
@@ -436,5 +469,59 @@
     "empty": "No announcements yet.",
     "rangeInvalid": "The end date cannot be before the start date.",
     "textRequired": "Write the Bangla text."
+  },
+  "gallery": {
+    "tab": "Gallery",
+    "empty": "No photos yet. Make a gallery section and add photos.",
+    "newSection": "New gallery section",
+    "limitReached": "You have reached the most gallery sections you can have.",
+    "loadError": "We could not load the gallery. Please try again.",
+    "retry": "Try again",
+    "sectionTitle": "Gallery section name",
+    "sectionHeading": "Gallery section {{position}}",
+    "renameSection": "Save name",
+    "deleteSection": "Delete this gallery section",
+    "deleteSectionConfirm": {
+      "title": "Delete this gallery section?",
+      "body_zero": "This gallery section has no photos. It will be removed.",
+      "body_one": "This gallery section and its 1 photo will be removed. This cannot be undone.",
+      "body_other": "This gallery section and its {{count}} photos will be removed. This cannot be undone.",
+      "confirm": "Delete section"
+    },
+    "moveSectionUp": "Move gallery section {{name}} up, place {{position}}",
+    "moveSectionDown": "Move gallery section {{name}} down, place {{position}}",
+    "photoCount_one": "{{count}} photo",
+    "photoCount_other": "{{count}} photos",
+    "addPhotos": "Choose photos",
+    "dropHint": "Choose many photos at once. We make them the right size for you.",
+    "pickerLabel": "Photos to add",
+    "waiting": "Waiting",
+    "uploading": "Sending",
+    "done": "Done",
+    "failed": "Failed",
+    "notPhoto": "Not a photo we can use",
+    "notAdded": "Not added, this section is full",
+    "storageFullWaiting": "Waiting, photo space is full",
+    "summary": "{{done}} of {{total}} done",
+    "retryFile": "Try again",
+    "caption": "Caption",
+    "captionPlaceholder": "A few words about this photo",
+    "photoLabel": "Photo {{position}}",
+    "moveUp": "Move photo {{position}} up",
+    "moveDown": "Move photo {{position}} down",
+    "removePhoto": "Delete photo {{position}}",
+    "removePhotoConfirm": "Delete this photo?",
+    "removePhotoYes": "Delete",
+    "removePhotoNo": "Keep",
+    "saveError": "We could not save that. Please try again.",
+    "errors": {
+      "invalid": "Something in that is not right. Please check and try again.",
+      "limit": "No more fit here. Remove one first.",
+      "notFound": "That is no longer there. Please reload the page.",
+      "rejected": "This photo could not be used. Use a JPEG, PNG or WebP photo.",
+      "storageFull": "Photo space is full. Delete some photos you do not need.",
+      "inUse": "This is shown on your website now. Remove it from there first.",
+      "failed": "We could not send this photo. Please try again."
+    }
   }
 }
