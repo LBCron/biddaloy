@@ -1,6 +1,15 @@
-import { ConflictException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import {
+  ConflictException,
+  HttpException,
+  Inject,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import type Redis from 'ioredis';
+import { TENANT_STATUS_REDIS } from '../schools/tenant-status.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, LessThan, Repository } from 'typeorm';
 import { SiteCustomDomainStatus as Status } from '@biddaloy/shared';
 import { SchoolSite } from './entities/school-site.entity';
 import { SiteCacheService } from './public/site-cache.service';
@@ -28,6 +37,39 @@ export const CUSTOM_DOMAIN_FAIL_AFTER_MS = 7 * 86_400_000;
 const LOG_EVERY_MS = 60 * 60 * 1000;
 const POLL_BATCH = 200;
 
+/** Special-use names that never belong to a school (RFC 6761 / 7686 and friends). */
+const RESERVED_TLDS = [
+  'local',
+  'internal',
+  'test',
+  'localhost',
+  'invalid',
+  'onion',
+  'example',
+  'arpa',
+];
+/**
+ * Public suffixes a school cannot own. ponytail: a small list for Bangladesh plus co.uk, not the
+ * full Public Suffix List; add a dependency only if schools outside these start to attach domains.
+ */
+const PUBLIC_SUFFIXES = [
+  'edu.bd',
+  'com.bd',
+  'ac.bd',
+  'gov.bd',
+  'org.bd',
+  'net.bd',
+  'mil.bd',
+  'co.uk',
+];
+/** An hourly cap per school on PUT/DELETE: the Cloudflare token is shared by every school. */
+const WRITE_CAP_PER_HOUR = 20;
+const WRITE_WINDOW_MS = 3_600_000;
+/** A PENDING row with no Cloudflare id this old is a crashed create: adopt or release it. */
+const STUCK_CLAIM_MS = 15 * 60_000;
+/** ACTIVE hosts are asked about once a day. */
+const ACTIVE_REPOLL_MS = 86_400_000;
+
 const LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
 const hostOf = (url?: string): string | null => {
@@ -52,12 +94,17 @@ export function normalizeCustomHost(raw: unknown, platformHosts: string[]): stri
   if (labels.length < 2 || !labels.every((l) => LABEL.test(l) && !l.startsWith('xn--')))
     return null;
   if (!/^[a-z]{2,}$/.test(labels[labels.length - 1])) return null;
+  if (RESERVED_TLDS.includes(labels[labels.length - 1])) return null;
+  if (PUBLIC_SUFFIXES.includes(host)) return null;
   if (platformHosts.some((p) => host === p || host.endsWith(`.${p}`))) return null;
   return host;
 }
 
-/** An apex has exactly two labels. ponytail: `school.co.uk` counts as www-style; the hint is advice only. */
-export const isApex = (host: string) => host.split('.').length === 2;
+/** An apex is two labels, or one label above a listed public suffix (`x.edu.bd`). The hint is advice only. */
+export const isApex = (host: string) => {
+  const n = host.split('.').length;
+  return n === 2 || (n === 3 && PUBLIC_SUFFIXES.some((x) => host.endsWith(`.${x}`)));
+};
 
 /** Cloudflare's two statuses folded into ours. Anything not explicitly active stays pending (fail closed). */
 export function mapCfStatus(cf: CfHostname): Status {
@@ -92,6 +139,7 @@ export class CustomDomainService {
     private readonly cf: CloudflareSaasClient,
     private readonly config: SiteConfigService,
     private readonly cache: SiteCacheService,
+    @Inject(TENANT_STATUS_REDIS) private readonly redis: Redis,
   ) {}
 
   private root(): string | null {
@@ -124,12 +172,15 @@ export class CustomDomainService {
 
   toDto(site: SchoolSite | null): CustomDomainStatusDto {
     const host = site?.custom_domain ?? null;
+    // A FAILED hostname is released (host null) but the status stays so the school sees why.
+    const failedReleased = !host && site?.custom_domain_status === Status.FAILED;
     return {
       host,
-      status: host ? site!.custom_domain_status : null,
+      status: host || failedReleased ? site!.custom_domain_status : null,
       records: host ? (site!.custom_domain_records ?? []) : [],
       lastCheckedAt: site?.custom_domain_checked_at?.toISOString() ?? null,
-      hintKey: host && isApex(host) ? 'apex_needs_flattening' : null,
+      hintKey:
+        host && isApex(host) ? 'apex_needs_flattening' : failedReleased ? 'failed_released' : null,
     };
   }
 
@@ -138,42 +189,96 @@ export class CustomDomainService {
     return this.toDto(await this.sites.findOne({ where: { tenant_id: tenantId } }));
   }
 
+  /**
+   * Per-school hourly cap on PUT/DELETE, because one Cloudflare token serves every school.
+   * PUT fails CLOSED when Redis is down (503 try later); DELETE fails open so a school can always
+   * detach its domain.
+   */
+  private async chargeWrite(tenantId: string, failClosed: boolean) {
+    const key = `site:cd-writes:${tenantId}`;
+    try {
+      const n = await this.redis.incr(key);
+      if (n === 1) await this.redis.pexpire(key, WRITE_WINDOW_MS);
+      if (n > WRITE_CAP_PER_HOUR) {
+        throw new HttpException('site.custom_domain_rate_limited', 429);
+      }
+    } catch (e) {
+      if (e instanceof HttpException) throw e;
+      this.logger.warn('custom domain write cap unavailable (Redis)');
+      if (failClosed) throw customDomainTryLater();
+    }
+  }
+
+  private async heldByOther(tenantId: string, host: string): Promise<boolean> {
+    return this.sites
+      .createQueryBuilder('s')
+      .where('s.custom_domain = :host AND s.tenant_id <> :tenantId', { host, tenantId })
+      .getExists();
+  }
+
+  private isUnique(e: unknown) {
+    return (e as { driverError?: { code?: string } }).driverError?.code === '23505';
+  }
+
   async set(tenantId: string, rawHost: unknown): Promise<CustomDomainStatusDto> {
     this.assertEnabled();
     const host = normalizeCustomHost(rawHost, this.platformHosts());
     if (!host) throw customDomainUnavailable();
+    await this.chargeWrite(tenantId, true);
     await this.config.get(tenantId); // first call creates the row
     const current = await this.sites.findOneOrFail({ where: { tenant_id: tenantId } });
     if (current.custom_domain === host) return this.toDto(current); // same request again
-    if (current.custom_domain) await this.remove(tenantId); // replace: old hostname goes first
+    if (await this.heldByOther(tenantId, host)) throw customDomainUnavailable();
+    return current.custom_domain ? this.replace(current, host) : this.attach(tenantId, host);
+  }
 
-    // Claim the name in our own table first: the unique index decides a race between two schools
-    // before anything is created at Cloudflare. Another school's claim and a malformed value answer alike.
-    const now = new Date();
+  /**
+   * First domain. The name is claimed in our own table first (the unique index decides a race
+   * between two schools before Cloudflare is asked), then created at Cloudflare. If the create
+   * answer is lost or refused as a duplicate, the hostname is looked up and adopted: our claim
+   * row proves it is ours.
+   */
+  private async attach(tenantId: string, host: string): Promise<CustomDomainStatusDto> {
+    let claimed;
     try {
-      await this.sites.update(
-        { tenant_id: tenantId },
-        {
+      claimed = await this.sites
+        .createQueryBuilder()
+        .update(SchoolSite)
+        .set({
           custom_domain: host,
           custom_domain_status: Status.PENDING_DNS,
-          custom_domain_since: now,
+          custom_domain_since: new Date(),
           custom_domain_checked_at: null,
           custom_domain_records: null,
           custom_domain_external_id: null,
-        },
-      );
+        })
+        .where('tenant_id = :tenantId AND custom_domain IS NULL', { tenantId })
+        .execute();
     } catch (e) {
-      if ((e as { driverError?: { code?: string } }).driverError?.code === '23505') {
-        throw customDomainUnavailable();
-      }
+      if (this.isUnique(e)) throw customDomainUnavailable();
       throw e;
     }
+    if (!claimed.affected) throw customDomainUnavailable(); // a concurrent PUT of this school won
 
     let created: CfHostname;
     try {
-      created = await this.cf.create(host);
+      created = await this.createOrAdopt(host);
     } catch (e) {
-      await this.clear(tenantId, host);
+      // Only undo OUR claim: a concurrent winner's committed Cloudflare id must never be wiped.
+      await this.sites
+        .createQueryBuilder()
+        .update(SchoolSite)
+        .set({
+          custom_domain: null,
+          custom_domain_status: null,
+          custom_domain_since: null,
+          custom_domain_records: null,
+        })
+        .where(
+          'tenant_id = :tenantId AND custom_domain = :host AND custom_domain_external_id IS NULL',
+          { tenantId, host },
+        )
+        .execute();
       if (e instanceof CloudflareRejectedError) throw customDomainUnavailable();
       this.logger.warn('Cloudflare create failed; custom domain not set');
       throw customDomainTryLater();
@@ -197,33 +302,108 @@ export class CustomDomainService {
     return this.status(tenantId);
   }
 
+  private async createOrAdopt(host: string): Promise<CfHostname> {
+    try {
+      return await this.cf.create(host);
+    } catch (e) {
+      let found: CfHostname | null = null;
+      try {
+        found = await this.cf.findByHostname(host);
+      } catch {
+        // lookup failed too: the original error decides
+      }
+      if (found) return found;
+      throw e;
+    }
+  }
+
+  /**
+   * Another domain while one exists. The live domain is not touched until the new hostname exists
+   * at Cloudflare AND the row swap succeeded; any refusal leaves the old domain exactly as it was.
+   * The old hostname is deleted last, best effort (a failure leaves it at Cloudflare, logged).
+   * A lost create answer here is not adopted (the name is not claimed yet): remove the domain,
+   * then attach again, which adopts it.
+   */
+  private async replace(old: SchoolSite, host: string): Promise<CustomDomainStatusDto> {
+    const tenantId = old.tenant_id;
+    let created: CfHostname;
+    try {
+      created = await this.cf.create(host);
+    } catch (e) {
+      if (e instanceof CloudflareRejectedError) throw customDomainUnavailable();
+      this.logger.warn('Cloudflare create failed; custom domain unchanged');
+      throw customDomainTryLater();
+    }
+    let swapped = false;
+    try {
+      const res = await this.sites
+        .createQueryBuilder()
+        .update(SchoolSite)
+        .set({
+          custom_domain: host,
+          custom_domain_status: Status.PENDING_DNS,
+          custom_domain_since: new Date(),
+          custom_domain_checked_at: null,
+          custom_domain_external_id: created.id,
+          custom_domain_records: recordsFor(host, created, this.fallbackOrigin()),
+          ...this.bump,
+        })
+        .where('tenant_id = :tenantId AND custom_domain = :old', {
+          tenantId,
+          old: old.custom_domain,
+        })
+        .execute();
+      swapped = !!res.affected;
+    } catch (e) {
+      if (!this.isUnique(e)) {
+        await this.cf.remove(created.id).catch(() => undefined);
+        throw e;
+      }
+    }
+    if (!swapped) {
+      await this.cf.remove(created.id).catch(() => undefined);
+      throw customDomainUnavailable();
+    }
+    if (old.custom_domain_external_id) {
+      await this.cf.remove(old.custom_domain_external_id).catch(() => {
+        this.logger.warn('old custom hostname left at Cloudflare after a replace; remove by hand');
+      });
+    }
+    await this.cache.invalidate(tenantId);
+    return this.status(tenantId);
+  }
+
   /** Cloudflare first: if it cannot be reached the columns stay, so nothing is orphaned there. */
   async remove(tenantId: string): Promise<void> {
     this.assertEnabled();
+    await this.chargeWrite(tenantId, false);
     const site = await this.sites.findOne({ where: { tenant_id: tenantId } });
     if (!site?.custom_domain) return;
     if (site.custom_domain_external_id) {
       try {
+        // A 4xx saying "does not exist" counts as already removed (client.remove); any other
+        // refusal or outage is "try later" and the row stays.
         await this.cf.remove(site.custom_domain_external_id);
       } catch {
         throw customDomainTryLater();
       }
     }
-    await this.clear(tenantId, site.custom_domain);
+    await this.release(tenantId, site.custom_domain, null);
     await this.cache.invalidate(tenantId);
   }
 
-  private async clear(tenantId: string, host: string) {
+  /** Frees the host name: another school can claim it from now on. */
+  private async release(tenantId: string, host: string, status: Status | null, now = new Date()) {
     await this.sites
       .createQueryBuilder()
       .update(SchoolSite)
       .set({
         custom_domain: null,
-        custom_domain_status: null,
+        custom_domain_status: status,
         custom_domain_external_id: null,
         custom_domain_records: null,
         custom_domain_since: null,
-        custom_domain_checked_at: null,
+        custom_domain_checked_at: status ? now : null,
         ...this.bump,
       })
       .where('tenant_id = :tenantId AND custom_domain = :host', { tenantId, host })
@@ -240,38 +420,94 @@ export class CustomDomainService {
     return this.status(tenantId);
   }
 
+  private logUnavailable(e: unknown, now: Date) {
+    if (now.getTime() - this.lastUnavailableLog < LOG_EVERY_MS) return;
+    this.lastUnavailableLog = now.getTime();
+    this.logger.warn(
+      e instanceof CloudflareUnavailableError
+        ? 'Cloudflare custom hostname check unavailable; will retry'
+        : 'Cloudflare custom hostname check failed; will retry',
+    );
+  }
+
+  /** A PENDING claim with no Cloudflare id after 15 min is a crashed create: adopt the hostname or release the name. */
+  private async settleStuck(site: SchoolSite, now: Date): Promise<boolean> {
+    const since = site.custom_domain_since ?? now;
+    if (now.getTime() - since.getTime() < STUCK_CLAIM_MS) return true;
+    let found: CfHostname | null;
+    try {
+      found = await this.cf.findByHostname(site.custom_domain!);
+    } catch (e) {
+      this.logUnavailable(e, now);
+      return false;
+    }
+    if (!found) {
+      await this.release(site.tenant_id, site.custom_domain!, null);
+      await this.cache.invalidate(site.tenant_id);
+      return true;
+    }
+    await this.sites
+      .createQueryBuilder()
+      .update(SchoolSite)
+      .set({
+        custom_domain_external_id: found.id,
+        custom_domain_records: recordsFor(site.custom_domain!, found, this.fallbackOrigin()),
+        custom_domain_checked_at: now,
+        ...this.bump,
+      })
+      .where(
+        'tenant_id = :tenantId AND custom_domain = :host AND custom_domain_external_id IS NULL',
+        { tenantId: site.tenant_id, host: site.custom_domain },
+      )
+      .execute();
+    return true;
+  }
+
   /**
-   * Asks Cloudflare about one pending hostname. Idempotent: the write is guarded on the same
-   * tenant, host and a still-pending status, so a removal or a second poll cannot be overwritten.
-   * Cloudflare unreachable: nothing changes, one log line an hour (D42), returns false.
+   * Asks Cloudflare about one hostname (pending, or ACTIVE on the daily re-poll). Idempotent: the
+   * write is guarded on the same tenant, host and a live status, so a removal or a second poll
+   * cannot be overwritten. Cloudflare unreachable: nothing changes, one log line an hour (D42),
+   * returns false. A hostname that FAILED (7 days stuck, or Cloudflare says blocked/moved/deleted)
+   * is deleted at Cloudflare and its name released, so it cannot squat on the name or keep billing.
    */
   async pollOne(site: SchoolSite, now = new Date()): Promise<boolean> {
-    if (!site.custom_domain || !site.custom_domain_external_id) return true;
+    if (!site.custom_domain) return true;
+    if (!site.custom_domain_external_id) return this.settleStuck(site, now);
     let cf: CfHostname | null;
     try {
       cf = await this.cf.get(site.custom_domain_external_id);
     } catch (e) {
-      if (now.getTime() - this.lastUnavailableLog >= LOG_EVERY_MS) {
-        this.lastUnavailableLog = now.getTime();
-        this.logger.warn(
-          e instanceof CloudflareUnavailableError
-            ? 'Cloudflare custom hostname check unavailable; will retry'
-            : 'Cloudflare custom hostname check failed; will retry',
-        );
-      }
+      this.logUnavailable(e, now);
       return false;
     }
+    const current = site.custom_domain_status as Status;
     let next = cf ? mapCfStatus(cf) : Status.FAILED;
+    // An ACTIVE host only leaves ACTIVE through FAILED; a Cloudflare flap never downgrades it.
+    if (current === Status.ACTIVE && next !== Status.FAILED) next = Status.ACTIVE;
     const since = site.custom_domain_since ?? now;
     if (
       next !== Status.ACTIVE &&
       next !== Status.FAILED &&
-      next === site.custom_domain_status &&
+      next === current &&
       now.getTime() - since.getTime() > CUSTOM_DOMAIN_FAIL_AFTER_MS
     ) {
       next = Status.FAILED;
     }
-    const changed = next !== site.custom_domain_status;
+    if (next === Status.FAILED) {
+      if (cf) {
+        try {
+          await this.cf.remove(site.custom_domain_external_id);
+        } catch (e) {
+          this.logUnavailable(e, now);
+          return false; // still pending; the next tick retries the delete
+        }
+      }
+      await this.release(site.tenant_id, site.custom_domain, Status.FAILED, now);
+      await this.cache.invalidate(site.tenant_id);
+      this.logger.warn('custom domain failed and was released');
+      return true;
+    }
+    const changed = next !== current;
     await this.sites
       .createQueryBuilder()
       .update(SchoolSite)
@@ -284,15 +520,15 @@ export class CustomDomainService {
         ...(changed ? { custom_domain_since: now, ...this.bump } : {}),
       })
       .where(
-        'tenant_id = :tenantId AND custom_domain = :host AND custom_domain_status IN (:...pending)',
-        { tenantId: site.tenant_id, host: site.custom_domain, pending: PENDING },
+        'tenant_id = :tenantId AND custom_domain = :host AND custom_domain_status IN (:...live)',
+        { tenantId: site.tenant_id, host: site.custom_domain, live: [...PENDING, Status.ACTIVE] },
       )
       .execute();
     if (changed) await this.cache.invalidate(site.tenant_id);
     return true;
   }
 
-  /** All pending hostnames, oldest check first, bounded; one failure never stops the rest. */
+  /** Pending hostnames first, then ACTIVE ones not asked for a day; bounded; one failure never stops the rest. */
   async pollPending(now = new Date()): Promise<number> {
     if (!this.isEnabled()) return 0;
     const rows = await this.sites.find({
@@ -300,6 +536,19 @@ export class CustomDomainService {
       order: { custom_domain_checked_at: { direction: 'ASC', nulls: 'FIRST' } },
       take: POLL_BATCH,
     });
+    if (rows.length < POLL_BATCH) {
+      const stale = new Date(now.getTime() - ACTIVE_REPOLL_MS);
+      rows.push(
+        ...(await this.sites.find({
+          where: [
+            { custom_domain_status: Status.ACTIVE, custom_domain_checked_at: IsNull() },
+            { custom_domain_status: Status.ACTIVE, custom_domain_checked_at: LessThan(stale) },
+          ],
+          order: { custom_domain_checked_at: { direction: 'ASC', nulls: 'FIRST' } },
+          take: POLL_BATCH - rows.length,
+        })),
+      );
+    }
     for (const row of rows) {
       try {
         await this.pollOne(row, now);

@@ -51,6 +51,7 @@ export class CustomDomainController {
 
   @Put('custom-domain')
   @HttpCode(202)
+  @Throttle({ default: SETTINGS_RATE_LIMIT })
   @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({
     summary:
@@ -71,6 +72,7 @@ export class CustomDomainController {
 
   @Delete('custom-domain')
   @HttpCode(204)
+  @Throttle({ default: SETTINGS_RATE_LIMIT })
   @ApiOperation({ summary: 'Detach the domain; the subdomain keeps answering.' })
   async remove(@CurrentTenant() t: Tenant) {
     await this.domains.remove(t.id);
