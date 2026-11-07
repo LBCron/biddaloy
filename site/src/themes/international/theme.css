@@ -6,7 +6,12 @@
    css-vars.ts, so a palette switch needs no CSS change (D28). The accent is text only on primary or secondary,
    never on the surface. The fixed colours are --on-primary and --danger (urgent notices). No section styles
    itself from a neighbour: no position selectors on section wrappers (D31). */
-:root {
+.t-international {
+  /* Text on the surface and on --bg-2 must reach 4.5:1 in every palette (theme.spec.ts checks it). */
+  --ink-3: color-mix(in srgb, var(--ink) 70%, var(--surface));
+  /* Latin letters on a Bangla page fall back to the English heading font, not to system-ui. */
+  --bn-h:
+    var(--font-heading-bn), var(--font-heading-en), 'Noto Sans Bengali', system-ui, sans-serif;
   --on-primary: #fff;
   --danger: #a2321f;
   --r: 2px;
@@ -33,30 +38,30 @@
   --sa-r: 0;
   --hc-focus: var(--accent);
 }
-body {
+.t-international {
   background: var(--surface);
   color: var(--ink);
 }
-h1,
-h2,
-h3,
-h4 {
+.t-international h1,
+.t-international h2,
+.t-international h3,
+.t-international h4 {
   letter-spacing: 0;
 }
-html[lang='en'] h1,
-html[lang='en'] h2,
-html[lang='en'] h3,
-html[lang='en'] h4 {
+html[lang='en'] .t-international h1,
+html[lang='en'] .t-international h2,
+html[lang='en'] .t-international h3,
+html[lang='en'] .t-international h4 {
   font-weight: var(--h-weight, 300);
 }
 /* header: the deep ground, light type */
-.letterhead {
+.t-international .letterhead {
   background: var(--primary);
   color: var(--surface);
   font-size: 14px;
   border-bottom: 1px solid color-mix(in srgb, var(--surface) 22%, var(--primary));
 }
-.letterhead .wrap {
+.t-international .letterhead .wrap {
   display: flex;
   flex-wrap: wrap;
   gap: 2px 22px;
@@ -64,47 +69,47 @@ html[lang='en'] h4 {
   min-height: 36px;
   padding-block: 4px;
 }
-.defs {
+.t-international .defs {
   position: absolute;
 }
-.top {
+.t-international .top {
   background: var(--primary);
   backdrop-filter: none;
   border-bottom: 1px solid color-mix(in srgb, var(--surface) 22%, var(--primary));
 } /* a backdrop filter would trap the fixed menu sheet inside the header */
-.brand {
+.t-international .brand {
   color: var(--surface);
 }
-.brand b {
+.t-international .brand b {
   font-size: 17px;
   font-weight: 700;
 }
-.logo {
+.t-international .logo {
   background: none;
   width: 44px;
   height: 44px;
 }
-.logo img {
+.t-international .logo img {
   border-radius: 50%;
 }
-.logo svg {
+.t-international .logo svg {
   width: 44px;
   height: 44px;
 }
-.mono-ring {
+.t-international .mono-ring {
   fill: none;
   stroke: var(--accent);
   stroke-width: 1.5;
 }
-.mono-letter {
+.t-international .mono-letter {
   fill: var(--surface);
   font: 300 20px var(--en-h);
 }
-html[lang='bn'] .mono-letter {
+html[lang='bn'] .t-international .mono-letter {
   font-family: var(--bn-h);
   font-weight: 700;
 }
-.nav a {
+.t-international .nav a {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
@@ -112,90 +117,94 @@ html[lang='bn'] .mono-letter {
   color: color-mix(in srgb, var(--surface) 86%, var(--primary));
   border-bottom: 2px solid transparent;
 }
-.nav a[aria-current] {
+.t-international .nav a[aria-current] {
   background: none;
   color: var(--surface);
   border-bottom-color: var(--accent);
 }
 @media (hover: hover) {
-  .nav a:hover {
+  .t-international .nav a:hover {
     background: none;
     color: var(--surface);
   }
 }
-.btn {
+.t-international .btn {
   border-radius: 0;
 }
-.btn-sm {
+.t-international .btn-sm {
   min-height: 44px;
 }
-.btn-primary {
+.t-international .btn-primary {
   background: var(--primary);
   color: var(--on-primary);
 }
-.btn-primary:hover {
+.t-international .btn-primary:hover {
   background: var(--secondary);
 }
-.btn-ghost {
+.t-international .btn-ghost {
   background: transparent;
   color: var(--ink);
   border-color: var(--ink);
 }
-.top .btn-primary,
-.hero .btn-primary {
+.t-international .top .btn-primary,
+.t-international .hero .btn-primary {
   background: var(--accent);
   color: var(--primary);
 }
-.top .btn-primary:hover,
-.hero .btn-primary:hover {
+.t-international .top .btn-primary:hover,
+.t-international .hero .btn-primary:hover {
   background: var(--surface);
 }
-.hero .btn-ghost {
+.t-international .hero .btn-ghost {
   color: var(--surface);
   border-color: var(--surface);
 }
 @media (hover: hover) {
-  .hero .btn-ghost:hover {
+  .t-international .hero .btn-ghost:hover {
     background: color-mix(in srgb, var(--surface) 14%, var(--primary));
   }
 }
-.lang {
+.t-international .lang {
   border-radius: 0;
   border-color: var(--surface);
 }
-.lang a {
+.t-international .lang a {
   height: 44px;
   padding: 0 14px;
   border-radius: 0;
   color: var(--surface);
 }
-.lang a[aria-current='true'] {
+.t-international .lang a[aria-current='true'] {
   background: var(--accent);
   color: var(--primary);
 }
 /* phone menu: a bottom sheet (<details>, no script) */
-.menu {
+.t-international .menu {
   position: relative;
 }
-.menu summary {
+.t-international .menu summary {
   list-style: none;
 }
-.menu summary::-webkit-details-marker {
+.t-international .menu summary::-webkit-details-marker {
   display: none;
 }
-.menu .menu-btn {
+/* Basic draws a "+" after every <summary> (its FAQ); the menu button has its own icon */
+.t-international .menu summary::after {
+  content: none;
+}
+.t-international .menu .menu-btn {
   border-radius: 0;
   border-color: var(--surface);
   background: transparent;
   cursor: pointer;
 }
-.menu-btn span {
+.t-international .menu-btn span {
   background: var(--surface);
   box-shadow:
     0 -6px 0 var(--surface),
     0 6px 0 var(--surface);
 }
-.sheet-panel {
+.t-international .sheet-panel {
   position: fixed;
   inset: auto 0 0 0;
   z-index: 40;
@@ -206,12 +215,12 @@ html[lang='bn'] .mono-letter {
   border-top: 3px solid var(--accent);
   padding: 20px var(--pad) 28px;
 }
-.sheet-panel nav {
+.t-international .sheet-panel nav {
   display: grid;
   gap: 0;
   margin: 0 0 16px;
 }
-.sheet-panel nav a {
+.t-international .sheet-panel nav a {
   display: flex;
   align-items: center;
   min-height: 48px;
@@ -221,13 +230,13 @@ html[lang='bn'] .mono-letter {
   color: var(--surface);
   border-bottom: 1px solid color-mix(in srgb, var(--surface) 22%, var(--primary));
 }
-.sheet-panel nav a[aria-current] {
+.t-international .sheet-panel nav a[aria-current] {
   color: var(--accent);
 }
-.sheet-panel .btn {
+.t-international .sheet-panel .btn {
   width: 100%;
 }
-.menu[open] summary::before {
+.t-international .menu[open] summary::before {
   content: '';
   position: fixed;
   inset: 0;
@@ -235,54 +244,54 @@ html[lang='bn'] .mono-letter {
   background: color-mix(in srgb, var(--ink) 55%, transparent);
 }
 @media (min-width: 1024px) {
-  .menu {
+  .t-international .menu {
     display: none;
   }
 }
 /* hero: one typographic idea on the deep ground; the photo is a framed plate */
-.hero {
+.t-international .hero {
   background: var(--primary);
   color: var(--surface);
   padding: 44px 0 52px;
 }
-.hero .wrap {
+.t-international .hero .wrap {
   display: grid;
   gap: 32px;
 }
-.hero .kicker {
+.t-international .hero .kicker {
   margin: 0 0 16px;
   color: var(--accent);
   font-weight: 700;
 }
-.hero h1 {
+.t-international .hero h1 {
   font-size: calc(clamp(40px, 10vw, 88px) * var(--h-size, 1));
   line-height: 1.08;
   font-weight: var(--h-weight, 300);
   color: var(--surface);
   overflow-wrap: anywhere;
 }
-html[lang='bn'] .hero h1 {
+html[lang='bn'] .t-international .hero h1 {
   font-weight: var(--h-weight, 700);
 }
-.hero h1 em {
+.t-international .hero h1 em {
   font-style: italic;
   color: var(--accent);
 }
-.hero p.lead {
+.t-international .hero p.lead {
   font-size: 18px;
   max-width: 52ch;
   margin: 20px 0 28px;
   color: color-mix(in srgb, var(--surface) 90%, var(--primary));
 }
-.plate {
+.t-international .plate {
   border: 1px solid var(--accent);
   padding: 10px;
   background: var(--secondary);
 }
-.plate .hc {
+.t-international .plate .hc {
   border-radius: 0;
 }
-.plate-art {
+.t-international .plate-art {
   min-height: 160px;
   aspect-ratio: 16/9;
   background: var(--secondary);
@@ -292,29 +301,29 @@ html[lang='bn'] .hero h1 {
   padding: 0;
 }
 @media (min-width: 900px) {
-  .hero {
+  .t-international .hero {
     padding: 80px 0 88px;
   }
-  .hero .wrap {
+  .t-international .hero .wrap {
     grid-template-columns: 1.3fr 1fr;
     align-items: center;
   }
 }
 /* sections: every one carries its own background, none depends on a neighbour */
-.sec {
+.t-international .sec {
   padding: 56px 0;
 }
-.sec-tint {
+.t-international .sec-tint {
   background: var(--bg-2);
   border-block: 1px solid var(--line);
 }
-.sec h2 {
+.t-international .sec h2 {
   position: relative;
   display: inline-block;
   padding-bottom: 10px;
   color: var(--primary);
 }
-.sec h2::after {
+.t-international .sec h2::after {
   content: '';
   position: absolute;
   left: 0;
@@ -323,16 +332,16 @@ html[lang='bn'] .hero h1 {
   height: 3px;
   background: var(--accent);
 }
-.sec-head {
+.t-international .sec-head {
   margin-bottom: 24px;
 }
-.prose-p {
+.t-international .prose-p {
   white-space: pre-line;
   margin-top: 14px;
   max-width: 64ch;
 }
-.photo,
-.cover {
+.t-international .photo,
+.t-international .cover {
   width: 100%;
   height: auto;
   object-fit: cover;
@@ -341,29 +350,29 @@ html[lang='bn'] .hero h1 {
   background: var(--surface);
   aspect-ratio: 3/2;
 }
-.cover {
+.t-international .cover {
   aspect-ratio: 1200/630;
   border: 0;
   padding: 0;
   border-bottom: 1px solid var(--line);
 }
-.card {
+.t-international .card {
   border-radius: 0;
   border-color: var(--line);
   background: var(--surface);
 }
-.empty {
+.t-international .empty {
   border-radius: 0;
   border-color: var(--line);
 }
-.slot {
+.t-international .slot {
   aspect-ratio: 1200/630;
   border: 0;
   border-radius: 0;
   background: var(--bg-2);
 }
 /* academics: the pathway, a numbered sequence joined by one rule */
-.blocks {
+.t-international .blocks {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -371,7 +380,7 @@ html[lang='bn'] .hero h1 {
   counter-reset: b;
   position: relative;
 }
-.blocks::before {
+.t-international .blocks::before {
   content: '';
   position: absolute;
   left: 21px;
@@ -380,7 +389,7 @@ html[lang='bn'] .hero h1 {
   width: 2px;
   background: var(--line-accent);
 }
-.block {
+.t-international .block {
   counter-increment: b;
   display: grid;
   grid-template-columns: 56px 1fr;
@@ -389,7 +398,7 @@ html[lang='bn'] .hero h1 {
   padding: 0 0 28px;
   position: relative;
 }
-.block::before {
+.t-international .block::before {
   content: counter(b);
   z-index: 1;
   display: grid;
@@ -400,25 +409,25 @@ html[lang='bn'] .hero h1 {
   color: var(--accent);
   font: 300 22px/1 var(--en-h);
 }
-html[lang='bn'] .block::before {
+html[lang='bn'] .t-international .block::before {
   content: counter(b, bengali);
   font-family: var(--bn-h);
   font-weight: 700;
 }
-.block .prose-p {
+.t-international .block .prose-p {
   margin: 0;
   max-width: none;
   padding-top: 8px;
 }
 @media (min-width: 900px) {
-  .blocks {
+  .t-international .blocks {
     grid-template-columns: repeat(3, 1fr);
     gap: 32px 24px;
   }
-  .blocks::before {
+  .t-international .blocks::before {
     content: none;
   }
-  .block {
+  .t-international .block {
     grid-template-columns: 1fr;
     padding: 14px 0 0;
     gap: 14px;
@@ -426,20 +435,20 @@ html[lang='bn'] .block::before {
   }
 }
 /* admissions: a ruled box with an accent edge */
-.notice-box {
+.t-international .notice-box {
   border: 1px solid var(--line);
   border-left: 6px solid var(--primary);
   padding: 24px 20px;
   background: var(--surface);
 }
-.intakes {
+.t-international .intakes {
   list-style: none;
   margin: 20px 0 0;
   padding: 0;
   display: grid;
   gap: 12px;
 }
-.intakes .card {
+.t-international .intakes .card {
   padding: 16px;
   display: grid;
   gap: 8px;
@@ -447,39 +456,39 @@ html[lang='bn'] .block::before {
   border: 1px solid var(--line);
 }
 /* notices, events */
-.notice-list {
+.t-international .notice-list {
   border: 1px solid var(--line);
   border-radius: 0;
 }
-.date {
+.t-international .date {
   border-radius: 0;
   background: var(--primary);
   color: var(--on-primary);
 }
-.date span {
+.t-international .date span {
   color: var(--accent);
 }
-.ev .date {
+.t-international .ev .date {
   background: var(--primary);
   color: var(--on-primary);
 }
-.chip {
+.t-international .chip {
   border-radius: 0;
 }
-.chip-accent {
+.t-international .chip-accent {
   background: var(--paper);
   color: var(--ink);
 }
-.sk i {
+.t-international .sk i {
   border-radius: 0;
   background: linear-gradient(90deg, var(--bg-2) 25%, var(--paper) 50%, var(--bg-2) 75%);
   background-size: 200% 100%;
 }
 /* teachers: square plates */
-.tcard {
+.t-international .tcard {
   padding: 18px 14px;
 }
-.avatar {
+.t-international .avatar {
   border-radius: 0;
   width: 96px;
   height: 96px;
@@ -489,95 +498,101 @@ html[lang='bn'] .block::before {
   font: 300 36px var(--en-h);
   color: var(--accent);
 }
-html[lang='bn'] .avatar {
+html[lang='bn'] .t-international .avatar {
   font-family: var(--bn-h);
   font-weight: 700;
 }
-.avatar::before,
-.avatar::after {
+.t-international .avatar::before,
+.t-international .avatar::after {
   content: none;
 }
-.tcard img {
+.t-international .tcard img {
   width: 96px;
   height: 96px;
   border-radius: 0;
   object-fit: cover;
   margin: 0 auto;
 }
-.seeall a {
+.t-international .seeall a {
   color: var(--primary);
   border-color: var(--primary);
   border-radius: 0;
 }
 @media (hover: hover) {
-  .seeall a:hover {
+  .t-international .seeall a:hover {
     background: var(--primary);
     color: var(--on-primary);
   }
 }
 /* blog, contact, forms */
-.post {
+.t-international .post {
   border-radius: 0;
 }
-.field input,
-.field select,
-.field textarea {
+.t-international .field input,
+.t-international .field select,
+.t-international .field textarea {
   border-radius: 0;
   border-color: var(--ink);
 }
-.kv.spaced {
+.t-international .kv.spaced {
   margin: 16px 0 20px;
 }
-.mapframe {
+.t-international .mapframe {
   border-radius: 0;
   border-color: var(--ink);
 }
 /* footer */
-.foot {
+.t-international .foot {
   background: var(--secondary);
   color: var(--surface);
   margin-top: 0;
   border-top: 3px solid var(--accent);
 }
-.foot h4 {
+.t-international .foot h4 {
   color: var(--accent);
 }
-.foot a {
+.t-international .foot a {
   color: var(--surface);
   display: flex;
   align-items: center;
   min-height: 44px;
 }
-.credit {
+.t-international .credit {
   border-top-color: color-mix(in srgb, var(--surface) 24%, var(--secondary));
   color: color-mix(in srgb, var(--surface) 82%, var(--secondary));
 }
-.credit a {
+.t-international .credit a {
   color: var(--surface);
   display: inline;
   min-height: 0;
 }
 /* focus, motion */
-a:focus-visible,
-button:focus-visible,
-summary:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
+.t-international a:focus-visible,
+.t-international button:focus-visible,
+.t-international summary:focus-visible,
+.t-international input:focus-visible,
+.t-international select:focus-visible,
+.t-international textarea:focus-visible {
   outline: 3px solid var(--primary);
   outline-offset: 2px;
   border-radius: 0;
 }
-.top a:focus-visible,
-.top summary:focus-visible,
-.hero a:focus-visible,
-.letterhead a:focus-visible,
-.sheet-panel a:focus-visible,
-.foot a:focus-visible {
+.t-international .top a:focus-visible,
+.t-international .top summary:focus-visible,
+.t-international .hero a:focus-visible,
+.t-international .letterhead a:focus-visible,
+.t-international .sheet-panel a:focus-visible,
+.t-international .foot a:focus-visible {
   outline-color: var(--accent);
 }
 @media (max-width: 719px) {
-  .sec {
+  .t-international .sec {
     padding: 40px 0;
+  }
+}
+@media (prefers-contrast: more) {
+  .t-international {
+    --ink-3: var(--ink);
+    --line: color-mix(in srgb, var(--ink) 55%, var(--surface));
   }
 }

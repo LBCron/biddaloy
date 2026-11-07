@@ -55,10 +55,31 @@ test('no hero photo: the page is typographic, with no image in the hero', async 
 test('reduced motion: the announcement marquee and carousel stay still', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/bn/');
-  const names = await page
-    .locator('.ann-track, .hc-track')
-    .evaluateAll((els) => els.map((e) => getComputedStyle(e).animationName));
+  // The demo school may have no announcements or photos, so put the two tracks on the page ourselves:
+  // a loop over zero elements would pass without testing anything.
+  await page.evaluate(() => {
+    for (const c of ['ann-track', 'hc-track']) {
+      const el = document.createElement('div');
+      el.className = c;
+      document.querySelector('.t-high-school')!.append(el);
+    }
+  });
+  const tracks = page.locator('.ann-track, .hc-track');
+  expect(await tracks.count()).toBeGreaterThanOrEqual(2);
+  const names = await tracks.evaluateAll((els) =>
+    els.map((e) => getComputedStyle(e).animationName),
+  );
   for (const n of names) expect(n).toBe('none');
+});
+
+test('theme tokens apply to the page: corner radius and content width', async ({ page }) => {
+  await page.goto('/en/');
+  const tok = await page.locator('.t-high-school').evaluate((e) => {
+    const s = getComputedStyle(e);
+    return [s.getPropertyValue('--r').trim(), s.getPropertyValue('--max').trim()];
+  });
+  expect(tok).toEqual(['0', '1120px']);
+  expect(await page.locator('.top').evaluate((e) => getComputedStyle(e).borderRadius)).toBe('0px');
 });
 
 test('keyboard focus is visible on the first link', async ({ page }) => {

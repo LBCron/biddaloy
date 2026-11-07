@@ -60,13 +60,33 @@ test('academics: the pathway has six numbered steps', async ({ page }) => {
   await expect(page.locator('.blocks .block')).toHaveCount(6);
 });
 
-test('reduced motion: no auto-advance and no entrance animation', async ({ page }) => {
+test('reduced motion: the announcement and photo tracks stay still', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/bn/');
-  const names = await page
-    .locator('.ann-track, .hc-track, .rise')
-    .evaluateAll((els) => els.map((e) => getComputedStyle(e).animationName));
+  // The demo school may have no announcements or photos, so put the two tracks on the page ourselves:
+  // a loop over zero elements would pass without testing anything. (This theme has no entrance animation.)
+  await page.evaluate(() => {
+    for (const c of ['ann-track', 'hc-track']) {
+      const el = document.createElement('div');
+      el.className = c;
+      document.querySelector('.t-international')!.append(el);
+    }
+  });
+  const tracks = page.locator('.ann-track, .hc-track');
+  expect(await tracks.count()).toBeGreaterThanOrEqual(2);
+  const names = await tracks.evaluateAll((els) =>
+    els.map((e) => getComputedStyle(e).animationName),
+  );
   for (const n of names) expect(n).toBe('none');
+});
+
+test('theme tokens apply to the page: corner radius and content width', async ({ page }) => {
+  await page.goto('/en/');
+  const tok = await page.locator('.t-international').evaluate((e) => {
+    const s = getComputedStyle(e);
+    return [s.getPropertyValue('--r').trim(), s.getPropertyValue('--max').trim()];
+  });
+  expect(tok).toEqual(['2px', '1160px']);
 });
 
 test('palette variants differ only in computed colours', async ({ page }) => {

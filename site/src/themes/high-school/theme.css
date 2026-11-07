@@ -4,7 +4,12 @@
    Colours come from the five palette vars (--primary --secondary --accent --surface --ink) set on <html> by
    css-vars.ts, so a palette switch needs no CSS change (D28). The one fixed colour is --danger, reserved for
    urgent notices. No section styles itself from a neighbour: no position selectors on section wrappers (D31). */
-:root {
+.t-high-school {
+  /* Text on the surface and on --bg-2 must reach 4.5:1 in every palette (theme.spec.ts checks it). */
+  --ink-3: color-mix(in srgb, var(--ink) 68%, var(--surface));
+  /* Latin letters on a Bangla page fall back to the English heading font, not to system-ui. */
+  --bn-h:
+    var(--font-heading-bn), var(--font-heading-en), 'Noto Sans Bengali', system-ui, sans-serif;
   --on-primary: #fff;
   --danger: #a2321f;
   --r: 0;
@@ -30,23 +35,23 @@
   --sa-r: 0;
   --hc-focus: var(--primary);
 }
-body {
+.t-high-school {
   background: var(--surface);
   color: var(--ink);
 }
-h1,
-h2,
-h3,
-h4 {
+.t-high-school h1,
+.t-high-school h2,
+.t-high-school h3,
+.t-high-school h4 {
   letter-spacing: 0;
 }
 /* letterhead bar and header */
-.letterhead {
+.t-high-school .letterhead {
   background: var(--secondary);
   color: var(--accent);
   font-size: 14px;
 }
-.letterhead .wrap {
+.t-high-school .letterhead .wrap {
   display: flex;
   flex-wrap: wrap;
   gap: 2px 22px;
@@ -54,98 +59,102 @@ h4 {
   min-height: 36px;
   padding-block: 4px;
 }
-.top {
+.t-high-school .top {
   background: var(--surface);
   backdrop-filter: none;
   border-bottom: 3px solid var(--accent);
 } /* a backdrop filter would trap the fixed menu sheet inside the header */
-.logo {
+.t-high-school .logo {
   background: none;
   border-radius: 0;
   width: 44px;
   height: 44px;
 }
-.logo img {
+.t-high-school .logo img {
   border-radius: 0;
 }
-.logo svg {
+.t-high-school .logo svg {
   width: 44px;
   height: 44px;
 }
-.crest-shield {
+.t-high-school .crest-shield {
   fill: var(--primary);
 }
-.crest-rule {
+.t-high-school .crest-rule {
   fill: none;
   stroke: var(--accent);
   stroke-width: 1.5;
 }
-.crest-letter {
+.t-high-school .crest-letter {
   fill: var(--on-primary);
   font: 700 17px var(--bn-h);
 }
-.brand b {
+.t-high-school .brand b {
   font-size: 17px;
 }
-.nav a {
+.t-high-school .nav a {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
   border-radius: 0;
   border-bottom: 3px solid transparent;
 }
-.nav a[aria-current] {
+.t-high-school .nav a[aria-current] {
   background: none;
   color: var(--primary);
   border-bottom-color: var(--accent);
 }
-.btn {
+.t-high-school .btn {
   border-radius: 0;
 }
-.btn-sm {
+.t-high-school .btn-sm {
   min-height: 44px;
 }
-.btn-primary {
+.t-high-school .btn-primary {
   background: var(--primary);
   color: var(--on-primary);
 }
-.btn-primary:hover {
+.t-high-school .btn-primary:hover {
   background: var(--secondary);
 }
-.btn-ghost {
+.t-high-school .btn-ghost {
   background: var(--surface);
   color: var(--ink);
   border-color: var(--ink);
 }
-.lang {
+.t-high-school .lang {
   border-radius: 0;
   border-color: var(--ink);
 }
-.lang a {
+.t-high-school .lang a {
   height: 44px;
   padding: 0 14px;
   border-radius: 0;
 }
-.lang a[aria-current='true'] {
+.t-high-school .lang a[aria-current='true'] {
   background: var(--primary);
   color: var(--on-primary);
 }
 /* phone menu: a bottom sheet (<details>, no script) */
-.menu {
+.t-high-school .menu {
   position: relative;
 }
-.menu summary {
+.t-high-school .menu summary {
   list-style: none;
 }
-.menu summary::-webkit-details-marker {
+.t-high-school .menu summary::-webkit-details-marker {
   display: none;
 }
-.menu .menu-btn {
+/* Basic draws a "+" after every <summary> (its FAQ); the menu button has its own icon */
+.t-high-school .menu summary::after {
+  content: none;
+}
+.t-high-school .menu .menu-btn {
   border-radius: 0;
   border-color: var(--ink);
   cursor: pointer;
 }
-.sheet-panel {
+.t-high-school .sheet-panel {
   position: fixed;
   inset: auto 0 0 0;
   z-index: 40;
@@ -156,12 +165,12 @@ h4 {
   padding: 20px var(--pad) 28px;
   box-shadow: 0 -12px 32px color-mix(in srgb, var(--ink) 25%, transparent);
 }
-.sheet-panel nav {
+.t-high-school .sheet-panel nav {
   display: grid;
   gap: 0;
   margin: 0 0 16px;
 }
-.sheet-panel nav a {
+.t-high-school .sheet-panel nav a {
   display: flex;
   align-items: center;
   min-height: 48px;
@@ -172,15 +181,15 @@ h4 {
   color: var(--ink);
   border-bottom: 1px solid var(--line);
 }
-.sheet-panel nav a[aria-current] {
+.t-high-school .sheet-panel nav a[aria-current] {
   color: var(--primary);
   box-shadow: inset 4px 0 0 var(--accent);
   padding-left: 14px;
 }
-.sheet-panel .btn {
+.t-high-school .sheet-panel .btn {
   width: 100%;
 }
-.menu[open] summary::before {
+.t-high-school .menu[open] summary::before {
   content: '';
   position: fixed;
   inset: 0;
@@ -188,21 +197,21 @@ h4 {
   background: color-mix(in srgb, var(--ink) 45%, transparent);
 }
 @media (min-width: 1024px) {
-  .menu {
+  .t-high-school .menu {
     display: none;
   }
 }
 /* hero: the motto is the picture */
-.hero {
+.t-high-school .hero {
   padding: 36px 0 40px;
   border-bottom: 1px solid var(--line);
 }
-.hero .wrap {
+.t-high-school .hero .wrap {
   display: grid;
   gap: 20px;
   position: relative;
 }
-.hero .kicker {
+.t-high-school .hero .kicker {
   margin: 0 0 14px;
   padding-bottom: 6px;
   font-weight: 700;
@@ -210,19 +219,19 @@ h4 {
   border-bottom: 3px solid var(--accent);
   display: inline-block;
 }
-.hero h1 {
+.t-high-school .hero h1 {
   font-size: calc(clamp(40px, 11vw, 96px) * var(--h-size, 1));
   line-height: 1.1;
   color: var(--primary);
   overflow-wrap: anywhere;
 }
-.hero p.lead {
+.t-high-school .hero p.lead {
   font-size: 18px;
   max-width: 52ch;
   margin: 18px 0 24px;
   color: var(--ink);
 }
-.year {
+.t-high-school .year {
   margin: 0;
   font: 700 clamp(72px, 24vw, 200px)/1 var(--en-h);
   color: transparent;
@@ -230,53 +239,53 @@ h4 {
   letter-spacing: 0.02em;
   user-select: none;
 }
-html[lang='bn'] .year {
+html[lang='bn'] .t-high-school .year {
   font-family: var(--bn-h);
 }
-.plate {
+.t-high-school .plate {
   border: 1px solid var(--ink);
   padding: 10px;
   background: var(--surface);
   box-shadow: 8px 8px 0 var(--accent);
 }
-.plate .hc {
+.t-high-school .plate .hc {
   border-radius: 0;
 }
 @media (min-width: 900px) {
-  .hero {
+  .t-high-school .hero {
     padding: 64px 0 72px;
   }
-  .hero .wrap {
+  .t-high-school .hero .wrap {
     grid-template-columns: 1.6fr 1fr;
     align-items: end;
   }
-  .hero .copy {
+  .t-high-school .hero .copy {
     grid-column: 1;
   }
-  .year {
+  .t-high-school .year {
     grid-column: 2;
     grid-row: 1;
     justify-self: end;
     text-align: end;
   }
-  .plate {
+  .t-high-school .plate {
     grid-column: 1/-1;
   }
 }
 /* sections: every one carries its own background, none depends on a neighbour */
-.sec {
+.t-high-school .sec {
   padding: 44px 0;
 }
-.sec-tint {
+.t-high-school .sec-tint {
   background: var(--bg-2);
   border-block: 1px solid var(--line);
 }
-.sec h2 {
+.t-high-school .sec h2 {
   position: relative;
   display: inline-block;
   padding-bottom: 8px;
 }
-.sec h2::after {
+.t-high-school .sec h2::after {
   content: '';
   position: absolute;
   left: 0;
@@ -285,16 +294,16 @@ html[lang='bn'] .year {
   height: 4px;
   background: var(--accent);
 }
-.sec-head {
+.t-high-school .sec-head {
   margin-bottom: 20px;
 }
-.prose-p {
+.t-high-school .prose-p {
   white-space: pre-line;
   margin-top: 14px;
   max-width: 64ch;
 }
-.photo,
-.cover {
+.t-high-school .photo,
+.t-high-school .cover {
   width: 100%;
   height: auto;
   object-fit: cover;
@@ -303,29 +312,29 @@ html[lang='bn'] .year {
   background: var(--surface);
   aspect-ratio: 3/2;
 }
-.cover {
+.t-high-school .cover {
   aspect-ratio: 1200/630;
   border: 0;
   padding: 0;
   border-bottom: 1px solid var(--line);
 }
-.card {
+.t-high-school .card {
   border-radius: 0;
   border-color: var(--line);
   background: var(--surface);
 }
-.empty {
+.t-high-school .empty {
   border-radius: 0;
   border-color: var(--line);
 }
-.slot {
+.t-high-school .slot {
   aspect-ratio: 1200/630;
   border: 0;
   border-radius: 0;
   background: var(--bg-2);
 }
 /* academics: classes as a ruled grid with big numerals */
-.blocks {
+.t-high-school .blocks {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -333,7 +342,7 @@ html[lang='bn'] .year {
   border-top: 2px solid var(--ink);
   counter-reset: b;
 }
-.block {
+.t-high-school .block {
   counter-increment: b;
   display: grid;
   grid-template-columns: auto 1fr;
@@ -342,51 +351,55 @@ html[lang='bn'] .year {
   padding: 18px 0;
   border-bottom: 1px solid var(--line);
 }
-.block::before {
+.t-high-school .block::before {
   content: counter(b);
   font: 700 44px/1 var(--en-h);
-  color: var(--accent);
+  color: color-mix(
+    in srgb,
+    var(--accent) 50%,
+    var(--ink)
+  ); /* gold on the surface is 2.2:1; this keeps the hue and passes 4.5:1 */
   -webkit-text-stroke: 0;
 }
-html[lang='bn'] .block::before {
+html[lang='bn'] .t-high-school .block::before {
   content: counter(b, bengali);
   font-family: var(--bn-h);
 }
-.block .prose-p {
+.t-high-school .block .prose-p {
   margin: 0;
   max-width: none;
 }
 @media (min-width: 720px) {
-  .blocks {
+  .t-high-school .blocks {
     grid-template-columns: repeat(3, 1fr);
     border-top: 0;
     gap: 0;
   }
-  .block {
+  .t-high-school .block {
     grid-template-columns: 1fr;
     border: 1px solid var(--line);
     padding: 20px;
     margin: 0 -1px -1px 0;
   }
-  .block::before {
+  .t-high-school .block::before {
     font-size: 64px;
   }
 }
 /* admissions: a ruled box with a gold edge */
-.notice-box {
+.t-high-school .notice-box {
   border: 1px solid var(--ink);
   border-left: 8px solid var(--accent);
   padding: 24px 20px;
   background: var(--surface);
 }
-.intakes {
+.t-high-school .intakes {
   list-style: none;
   margin: 20px 0 0;
   padding: 0;
   display: grid;
   gap: 12px;
 }
-.intakes .card {
+.t-high-school .intakes .card {
   padding: 16px;
   display: grid;
   gap: 8px;
@@ -394,39 +407,39 @@ html[lang='bn'] .block::before {
   border: 1px solid var(--line);
 }
 /* notices, events */
-.notice-list {
+.t-high-school .notice-list {
   border: 1px solid var(--ink);
   border-radius: 0;
 }
-.date {
+.t-high-school .date {
   border-radius: 0;
   background: var(--primary);
   color: var(--on-primary);
 }
-.date span {
+.t-high-school .date span {
   color: var(--on-primary);
 }
-.ev .date {
+.t-high-school .ev .date {
   background: var(--primary);
   color: var(--on-primary);
 }
-.chip {
+.t-high-school .chip {
   border-radius: 0;
 }
-.chip-accent {
+.t-high-school .chip-accent {
   background: var(--paper);
   color: var(--ink);
 }
-.sk i {
+.t-high-school .sk i {
   border-radius: 0;
   background: linear-gradient(90deg, var(--bg-2) 25%, var(--paper) 50%, var(--bg-2) 75%);
   background-size: 200% 100%;
 }
 /* teachers: square plates */
-.tcard {
+.t-high-school .tcard {
   padding: 18px 14px;
 }
-.avatar {
+.t-high-school .avatar {
   border-radius: 0;
   width: 96px;
   height: 96px;
@@ -437,11 +450,11 @@ html[lang='bn'] .block::before {
   font: 700 34px var(--bn-h);
   color: var(--primary);
 }
-.avatar::before,
-.avatar::after {
+.t-high-school .avatar::before,
+.t-high-school .avatar::after {
   content: none;
 }
-.tcard img {
+.t-high-school .tcard img {
   width: 96px;
   height: 96px;
   border-radius: 0;
@@ -449,75 +462,81 @@ html[lang='bn'] .block::before {
   margin: 0 auto;
   border: 1px solid var(--ink);
 }
-.seeall a {
+.t-high-school .seeall a {
   color: var(--primary);
   border-color: var(--primary);
 }
 @media (hover: hover) {
-  .seeall a:hover {
+  .t-high-school .seeall a:hover {
     background: var(--primary);
     color: var(--on-primary);
   }
 }
 /* blog, contact, forms */
-.post {
+.t-high-school .post {
   border-radius: 0;
 }
-.field input,
-.field select,
-.field textarea {
+.t-high-school .field input,
+.t-high-school .field select,
+.t-high-school .field textarea {
   border-radius: 0;
   border-color: var(--ink);
 }
-.kv.spaced {
+.t-high-school .kv.spaced {
   margin: 16px 0 20px;
 }
-.mapframe {
+.t-high-school .mapframe {
   border-radius: 0;
   border-color: var(--ink);
 }
 /* footer */
-.foot {
+.t-high-school .foot {
   background: var(--ink);
   color: var(--surface);
   margin-top: 0;
   border-top: 4px solid var(--accent);
 }
-.foot h4 {
+.t-high-school .foot h4 {
   color: var(--surface);
 }
-.foot a {
+.t-high-school .foot a {
   color: var(--surface);
   display: flex;
   align-items: center;
   min-height: 44px;
 }
-.credit {
+.t-high-school .credit {
   border-top-color: color-mix(in srgb, var(--surface) 24%, var(--ink));
   color: color-mix(in srgb, var(--surface) 80%, var(--ink));
 }
-.credit a {
+.t-high-school .credit a {
   color: var(--surface);
   display: inline;
   min-height: 0;
 }
 /* focus, motion */
-a:focus-visible,
-button:focus-visible,
-summary:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
+.t-high-school a:focus-visible,
+.t-high-school button:focus-visible,
+.t-high-school summary:focus-visible,
+.t-high-school input:focus-visible,
+.t-high-school select:focus-visible,
+.t-high-school textarea:focus-visible {
   outline: 3px solid var(--primary);
   outline-offset: 2px;
   border-radius: 0;
 }
-.foot a:focus-visible,
-.letterhead a:focus-visible {
+.t-high-school .foot a:focus-visible,
+.t-high-school .letterhead a:focus-visible {
   outline-color: var(--surface);
 }
 @media (max-width: 719px) {
-  .sec {
+  .t-high-school .sec {
     padding: 36px 0;
+  }
+}
+@media (prefers-contrast: more) {
+  .t-high-school {
+    --ink-3: var(--ink);
+    --line: color-mix(in srgb, var(--ink) 55%, var(--surface));
   }
 }

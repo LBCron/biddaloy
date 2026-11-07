@@ -32,6 +32,7 @@ const items = [
 ];
 ---
 <SiteLayout manifest={manifest} lang={lang} rest={rest} title={title} description={description} image={image}>
+  <div class="t-primary">
   <AnnouncementBar bar={manifest.announcements} lang={lang} />
   <header class="top"><div class="wrap">
     <a class="brand" href={`/${lang}/`}>
@@ -57,4 +58,5 @@ const items = [
   </div></header>
   <main id="main"><slot /></main>
   <Footer manifest={manifest} lang={lang} />
+  </div>
 </SiteLayout>

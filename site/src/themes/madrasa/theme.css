@@ -17,6 +17,9 @@
     U+FD3E-FD3F, U+FDFA;
 }
 .t-madrasa {
+  /* Text on the surface and on --bg-2 must reach 4.5:1 in every palette (theme.spec.ts checks it). */
+  --ink-3: color-mix(in srgb, var(--ink) 72%, var(--surface));
+  --link: color-mix(in srgb, var(--secondary) 70%, var(--ink));
   --on-primary: #fff;
   --danger: #a2321f;
   --r: 10px;
@@ -41,6 +44,10 @@
   --sa-ink: var(--primary);
   --sa-r: 6px;
   --hc-focus: var(--primary);
+}
+/* Links: --secondary is a hover colour in this palette set and can be too light on the surface. :not([class]) keeps buttons and nav links on their own colours. Kept first so any later rule of equal weight wins. */
+.t-madrasa a:not([class]) {
+  color: var(--link);
 }
 .t-madrasa :lang(ar) {
   font-family: 'Amiri', 'Noto Naskh Arabic', serif;
@@ -546,5 +553,11 @@ html[lang='bn'] .t-madrasa {
 @media (max-width: 719px) {
   .t-madrasa .sec {
     padding: 36px 0;
+  }
+}
+@media (prefers-contrast: more) {
+  .t-madrasa {
+    --ink-3: var(--ink);
+    --line: color-mix(in srgb, var(--ink) 55%, var(--surface));
   }
 }

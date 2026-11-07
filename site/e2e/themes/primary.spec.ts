@@ -53,6 +53,15 @@ test('reduced motion: the illustration stands still', async ({ page }) => {
   expect(anim).toBe('none');
 });
 
+test('theme tokens apply to the page: corner radius and content width', async ({ page }) => {
+  await page.goto('/en/');
+  const tok = await page.locator('.t-primary').evaluate((e) => {
+    const s = getComputedStyle(e);
+    return [s.getPropertyValue('--r').trim(), s.getPropertyValue('--max').trim()];
+  });
+  expect(tok).toEqual(['22px', '1120px']);
+});
+
 test('keyboard focus is visible on the first link', async ({ page }) => {
   await page.goto('/bn/');
   await page.keyboard.press('Tab');

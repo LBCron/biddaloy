@@ -2,7 +2,7 @@
    Every colour goes through the five palette vars (--primary --secondary --accent --surface --ink),
    every font through --font-{heading,body}-{bn,en} (set inline on <html> from the manifest). */
 :root{
-  --ink-2:color-mix(in srgb,var(--ink) 78%,var(--surface)); --ink-3:color-mix(in srgb,var(--ink) 52%,var(--surface));
+  --ink-2:color-mix(in srgb,var(--ink) 78%,var(--surface)); --ink-3:color-mix(in srgb,var(--ink) 65%,var(--surface));
   --line:color-mix(in srgb,var(--ink) 11%,var(--surface)); --bg-2:color-mix(in srgb,var(--ink) 3.5%,var(--surface));
   --line-accent:color-mix(in srgb,var(--primary) 24%,var(--surface));
   --warn:#b4231a; --warn-soft:#fdecea; --ok:#176d3a; --ok-soft:#e6f4ea;

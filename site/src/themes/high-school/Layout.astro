@@ -35,6 +35,7 @@ const items = [
 ];
 ---
 <SiteLayout manifest={manifest} lang={lang} rest={rest} title={title} description={description} image={image}>
+  <div class="t-high-school">
   <AnnouncementBar bar={manifest.announcements} lang={lang} />
   {bar.length > 0 && <div class="letterhead"><div class="wrap">{bar.map((b) => <span>{b}</span>)}</div></div>}
   <header class="top"><div class="wrap">
@@ -63,4 +64,5 @@ const items = [
   </div></header>
   <main id="main"><slot /></main>
   <Footer manifest={manifest} lang={lang} />
+  </div>
 </SiteLayout>

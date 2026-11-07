@@ -58,10 +58,30 @@ test('hero: type-led with the building plate fallback, no photo', async ({ page 
 test('reduced motion: no auto-advance and no entrance animation', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/bn/');
-  const names = await page
-    .locator('.ann-track, .hc-track, .rise')
-    .evaluateAll((els) => els.map((e) => getComputedStyle(e).animationName));
+  // The demo school may have no announcements or photos, so put the two tracks on the page ourselves
+  // (`.rise` is a real hero element); a loop over zero elements would pass without testing anything.
+  await page.evaluate(() => {
+    for (const c of ['ann-track', 'hc-track']) {
+      const el = document.createElement('div');
+      el.className = c;
+      document.querySelector('.t-premium')!.append(el);
+    }
+  });
+  const moving = page.locator('.ann-track, .hc-track, .rise');
+  expect(await moving.count()).toBeGreaterThanOrEqual(3);
+  const names = await moving.evaluateAll((els) =>
+    els.map((e) => getComputedStyle(e).animationName),
+  );
   for (const n of names) expect(n).toBe('none');
+});
+
+test('theme tokens apply to the page: corner radius and content width', async ({ page }) => {
+  await page.goto('/en/');
+  const tok = await page.locator('.t-premium').evaluate((e) => {
+    const s = getComputedStyle(e);
+    return [s.getPropertyValue('--r').trim(), s.getPropertyValue('--max').trim()];
+  });
+  expect(tok).toEqual(['0', '1080px']);
 });
 
 test('palette variants differ only in computed colours', async ({ page }) => {

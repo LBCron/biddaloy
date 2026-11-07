@@ -11,8 +11,8 @@ const css = readFileSync(resolve(here, 'theme.css'), 'utf8');
 const m = THEMES[SiteTheme.PRIMARY];
 
 describe('primary theme.css', () => {
-  it('has brand hex only in the :root token block (a palette switch needs no CSS change, D28)', () => {
-    const outside = css.replace(/:root\s*\{[^}]*\}/, '');
+  it('has brand hex only in the first token block (a palette switch needs no CSS change, D28)', () => {
+    const outside = css.replace(/\.t-primary\s*\{[^}]*\}/, '');
     expect(outside.match(/#[0-9a-f]{3,8}\b/gi) ?? []).toEqual([]);
   });
 
@@ -47,8 +47,8 @@ describe('primary fonts', () => {
       return kb(m.fonts[lang].filter((f) => ids.has(f.id)).flatMap((f) => f.files));
     };
     // Default pairs only: the school loads just what it picked (css-vars.ts).
-    expect(pair('bn')).toBeLessThan(200);
-    expect(pair('en')).toBeLessThan(80);
+    expect(pair('bn')).toBeLessThanOrEqual(160);
+    expect(pair('en')).toBeLessThanOrEqual(80);
   });
 
   it('emits font-display: swap rules only for the chosen fonts, from the right folder', () => {

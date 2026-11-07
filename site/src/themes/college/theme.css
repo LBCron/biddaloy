@@ -6,6 +6,8 @@
    (the hairline grey). The accent is the one hot colour: markers, rules and the current step, never text.
    No section styles itself from a neighbour: no position selectors on section wrappers (D31). */
 .t-college {
+  /* Text on the surface and on --bg-2 must reach 4.5:1 in every palette (theme.spec.ts checks it). */
+  --ink-3: color-mix(in srgb, var(--ink) 68%, var(--surface));
   --on-primary: #fff;
   --danger: #a2321f;
   --line: #dce1e7;
@@ -597,5 +599,11 @@ html[lang='bn'] .t-college .step::before {
 @media (max-width: 719px) {
   .t-college .sec {
     padding: 36px 0;
+  }
+}
+@media (prefers-contrast: more) {
+  .t-college {
+    --ink-3: var(--ink);
+    --line: color-mix(in srgb, var(--ink) 55%, var(--surface));
   }
 }
