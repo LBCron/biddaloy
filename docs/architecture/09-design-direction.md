@@ -553,6 +553,21 @@ All four states keep their existing `fg` / `bg` / `fgDark` values and their
 paired icons (`check-circle`, `circle-half`, `clock`, `alert-triangle`).
 Colour is never the only signal. This epic does not touch them.
 
+### 3.5.0 Signal tokens (dashboard) — a separate family
+
+The dashboard has its own four-level scale, `signal`, next to `status` (fees only) and `chart`. It does not reuse them. Defined in `ui/tailwind.preset.ts`, mirrored in `ui/src/styles/globals.css`.
+
+| Key        | Tokens                                 | Icon           |
+| ---------- | -------------------------------------- | -------------- |
+| `critical` | `fg`, `bg`, `fgDark`, `bgDark` (OKLCH) | alert-triangle |
+| `warn`     | same four                              | clock          |
+| `ok`       | same four                              | check-circle   |
+| `neutral`  | same four                              | minus          |
+
+Example: `text-signal-critical-fg` on `bg-signal-critical-bg`. Colour always travels with an icon and text (see [26-dashboard.md §16](26-dashboard.md#16-signal-colour)).
+
+**Contrast gate.** `ui/scripts/check-contrast.mjs` and `ui/src/foundations/contrast.ts` check every `signal` pair at 4.5:1 (text on white, text on its own `bg`, dark text on the dark surface and on `bgDark`). It also checks that `globals.css` carries each token. A new `signal` colour that fails is a failed build, not a review comment.
+
 ### 3.5.1 Dark-mode status tokens — an explicit override, not a `dark:` variant
 
 `status-badge.tsx` renders `text-status-*-fg` on `bg-status-*-bg`
@@ -1701,12 +1716,12 @@ Example, the wordmark on a light page (`School` ink, `Manager` indigo `#4a3fd4`,
 The app uses the same marks. `ui/src/components/brand-mark.tsx` inlines the 50.3 paths as `<Wordmark/>` and `<Monogram/>`
 (`variant` light, dark or mono; `size` sm or md; the label is `t('brand')`).
 
-| Where                                                                 | Mark                                     |
-| --------------------------------------------------------------------- | ---------------------------------------- |
-| `AuthLayout` header, `SignInForm` / `OtpSignInForm` (standalone)      | `<Wordmark/>`                            |
-| `AppShell` drawer title, mobile header, sidebar label                 | `<Wordmark size="sm" decorative/>` + sr-only text |
-| `client-admin/public/favicon.svg`, `icons/{pwa-192,pwa-512,maskable-512}.png` | Copies of the landing exports     |
-| `client-admin/public/og.png` (`og:image` in `index.html`)             | Copy of `og-en.png`                      |
+| Where                                                                         | Mark                                              |
+| ----------------------------------------------------------------------------- | ------------------------------------------------- |
+| `AuthLayout` header, `SignInForm` / `OtpSignInForm` (standalone)              | `<Wordmark/>`                                     |
+| `AppShell` drawer title, mobile header, sidebar label                         | `<Wordmark size="sm" decorative/>` + sr-only text |
+| `client-admin/public/favicon.svg`, `icons/{pwa-192,pwa-512,maskable-512}.png` | Copies of the landing exports                     |
+| `client-admin/public/og.png` (`og:image` in `index.html`)                     | Copy of `og-en.png`                               |
 
 Do not use the old "ব" tile or a lucide `SchoolIcon` as a brand mark.
 

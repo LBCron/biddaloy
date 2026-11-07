@@ -336,3 +336,57 @@ Checklist to confirm before the PR: catalogue row, DTO, route, snapshots, `schem
 | Committee report page                    | `/print/committee-report`                                         |
 | Dashboard seed                           | `server/src/scripts/seed.dashboard.ts`                            |
 | Briefing and attention                   | [23-attention.md](23-attention.md)                                |
+
+## 16. Signal colour
+
+A signalled card tells the user at a glance: does this need me?
+
+```mermaid
+flowchart LR
+  D["Widget data"] --> L{"Widget picks a level"}
+  L -->|"no data / error / empty"| N["No signal<br/>(fail open)"]
+  L --> W["WidgetCard<br/>signal + signalLabel"]
+  W --> C["Colour<br/>signal.* token"]
+  W --> I["Icon"]
+  W --> T["Text for screen readers"]
+```
+
+**Four levels.** `SignalLevel` lives in `@biddaloy/ui` (`ui/src/components/dashboard/signal.ts`).
+
+| Level      | Colour token      | Icon           | Means                          |
+| ---------- | ----------------- | -------------- | ------------------------------ |
+| `critical` | `signal.critical` | alert-triangle | Needs action now               |
+| `warn`     | `signal.warn`     | clock          | Keep an eye on it              |
+| `ok`       | `signal.ok`       | check-circle   | All good                       |
+| `neutral`  | `signal.neutral`  | minus          | Just information, draws no eye |
+
+**Rules.**
+
+- **Colour is never the only cue (D8).** Every signalled card shows colour, an icon and text. The text is `sr-only` (read by screen readers) and comes from the `signal` i18n namespace (`signal:needsAction`, `signal:onTrack` ...).
+- **Fail open.** A widget that is loading, errored, empty or has no data sets **no** signal. The card then renders exactly as before. A missing signal never means "all good".
+- **`neutral` and a missing signal draw nothing.** The healthy card must not shout.
+- **A widget picks its own level.** It passes `signal` and `signalLabel` to `WidgetCard`. Wiring and thresholds today:
+
+| Widget                                                 | critical                     | warn                       | ok                  |
+| ------------------------------------------------------ | ---------------------------- | -------------------------- | ------------------- |
+| `collection-month`                                     | 10+ points behind last month | behind last month          | level with or ahead |
+| `sms-balance`                                          | balance 0 or less            | below 200 (server default) | otherwise           |
+| `failed-messages`                                      | any failed                   | none                       | none failed         |
+| `mark-entry-progress`                                  | past the deadline            | deadline within 3 days     | 100 percent done    |
+| `syllabus-progress`                                    | none                         | any class behind the plan  | on pace             |
+| `at-risk-students`                                     | any at-risk student          | none                       | none                |
+| `setup-checklist` (onboarding card, not a grid widget) | none                         | unfinished                 | none                |
+
+Example: `collection-month` is 12 points behind last month at this point. It passes `signal: 'critical'` and `signalLabel: t('signal:needsAction')`. The user sees a red bar, a triangle icon, and a screen reader says "Needs action".
+
+**Gotcha.** `useTranslation('signal')` is a separate call on purpose. The `check-i18n-keys` script reads only the first single-quoted `useTranslation` call in a file, so the signal namespace must not share it.
+
+Demo seed: `DEMO_SEED_EXEMPT` (no entry needed in the slices). Epic #3592 adds no table or column. Signals are computed from data the demo seed already creates (fees, exam deadlines, SMS balance, failed messages). Reason recorded here per [22-demo-seed.md](22-demo-seed.md) rule 10.
+
+Test: `e2e/journeys/dashboard-signal.spec.ts` (every accented card has an icon and level text; an unwired card has no accent). The errored-widget case is a unit test in `widget-card.test.tsx`.
+
+### Learning (Epic #3592)
+
+- **2026-11-07.** Surprise: `check-i18n-keys` only sees the first single-quoted `useTranslation` call. Cost: signal keys looked missing. Fix: one extra `useTranslation('signal')` binding per widget. Rule candidate: give the script every call, then drop the workaround.
+- **2026-11-07.** Surprise: the signal text in the card heading changed the card's accessible name, so tests found no region. Cost: a fix commit. Fix: keep the label in a sibling `sr-only` span, outside the heading. Rule candidate: new decoration on a heading goes beside it, not in it.
+- **2026-11-07.** Surprise: thresholds the DTO does not carry (SMS low = 200, "10 points behind") are copied into the widget. Cost: a drift risk with the server. Fix: `ponytail:` comments name them. Rule candidate: the DTO should carry its threshold next time.
