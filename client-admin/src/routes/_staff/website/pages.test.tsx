@@ -1,11 +1,13 @@
 import { UserRole } from '@biddaloy/shared';
-import { cleanupTestState, renderWithRouter, userEvent } from '@biddaloy/ui/test';
+import { cleanupTestState, renderWithRouter, server, userEvent } from '@biddaloy/ui/test';
 import { screen, waitFor } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { routeTree } from '../../../routeTree.gen';
 
 import { mockDraftSite, type SavedDraft } from './-draft-fixture';
+import { baseSite } from './-test-handlers';
 
 const render = (entry = '/website/pages') =>
   renderWithRouter(routeTree, {
@@ -86,5 +88,79 @@ describe('/website/pages', () => {
     expect(await screen.findByRole('heading', { name: 'Edit Front banner' })).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Back to sections' }));
     await waitFor(() => expect(router.state.location.search).not.toHaveProperty('edit'));
+  });
+});
+
+describe('/website/pages unsaved work', () => {
+  afterEach(async () => {
+    await cleanupTestState();
+  });
+
+  it('drops an ?edit= that names no section', async () => {
+    mockDraftSite();
+    const { router } = render('/website/pages?edit=nope');
+    await screen.findByRole('button', { name: 'Edit Front banner' });
+    await waitFor(() => expect(router.state.location.search).not.toHaveProperty('edit'));
+  });
+
+  it('keeps the edits on screen when the save is refused as stale (409)', async () => {
+    mockDraftSite();
+    let refused = false;
+    server.use(
+      http.put('/api/v1/website/draft', () => {
+        refused = true;
+        return HttpResponse.json({ statusCode: 409, message: 'site.stale' }, { status: 409 });
+      }),
+    );
+    render();
+    await userEvent.click(
+      await screen.findByRole('switch', { name: 'Show Teachers on the website' }),
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Save draft' }));
+    await waitFor(() => expect(refused).toBe(true));
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('button', { name: 'Save draft' }) as HTMLButtonElement).disabled,
+      ).toBe(false),
+    );
+    expect(
+      screen
+        .getByRole('switch', { name: 'Show Teachers on the website' })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
+    expect(screen.getByRole('button', { name: 'Save draft' })).toBeTruthy();
+  });
+
+  it('keeps what was typed while the save was in flight', async () => {
+    const saved = mockDraftSite();
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    server.use(
+      http.put('/api/v1/website/draft', async ({ request }) => {
+        const body = (await request.json()) as { config: SavedDraft };
+        await gate;
+        saved.push(body.config);
+        return HttpResponse.json({
+          ...baseSite,
+          theme: 'basic',
+          draft: body.config,
+          draft_revision: 9,
+        });
+      }),
+    );
+    render();
+    await userEvent.click(
+      await screen.findByRole('switch', { name: 'Show Teachers on the website' }),
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Save draft' }));
+    await userEvent.click(screen.getByRole('switch', { name: 'Show Notices on the website' }));
+    release();
+    await waitFor(() => expect(saved).toHaveLength(1));
+    expect(
+      screen
+        .getByRole('switch', { name: 'Show Notices on the website' })
+        .getAttribute('aria-checked'),
+    ).toBe('false');
+    expect(await screen.findByRole('button', { name: 'Save draft' })).toBeTruthy();
   });
 });

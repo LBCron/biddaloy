@@ -32,7 +32,7 @@ import { useTranslation } from '@biddaloy/ui/i18n';
 import { FullPageShell } from '@biddaloy/ui/shells';
 import * as React from 'react';
 
-import { uploadLabels } from './-draft-editor';
+import { uploadLabels, useDraft } from './-draft-editor';
 
 type Text = { bn?: string; en?: string };
 interface ManifestField {
@@ -91,6 +91,8 @@ export function SectionEditorModal({
     section?.typography ?? {},
   );
   const preview = usePreviewToken({ enabled: true });
+  // The preview shows what the server holds, so it waits until everything is saved.
+  const unsaved = useDraft().dirty;
   const dirty =
     JSON.stringify([data, typography]) !==
     JSON.stringify([section?.data ?? {}, section?.typography ?? {}]);
@@ -141,8 +143,10 @@ export function SectionEditorModal({
       size="wide"
       primary={{ label: t('editor.save'), onClick: apply }}
       secondary={{
-        label: t('design.preview'),
-        disabled: !preview.data?.url,
+        label: unsaved
+          ? `${t('design.preview')} (${t('pages.previewSaveFirst')})`
+          : t('design.preview'),
+        disabled: !preview.data?.url || unsaved || dirty,
         onClick: () =>
           preview.data?.url && window.open(preview.data.url, '_blank', 'noopener,noreferrer'),
       }}

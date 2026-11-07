@@ -157,7 +157,8 @@
     "editSection": "Edit {{name}}",
     "pageOff": "This page is off",
     "unsaved": "You have changes that are not saved.",
-    "saveDraft": "Save draft"
+    "saveDraft": "Save draft",
+    "previewSaveFirst": "Save first to preview your changes"
   },
   "blog": {
     "title": "News and posts",
@@ -363,6 +364,7 @@
     },
     "limit": "You can keep at most 5 announcements.",
     "empty": "No announcements yet.",
-    "rangeInvalid": "The end date cannot be before the start date."
+    "rangeInvalid": "The end date cannot be before the start date.",
+    "textRequired": "Write the Bangla text."
   }
 }

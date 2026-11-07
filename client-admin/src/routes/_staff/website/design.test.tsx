@@ -91,4 +91,14 @@ describe('/website/design', () => {
     ]);
     expect(screen.getByRole('button', { name: 'Preview' })).toBeTruthy();
   });
+
+  it('turns Preview off while there are unsaved edits, and says why', async () => {
+    mockDraftSite();
+    render();
+    await userEvent.click(await screen.findByRole('radio', { name: /Blue/ }));
+    expect((screen.getByRole('button', { name: 'Preview' }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+    expect(screen.getByText('Save first to preview your changes')).toBeTruthy();
+  });
 });
