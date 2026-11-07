@@ -1,6 +1,6 @@
 ---
 import { t } from '../../../i18n/t';
-import { httpsLink, mapEmbed, whatsappLink } from '../../../lib/contact';
+import { httpsLink, mapEmbed, plainValue, whatsappLink } from '../../../lib/contact';
 import { field, pick } from '../../../lib/pick';
 import type { SectionProps } from '../../../lib/types';
 
@@ -14,10 +14,10 @@ const rows = [
   ['contact.email', c?.email],
   ['contact.hours', pick(c?.hours, lang)],
 ].filter((r): r is [string, string] => !!r[1]);
-const map = mapEmbed(data.lat, data.lng, address);
+const map = mapEmbed(plainValue(data.lat), plainValue(data.lng), address);
 const links = [
-  ['links.whatsapp', whatsappLink(data.whatsapp)],
-  ['links.facebook', httpsLink(data.facebook)],
+  ['links.whatsapp', whatsappLink(plainValue(data.whatsapp))],
+  ['links.facebook', httpsLink(plainValue(data.facebook))],
 ].filter((l): l is [string, string] => !!l[1]);
 // The Turnstile site key is public; the site container carries it in its own env.
 const siteKey = process.env.TURNSTILE_SITE_KEY ?? import.meta.env?.TURNSTILE_SITE_KEY ?? '';

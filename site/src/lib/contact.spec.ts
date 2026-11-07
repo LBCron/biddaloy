@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { httpsLink, mapEmbed, whatsappLink } from './contact';
+import { httpsLink, mapEmbed, plainValue, whatsappLink } from './contact';
 
 describe('contact links', () => {
   it('httpsLink keeps https and drops everything else', () => {
@@ -21,5 +21,15 @@ describe('contact links', () => {
     expect(mapEmbed(undefined, undefined, 'Nabinagar, Dhaka')).toContain('q=Nabinagar%2C%20Dhaka');
     expect(mapEmbed(999, 90, 'Dhaka')).toContain('q=Dhaka');
     expect(mapEmbed(undefined, undefined, undefined)).toBeUndefined();
+  });
+});
+
+describe('plainValue', () => {
+  it('reads a plain string, or the first filled language of bilingual text', () => {
+    expect(plainValue('23.8')).toBe('23.8');
+    expect(plainValue({ bn: '', en: '23.8' })).toBe('23.8');
+    expect(plainValue({ bn: '90.4', en: '' })).toBe('90.4');
+    expect(plainValue({ bn: ' ', en: '' })).toBeUndefined();
+    expect(plainValue(undefined)).toBeUndefined();
   });
 });

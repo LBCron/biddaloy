@@ -34,6 +34,26 @@ describe('basic manifest', () => {
     }
   });
 
+  it('has an academics page with academics and routine, and optional contact links', () => {
+    const cfg = defaultConfigFor(SiteTheme.BASIC);
+    const academics = cfg.pages.find((p) => p.page === 'academics');
+    expect(academics?.sections.map((s) => s.key)).toEqual(['academics', 'routine']);
+    const contact = BASIC.sections.find((s) => s.key === 'contact')!;
+    for (const k of ['lat', 'lng', 'whatsapp', 'facebook']) {
+      expect(
+        contact.fields.find((f) => f.key === k),
+        k,
+      ).toMatchObject({ required: false });
+    }
+  });
+
+  it('a draft saved before the new fields still validates (the new fields are optional)', () => {
+    const cfg = defaultConfigFor(SiteTheme.BASIC);
+    const contact = cfg.pages.find((p) => p.page === 'contact')!.sections[0];
+    expect(Object.keys(contact.data)).toEqual(['title', 'address']);
+    expect(validateSiteConfig(cfg, BASIC).ok).toBe(true);
+  });
+
   it('each stub has its own id and validates its own default config', () => {
     for (const id of Object.values(SiteTheme)) {
       expect(THEMES[id].id).toBe(id);

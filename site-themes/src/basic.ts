@@ -15,6 +15,8 @@ const rich = (key: string, defaults: BilingualText): ThemeField => ({
   required: true,
   defaults,
 });
+/** Optional text with no default: shown only when the school fills it in. */
+const optional = (key: string): ThemeField => ({ key, kind: 'text', required: false });
 const images = (key: string, slot: SiteMediaSlot): ThemeField => ({
   key,
   kind: 'images',
@@ -152,8 +154,28 @@ export const BASIC: ThemeManifest = {
       fields: [
         text('title', t('যোগাযোগ', 'Contact')),
         text('address', t('স্কুলের ঠিকানা লিখুন', 'Write your school address')),
+        // The map, WhatsApp and Facebook links the site shows when filled (latitude and longitude
+        // as plain numbers, WhatsApp as a number or wa.me link, Facebook as an https link).
+        optional('lat'),
+        optional('lng'),
+        optional('whatsapp'),
+        optional('facebook'),
       ],
     },
+    {
+      key: SiteSectionKey.ACADEMICS,
+      fields: [
+        text('title', t('শিক্ষা কার্যক্রম', 'Academics')),
+        rich(
+          'body',
+          t(
+            'আপনার স্কুলের শ্রেণি ও পাঠ্যক্রমের কথা এখানে লিখুন।',
+            'Write about your classes and curriculum here.',
+          ),
+        ),
+      ],
+    },
+    { key: SiteSectionKey.ROUTINE, fields: [text('title', t('ক্লাস রুটিন', 'Class routine'))] },
   ],
   pages: [
     {
@@ -166,6 +188,7 @@ export const BASIC: ThemeManifest = {
       ],
     },
     { page: SitePage.ABOUT, sections: [SiteSectionKey.ABOUT] },
+    { page: SitePage.ACADEMICS, sections: [SiteSectionKey.ACADEMICS, SiteSectionKey.ROUTINE] },
     { page: SitePage.ADMISSIONS, sections: [SiteSectionKey.ADMISSIONS] },
     { page: SitePage.NOTICES, sections: [SiteSectionKey.NOTICES] },
     { page: SitePage.TEACHERS, sections: [SiteSectionKey.TEACHERS] },

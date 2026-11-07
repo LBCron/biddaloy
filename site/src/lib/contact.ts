@@ -39,3 +39,11 @@ export function mapEmbed(
       : address;
   return q ? `https://maps.google.com/maps?q=${encodeURIComponent(q)}&output=embed` : undefined;
 }
+
+/** A link or number field: the admin screens store bilingual text, older data a plain string. Both read as one string. */
+export function plainValue(v: unknown): string | undefined {
+  if (typeof v === 'string') return v;
+  const t = v as { bn?: unknown; en?: unknown } | null;
+  const s = [t?.bn, t?.en].find((x) => typeof x === 'string' && x.trim() !== '');
+  return typeof s === 'string' ? s : undefined;
+}
