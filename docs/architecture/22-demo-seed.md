@@ -637,6 +637,13 @@ export const slice: DemoSlice = {
 
 Then add one line to `SLICES` in `slices.ts` (a new file) and run the guard.
 
+### Known gaps recorded here
+
+- `school_sites.custom_domain`, `custom_domain_status`, `custom_domain_external_id`, `umami_website_id` and (40.4.08)
+  `custom_domain_records`, `custom_domain_since`, `custom_domain_checked_at` are exempt: they only mean something
+  with a live Cloudflare / Umami account, and the demo has neither. The staging `SITE_TEST_HOST` row sets only
+  `custom_domain` and `custom_domain_status` (`slices/website.ts`).
+
 ## Safety rules for anyone touching the demo seed
 
 These hold for every slice, forever. Reviewers reject a diff that breaks one.

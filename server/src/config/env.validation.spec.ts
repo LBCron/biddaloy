@@ -40,15 +40,47 @@ describe('BILLING_FREE_UNTIL (49.4)', () => {
   });
 });
 
+const ZONE = 'a'.repeat(32);
+
 describe('Cloudflare custom-domain pair (40.4.08)', () => {
   it('production refuses only one of the token and the zone', () => {
     expect(() => validate({ ...prodConfig, CF_SAAS_API_TOKEN: 'tok' })).toThrow(/CF_ZONE_ID/);
-    expect(() => validate({ ...prodConfig, CF_ZONE_ID: 'zone' })).toThrow(/CF_SAAS_API_TOKEN/);
+    expect(() => validate({ ...prodConfig, CF_ZONE_ID: ZONE })).toThrow(/CF_SAAS_API_TOKEN/);
   });
 
   it('production accepts both or neither (neither = custom domains off)', () => {
     expect(() =>
-      validate({ ...prodConfig, CF_SAAS_API_TOKEN: 'tok', CF_ZONE_ID: 'zone' }),
+      validate({ ...prodConfig, CF_SAAS_API_TOKEN: 'tok', CF_ZONE_ID: ZONE }),
+    ).not.toThrow();
+    expect(() => validate(prodConfig)).not.toThrow();
+  });
+
+  it('production refuses a zone id that is not 32 lower-case hex characters', () => {
+    expect(() => validate({ ...prodConfig, CF_SAAS_API_TOKEN: 'tok', CF_ZONE_ID: 'zone' })).toThrow(
+      /32-character/,
+    );
+    expect(() =>
+      validate({ ...prodConfig, CF_SAAS_API_TOKEN: 'tok', CF_ZONE_ID: 'A'.repeat(32) }),
+    ).toThrow(/32-character/);
+  });
+});
+
+describe('Umami pair (40.4.08)', () => {
+  const url = 'https://umami.example.org';
+  it('production refuses only one of the URL and the token', () => {
+    expect(() => validate({ ...prodConfig, UMAMI_API_URL: url })).toThrow(/UMAMI_API_TOKEN/);
+    expect(() => validate({ ...prodConfig, UMAMI_API_TOKEN: 't' })).toThrow(/UMAMI_API_URL/);
+  });
+
+  it('production refuses a URL that is not https', () => {
+    expect(() =>
+      validate({ ...prodConfig, UMAMI_API_URL: 'http://umami.example.org', UMAMI_API_TOKEN: 't' }),
+    ).toThrow(/https/);
+  });
+
+  it('production accepts both https URL and token, or neither', () => {
+    expect(() =>
+      validate({ ...prodConfig, UMAMI_API_URL: url, UMAMI_API_TOKEN: 't' }),
     ).not.toThrow();
     expect(() => validate(prodConfig)).not.toThrow();
   });

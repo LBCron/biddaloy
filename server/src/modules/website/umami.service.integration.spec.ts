@@ -7,11 +7,19 @@ import { createTestModule } from '@test/helpers/module.helper';
 import { SEED_TENANT_ID } from '@test/constants';
 import { UmamiService } from './umami.service';
 import { UmamiClient } from './umami.client';
+import { TENANT_STATUS_REDIS } from '../schools/tenant-status.service';
 
 const WEBSITE_ID = '11111111-2222-4333-8444-555555555555';
 const URL_ = 'https://umami.platform.test';
 
 /** [40.4.08] One Umami website per school, never blocking, aggregates only. */
+/** Minimal NX lock: set returns OK once per key until del. */
+const locks = new Set<string>();
+const redis = {
+  set: async (k: string) => (locks.has(k) ? null : (locks.add(k), 'OK')),
+  del: async (k: string) => (locks.delete(k), 1),
+};
+
 describe('UmamiService (integration)', () => {
   let moduleRef: TestingModule;
   let ds: DataSource;
@@ -29,7 +37,11 @@ describe('UmamiService (integration)', () => {
 
   beforeAll(async () => {
     process.env.SITE_ROOT_DOMAIN = 'schools.test';
-    moduleRef = await createTestModule(ALL_ENTITIES, [UmamiService, UmamiClient]);
+    moduleRef = await createTestModule(ALL_ENTITIES, [
+      UmamiService,
+      UmamiClient,
+      { provide: TENANT_STATUS_REDIS, useValue: redis },
+    ]);
     ds = moduleRef.get(DataSource);
     svc = moduleRef.get(UmamiService);
   }, 60000);
@@ -61,13 +73,16 @@ describe('UmamiService (integration)', () => {
     expect(await idInDb()).toBe(WEBSITE_ID);
   });
 
-  it('two concurrent first publishes still create one website', async () => {
+  it('two concurrent first publishes create one website (the loser returns null, no 2nd request)', async () => {
     pool().intercept({ path: '/api/websites', method: 'POST' }).reply(200, { id: WEBSITE_ID });
     const [a, b] = await Promise.all([
       svc.ensureWebsite(SEED_TENANT_ID),
       svc.ensureWebsite(SEED_TENANT_ID),
     ]);
-    expect([a, b]).toEqual([WEBSITE_ID, WEBSITE_ID]);
+    // The loser either read the winner's id or lost the lock (null); never a second site (one intercept only).
+    expect([a, b].every((x) => x === WEBSITE_ID || x === null)).toBe(true);
+    expect([a, b]).toContain(WEBSITE_ID);
+    expect(await idInDb()).toBe(WEBSITE_ID);
   });
 
   it('Umami down returns null and never throws', async () => {

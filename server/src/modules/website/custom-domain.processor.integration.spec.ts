@@ -10,6 +10,9 @@ import { CloudflareSaasClient } from './cloudflare-saas.client';
 import { SiteConfigService } from './site-config.service';
 import { SiteCacheService } from './public/site-cache.service';
 import { SiteHostService } from './public/site-host.service';
+import { TENANT_STATUS_REDIS } from '../schools/tenant-status.service';
+import { Logger } from '@nestjs/common';
+import { vi } from 'vitest';
 
 const OTHER_TENANT = '00000000-0000-4000-8000-0000000000e5';
 const ZONE = 'b'.repeat(32);
@@ -29,8 +32,30 @@ const cfAnswer = (status: string, ssl: string) => ({
   },
 });
 
-/** [40.4.08] The status poll and the host lookup against a real DB and a faked api.cloudflare.com. */
+/** [40.4.08] Status poll, host lookup and write cap against a real DB and a faked api.cloudflare.com. */
+/** In-memory stand-in for the Redis calls the service makes. */
+function fakeRedis() {
+  const counts = new Map<string, number>();
+  const redis = {
+    down: false,
+    incr: async (k: string) => {
+      if (redis.down) throw new Error('redis down');
+      counts.set(k, (counts.get(k) ?? 0) + 1);
+      return counts.get(k)!;
+    },
+    pexpire: async () => 1,
+    set: async () => 'OK',
+    del: async () => 1,
+    reset: () => {
+      counts.clear();
+      redis.down = false;
+    },
+  };
+  return redis;
+}
+
 describe('custom domain (integration)', () => {
+  const redis = fakeRedis();
   let moduleRef: TestingModule;
   let ds: DataSource;
   let svc: CustomDomainService;
@@ -60,6 +85,7 @@ describe('custom domain (integration)', () => {
       CloudflareSaasClient,
       SiteHostService,
       { provide: SiteConfigService, useValue: { get: async () => ({}) } },
+      { provide: TENANT_STATUS_REDIS, useValue: redis },
       { provide: SiteCacheService, useValue: { invalidate: async () => undefined } },
     ]);
     ds = moduleRef.get(DataSource);
@@ -75,6 +101,7 @@ describe('custom domain (integration)', () => {
   });
 
   beforeEach(async () => {
+    redis.reset();
     await clean();
     agent = new MockAgent();
     agent.disableNetConnect();
@@ -85,6 +112,17 @@ describe('custom domain (integration)', () => {
       [SEED_TENANT_ID],
     );
   });
+
+  const makeOther = async () => {
+    await ds.query(
+      `INSERT INTO schools (id, name, slug, created_at, updated_at) VALUES ($1,'Other CD School','other-cd-int',NOW(),NOW()) ON CONFLICT DO NOTHING`,
+      [OTHER_TENANT],
+    );
+    await ds.query(
+      `INSERT INTO school_sites (tenant_id, subdomain, palette, draft) VALUES ($1,'cd-int-other','blue','{}') ON CONFLICT DO NOTHING`,
+      [OTHER_TENANT],
+    );
+  };
 
   const attach = async () => {
     pool()
@@ -132,7 +170,7 @@ describe('custom domain (integration)', () => {
     expect(await row()).toMatchObject({ custom_domain_status: 'PENDING_DNS', version: v });
   });
 
-  it('a pending host older than 7 days without progress becomes FAILED', async () => {
+  it('a pending host older than 7 days without progress becomes FAILED and is released', async () => {
     await attach();
     await ds.query(`UPDATE school_sites SET custom_domain_since = $2 WHERE tenant_id = $1`, [
       SEED_TENANT_ID,
@@ -141,9 +179,276 @@ describe('custom domain (integration)', () => {
     pool()
       .intercept({ path: `${BASE}/${CF_ID}`, method: 'GET' })
       .reply(200, cfAnswer('pending', 'initializing'));
+    // FAILED deletes the billed hostname at Cloudflare and releases the name.
+    pool()
+      .intercept({ path: `${BASE}/${CF_ID}`, method: 'DELETE' })
+      .reply(200, { success: true, result: { id: CF_ID } });
     await svc.pollPending(T0);
-    expect((await row()).custom_domain_status).toBe('FAILED');
+    expect(await row()).toMatchObject({
+      custom_domain: null,
+      custom_domain_status: 'FAILED',
+      custom_domain_external_id: null,
+    });
     expect(await hosts.resolve(HOST)).toBeNull();
+  });
+
+  it('tenant B can claim a host after tenant A FAILED and released it', async () => {
+    await attach();
+    await ds.query(`UPDATE school_sites SET custom_domain_since = $2 WHERE tenant_id = $1`, [
+      SEED_TENANT_ID,
+      new Date(T0.getTime() - 8 * 86_400_000),
+    ]);
+    pool()
+      .intercept({ path: `${BASE}/${CF_ID}`, method: 'GET' })
+      .reply(200, cfAnswer('pending', 'initializing'));
+    pool()
+      .intercept({ path: `${BASE}/${CF_ID}`, method: 'DELETE' })
+      .reply(200, { success: true, result: { id: CF_ID } });
+    await svc.pollPending(T0);
+    await makeOther();
+    pool()
+      .intercept({ path: BASE, method: 'POST' })
+      .reply(200, {
+        success: true,
+        result: { ...cfAnswer('pending', 'initializing').result, id: 'f'.repeat(32) },
+      });
+    await svc.set(OTHER_TENANT, HOST);
+    expect((await row(OTHER_TENANT)).custom_domain).toBe(HOST);
+  });
+
+  it('a pending host Cloudflare says is blocked is deleted and released', async () => {
+    await attach();
+    pool()
+      .intercept({ path: `${BASE}/${CF_ID}`, method: 'GET' })
+      .reply(200, cfAnswer('blocked', 'initializing'));
+    pool()
+      .intercept({ path: `${BASE}/${CF_ID}`, method: 'DELETE' })
+      .reply(200, { success: true, result: { id: CF_ID } });
+    await svc.pollPending(min(10));
+    expect(await row()).toMatchObject({ custom_domain: null, custom_domain_status: 'FAILED' });
+  });
+
+  it('an ACTIVE host is re-polled after a day and released when Cloudflare says moved', async () => {
+    await attach();
+    await ds.query(
+      `UPDATE school_sites SET custom_domain_status = 'ACTIVE', custom_domain_checked_at = $2 WHERE tenant_id = $1`,
+      [SEED_TENANT_ID, T0],
+    );
+    // Within a day nothing is asked (no intercept: a call would fail), the row stays ACTIVE.
+    await svc.pollPending(min(60));
+    expect((await row()).custom_domain_status).toBe('ACTIVE');
+    // After a day a Cloudflare flap to "pending" never downgrades it.
+    pool()
+      .intercept({ path: `${BASE}/${CF_ID}`, method: 'GET' })
+      .reply(200, cfAnswer('pending', 'initializing'));
+    await svc.pollPending(new Date(T0.getTime() + 2 * 86_400_000));
+    expect((await row()).custom_domain_status).toBe('ACTIVE');
+    // "moved": FAILED and released.
+    pool()
+      .intercept({ path: `${BASE}/${CF_ID}`, method: 'GET' })
+      .reply(200, cfAnswer('moved', 'active'));
+    pool()
+      .intercept({ path: `${BASE}/${CF_ID}`, method: 'DELETE' })
+      .reply(200, { success: true, result: { id: CF_ID } });
+    await svc.pollPending(new Date(T0.getTime() + 4 * 86_400_000));
+    expect(await row()).toMatchObject({ custom_domain: null, custom_domain_status: 'FAILED' });
+    expect(await hosts.resolve(HOST)).toBeNull();
+  });
+
+  it('a create whose answer was lost is adopted from the Cloudflare lookup (no orphan)', async () => {
+    pool()
+      .intercept({ path: BASE, method: 'POST' })
+      .reply(409, { success: false, errors: [{ message: 'Duplicate custom hostname found.' }] });
+    pool()
+      .intercept({ path: `${BASE}?hostname=${encodeURIComponent(HOST)}`, method: 'GET' })
+      .reply(200, {
+        success: true,
+        result: [{ ...cfAnswer('pending', 'initializing').result, hostname: HOST }],
+      });
+    const dto = await svc.set(SEED_TENANT_ID, HOST);
+    expect(dto).toMatchObject({ host: HOST, status: 'PENDING_DNS' });
+    expect((await row()).custom_domain_external_id).toBe(CF_ID);
+  });
+
+  it('a stuck claim (no Cloudflare id for 15 min) is released when Cloudflare has nothing', async () => {
+    await ds.query(
+      `UPDATE school_sites SET custom_domain = $2, custom_domain_status = 'PENDING_DNS', custom_domain_since = $3 WHERE tenant_id = $1`,
+      [SEED_TENANT_ID, HOST, T0],
+    );
+    await svc.pollPending(min(5)); // too young: untouched
+    expect((await row()).custom_domain).toBe(HOST);
+    pool()
+      .intercept({ path: `${BASE}?hostname=${encodeURIComponent(HOST)}`, method: 'GET' })
+      .reply(200, { success: true, result: [] });
+    await svc.pollPending(min(30));
+    expect((await row()).custom_domain).toBeNull();
+  });
+
+  it('a failed create only undoes its own claim, never a committed Cloudflare id', async () => {
+    pool()
+      .intercept({ path: `${BASE}?hostname=${encodeURIComponent(HOST)}`, method: 'GET' })
+      .reply(502, { success: false });
+    // A concurrent winner commits its id while our create is in flight.
+    const spy = vi
+      .spyOn(CloudflareSaasClient.prototype, 'create')
+      .mockImplementationOnce(async () => {
+        await ds.query(
+          `UPDATE school_sites SET custom_domain_external_id = $2 WHERE tenant_id = $1`,
+          [SEED_TENANT_ID, CF_ID],
+        );
+        throw new Error('boom');
+      });
+    await expect(svc.set(SEED_TENANT_ID, HOST)).rejects.toMatchObject({
+      message: 'site.custom_domain_try_later',
+    });
+    spy.mockRestore();
+    expect(await row()).toMatchObject({ custom_domain: HOST, custom_domain_external_id: CF_ID });
+  });
+
+  describe('replace', () => {
+    const NEW_HOST = 'www.cd-int-new.example.edu';
+    const NEW_ID = '9'.repeat(32);
+    const makeActive = async () => {
+      await attach();
+      await ds.query(
+        `UPDATE school_sites SET custom_domain_status = 'ACTIVE' WHERE tenant_id = $1`,
+        [SEED_TENANT_ID],
+      );
+    };
+
+    it('a refused replace (Cloudflare rejects) leaves the ACTIVE domain untouched', async () => {
+      await makeActive();
+      pool()
+        .intercept({ path: BASE, method: 'POST' })
+        .reply(400, { success: false, errors: [{ message: 'hostname is not allowed' }] });
+      await expect(svc.set(SEED_TENANT_ID, NEW_HOST)).rejects.toMatchObject({
+        message: 'site.custom_domain_unavailable',
+      });
+      expect(await row()).toMatchObject({
+        custom_domain: HOST,
+        custom_domain_status: 'ACTIVE',
+        custom_domain_external_id: CF_ID,
+      });
+      expect(await hosts.resolve(HOST)).toMatchObject({ tenantId: SEED_TENANT_ID });
+    });
+
+    it('a replace onto a host another school owns is refused before Cloudflare, domain untouched', async () => {
+      await makeActive();
+      await makeOther();
+      await ds.query(`UPDATE school_sites SET custom_domain = $2 WHERE tenant_id = $1`, [
+        OTHER_TENANT,
+        NEW_HOST,
+      ]);
+      await expect(svc.set(SEED_TENANT_ID, NEW_HOST)).rejects.toMatchObject({
+        message: 'site.custom_domain_unavailable',
+      });
+      expect((await row()).custom_domain).toBe(HOST);
+    });
+
+    it('Cloudflare down during a replace keeps the old domain', async () => {
+      await makeActive();
+      pool().intercept({ path: BASE, method: 'POST' }).reply(503, { success: false });
+      await expect(svc.set(SEED_TENANT_ID, NEW_HOST)).rejects.toMatchObject({
+        message: 'site.custom_domain_try_later',
+      });
+      expect(await row()).toMatchObject({ custom_domain: HOST, custom_domain_status: 'ACTIVE' });
+    });
+
+    it('a successful replace creates the new hostname first, swaps, then deletes the old', async () => {
+      await makeActive();
+      pool()
+        .intercept({ path: BASE, method: 'POST' })
+        .reply(200, {
+          success: true,
+          result: { ...cfAnswer('pending', 'initializing').result, id: NEW_ID },
+        });
+      pool()
+        .intercept({ path: `${BASE}/${CF_ID}`, method: 'DELETE' })
+        .reply(200, { success: true, result: { id: CF_ID } });
+      const dto = await svc.set(SEED_TENANT_ID, NEW_HOST);
+      expect(dto).toMatchObject({ host: NEW_HOST, status: 'PENDING_DNS' });
+      expect((await row()).custom_domain_external_id).toBe(NEW_ID);
+    });
+  });
+
+  describe('remove and Cloudflare 4xx', () => {
+    it('a 4xx saying the hostname does not exist clears the row', async () => {
+      await attach();
+      pool()
+        .intercept({ path: `${BASE}/${CF_ID}`, method: 'DELETE' })
+        .reply(400, { success: false, errors: [{ message: 'Custom hostname does not exist.' }] });
+      await svc.remove(SEED_TENANT_ID);
+      expect((await row()).custom_domain).toBeNull();
+    });
+
+    it('any other 4xx stays "try later" and keeps the row', async () => {
+      await attach();
+      pool()
+        .intercept({ path: `${BASE}/${CF_ID}`, method: 'DELETE' })
+        .reply(400, { success: false, errors: [{ message: 'something else' }] });
+      await expect(svc.remove(SEED_TENANT_ID)).rejects.toMatchObject({
+        message: 'site.custom_domain_try_later',
+      });
+      expect((await row()).custom_domain).toBe(HOST);
+    });
+  });
+
+  describe('write cap (the Cloudflare token is shared by every school)', () => {
+    it('the 21st PUT in an hour is 429', async () => {
+      pool()
+        .intercept({ path: BASE, method: 'POST' })
+        .reply(200, cfAnswer('pending', 'initializing'));
+      await svc.set(SEED_TENANT_ID, HOST);
+      for (let i = 0; i < 19; i++) await svc.set(SEED_TENANT_ID, HOST); // same host: early return, still charged
+      await expect(svc.set(SEED_TENANT_ID, HOST)).rejects.toMatchObject({ status: 429 });
+    });
+
+    it('Redis down: PUT fails closed (503), DELETE still works', async () => {
+      redis.down = true;
+      await expect(svc.set(SEED_TENANT_ID, HOST)).rejects.toMatchObject({
+        message: 'site.custom_domain_try_later',
+      });
+      await expect(svc.remove(SEED_TENANT_ID)).resolves.toBeUndefined();
+    });
+  });
+
+  it('the API token never appears in logs or errors across failing Cloudflare calls', async () => {
+    const logged: string[] = [];
+    const spies = (['warn', 'error', 'log'] as const).map((m) =>
+      vi.spyOn(Logger.prototype, m).mockImplementation((...a: unknown[]) => {
+        logged.push(a.map(String).join(' '));
+      }),
+    );
+    pool()
+      .intercept({ path: BASE, method: 'POST' })
+      .reply(500, {
+        success: false,
+        errors: [{ message: 'token test-token-never-logged rejected' }],
+      });
+    pool()
+      .intercept({ path: `${BASE}?hostname=${encodeURIComponent(HOST)}`, method: 'GET' })
+      .reply(500, {});
+    const err = await svc.set(SEED_TENANT_ID, HOST).catch((e) => e);
+    spies.forEach((x) => x.mockRestore());
+    expect(logged.length).toBeGreaterThan(0);
+    expect(JSON.stringify([logged, err.message, err.getResponse?.()])).not.toContain(
+      'test-token-never-logged',
+    );
+  });
+
+  it('a Cloudflare 4xx WITH error text maps to the fixed 409 and echoes nothing', async () => {
+    pool()
+      .intercept({ path: BASE, method: 'POST' })
+      .reply(400, {
+        success: false,
+        errors: [{ message: 'Hostname www.cd-int.example.edu is banned by policy 77' }],
+      });
+    pool()
+      .intercept({ path: `${BASE}?hostname=${encodeURIComponent(HOST)}`, method: 'GET' })
+      .reply(200, { success: true, result: [] });
+    const err = await svc.set(SEED_TENANT_ID, HOST).catch((e) => e);
+    expect(err.message).toBe('site.custom_domain_unavailable');
+    expect(JSON.stringify(err.getResponse())).not.toContain('banned');
   });
 
   it('another school claiming the same host gets the one fixed refusal and never resolves it', async () => {

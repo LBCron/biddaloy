@@ -170,6 +170,32 @@ TXT    _cf-custom-hostname.www.myschool.edu.bd  -> <value from Cloudflare>
 | `CF_SAAS_FALLBACK_ORIGIN`           | Default `sites.<SITE_ROOT_DOMAIN>`.                                           |
 | `UMAMI_API_URL` + `UMAMI_API_TOKEN` | Both set = first publish creates one Umami site. Unset = no analytics.        |
 
+**Custom hosts only once edge routes them (follow-up).** Today the edge nginx does not send an unknown `Host` to the
+site container (Rule 12 answers 444), so an ACTIVE custom domain resolves in the API but a visitor cannot reach it
+until a reviewed edge change lands.
+
+Failure and release rules:
+
+- A name is claimed in `school_sites.custom_domain` (unique) before Cloudflare is asked. A lost create answer is
+  adopted by looking the hostname up; a claim with no Cloudflare id after 15 minutes is adopted or released.
+- A host that FAILS (7 days stuck, or Cloudflare says blocked/moved/deleted) is deleted at Cloudflare and its name
+  released, so another school can claim it. The status stays `FAILED` with no host so the school sees why.
+- ACTIVE hosts are asked about once a day (inside the same 200 per tick cap).
+- Replacing a domain creates the new hostname first, swaps the row, then deletes the old one. A refused replace
+  leaves the live domain untouched.
+- `PUT` and `DELETE` carry the route throttle plus an hourly per-school cap (20) in Redis, because one Cloudflare
+  token serves every school. `PUT` fails closed if Redis is down; `DELETE` fails open.
+- A publish that races a status change can answer `site.stale`; the admin screen reloads and retries.
+
+### Not done / follow-ups
+
+- Edge routing of custom hosts (the blocker above), its own reviewed ticket.
+- Dangling-CNAME takeover: confirm in Cloudflare's docs whether it validates a CNAME that already points at the
+  fallback origin without the ownership TXT.
+- Deleting a school should delete its Cloudflare hostname (today only the DB row cascades).
+- `Idempotency-Key` does not compare the request body: the same key with another host replays the first answer.
+- The three new nullable columns are exempt from the demo seed (see `22-demo-seed.md`).
+
 The server cannot see `EDGE_MODE` (it is an edge container variable), so "direct mode" means the operator leaves the
 two Cloudflare values empty. Every refusal (off, malformed, platform name, taken by another school) is one 409
 `site.custom_domain_unavailable`; Cloudflare down is 503 `site.custom_domain_try_later`.
