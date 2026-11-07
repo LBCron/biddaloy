@@ -102,6 +102,8 @@ import { SchoolSite } from './modules/website/entities/school-site.entity';
 import { SiteEnquiry } from './modules/website/entities/site-enquiry.entity';
 import { SiteMedia } from './modules/website/entities/site-media.entity';
 import { SitePost } from './modules/website/entities/site-post.entity';
+import { SiteGalleryAlbum } from './modules/website/entities/site-gallery-album.entity';
+import { SiteGalleryPhoto } from './modules/website/entities/site-gallery-photo.entity';
 import { StaffWebProfile } from './modules/website/entities/staff-web-profile.entity';
 import { Survey } from './modules/surveys/entities/survey.entity';
 import { SurveyQuestion } from './modules/surveys/entities/survey-question.entity';
@@ -422,6 +424,8 @@ import { PromotionEntry } from './modules/promotions/entities/promotion-entry.en
             SiteEnquiry,
             SiteMedia,
             SitePost,
+            SiteGalleryAlbum,
+            SiteGalleryPhoto,
             StaffWebProfile,
             PlatformAlert,
             SeatOrder,
