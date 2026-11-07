@@ -321,8 +321,13 @@ test('desktop: upload an attendance sheet', async ({ page }, info) => {
   // 01 — the way in: Attendance > Uploaded sheets in the menu, then the page's upload button.
   // There is no menu item for the wizard itself (D14); the palette is the other way in.
   const sidebar = page.getByRole('complementary').getByRole('navigation');
-  await sidebar.getByRole('button', { name: nav.groups.attendance, exact: true }).click();
   const menuLink = sidebar.getByRole('link', { name: nav.items.uploads, exact: true });
+  // The group opens by itself on /attendance; a click would fold it shut.
+  await sidebar.getByRole('button', { name: nav.groups.attendance, exact: true }).waitFor();
+  await page.waitForTimeout(1500); // let the sidebar settle: isVisible() does not wait
+  if (!(await menuLink.isVisible())) {
+    await sidebar.getByRole('button', { name: nav.groups.attendance, exact: true }).click();
+  }
   await menuLink.click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(up.history.title);
   const uploadNew = page.getByRole('button', { name: up.history.uploadNew, exact: true });
@@ -332,7 +337,9 @@ test('desktop: upload an attendance sheet', async ({ page }, info) => {
 
   // 02 — pick the section and DAY (the wizard starts on the real today).
   await page.getByLabel(SHOT_SECTION).check();
-  await page.getByLabel(up.pick.date, { exact: true }).click();
+  // The date field is a button named "<label>, <value>", not a labelled input.
+  const dateButton = page.getByRole('button', { name: new RegExp(`^${up.pick.date},`) });
+  await dateButton.click();
   await expect(page.getByRole('grid', { name: tr('common', 'date.calendar') })).toBeVisible();
   const dayCell = page.locator(`[role="grid"] [data-date="${DAY}"]`);
   for (let i = 0; i < 12 && !(await dayCell.isVisible()); i++) {
@@ -342,7 +349,7 @@ test('desktop: upload an attendance sheet', async ({ page }, info) => {
   await expect(dayCell).toBeHidden();
   await shoot(page, file('uploads-02-pick.png'), [
     { target: page.getByRole('group', { name: up.pick.sections }) },
-    { target: page.getByLabel(up.pick.date) },
+    { target: dateButton },
   ]);
 
   // 03 — the download button, then the real sheet is filled in below.
