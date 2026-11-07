@@ -117,3 +117,24 @@ subdomain or custom domain, and only moves `version` / `draft_revision` forward.
   migrations failed with missing exports until the packages were linked to the worktree and `yarn build:shared`
   and `yarn build:site-themes` ran. Rule candidate: an e2e run in a worktree links `@biddaloy/*` to its own
   packages and builds shared first.
+- **2026-11-07 (W3).** Surprise: every wave so far had at least one hand-typed API shape that the server did not
+  match (W2 `media.url`; W3 a post `excerpt`, a bare `string[]` of suggestions, enquiry `status`, teacher `name`).
+  Cost: one fix round per wave, found only after `schema.d.ts` was regenerated. Fix: client lanes now use generated
+  types only. Rule candidate: regenerate `schema.d.ts` the moment a server lane lands, and brief client lanes from it.
+- **2026-11-07 (W3).** Surprise: the logo is stored twice. The website screens upload to the `logo` site-media slot,
+  the public site served `schools.logo_key`, so a new logo never showed. Cost: found by review, not by any test.
+  Fix: `/media/logo` and the manifest prefer the newest site-media logo and fall back to the profile logo; the
+  manifest cache key carries the logo row id because uploads do not bump `school_sites.version`. Rule candidate: when
+  two places can hold one picture, name which one the public read uses before building the upload.
+- **2026-11-07 (W3).** Surprise: one accumulating branch reached 141 files. Cost: it could not become a PR under
+  the 100-file cap and could not be rewritten (no force push), so it was rebuilt as three stacked branches. Rule
+  candidate: count files after every cherry-pick and cut at about 80, before the branch is pushed.
+- **2026-11-07 (W3).** Surprise: a public query parameter (`?classSectionId=`) went straight into a Redis key.
+  Cost: caught in review; anyone could have created unbounded keys. Fix: validate and check the school owns it
+  before the cache is touched. Rule candidate: nothing a visitor sends becomes a cache key unchecked.
+- **2026-11-07 (W3).** Surprise: ticking "Public" on a notice used to mean only "anyone with the link"; it now also
+  lists the notice on the school website, and old public notices appear after the first publish. Fix: the field note
+  and the guide say both. Rule candidate: renaming a flag's meaning needs the wording and the guide changed together.
+- **2026-11-07 (W3).** Surprise: running the integration and e2e suites together on one machine produced only
+  timeouts, with a different failing file each run, and every file passed alone. Cost: hours of reruns with no
+  signal. Fix: gates run one section at a time in one agent. Rule candidate: record the load average with every gate.
