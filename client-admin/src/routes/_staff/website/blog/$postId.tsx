@@ -28,7 +28,7 @@ import {
   type SitePost,
 } from '@biddaloy/ui/hooks';
 import { useTranslation } from '@biddaloy/ui/i18n';
-import type { RichTextValue } from '@biddaloy/ui/rich-text-editor';
+import { countImages, toPlainText, type RichTextValue } from '@biddaloy/ui/rich-text-editor';
 import { FullPageShell, useCloseFullPage } from '@biddaloy/ui/shells';
 import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
@@ -147,6 +147,11 @@ function PostEditor({ post: initial }: { post: SitePost | null }) {
   /** Saves the draft text; a new post is created first and its page opened in place. */
   async function save(): Promise<SitePost | null> {
     setError(null);
+    // The server answers an empty body with 400; say it plainly here first. A photo alone counts.
+    if (toPlainText(body).trim() === '' && countImages(body) === 0) {
+      setError(t('blog.bodyEmpty'));
+      return null;
+    }
     const input = {
       title: { bn: title.bn.trim(), en: title.en.trim() },
       body,

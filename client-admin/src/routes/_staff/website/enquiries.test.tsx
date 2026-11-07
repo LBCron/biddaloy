@@ -87,6 +87,7 @@ describe('/website/enquiries', () => {
     render();
     const link = await screen.findByRole('link', { name: 'Call Rahim' });
     expect(link.getAttribute('href')).toBe('tel:01712345678');
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(screen.getByText('Rahim').className).toContain('font-semibold');
     expect(screen.getByText('Karim').className).not.toContain('font-semibold');
   });

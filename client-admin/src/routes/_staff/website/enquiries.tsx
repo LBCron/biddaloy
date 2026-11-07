@@ -8,6 +8,7 @@ import { SitePage, SiteSectionKey, type SiteConfig } from '@biddaloy/shared';
 import { ApiError } from '@biddaloy/ui/api';
 import {
   ConfirmDialog,
+  DataTable,
   RoutePending,
   Switch,
   toast,
@@ -26,7 +27,7 @@ import {
   type SiteEnquiry,
 } from '@biddaloy/ui/hooks';
 import { useTenantRegionConfig, useTranslation } from '@biddaloy/ui/i18n';
-import { ListShell, useListShellState } from '@biddaloy/ui/shells';
+import { useListShellState } from '@biddaloy/ui/shells';
 import { formatDateTime } from '@biddaloy/ui/utils';
 import { createFileRoute } from '@tanstack/react-router';
 import * as React from 'react';
@@ -186,8 +187,7 @@ function Enquiries() {
         </span>
       </label>
 
-      <ListShell
-        title={t('enquiries.title')}
+      <DataTable
         tableId="website-enquiries"
         caption={t('enquiries.tableCaption')}
         columns={columns}
