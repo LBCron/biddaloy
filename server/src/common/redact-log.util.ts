@@ -13,7 +13,7 @@ const PHONE_PATTERN = /(?:\+?880|0)1[3-9]\d{8}/g;
 // pattern static analysis tools flag as a potential ReDoS vector even
 // though these keys are a fixed internal list, never user input.
 const SENSITIVE_QUERY_PATTERN =
-  /([?&](?:password|token|access_token|refresh_token|secret|api_key|apikey|device_key|devicekey|otp|code)=)[^&\s]+/gi;
+  /([?&](?:password|token|access_token|refresh_token|secret|api_key|apikey|device_key|devicekey|otp|code|preview)=)[^&\s]+/gi;
 
 // Same key list, shaped for a JSON `"key":"value"` pair instead of a query
 // param — a Postgres constraint-violation DETAIL can echo the offending

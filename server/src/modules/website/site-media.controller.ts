@@ -1,5 +1,10 @@
 import {
+  CallHandler,
   Controller,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+  PayloadTooLargeException,
   Delete,
   Get,
   HttpCode,
@@ -11,6 +16,7 @@ import {
   UseInterceptors,
   Body,
 } from '@nestjs/common';
+import { catchError, throwError } from 'rxjs';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -25,6 +31,20 @@ import { SITE_MEDIA_MAX_UPLOAD_BYTES, SiteMediaService, mediaRejected } from './
 import { SiteMediaDto, SiteMediaListDto, UploadSiteMediaDto } from './dto/site-media.dto';
 
 type Tenant = { id: string };
+
+/** Multer's 413 for a too-big file becomes the same fixed sentence as every other failure (Rule 23). */
+@Injectable()
+class OversizeAsRejected implements NestInterceptor {
+  intercept(_ctx: ExecutionContext, next: CallHandler) {
+    return next
+      .handle()
+      .pipe(
+        catchError((e) =>
+          throwError(() => (e instanceof PayloadTooLargeException ? mediaRejected() : e)),
+        ),
+      );
+  }
+}
 
 /** [40.2.01] Site pictures. WEBSITE_MANAGE on every route. */
 @ApiTags('website')
@@ -45,6 +65,7 @@ export class SiteMediaController {
   @Post()
   @UseInterceptors(
     IdempotencyInterceptor,
+    OversizeAsRejected,
     FileInterceptor('file', { limits: { fileSize: SITE_MEDIA_MAX_UPLOAD_BYTES } }),
   )
   @ApiConsumes('multipart/form-data')

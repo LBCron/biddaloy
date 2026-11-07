@@ -41,12 +41,21 @@ function setup(o: { current?: string; taken?: boolean } = {}) {
     andWhere: () => qb,
     getExists: async () => o.taken ?? false,
   };
-  const sites = {
-    createQueryBuilder: () => qb,
-    update: vi.fn(async (_w: unknown, set: unknown) => {
-      state.update = set;
-    }),
+  const update = vi.fn(async (_e: unknown, _w: unknown, set: unknown) => {
+    state.update = set;
+  });
+  const freed: unknown[] = [];
+  const mq: Record<string, unknown> = {
+    update: () => mq,
+    set: (v: unknown) => (freed.push(v), mq),
+    where: () => mq,
+    execute: async () => undefined,
   };
+  const manager = {
+    transaction: async (cb: (m: unknown) => unknown) =>
+      cb({ update, createQueryBuilder: () => mq }),
+  };
+  const sites = { createQueryBuilder: () => qb, manager, update };
   const config = { get: vi.fn(async () => ({ subdomain: state.subdomain })) };
   const cache = { invalidate: vi.fn(async () => undefined) };
   const schools = { findOneOrFail: vi.fn(async () => ({ name: 'Green Valley' })) };
@@ -56,7 +65,7 @@ function setup(o: { current?: string; taken?: boolean } = {}) {
     config as never,
     cache as never,
   );
-  return { svc, sites, cache, state };
+  return { svc, sites, cache, state, freed };
 }
 
 describe('SubdomainService', () => {
@@ -95,6 +104,14 @@ describe('SubdomainService', () => {
       expect(sites.update).not.toHaveBeenCalled();
     }
     expect(new Set(messages)).toEqual(new Set(['site.subdomain_unavailable']));
+  });
+
+  it('rename frees an expired redirect of another school on the name being left', async () => {
+    // School X left `foo` long ago, Y took it, and now Y renames: X's stale row is cleared first.
+    const { svc, freed, state } = setup({ current: 'foo' });
+    await svc.rename('t1', 'bar');
+    expect(freed).toEqual([{ previous_subdomain: null, previous_until: null }]);
+    expect((state.update as { subdomain: string }).subdomain).toBe('bar');
   });
 
   it('rename to the current name changes nothing', async () => {

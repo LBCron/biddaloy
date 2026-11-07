@@ -37,6 +37,13 @@ describe('redactPii', () => {
     expect(redactPii('/api/v1/login?password=hunter2')).toBe('/api/v1/login?password=[REDACTED]');
   });
 
+  it('masks a website preview token (bearer link, Rule 13)', () => {
+    expect(redactPii('GET /manifest?x=1&preview=tenant.123.sig_-abc HTTP')).toBe(
+      'GET /manifest?x=1&preview=[REDACTED] HTTP',
+    );
+    expect(redactPii('/p?preview=a.b.c')).toBe('/p?preview=[REDACTED]');
+  });
+
   // 12.1's invitation/reset links carry the raw secret as a `token` query
   // param (`/activate?token=...`) — the exact shape a request-URL log line
   // would carry if a delivery failure or an access log ever printed it.

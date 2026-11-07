@@ -92,41 +92,48 @@ export class SiteMediaService {
     const p = await this.prepare(slot, file);
     await this.config.get(tenantId); // the site row exists
     const hash = createHash('sha256').update(p.out).digest('hex');
-    return this.media.manager.transaction(async (m) => {
-      // The row lock makes the quota check and the byte count one step per school.
-      const site = await m
-        .getRepository(SchoolSite)
-        .createQueryBuilder('s')
-        .where('s.tenant_id = :tenantId', { tenantId })
-        .setLock('pessimistic_write')
-        .getOneOrFail();
-      const same = await m.findOne(SiteMedia, { where: { tenant_id: tenantId, hash } });
-      if (same) return toDto(same);
-      if (Number(site.media_bytes_used) + p.out.length > SITE_MEDIA_QUOTA_BYTES) {
-        throw mediaRejected();
-      }
-      // Under `tenants/<id>/` so the storage service's own-prefix check accepts it later.
-      // ponytail: a commit failure after the put leaves one orphan object; a sweep job if it ever matters.
-      const key = `tenants/${tenantId}/site/${hash}.webp`;
-      await this.storage.put(key, p.out, 'image/webp');
-      const row = await m.save(
-        m.create(SiteMedia, {
-          tenant_id: tenantId,
-          slot: p.slot,
-          storage_key: key,
-          hash,
-          width: p.width,
-          height: p.height,
-          bytes: p.out.length,
-        }),
-      );
-      await m.update(
-        SchoolSite,
-        { tenant_id: tenantId },
-        { media_bytes_used: () => `media_bytes_used + ${p.out.length}` },
-      );
-      return toDto(row);
-    });
+    let putKey: string | null = null;
+    try {
+      return await this.media.manager.transaction(async (m) => {
+        // The row lock makes the quota check and the byte count one step per school.
+        const site = await m
+          .getRepository(SchoolSite)
+          .createQueryBuilder('s')
+          .where('s.tenant_id = :tenantId', { tenantId })
+          .setLock('pessimistic_write')
+          .getOneOrFail();
+        const same = await m.findOne(SiteMedia, { where: { tenant_id: tenantId, hash } });
+        if (same) return toDto(same);
+        if (Number(site.media_bytes_used) + p.out.length > SITE_MEDIA_QUOTA_BYTES) {
+          throw mediaRejected();
+        }
+        // Under `tenants/<id>/` so the storage service's own-prefix check accepts it later.
+        const key = `tenants/${tenantId}/site/${hash}.webp`;
+        await this.storage.put(key, p.out, 'image/webp');
+        putKey = key;
+        const row = await m.save(
+          m.create(SiteMedia, {
+            tenant_id: tenantId,
+            slot: p.slot,
+            storage_key: key,
+            hash,
+            width: p.width,
+            height: p.height,
+            bytes: p.out.length,
+          }),
+        );
+        await m.update(
+          SchoolSite,
+          { tenant_id: tenantId },
+          { media_bytes_used: () => `media_bytes_used + ${p.out.length}` },
+        );
+        return toDto(row);
+      });
+    } catch (e) {
+      // No row committed, and no row had this hash when we put: the object is ours alone.
+      if (putKey) await this.storage.delete(putKey).catch(() => undefined);
+      throw e;
+    }
   }
 
   async remove(tenantId: string, id: string): Promise<void> {
