@@ -129,6 +129,41 @@ export const status = {
 } as const;
 
 /**
+ * Dashboard signal scale (epic #3592, D3/D5-D8): 4 levels, OKLCH. Separate from `status`
+ * (fee-only) and `chart`. Icon pairs colour so meaning is never colour alone (D8).
+ */
+export const signal = {
+  critical: {
+    fg: 'oklch(0.5 0.19 27)',
+    bg: 'oklch(0.95 0.03 25)',
+    fgDark: 'oklch(0.75 0.15 25)',
+    bgDark: 'oklch(0.25 0.07 25)',
+    icon: 'alert-triangle',
+  },
+  warn: {
+    fg: 'oklch(0.48 0.12 65)',
+    bg: 'oklch(0.96 0.05 85)',
+    fgDark: 'oklch(0.82 0.15 80)',
+    bgDark: 'oklch(0.28 0.06 70)',
+    icon: 'clock',
+  },
+  ok: {
+    fg: 'oklch(0.48 0.13 150)',
+    bg: 'oklch(0.95 0.05 150)',
+    fgDark: 'oklch(0.8 0.17 150)',
+    bgDark: 'oklch(0.27 0.06 150)',
+    icon: 'check-circle',
+  },
+  neutral: {
+    fg: 'oklch(0.45 0.02 255)',
+    bg: 'oklch(0.95 0.005 255)',
+    fgDark: 'oklch(0.78 0.02 255)',
+    bgDark: 'oklch(0.3 0.01 255)',
+    icon: 'minus',
+  },
+} as const;
+
+/**
  * Elevation — three steps, each with a job (design contract §5). Replaces the
  * ad-hoc `shadow-sm`/`shadow-md`/`shadow-lg` picks; #350 moves the call sites.
  *
@@ -255,6 +290,7 @@ export const dark = {
 } as const;
 
 export type StatusKey = keyof typeof status;
+export type SignalKey = keyof typeof signal;
 
 /**
  * Every pair `check-contrast.mjs` verifies against WCAG 2.2: 4.5:1 for text,
@@ -269,6 +305,22 @@ export const chart = {
 } as const;
 
 export const CONTRAST_PAIRS = [
+  { name: 'critical signal fg on white', fg: signal.critical.fg, bg: neutral[0], min: 4.5 },
+  { name: 'critical signal fg on critical bg', fg: signal.critical.fg, bg: signal.critical.bg, min: 4.5 },
+  { name: 'critical signal fgDark on dark bg', fg: signal.critical.fgDark, bg: dark.bg, min: 4.5 },
+  { name: 'critical signal fgDark on critical bgDark', fg: signal.critical.fgDark, bg: signal.critical.bgDark, min: 4.5 },
+  { name: 'warn signal fg on white', fg: signal.warn.fg, bg: neutral[0], min: 4.5 },
+  { name: 'warn signal fg on warn bg', fg: signal.warn.fg, bg: signal.warn.bg, min: 4.5 },
+  { name: 'warn signal fgDark on dark bg', fg: signal.warn.fgDark, bg: dark.bg, min: 4.5 },
+  { name: 'warn signal fgDark on warn bgDark', fg: signal.warn.fgDark, bg: signal.warn.bgDark, min: 4.5 },
+  { name: 'ok signal fg on white', fg: signal.ok.fg, bg: neutral[0], min: 4.5 },
+  { name: 'ok signal fg on ok bg', fg: signal.ok.fg, bg: signal.ok.bg, min: 4.5 },
+  { name: 'ok signal fgDark on dark bg', fg: signal.ok.fgDark, bg: dark.bg, min: 4.5 },
+  { name: 'ok signal fgDark on ok bgDark', fg: signal.ok.fgDark, bg: signal.ok.bgDark, min: 4.5 },
+  { name: 'neutral signal fg on white', fg: signal.neutral.fg, bg: neutral[0], min: 4.5 },
+  { name: 'neutral signal fg on neutral bg', fg: signal.neutral.fg, bg: signal.neutral.bg, min: 4.5 },
+  { name: 'neutral signal fgDark on dark bg', fg: signal.neutral.fgDark, bg: dark.bg, min: 4.5 },
+  { name: 'neutral signal fgDark on neutral bgDark', fg: signal.neutral.fgDark, bg: signal.neutral.bgDark, min: 4.5 },
   { name: 'neutral-900 text on white', fg: neutral[900], bg: neutral[0], min: 4.5 },
   { name: 'neutral-600 text on white', fg: neutral[600], bg: neutral[0], min: 4.5 },
   { name: 'brand-700 text on white', fg: brand[700], bg: neutral[0], min: 4.5 },
