@@ -1,0 +1,550 @@
+/* Madrasa theme: dignity and calm. Soft corners, hairline gold rules, a typographic hero with the Arabic opening line,
+   geometric (eight-point star) pattern only, never a human figure. Loaded after Basic's theme.css, which supplies the
+   shared structure (islands, forms, carousel, announcement bar, footer); this file only reskins it.
+   Colours come from the five palette vars (--primary --secondary --accent --surface --ink) set on <html> by
+   css-vars.ts, so a palette switch needs no CSS change (D28). The one fixed colour is --danger, reserved for urgent
+   notices. Gold (--accent) is for hairlines and markers, never for text. Arabic text (lang="ar") is always Amiri, loaded
+   below whatever font pair the school picked. No section styles itself from a neighbour: no position selectors on
+   section wrappers (D31). */
+@font-face {
+  font-family: 'Amiri';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/madrasa/amiri-400-arabic.woff2) format('woff2');
+  unicode-range:
+    U+0020, U+00A0, U+0621-064A, U+064B-0655, U+0670-0671, U+06CC, U+200C-200F, U+2018-2019,
+    U+FD3E-FD3F, U+FDFA;
+}
+.t-madrasa {
+  --on-primary: #fff;
+  --danger: #a2321f;
+  --r: 10px;
+  --r-s: 6px;
+  --max: 1120px;
+  --warn: var(--danger);
+  --warn-soft: color-mix(in srgb, var(--danger) 10%, var(--surface));
+  --bg-2: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  --line: color-mix(in srgb, var(--ink) 20%, var(--surface));
+  --line-accent: color-mix(in srgb, var(--accent) 70%, var(--surface));
+  --paper: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  --ann-bg: var(--paper);
+  --ann-ink: var(--ink);
+  --ann-label-bg: var(--primary);
+  --ann-label-ink: var(--on-primary);
+  --ann-r: 0;
+  --ann-m: 0;
+  --hc-bg: var(--bg-2);
+  --hc-ink: var(--ink);
+  --hc-line: var(--line-accent);
+  --hc-cap-r: 6px;
+  --sa-ink: var(--primary);
+  --sa-r: 6px;
+  --hc-focus: var(--primary);
+}
+.t-madrasa :lang(ar) {
+  font-family: 'Amiri', 'Noto Naskh Arabic', serif;
+}
+.t-madrasa {
+  --hd: var(--en-h);
+}
+html[lang='bn'] .t-madrasa {
+  --hd: var(--bn-h);
+}
+.t-madrasa {
+  background: var(--surface);
+  color: var(--ink);
+}
+.t-madrasa h1,
+.t-madrasa h2,
+.t-madrasa h3,
+.t-madrasa h4 {
+  letter-spacing: 0;
+}
+/* letterhead bar and header */
+.t-madrasa .letterhead {
+  background: var(--secondary);
+  color: var(--on-primary);
+  font-size: 14px;
+}
+.t-madrasa .letterhead .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 22px;
+  align-items: center;
+  min-height: 36px;
+  padding-block: 4px;
+}
+.t-madrasa .top {
+  background: var(--surface);
+  backdrop-filter: none;
+  border-bottom: 1px solid var(--line-accent);
+} /* a backdrop filter would trap the fixed menu sheet inside the header */
+.t-madrasa .logo {
+  background: none;
+  border-radius: var(--r-s);
+  width: 44px;
+  height: 44px;
+}
+.t-madrasa .logo img {
+  border-radius: var(--r-s);
+}
+.t-madrasa .logo svg {
+  width: 44px;
+  height: 44px;
+}
+.t-madrasa .crest-shield {
+  fill: var(--primary);
+}
+.t-madrasa .crest-rule {
+  fill: none;
+  stroke: var(--on-primary);
+  stroke-width: 1.5;
+}
+.t-madrasa .crest-letter {
+  fill: var(--on-primary);
+  font: 700 17px var(--bn-h);
+}
+.t-madrasa .brand b {
+  font-size: 17px;
+}
+.t-madrasa .nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border-radius: var(--r-s);
+  border-bottom: 3px solid transparent;
+}
+.t-madrasa .nav a[aria-current] {
+  background: none;
+  color: var(--primary);
+  border-bottom-color: var(--accent);
+}
+.t-madrasa .btn {
+  border-radius: var(--r-s);
+}
+.t-madrasa .btn-sm {
+  min-height: 44px;
+}
+.t-madrasa .btn-primary {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.t-madrasa .btn-primary:hover {
+  background: var(--secondary);
+}
+.t-madrasa .btn-ghost {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--ink);
+}
+.t-madrasa .lang {
+  border-radius: var(--r-s);
+  border-color: var(--ink);
+}
+.t-madrasa .lang a {
+  height: 44px;
+  padding: 0 14px;
+  border-radius: var(--r-s);
+}
+.t-madrasa .lang a[aria-current='true'] {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+/* phone menu: a bottom sheet (<details>, no script) */
+.t-madrasa .menu {
+  position: relative;
+}
+.t-madrasa .menu summary {
+  list-style: none;
+}
+.t-madrasa .menu summary::-webkit-details-marker {
+  display: none;
+}
+/* Basic draws a "+" after every <summary> (its FAQ); the menu button has its own icon */
+.t-madrasa .menu summary::after {
+  content: none;
+}
+.t-madrasa .menu summary {
+  padding: 0;
+}
+.t-madrasa .menu .menu-btn {
+  border-radius: var(--r-s);
+  border-color: var(--ink);
+  cursor: pointer;
+}
+.t-madrasa .sheet-panel {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 40;
+  max-height: 80vh;
+  overflow: auto;
+  background: var(--surface);
+  border-top: 4px solid var(--accent);
+  padding: 20px var(--pad) 28px;
+  box-shadow: 0 -12px 32px color-mix(in srgb, var(--ink) 25%, transparent);
+}
+.t-madrasa .sheet-panel nav {
+  display: grid;
+  gap: 0;
+  margin: 0 0 16px;
+}
+.t-madrasa .sheet-panel nav a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 4px;
+  font-size: 19px;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+.t-madrasa .sheet-panel nav a[aria-current] {
+  color: var(--primary);
+  box-shadow: inset 4px 0 0 var(--accent);
+  padding-left: 14px;
+}
+.t-madrasa .sheet-panel .btn {
+  width: 100%;
+}
+.t-madrasa .menu[open] summary::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+@media (min-width: 1024px) {
+  .t-madrasa .menu {
+    display: none;
+  }
+}
+/* hero: a typographic page, the Arabic opening line first; the star field only when there is no photo */
+.t-madrasa .hero {
+  position: relative;
+  padding: 40px 0 48px;
+  border-bottom: 1px solid var(--line-accent);
+  overflow: hidden;
+}
+.t-madrasa .hero .wrap {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+}
+.t-madrasa .stars {
+  position: absolute;
+  inset: 0;
+  opacity: 0.16;
+  pointer-events: none;
+}
+.t-madrasa .stars path {
+  fill: var(--accent);
+}
+.t-madrasa .bismillah {
+  margin: 0 0 12px;
+  font-size: clamp(28px, 7vw, 44px);
+  line-height: 1.7;
+  color: var(--primary);
+  text-align: center;
+}
+.t-madrasa .hero .copy {
+  text-align: center;
+  max-width: 760px;
+  margin-inline: auto;
+}
+.t-madrasa .hero .kicker {
+  display: block;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  font-size: inherit;
+  margin: 0 0 12px;
+  padding: 0;
+  font-weight: 700;
+  color: var(--primary);
+}
+.t-madrasa .hero h1 {
+  font-size: calc(clamp(30px, 7.5vw, 56px) * var(--h-size, 1));
+  line-height: 1.3;
+  color: var(--primary);
+  text-align: var(--h-align, center);
+  overflow-wrap: anywhere;
+}
+.t-madrasa .hero p.lead {
+  font-size: 18px;
+  max-width: 56ch;
+  margin: 16px auto 24px;
+}
+.t-madrasa .hero .cta {
+  justify-content: center;
+}
+.t-madrasa .plate {
+  border: 1px solid var(--accent);
+  padding: 10px;
+  background: var(--surface);
+  border-radius: var(--r);
+}
+.t-madrasa .plate .hc {
+  border-radius: var(--r-s);
+}
+@media (min-width: 900px) {
+  .t-madrasa .hero {
+    padding: 72px 0 80px;
+  }
+}
+/* sections: every one carries its own background, none depends on a neighbour */
+.t-madrasa .sec {
+  padding: 44px 0;
+}
+.t-madrasa .sec-tint {
+  background: var(--bg-2);
+  border-block: 1px solid var(--line);
+}
+.t-madrasa .sec h2 {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 8px;
+}
+.t-madrasa .sec h2::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 64px;
+  height: 4px;
+  background: var(--accent);
+}
+.t-madrasa .sec-head {
+  margin-bottom: 20px;
+}
+.t-madrasa .prose-p {
+  white-space: pre-line;
+  margin-top: 14px;
+  max-width: 64ch;
+}
+.t-madrasa .photo,
+.t-madrasa .cover {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  border: 1px solid var(--ink);
+  padding: 8px;
+  background: var(--surface);
+  aspect-ratio: 3/2;
+}
+.t-madrasa .cover {
+  aspect-ratio: 1200/630;
+  border: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--line);
+}
+.t-madrasa .card {
+  border-radius: var(--r-s);
+  border-color: var(--line);
+  background: var(--surface);
+}
+.t-madrasa .empty {
+  border-radius: var(--r-s);
+  border-color: var(--line);
+}
+.t-madrasa .slot {
+  aspect-ratio: 1200/630;
+  border: 0;
+  border-radius: var(--r-s);
+  background: var(--bg-2);
+}
+/* academics: four programme cards in stepped greens */
+.t-madrasa .progs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+.t-madrasa .prog {
+  padding: 22px 20px;
+  border-radius: var(--r);
+  border: 1px solid var(--accent);
+  color: var(--on-primary);
+}
+.t-madrasa .prog .prose-p {
+  margin: 6px 0 0;
+  max-width: none;
+}
+.t-madrasa .prog-name {
+  display: block;
+  font: 700 clamp(22px, 3vw, 28px)/1.3 var(--hd);
+}
+.t-madrasa .tone0 {
+  background: var(--primary);
+}
+.t-madrasa .tone1 {
+  background: color-mix(in srgb, var(--primary) 75%, var(--secondary));
+}
+.t-madrasa .tone2 {
+  background: color-mix(in srgb, var(--primary) 50%, var(--secondary));
+}
+.t-madrasa .tone3 {
+  background: var(--secondary);
+}
+@media (min-width: 720px) {
+  .t-madrasa .progs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1024px) {
+  .t-madrasa .progs {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+/* admissions: a framed box with a gold hairline */
+.t-madrasa .notice-box {
+  border: 1px solid var(--accent);
+  border-radius: var(--r);
+  padding: 24px 20px;
+  background: var(--surface);
+}
+.t-madrasa .intakes {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.t-madrasa .intakes .card {
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  border: 1px solid var(--line);
+}
+/* notices, events */
+.t-madrasa .notice-list {
+  border: 1px solid var(--ink);
+  border-radius: var(--r-s);
+}
+.t-madrasa .date {
+  border-radius: var(--r-s);
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.t-madrasa .date span {
+  color: var(--on-primary);
+}
+.t-madrasa .ev .date {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.t-madrasa .chip {
+  border-radius: var(--r-s);
+}
+.t-madrasa .chip-accent {
+  background: var(--paper);
+  color: var(--ink);
+}
+.t-madrasa .sk i {
+  border-radius: var(--r-s);
+  background: linear-gradient(90deg, var(--bg-2) 25%, var(--paper) 50%, var(--bg-2) 75%);
+  background-size: 200% 100%;
+}
+/* teachers: square plates */
+.t-madrasa .tcard {
+  padding: 18px 14px;
+}
+.t-madrasa .avatar {
+  border-radius: var(--r-s);
+  width: 96px;
+  height: 96px;
+  background: var(--bg-2);
+  border: 1px solid var(--ink);
+  display: grid;
+  place-items: center;
+  font: 700 34px var(--bn-h);
+  color: var(--primary);
+}
+.t-madrasa .avatar::before,
+.t-madrasa .avatar::after {
+  content: none;
+}
+.t-madrasa .tcard img {
+  width: 96px;
+  height: 96px;
+  border-radius: var(--r-s);
+  object-fit: cover;
+  margin: 0 auto;
+  border: 1px solid var(--ink);
+}
+.t-madrasa .seeall a {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+@media (hover: hover) {
+  .t-madrasa .seeall a:hover {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+}
+/* blog, contact, forms */
+.t-madrasa .post {
+  border-radius: var(--r-s);
+}
+.t-madrasa .field input,
+.t-madrasa .field select,
+.t-madrasa .field textarea {
+  border-radius: var(--r-s);
+  border-color: var(--ink);
+}
+.t-madrasa .kv.spaced {
+  margin: 16px 0 20px;
+}
+.t-madrasa .mapframe {
+  border-radius: var(--r-s);
+  border-color: var(--ink);
+}
+/* footer */
+.t-madrasa .foot {
+  background: var(--ink);
+  color: var(--surface);
+  margin-top: 0;
+  border-top: 4px solid var(--accent);
+}
+.t-madrasa .foot h4 {
+  color: var(--surface);
+}
+.t-madrasa .foot a {
+  color: var(--surface);
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+.t-madrasa .credit {
+  border-top-color: color-mix(in srgb, var(--surface) 24%, var(--ink));
+  color: color-mix(in srgb, var(--surface) 80%, var(--ink));
+}
+.t-madrasa .credit a {
+  color: var(--surface);
+  display: inline;
+  min-height: 0;
+}
+/* focus, motion */
+.t-madrasa a:focus-visible,
+.t-madrasa button:focus-visible,
+.t-madrasa summary:focus-visible,
+.t-madrasa input:focus-visible,
+.t-madrasa select:focus-visible,
+.t-madrasa textarea:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--r-s);
+}
+.t-madrasa .foot a:focus-visible,
+.t-madrasa .letterhead a:focus-visible {
+  outline-color: var(--surface);
+}
+@media (max-width: 719px) {
+  .t-madrasa .sec {
+    padding: 36px 0;
+  }
+}

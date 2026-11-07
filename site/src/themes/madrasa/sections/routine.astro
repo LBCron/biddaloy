@@ -1,0 +1,31 @@
+---
+import Skeleton from '../../../components/Skeleton.astro';
+import { t } from '../../../i18n/t';
+import { field } from '../../../lib/pick';
+import { routineOptions } from '../../../lib/sections';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang } = Astro.props as SectionProps;
+const title = field(data.title, lang) ?? t(lang, 'section.routine');
+// The server adds `data.sections` ([{ id, label }]) to the routine section; with none there is nothing to pick.
+const options = routineOptions(data, lang);
+const days = Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map((d) => [`data-d${d}`, t(lang, `routine.d${d}`)]));
+---
+{options.length > 0 && (
+  <section class="sec sec-tint" id="routine"><div class="wrap">
+    <div class="sec-head"><h2>{title}</h2></div>
+    <div class="island" data-routine data-lang={lang} data-empty={t(lang, 'routine.empty')} data-error={t(lang, 'routine.error')} {...days} data-loading aria-busy="true">
+      <label class="field"><span>{t(lang, 'routine.class')}</span>
+        <select>
+          <option value="">{t(lang, 'routine.pick')}</option>
+          {options.map((o) => <option value={o.id}>{o.label}</option>)}
+        </select>
+      </label>
+      <Skeleton label={t(lang, 'routine.loading')} />
+      <div class="ready routine-grid" aria-live="polite"></div>
+    </div>
+  </div></section>
+  <script>
+    import '../../../islands/routine';
+  </script>
+)}

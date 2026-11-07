@@ -1,0 +1,33 @@
+---
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang } = Astro.props as SectionProps;
+const title = field(data.title, lang);
+const body = field(data.body, lang);
+// Each blank-line-separated paragraph is one programme card, in stepped greens (tone 0 to 3, repeating);
+// "Name: what it covers" splits at the first colon.
+const cards = (body ?? '')
+  .split(/\n\s*\n/)
+  .map((b) => b.trim())
+  .filter(Boolean)
+  .map((b) => {
+    const m = /^([^:：]{1,40})[:：]\s*([\s\S]+)$/.exec(b);
+    return m ? { name: m[1].trim(), text: m[2].trim() } : { name: undefined, text: b };
+  });
+---
+{(title || cards.length > 0) && (
+  <section class="sec" id="academics"><div class="wrap">
+    {title && <div class="sec-head"><h2>{title}</h2></div>}
+    {cards.length > 0 && (
+      <ul class="progs">
+        {cards.map((c, i) => (
+          <li class={`prog tone${i % 4}`}>
+            {c.name && <b class="prog-name">{c.name}</b>}
+            <p class="prose-p">{c.text}</p>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div></section>
+)}

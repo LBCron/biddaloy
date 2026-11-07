@@ -1,0 +1,45 @@
+---
+import HeroCarousel from '../../../components/HeroCarousel.astro';
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang } = Astro.props as SectionProps;
+const raw = (data.photos ?? data.images ?? []) as unknown[];
+const photos = raw.filter((p): p is string => typeof p === 'string');
+const kicker = field(data.kicker, lang);
+const headline = field(data.headline, lang);
+const tagline = field(data.tagline, lang);
+const primary = field(data.ctaPrimary, lang);
+const secondary = field(data.ctaSecondary, lang);
+const base = `/${lang}/`;
+const hasText = !!(kicker || headline || tagline || primary || secondary);
+---
+{(hasText || photos.length > 0) && (
+  <section class="hero" id="hero">
+    {hasText && photos.length === 0 && (
+      <svg class="stars" aria-hidden="true" focusable="false" width="100%" height="100%">
+        <defs>
+          <pattern id="star-field" width="72" height="72" patternUnits="userSpaceOnUse">
+            <path d="M36 6 44 20 60 14 54 30 68 36 54 42 60 58 44 52 36 66 28 52 12 58 18 42 4 36 18 30 12 14 28 20Z" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#star-field)" />
+      </svg>
+    )}
+    <div class="wrap">
+      {hasText && (
+        <div class="copy">
+          <p class="bismillah" lang="ar" dir="rtl">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</p>
+          {kicker && <p class="kicker">{kicker}</p>}
+          {headline && <h1>{headline}</h1>}
+          {tagline && <p class="lead">{tagline}</p>}
+          <div class="cta">
+            {primary && <a class="btn btn-primary" href={`${base}admissions/`}>{primary}</a>}
+            {secondary && <a class="btn btn-ghost" href={`${base}contact/`}>{secondary}</a>}
+          </div>
+        </div>
+      )}
+      {photos.length > 0 && <div class="plate"><HeroCarousel photos={photos} lang={lang} /></div>}
+    </div>
+  </section>
+)}
