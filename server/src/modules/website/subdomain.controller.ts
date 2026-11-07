@@ -11,7 +11,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Permission } from '@biddaloy/shared';
 import { ContextGuard, RolesGuard } from '../auth/guards/context.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -48,6 +48,11 @@ export class SubdomainController {
   @Get('subdomain/check')
   @ApiOperation({
     summary: 'Is this address free? `available: false` for invalid and taken alike.',
+  })
+  @ApiQuery({
+    name: 'value',
+    type: String,
+    description: 'The address to check, without the root domain.',
   })
   @ApiOkResponse({ type: SubdomainCheckDto })
   check(@Query('value') value: unknown, @CurrentTenant() t: Tenant) {

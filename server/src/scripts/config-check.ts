@@ -110,6 +110,8 @@ export function composeAppEnv(env: Record<string, unknown>): Record<string, unkn
     S3_BUCKET: str('S3_BUCKET') || 'biddaloy',
     SENTRY_TRACES_SAMPLE_RATE: str('SENTRY_TRACES_SAMPLE_RATE') || '0.1',
     DB_SSL: 'true',
+    // Same mapping as the x-app block of deploy/stack.yml.
+    SITE_ROOT_DOMAIN: str('ROOT_DOMAIN'),
     // After ...env: compose builds it, a DATABASE_URL in the host file is never used.
     DATABASE_URL: `postgres://${str('POSTGRES_USER')}:${str('POSTGRES_PASSWORD')}@db:5432/${str('POSTGRES_DB')}?sslmode=require`,
   };

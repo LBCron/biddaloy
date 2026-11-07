@@ -15,7 +15,7 @@ const s = (v: unknown) => (typeof v === 'string' ? v : undefined);
     <div class="grid g4">
       {feed.map((p) => (
         <div class="card tcard">
-          {s(p.photo) ? <img src={`/media/${s(p.photo)}`} alt="" loading="lazy" width="96" height="96" /> : <div class="avatar"></div>}
+          {s(p.photo) ? <img src={`/media/${encodeURIComponent(s(p.photo)!)}`} alt="" loading="lazy" width="96" height="96" /> : <div class="avatar"></div>}
           <b>{field(p.name, lang) ?? s(p.name)}</b>
           <span class="small">{field(p.designation, lang) ?? s(p.designation)}</span>
         </div>

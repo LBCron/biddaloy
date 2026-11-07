@@ -13,10 +13,10 @@ const s = (v: unknown) => (typeof v === 'string' ? v : undefined);
   {feed.length === 0 ? <p class="empty">{t(lang, 'empty')}</p> : (
     <div class="grid g3">
       {feed.map((p) => (
-        <a class="card post" href={`/${lang}/blog/${s(p.slug) ?? ''}`}>
-          {s(p.cover) ? <img src={`/media/${s(p.cover)}`} alt="" loading="lazy" style="aspect-ratio:1200/630;object-fit:cover;width:100%" /> : <div class="slot"></div>}
+        <a class="card post" href={`/${lang}/blog/${encodeURIComponent(s(p.slug) ?? '')}`}>
+          {s(p.cover) ? <img src={`/media/${encodeURIComponent(s(p.cover)!)}`} alt="" loading="lazy" style="aspect-ratio:1200/630;object-fit:cover;width:100%" /> : <div class="slot"></div>}
           <div class="body">
-            {s(p.publishedAt) && <span class="tiny">{new Date(s(p.publishedAt)!).toLocaleDateString(loc, { dateStyle: 'long' })}</span>}
+            {s(p.publishedAt) && !Number.isNaN(new Date(s(p.publishedAt)!).getTime()) && <span class="tiny">{new Date(s(p.publishedAt)!).toLocaleDateString(loc, { dateStyle: 'long', timeZone: 'Asia/Dhaka' })}</span>}
             <h3>{field(p.title, lang) ?? s(p.title)}</h3>
           </div>
         </a>
