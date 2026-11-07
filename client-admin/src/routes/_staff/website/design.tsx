@@ -65,7 +65,7 @@ type Lang = 'bn' | 'en';
 const palettesOf = (theme: WebsiteTheme | undefined) =>
   (theme?.palettes ?? []) as unknown as Palette[];
 const fontsOf = (theme: WebsiteTheme | undefined, lang: Lang) =>
-  ((theme?.fonts as unknown as Record<Lang, Font[]> | undefined)?.[lang] ?? []) as Font[];
+  (theme?.fonts as unknown as Record<Lang, Font[]> | undefined)?.[lang] ?? [];
 const defaultTypographyOf = (theme: WebsiteTheme) =>
   theme.defaultTypography as unknown as SiteTypography;
 const nameOf = (text: unknown, lang: Lang, fallback: string) => {
@@ -121,7 +121,7 @@ function DesignEditor({ themes }: { themes: readonly WebsiteTheme[] }) {
     }
   }, [preview.data?.url]);
 
-  const theme = themes.find((x) => x.id === draft.theme) ?? themes[0];
+  const theme = themes.find((x) => x.id === String(draft.theme)) ?? themes[0];
   const paletteOptions: PaletteOption[] = palettesOf(theme).map((p) => ({
     id: p.id,
     name: { bn: nameOf(p.name, 'bn', p.id), en: nameOf(p.name, 'en', p.id) },
