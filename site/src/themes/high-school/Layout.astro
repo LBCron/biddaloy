@@ -1,0 +1,66 @@
+---
+import AnnouncementBar from '../../components/AnnouncementBar.astro';
+import Footer from '../../components/Footer.astro';
+import LangSwitch from '../../components/LangSwitch.astro';
+import { t } from '../../i18n/t';
+import { pick } from '../../lib/pick';
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import type { Lang, SiteManifest } from '../../lib/types';
+import { portalUrl, tx } from './text';
+import '../basic/theme.css';
+import './theme.css';
+
+interface Props {
+  manifest: SiteManifest;
+  lang: Lang;
+  rest?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+}
+const { manifest, lang, rest = '', title, description, image } = Astro.props;
+const name = pick(manifest.schoolName, lang) ?? '';
+const nav = manifest.nav.filter((n) => n.page !== 'home');
+const portal = portalUrl(process.env.PORTAL_URL);
+const c = manifest.contact;
+// The letterhead bar: phone and hours when the school has given them; no bar when it has given neither.
+const bar = [c?.phone, pick(c?.hours, lang)].filter(Boolean) as string[];
+const items = [
+  { href: `/${lang}/`, label: t(lang, 'nav.home'), current: rest === '' },
+  ...nav.map((n) => ({
+    href: `/${lang}/${n.page}/`,
+    label: (n.label && pick(n.label, lang)) || t(lang, `nav.${n.page}`),
+    current: rest === `${n.page}/`,
+  })),
+];
+---
+<SiteLayout manifest={manifest} lang={lang} rest={rest} title={title} description={description} image={image}>
+  <AnnouncementBar bar={manifest.announcements} lang={lang} />
+  {bar.length > 0 && <div class="letterhead"><div class="wrap">{bar.map((b) => <span>{b}</span>)}</div></div>}
+  <header class="top"><div class="wrap">
+    <a class="brand" href={`/${lang}/`}>
+      <span class="logo">{manifest.logo ? <img src={manifest.logo} alt="" width="44" height="44" /> : (
+        <svg viewBox="0 0 44 44" aria-hidden="true" focusable="false"><path class="crest-shield" d="M6 4h32v20c0 9-7 14-16 17C13 38 6 33 6 24z" /><path class="crest-rule" d="M11 9h22v14c0 6-5 10-11 12-6-2-11-6-11-12z" /><text class="crest-letter" x="22" y="27" text-anchor="middle">{name.slice(0, 1)}</text></svg>
+      )}</span>
+      <span><b>{name}</b></span>
+    </a>
+    <nav class="nav" aria-label={tx(lang, 'main')}>
+      {items.map((i) => <a href={i.href} aria-current={i.current ? 'page' : undefined}>{i.label}</a>)}
+    </nav>
+    <div class="tools">
+      <LangSwitch lang={lang} rest={rest} />
+      {portal && <a class="btn btn-primary btn-sm portal" href={portal} rel="noopener">{tx(lang, 'portal')}</a>}
+      <details class="menu">
+        <summary class="menu-btn" aria-label={tx(lang, 'menu')}><span aria-hidden="true"></span></summary>
+        <div class="sheet-panel">
+          <nav aria-label={tx(lang, 'menu')}>
+            {items.map((i) => <a href={i.href} aria-current={i.current ? 'page' : undefined}>{i.label}</a>)}
+          </nav>
+          {portal && <a class="btn btn-primary" href={portal} rel="noopener">{tx(lang, 'portal')}</a>}
+        </div>
+      </details>
+    </div>
+  </div></header>
+  <main id="main"><slot /></main>
+  <Footer manifest={manifest} lang={lang} />
+</SiteLayout>

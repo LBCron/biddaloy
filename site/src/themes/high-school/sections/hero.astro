@@ -1,0 +1,35 @@
+---
+import HeroCarousel from '../../../components/HeroCarousel.astro';
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang } = Astro.props as SectionProps;
+const raw = (data.photos ?? data.images ?? []) as unknown[];
+const photos = raw.filter((p): p is string => typeof p === 'string');
+const kicker = field(data.kicker, lang);
+const headline = field(data.headline, lang);
+const tagline = field(data.tagline, lang);
+const primary = field(data.ctaPrimary, lang);
+const secondary = field(data.ctaSecondary, lang);
+const base = `/${lang}/`;
+// The founding year is the first four-digit run (Bangla or English digits) in the kicker, drawn as an outlined numeral.
+const year = kicker?.match(/[0-9০-৯]{4}/)?.[0];
+const hasText = !!(kicker || headline || tagline || primary || secondary);
+---
+{(hasText || photos.length > 0) && (
+  <section class="hero" id="hero"><div class="wrap">
+    {hasText && (
+      <div class="copy">
+        {kicker && <p class="kicker">{kicker}</p>}
+        {headline && <h1>{headline}</h1>}
+        {tagline && <p class="lead">{tagline}</p>}
+        <div class="cta">
+          {primary && <a class="btn btn-primary" href={`${base}admissions/`}>{primary}</a>}
+          {secondary && <a class="btn btn-ghost" href={`${base}contact/`}>{secondary}</a>}
+        </div>
+      </div>
+    )}
+    {year && <p class="year" aria-hidden="true">{year}</p>}
+    {photos.length > 0 && <div class="plate"><HeroCarousel photos={photos} lang={lang} /></div>}
+  </div></section>
+)}

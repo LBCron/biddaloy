@@ -1,0 +1,26 @@
+---
+import { t } from '../../../i18n/t';
+import { field } from '../../../lib/pick';
+import type { SectionProps } from '../../../lib/types';
+
+const { data, lang, feed } = Astro.props as SectionProps;
+const title = field(data.title, lang) ?? t(lang, 'section.blog');
+const loc = lang === 'en' ? 'en-GB' : 'bn-BD';
+const s = (v: unknown) => (typeof v === 'string' ? v : undefined);
+---
+<section class="sec sec-tint" id="blog"><div class="wrap">
+  <div class="sec-head"><h2>{title}</h2></div>
+  {feed.length === 0 ? <p class="empty">{t(lang, 'empty')}</p> : (
+    <div class="grid g3">
+      {feed.map((p) => (
+        <a class="card post" href={`/${lang}/blog/${s(p.slug) ?? ''}`}>
+          {s(p.cover) ? <img class="cover" src={`/media/${s(p.cover)}`} alt="" loading="lazy" width="1200" height="630" /> : <div class="slot"></div>}
+          <div class="body">
+            {s(p.publishedAt) && <span class="tiny">{new Date(s(p.publishedAt)!).toLocaleDateString(loc, { dateStyle: 'long' })}</span>}
+            <h3>{field(p.title, lang) ?? s(p.title)}</h3>
+          </div>
+        </a>
+      ))}
+    </div>
+  )}
+</div></section>
