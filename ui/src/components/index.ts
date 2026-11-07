@@ -510,7 +510,6 @@ export {
   type FontPairPickerProps,
 } from './font-pair-picker';
 export * from './image-slot-upload/index';
-export * from './rich-text-editor/index';
 export {
   SectionOrderList,
   type SectionOrderItem,

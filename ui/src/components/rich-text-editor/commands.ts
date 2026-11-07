@@ -3,7 +3,7 @@
  */
 import { Editor, Element, Node, Path, Range, Transforms, type Descendant } from 'slate';
 
-import { isSafeHref } from './serialize';
+import { normalizeHref } from './serialize';
 import type { BlockType, ImageNode, ListType, TextNode } from './types';
 
 const LISTS: readonly string[] = ['bulleted-list', 'numbered-list'];
@@ -89,8 +89,9 @@ export function deleteTable(editor: Editor) {
 }
 
 /** False (and nothing inserted) when the link is not one the server accepts. */
-export function setLink(editor: Editor, href: string): boolean {
-  if (!isSafeHref(href)) return false;
+export function setLink(editor: Editor, raw: string): boolean {
+  const href = normalizeHref(raw);
+  if (!href) return false;
   unwrapLink(editor);
   const { selection } = editor;
   if (selection && !Range.isCollapsed(selection)) {
@@ -105,12 +106,18 @@ export function unwrapLink(editor: Editor) {
   Transforms.unwrapNodes(editor, { match: (n) => isEl(n) && n.type === 'link' });
 }
 
+export const inList = (editor: Editor) => !!findAbove(editor, 'list-item');
+
+/** After the top-level block the cursor is in, so it never lands inside a list item or cell. */
 export function insertImage(editor: Editor, mediaId: string, alt: string) {
   const img: ImageNode = { type: 'image', mediaId, alt, children: [{ text: '' } as TextNode] };
-  Transforms.insertNodes(editor, [
-    img as Descendant,
-    { type: 'paragraph', children: [{ text: '' }] },
-  ]);
+  const top = editor.selection?.anchor.path[0];
+  const at = top === undefined ? [editor.children.length] : [top + 1];
+  Transforms.insertNodes(
+    editor,
+    [img as Descendant, { type: 'paragraph', children: [{ text: '' }] }],
+    { at, select: true },
+  );
 }
 
 /** Backspace on an empty list item leaves the list. Returns true when it handled the key. */
