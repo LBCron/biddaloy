@@ -5,9 +5,7 @@
  * Saving a draft reuses `useSaveDraft` from `use-website.ts`. Every mutation here is
  * `retry: false` (Rule 25); create and publish carry an `Idempotency-Key`.
  *
- * TODO(#3638): the post / enquiry / teacher DTOs below are hand-typed because the server routes
- * (#3628) are not in `schema.d.ts` yet. W3 close regenerates the schema; then each alias becomes
- * `components['schemas'][...]` and the hand-typed shapes are deleted.
+ * Every DTO type comes from the generated `schema.d.ts`.
  */
 import {
   SiteSectionKey,
@@ -21,6 +19,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiClient } from '../api/client';
+import type { components } from '../api/schema';
 
 import { useIdempotencyKey } from './idempotency-key';
 import { shouldRetryQuery } from './retry';
@@ -117,65 +116,13 @@ export const setTheme = (config: SiteConfig, theme: SiteTheme): SiteConfig => ({
 
 /* --------------------------------- types ----------------------------------- */
 
-type Bilingual = { bn: string; en: string };
-/** A Slate JSON array; `rich-text-editor` owns the node types. */
-type SlateBody = unknown[];
-
-/** TODO(#3638): replace with the generated `SitePostDto`. */
-export interface SitePost {
-  id: string;
-  kind: 'POST' | 'PAGE';
-  slug: string;
-  title: Bilingual;
-  excerpt?: Bilingual | null;
-  body: SlateBody;
-  cover_media_id?: string | null;
-  published_at?: string | null;
-  updated_at: string;
-}
-
-/** TODO(#3638): replace with the generated `SitePostInputDto`. */
-export interface SitePostInput {
-  kind: SitePost['kind'];
-  title: Bilingual;
-  excerpt?: Bilingual | null;
-  body: SlateBody;
-  cover_media_id?: string | null;
-}
-
-/** TODO(#3638): replace with the generated `SiteEnquiryDto`. */
-export interface SiteEnquiry {
-  id: string;
-  name: string;
-  phone: string;
-  message: string;
-  status: 'NEW' | 'SEEN';
-  created_at: string;
-}
-
-/** TODO(#3638): replace with the generated paged enquiry DTO. */
-export interface SiteEnquiryPage {
-  items: SiteEnquiry[];
-  total: number;
-  page: number;
-  limit: number;
-}
-
-/** TODO(#3638): replace with the generated `StaffWebProfileDto`. */
-export interface WebTeacher {
-  user_id: string;
-  name: string;
-  show_on_website: boolean;
-  featured: boolean;
-  sort_order?: number | null;
-  subjects: string[];
-  bio?: Bilingual | null;
-  credentials?: Bilingual | null;
-  photo_media_id?: string | null;
-}
-
-/** TODO(#3638): replace with the generated `StaffWebProfileInputDto`. */
-export type WebTeacherInput = Omit<WebTeacher, 'user_id' | 'name'>;
+export type SitePost = components['schemas']['PostDto'];
+export type SitePostList = components['schemas']['PostListDto'];
+export type SitePostInput = components['schemas']['SavePostDto'];
+export type SiteEnquiry = components['schemas']['EnquiryDto'];
+export type SiteEnquiryPage = components['schemas']['EnquiryListDto'];
+export type WebTeacher = components['schemas']['StaffWebProfileDto'];
+export type WebTeacherInput = components['schemas']['SaveStaffWebProfileDto'];
 
 export const ENQUIRY_PAGE_SIZE = 20;
 
@@ -193,7 +140,7 @@ export function usePosts() {
   return useQuery({
     queryKey: websiteContentKeys.posts(),
     queryFn: async ({ signal }) =>
-      (await apiClient.get<SitePost[]>('/website/posts', { signal })).data,
+      (await apiClient.get<SitePostList>('/website/posts', { signal })).data,
     retry: shouldRetryQuery,
   });
 }
