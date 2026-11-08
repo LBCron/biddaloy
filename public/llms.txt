@@ -1,0 +1,12 @@
+# Biddaloy
+
+> Educational platform and portal indexed for AI search engines and LLM assistants (/llms.txt).
+
+## Key Sections
+
+- [Biddaloy Repository](https://github.com/tareq89/biddaloy): Source repository and documentation.
+
+## AI Agent & SEO Metadata
+
+- Structured per the /llms.txt specification.
+- Validated via [AccessGuard AI-Readiness Suite](https://ronanchnlps-bit.github.io/).
